@@ -170,21 +170,30 @@ def test_forecast(
     expected_dali_g,
     expected_dali_h
 ):
-    """Test the output of get_forecast_tensors to reference values.
+    """Validate Fisher and DALI tensors against reference values.
+
+    This test is parametrized over simple scalar/vector models and covariance
+    matrices.
+
+    - Fisher is compared with `atol=0` (after casting to float64).
+    - DALI tensors (G, H) use a mixed tolerance: tight relative tolerance and a
+      tiny absolute floor only where the expected entries are near zero. This
+      avoids false failures from floating-point noise in ~0 entries while
+      keeping real values strict.
 
     Args:
-        model (callable): A function that parametrises a quantity expressed
-            in terms of fiducial values
-        fiducials (numpy.array): The fixed values at which the tensors are
-            computed
-        covariance_matrix (numpy.array): The covariance matrix used in the
-            computation of the forecast tensors
-        expected_fisher (numpy.array): The second order (derivative) forecast
-            tensor (the Fisher matrix)
-        expected_dali_g (numpy.array): The first third order forecast tensor,
-            third order in derivatives
-        expected_dali_h (numpy.array): The second third order forecast tensor,
-            fourth order in derivatives
+      model (Callable[[numpy.ndarray], numpy.ndarray | float]): Observable
+        model evaluated at `fiducials`.
+      fiducials (numpy.ndarray): Parameter point(s) at which derivatives are
+        evaluated.
+      covariance_matrix (numpy.ndarray): Observables' covariance used to weight
+        derivatives.
+      expected_fisher (numpy.ndarray): Reference Fisher matrix.
+      expected_dali_g (numpy.ndarray): Reference third-order DALI tensor G.
+      expected_dali_h (numpy.ndarray): Reference fourth-order DALI tensor H.
+
+    Raises:
+      AssertionError: If any tensor deviates beyond the specified tolerances.
     """
     observables = model
     fiducial_values = fiducials
@@ -198,9 +207,54 @@ def test_forecast(
     # https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
     # The value has been set to 0 instead, so the tolerance is quantified
     # by only the relative difference.
-    fisher_matrix = forecaster.fisher()
-    assert numpy.allclose(fisher_matrix, expected_fisher, atol=0)
 
+    # Fisher stays strict
+    fisher_matrix = forecaster.fisher()
+    assert numpy.allclose(numpy.asarray(fisher_matrix, float),
+                          numpy.asarray(expected_fisher, float),
+                          atol=0)
+
+    # DALI with tight relative tol + tiny absolute floor only near zero
     dali_g, dali_h = forecaster.dali()
-    assert numpy.allclose(dali_g, expected_dali_g, atol=0)
-    assert numpy.allclose(dali_h, expected_dali_h, atol=0)
+    _assert_close_mixed(dali_g, expected_dali_g, rtol=1e-7, label="dali_g")
+    _assert_close_mixed(dali_h, expected_dali_h, rtol=1e-7, label="dali_h")
+
+
+def _assert_close_mixed(actual, expected, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=""):
+    """Assert numerical closeness with a near-zero absolute floor.
+
+    Compares arrays using `numpy.isclose`, but applies a small absolute
+    tolerance only where the reference values are already near zero. This
+    pattern preserves strict relative comparisons for meaningful entries while
+    preventing spurious failures from sub-epsilon noise in ~0 slots.
+
+    Args:
+      actual (array_like): Actual values.
+      expected (array_like): Reference values (tolerances are defined relative to this).
+      rtol (float, optional): Relative tolerance for non-near-zero entries.
+      zero_band (float, optional): Threshold below which ``abs(b)`` is treated
+        as “near zero” and the absolute floor applies.
+      floor (float, optional): Absolute tolerance to allow only where
+        ``abs(b) < zero_band``.
+      label (str, optional): Short label included in the failure message.
+
+    Raises:
+      AssertionError: If any element of ``a`` is not close to ``b`` under the
+        mixed tolerance rule. The message includes the first failing index,
+        values, absolute difference, and effective tolerances.
+    """
+    actual = numpy.asarray(actual, dtype=float)  # ensure float64
+    expected = numpy.asarray(expected, dtype=float)
+
+    # absolute floor only where the *expected* value is near zero
+    atol = numpy.where(numpy.abs(expected) < zero_band, floor, 0.0)
+
+    ok = numpy.isclose(actual, expected, rtol=rtol, atol=atol)
+    if not ok.all():
+        idx = tuple(numpy.argwhere(~ok)[0])
+        diff = actual - expected
+        raise AssertionError(
+            f"{label} not close at {idx}: "
+            f"actual={actual[idx]} expected={expected[idx]} "
+            f"|diff|={abs(diff[idx])} rtol={rtol} atol[idx]={atol[idx]}"
+        )
