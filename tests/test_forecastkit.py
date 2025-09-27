@@ -173,10 +173,9 @@ def test_forecast(
     """Validate Fisher and DALI tensors against reference values.
 
     This test is parametrized over simple scalar/vector models and covariance
-    matrices. It constructs a :class:`ForecastKit` and compares the produced
-    tensors to precomputed references.
+    matrices.
 
-    - Fisher is compared **strictly** with `atol=0` (after casting to float64).
+    - Fisher is compared with `atol=0` (after casting to float64).
     - DALI tensors (G, H) use a mixed tolerance: tight relative tolerance and a
       tiny absolute floor only where the expected entries are near zero. This
       avoids false failures from floating-point noise in ~0 entries while
@@ -208,7 +207,7 @@ def test_forecast(
     # https://numpy.org/doc/stable/reference/generated/numpy.isclose.html.
     # The value has been set to 0 instead, so the tolerance is quantified
     # by only the relative difference.
-    # keep Fisher strict
+
     # Fisher stays strict
     fisher_matrix = forecaster.fisher()
     assert numpy.allclose(numpy.asarray(fisher_matrix, float),
@@ -221,17 +220,17 @@ def test_forecast(
     _assert_close_mixed(dali_h, expected_dali_h, rtol=1e-7, label="dali_h")
 
 
-def _assert_close_mixed(a, b, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=""):
+def _assert_close_mixed(actual, expected, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=""):
     """Assert numerical closeness with a near-zero absolute floor.
 
     Compares arrays using `numpy.isclose`, but applies a small absolute
-    tolerance only where the **reference** values are already near zero. This
+    tolerance only where the reference values are already near zero. This
     pattern preserves strict relative comparisons for meaningful entries while
     preventing spurious failures from sub-epsilon noise in ~0 slots.
 
     Args:
-      a (array_like): Actual values.
-      b (array_like): Reference values (tolerances are defined relative to this).
+      actual (array_like): Actual values.
+      expected (array_like): Reference values (tolerances are defined relative to this).
       rtol (float, optional): Relative tolerance for non-near-zero entries.
       zero_band (float, optional): Threshold below which ``abs(b)`` is treated
         as “near zero” and the absolute floor applies.
@@ -244,15 +243,18 @@ def _assert_close_mixed(a, b, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=
         mixed tolerance rule. The message includes the first failing index,
         values, absolute difference, and effective tolerances.
     """
-    a = numpy.asarray(a, dtype=float)  # ensure float64
-    b = numpy.asarray(b, dtype=float)
-    atol = numpy.where(numpy.abs(b) < zero_band, floor, 0.0)
-    ok = numpy.isclose(a, b, rtol=rtol, atol=atol)
+    actual = numpy.asarray(actual, dtype=float)  # ensure float64
+    expected = numpy.asarray(expected, dtype=float)
+
+    # absolute floor only where the *expected* value is near zero
+    atol = numpy.where(numpy.abs(expected) < zero_band, floor, 0.0)
+
+    ok = numpy.isclose(actual, expected, rtol=rtol, atol=atol)
     if not ok.all():
         idx = tuple(numpy.argwhere(~ok)[0])
-        diff = a - b
+        diff = actual - expected
         raise AssertionError(
-            f"{label} not close at {idx}: a={a[idx]} b={b[idx]} "
+            f"{label} not close at {idx}: "
+            f"actual={actual[idx]} expected={expected[idx]} "
             f"|diff|={abs(diff[idx])} rtol={rtol} atol[idx]={atol[idx]}"
         )
-
