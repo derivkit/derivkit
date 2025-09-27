@@ -263,3 +263,36 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
     le = LikelihoodExpansion(model, np.array([0.1]), np.eye(2))  # construct ok
     with pytest.raises(ValueError):
         le.get_forecast_tensors(forecast_order=1)  # shape check triggers here
+
+
+def test_le_init_exposes_core_attrs():
+    """Test that core attributes are exposed on the instance."""
+    L = LikelihoodExpansion(lambda x: x, np.array([1.0, -2.0]), np.eye(2))
+    # choose whatever names your class actually sets; adjust if needed
+    for name in ("function", "theta0", "cov"):
+        assert hasattr(L, name)
+
+def test_inv_cov_behaves_like_inverse():
+    """Test that _inv_cov() returns a matrix behaving like the inverse."""
+    cov = np.array([[2.0, 0.0],
+                    [0.0, 0.5]])
+    L = LikelihoodExpansion(lambda x: x, np.array([0.0, 0.0]), cov)
+    inv = L._inv_cov()
+    np.testing.assert_allclose(inv @ cov, np.eye(2), atol=1e-12)
+    np.testing.assert_allclose(cov @ inv, np.eye(2), atol=1e-12)
+
+def test_raises_on_mismatched_obs_cov_dims():
+    """If model output length != cov size, computing tensors should raise."""
+    def model(theta):  # returns length 3
+        t = np.asarray(theta)
+        return np.array([t[0], t[0] + 1.0, t[0] ** 2])
+
+    le = LikelihoodExpansion(model, np.array([0.1]), np.eye(2))  # constructs fine
+
+    # Fisher path
+    with pytest.raises(ValueError):
+        le.get_forecast_tensors(forecast_order=1)
+
+    # DALI path (optional, but good to check both)
+    with pytest.raises(ValueError):
+        le.get_forecast_tensors(forecast_order=2)
