@@ -1,8 +1,8 @@
 """Provides all derivkit methods."""
 
-from derivkit.adaptive_fit import AdaptiveFitDerivative
+from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.finite_difference import FiniteDifferenceDerivative
+from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 from derivkit.forecast_kit import ForecastKit as ForecastKit
 from derivkit.forecasting.expansions import (
     LikelihoodExpansion as LikelihoodExpansion,
@@ -20,8 +20,6 @@ __all__ = [
     "AdaptiveFitDerivative",
     "FiniteDifferenceDerivative",
     "DerivativeKit",
-    "PlotHelpers",
-    "PlotKit",
     "log_debug_message",
     "is_finite_and_differentiable",
     "normalize_derivative",
