@@ -9,6 +9,7 @@ symmetry checks, and example/test function generators.
 from __future__ import annotations
 
 from collections.abc import Callable
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -20,6 +21,7 @@ __all__ = [
     "central_difference_error_estimate",
     "is_symmetric_grid",
     "generate_test_function",
+    "get_partial_function",
 ]
 
 
@@ -143,3 +145,35 @@ def generate_test_function(name: str = "sin"):
     if name == "sin":
         return lambda x: np.sin(x), lambda x: np.cos(x), lambda x: -np.sin(x)
     raise ValueError(f"Unknown test function: {name!r}")
+
+def get_partial_function(
+        full_function: Callable,
+        variable_index: int,
+        fixed_values: list | np.ndarray,
+) -> Callable:
+    """Returns a single-variable version of a multivariate function.
+
+    A single parameter must be specified by index. All others parameters
+    are held fixed.
+
+    Args:
+        full_function (callable): A function that takes a list of
+            n_parameters parameters and returns a vector of n_observables
+            observables.
+        variable_index (int): The index of the parameter to treat as the
+            variable.
+        fixed_values (list or np.ndarray): The list of parameter values to
+            use as fixed inputs for all parameters except the one being
+            varied.
+
+    Returns:
+        callable: A function of a single variable, suitable for use in
+            differentiation.
+    """
+
+    def partial_function(x):
+        params = deepcopy(fixed_values)
+        params[variable_index] = x
+        return np.atleast_1d(full_function(params))
+
+    return partial_function

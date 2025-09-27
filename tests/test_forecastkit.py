@@ -202,5 +202,6 @@ def test_forecast(
     assert numpy.allclose(fisher_matrix, expected_fisher, atol=0)
 
     dali_g, dali_h = forecaster.dali()
+
     assert numpy.allclose(dali_g, expected_dali_g, atol=0)
     assert numpy.allclose(dali_h, expected_dali_h, atol=0)
