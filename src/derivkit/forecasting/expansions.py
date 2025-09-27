@@ -292,7 +292,7 @@ class LikelihoodExpansion:
         except np.linalg.LinAlgError:
             warnings.warn(f"[{classname}] `cov` inversion failed; using pseudoinverse.",
                           RuntimeWarning)
-            return np.linalg.pinv(cov)
+            return np.linalg.pinv(cov, rcond=1e-12, hermitian=False)
 
     def _build_fisher(self, d1, invcov):
         """Assemble the Fisher information matrix F from first derivatives.
