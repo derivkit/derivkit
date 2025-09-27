@@ -1,0 +1,903 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="#"><link rel="search" title="Search" href="search.html">
+
+    <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 --><title>Index - Derivkit documentation</title>
+<link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Derivkit  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">Derivkit  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules.html">derivkit</a><input aria-label="Toggle navigation of derivkit" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="derivkit.html">derivkit package</a><input aria-label="Toggle navigation of derivkit package" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.adaptive.html">derivkit.adaptive package</a><input aria-label="Toggle navigation of derivkit.adaptive package" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.batch_eval.html">derivkit.adaptive.batch_eval module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html">derivkit.adaptive.diagnostics module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.estimator.html">derivkit.adaptive.estimator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.fallback.html">derivkit.adaptive.fallback module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.fit_core.html">derivkit.adaptive.fit_core module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html">derivkit.adaptive.grid module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.offsets.html">derivkit.adaptive.offsets module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.validate.html">derivkit.adaptive.validate module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.weights.html">derivkit.adaptive.weights module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive_fit.html">derivkit.adaptive_fit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html">derivkit.derivative_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.finite_difference.html">derivkit.finite_difference module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.forecasting.html">derivkit.forecasting package</a><input aria-label="Toggle navigation of derivkit.forecasting package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.calculus.html">derivkit.forecasting.calculus module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html">derivkit.forecasting.expansions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.likelihoods.html">derivkit.forecasting.likelihoods module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html">derivkit.forecast_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.expansions.html">derivkit.forecasting.expansions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.html">derivkit.utils module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          
+<section class="genindex-section">
+  <h1 id="index">Index</h1>
+  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#H"><strong>H</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#J"><strong>J</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#V"><strong>V</strong></a> | <a href="#X"><strong>X</strong></a> | <a href="#Y"><strong>Y</strong></a></div>
+</section>
+<section id="A" class="genindex-section">
+  <h2>A</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.html#derivkit.AdaptiveFitDerivative">AdaptiveFitDerivative (class in derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.adaptive_fit.html#derivkit.adaptive_fit.AdaptiveFitDerivative">(class in derivkit.adaptive_fit)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.DiagnosticsRecorder.add">add() (derivkit.adaptive.diagnostics.DiagnosticsRecorder method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="B" class="genindex-section">
+  <h2>B</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.binomial">binomial() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.DiagnosticsRecorder.build">build() (derivkit.adaptive.diagnostics.DiagnosticsRecorder method)</a>
+</li>
+        <li><a href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.build_x_offsets">build_x_offsets() (in module derivkit.adaptive.grid)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="C" class="genindex-section">
+  <h2>C</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.html#derivkit.central_difference_error_estimate">central_difference_error_estimate() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.central_difference_error_estimate">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome">ComponentOutcome (class in derivkit.adaptive.estimator)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="D" class="genindex-section">
+  <h2>D</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.dali">dali() (derivkit.forecast_kit.ForecastKit method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.ForecastKit.dali">(derivkit.ForecastKit method)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.debug">debug (derivkit.finite_difference.FiniteDifferenceDerivative attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.debug">(derivkit.FiniteDifferenceDerivative attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.html#derivkit.DerivativeKit">DerivativeKit (class in derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit">(class in derivkit.derivative_kit)</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit
+
+        <ul>
+          <li><a href="derivkit.html#module-derivkit">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive
+
+        <ul>
+          <li><a href="derivkit.adaptive.html#module-derivkit.adaptive">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.batch_eval
+
+        <ul>
+          <li><a href="derivkit.adaptive.batch_eval.html#module-derivkit.adaptive.batch_eval">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.diagnostics
+
+        <ul>
+          <li><a href="derivkit.adaptive.diagnostics.html#module-derivkit.adaptive.diagnostics">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.estimator
+
+        <ul>
+          <li><a href="derivkit.adaptive.estimator.html#module-derivkit.adaptive.estimator">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.fallback
+
+        <ul>
+          <li><a href="derivkit.adaptive.fallback.html#module-derivkit.adaptive.fallback">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.fit_core
+
+        <ul>
+          <li><a href="derivkit.adaptive.fit_core.html#module-derivkit.adaptive.fit_core">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.grid
+
+        <ul>
+          <li><a href="derivkit.adaptive.grid.html#module-derivkit.adaptive.grid">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.offsets
+
+        <ul>
+          <li><a href="derivkit.adaptive.offsets.html#module-derivkit.adaptive.offsets">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive.validate
+
+        <ul>
+          <li><a href="derivkit.adaptive.validate.html#module-derivkit.adaptive.validate">module</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    derivkit.adaptive.weights
+
+        <ul>
+          <li><a href="derivkit.adaptive.weights.html#module-derivkit.adaptive.weights">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.adaptive_fit
+
+        <ul>
+          <li><a href="derivkit.adaptive_fit.html#module-derivkit.adaptive_fit">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.derivative_kit
+
+        <ul>
+          <li><a href="derivkit.derivative_kit.html#module-derivkit.derivative_kit">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.finite_difference
+
+        <ul>
+          <li><a href="derivkit.finite_difference.html#module-derivkit.finite_difference">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.forecast_kit
+
+        <ul>
+          <li><a href="derivkit.forecast_kit.html#module-derivkit.forecast_kit">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.forecasting
+
+        <ul>
+          <li><a href="derivkit.forecasting.html#module-derivkit.forecasting">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.forecasting.calculus
+
+        <ul>
+          <li><a href="derivkit.forecasting.calculus.html#module-derivkit.forecasting.calculus">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.forecasting.expansions
+
+        <ul>
+          <li><a href="derivkit.forecasting.expansions.html#module-derivkit.forecasting.expansions">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.forecasting.likelihoods
+
+        <ul>
+          <li><a href="derivkit.forecasting.likelihoods.html#module-derivkit.forecasting.likelihoods">module</a>
+</li>
+        </ul></li>
+        <li>
+    derivkit.utils
+
+        <ul>
+          <li><a href="derivkit.utils.html#module-derivkit.utils">module</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.DiagnosticsRecorder">DiagnosticsRecorder (class in derivkit.adaptive.diagnostics)</a>
+</li>
+        <li><a href="derivkit.adaptive_fit.html#derivkit.adaptive_fit.AdaptiveFitDerivative.differentiate">differentiate() (derivkit.adaptive_fit.AdaptiveFitDerivative method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.AdaptiveFitDerivative.differentiate">(derivkit.AdaptiveFitDerivative method)</a>
+</li>
+          <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.differentiate">(derivkit.finite_difference.FiniteDifferenceDerivative method)</a>
+</li>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.differentiate">(derivkit.FiniteDifferenceDerivative method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="E" class="genindex-section">
+  <h2>E</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.estimate_component">estimate_component() (in module derivkit.adaptive.estimator)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.batch_eval.html#derivkit.adaptive.batch_eval.eval_function_batch">eval_function_batch() (in module derivkit.adaptive.batch_eval)</a>
+</li>
+        <li><a href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.extend_offsets_to_required">extend_offsets_to_required() (in module derivkit.adaptive.grid)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="F" class="genindex-section">
+  <h2>F</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.fallback.html#derivkit.adaptive.fallback.fallback_fd">fallback_fd() (in module derivkit.adaptive.fallback)</a>
+</li>
+        <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative">FiniteDifferenceDerivative (class in derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative">(class in derivkit.finite_difference)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.fisher">fisher() (derivkit.forecast_kit.ForecastKit method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.ForecastKit.fisher">(derivkit.ForecastKit method)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion.fisher_bias">fisher_bias() (derivkit.forecasting.expansions.LikelihoodExpansion method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.LikelihoodExpansion.fisher_bias">(derivkit.LikelihoodExpansion method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.fit_core.html#derivkit.adaptive.fit_core.fit_once">fit_once() (in module derivkit.adaptive.fit_core)</a>
+</li>
+        <li><a href="derivkit.html#derivkit.ForecastKit">ForecastKit (class in derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit">(class in derivkit.forecast_kit)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.function">function (derivkit.finite_difference.FiniteDifferenceDerivative attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.function">(derivkit.FiniteDifferenceDerivative attribute)</a>
+</li>
+          <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion.function">(derivkit.forecasting.expansions.LikelihoodExpansion attribute)</a>
+</li>
+          <li><a href="derivkit.html#derivkit.LikelihoodExpansion.function">(derivkit.LikelihoodExpansion attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="G" class="genindex-section">
+  <h2>G</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.gauss_newton_hessian">gauss_newton_hessian() (in module derivkit.forecasting.calculus)</a>
+</li>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.gaussian">gaussian() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.gaussianDiag">gaussianDiag() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.gaussianParamCov">gaussianParamCov() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+        <li><a href="derivkit.html#derivkit.generate_test_function">generate_test_function() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.generate_test_function">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.adaptive.offsets.html#derivkit.adaptive.offsets.get_adaptive_offsets">get_adaptive_offsets() (in module derivkit.adaptive.offsets)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.get_finite_difference_tables">get_finite_difference_tables() (derivkit.finite_difference.FiniteDifferenceDerivative method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.get_finite_difference_tables">(derivkit.FiniteDifferenceDerivative method)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion.get_forecast_tensors">get_forecast_tensors() (derivkit.forecasting.expansions.LikelihoodExpansion method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.LikelihoodExpansion.get_forecast_tensors">(derivkit.LikelihoodExpansion method)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.get_used_points">get_used_points() (derivkit.derivative_kit.DerivativeKit method)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.DerivativeKit.get_used_points">(derivkit.DerivativeKit method)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.gradient">gradient() (in module derivkit.forecasting.calculus)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="H" class="genindex-section">
+  <h2>H</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.hessian">hessian() (in module derivkit.forecasting.calculus)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.hessian_diag">hessian_diag() (in module derivkit.forecasting.calculus)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="I" class="genindex-section">
+  <h2>I</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.weights.html#derivkit.adaptive.weights.inverse_distance_weights">inverse_distance_weights() (in module derivkit.adaptive.weights)</a>
+</li>
+        <li><a href="derivkit.html#derivkit.is_finite_and_differentiable">is_finite_and_differentiable() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.is_finite_and_differentiable">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.html#derivkit.is_symmetric_grid">is_symmetric_grid() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.is_symmetric_grid">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="J" class="genindex-section">
+  <h2>J</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.jacobian">jacobian() (in module derivkit.forecasting.calculus)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.calculus.html#derivkit.forecasting.calculus.jacobian_diag">jacobian_diag() (in module derivkit.forecasting.calculus)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="L" class="genindex-section">
+  <h2>L</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.html#derivkit.LikelihoodExpansion">LikelihoodExpansion (class in derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion">(class in derivkit.forecasting.expansions)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.html#derivkit.log_debug_message">log_debug_message() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.log_debug_message">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.log_file">log_file (derivkit.finite_difference.FiniteDifferenceDerivative attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.log_file">(derivkit.FiniteDifferenceDerivative attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="M" class="genindex-section">
+  <h2>M</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.mode">mode (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+        <li>
+    module
+
+        <ul>
+          <li><a href="derivkit.html#module-derivkit">derivkit</a>
+</li>
+          <li><a href="derivkit.adaptive.html#module-derivkit.adaptive">derivkit.adaptive</a>
+</li>
+          <li><a href="derivkit.adaptive.batch_eval.html#module-derivkit.adaptive.batch_eval">derivkit.adaptive.batch_eval</a>
+</li>
+          <li><a href="derivkit.adaptive.diagnostics.html#module-derivkit.adaptive.diagnostics">derivkit.adaptive.diagnostics</a>
+</li>
+          <li><a href="derivkit.adaptive.estimator.html#module-derivkit.adaptive.estimator">derivkit.adaptive.estimator</a>
+</li>
+          <li><a href="derivkit.adaptive.fallback.html#module-derivkit.adaptive.fallback">derivkit.adaptive.fallback</a>
+</li>
+          <li><a href="derivkit.adaptive.fit_core.html#module-derivkit.adaptive.fit_core">derivkit.adaptive.fit_core</a>
+</li>
+          <li><a href="derivkit.adaptive.grid.html#module-derivkit.adaptive.grid">derivkit.adaptive.grid</a>
+</li>
+          <li><a href="derivkit.adaptive.offsets.html#module-derivkit.adaptive.offsets">derivkit.adaptive.offsets</a>
+</li>
+          <li><a href="derivkit.adaptive.validate.html#module-derivkit.adaptive.validate">derivkit.adaptive.validate</a>
+</li>
+          <li><a href="derivkit.adaptive.weights.html#module-derivkit.adaptive.weights">derivkit.adaptive.weights</a>
+</li>
+          <li><a href="derivkit.adaptive_fit.html#module-derivkit.adaptive_fit">derivkit.adaptive_fit</a>
+</li>
+          <li><a href="derivkit.derivative_kit.html#module-derivkit.derivative_kit">derivkit.derivative_kit</a>
+</li>
+          <li><a href="derivkit.finite_difference.html#module-derivkit.finite_difference">derivkit.finite_difference</a>
+</li>
+          <li><a href="derivkit.forecast_kit.html#module-derivkit.forecast_kit">derivkit.forecast_kit</a>
+</li>
+          <li><a href="derivkit.forecasting.html#module-derivkit.forecasting">derivkit.forecasting</a>
+</li>
+          <li><a href="derivkit.forecasting.calculus.html#module-derivkit.forecasting.calculus">derivkit.forecasting.calculus</a>
+</li>
+          <li><a href="derivkit.forecasting.expansions.html#module-derivkit.forecasting.expansions">derivkit.forecasting.expansions</a>
+</li>
+          <li><a href="derivkit.forecasting.likelihoods.html#module-derivkit.forecasting.likelihoods">derivkit.forecasting.likelihoods</a>
+</li>
+          <li><a href="derivkit.utils.html#module-derivkit.utils">derivkit.utils</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.multinomial">multinomial() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="N" class="genindex-section">
+  <h2>N</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion.n_observables">n_observables (derivkit.forecasting.expansions.LikelihoodExpansion attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.LikelihoodExpansion.n_observables">(derivkit.LikelihoodExpansion attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.LikelihoodExpansion.n_parameters">n_parameters (derivkit.forecasting.expansions.LikelihoodExpansion attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.LikelihoodExpansion.n_parameters">(derivkit.LikelihoodExpansion attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.fit_core.html#derivkit.adaptive.fit_core.normalize_coords">normalize_coords() (in module derivkit.adaptive.fit_core)</a>
+</li>
+        <li><a href="derivkit.html#derivkit.normalize_derivative">normalize_derivative() (in module derivkit)</a>
+
+        <ul>
+          <li><a href="derivkit.utils.html#derivkit.utils.normalize_derivative">(in module derivkit.utils)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="P" class="genindex-section">
+  <h2>P</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.poisson">poisson() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.fit_core.html#derivkit.adaptive.fit_core.polyfit_u">polyfit_u() (in module derivkit.adaptive.fit_core)</a>
+</li>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.prune_by_residuals">prune_by_residuals() (in module derivkit.adaptive.estimator)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="R" class="genindex-section">
+  <h2>R</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.residuals">residuals (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.fit_core.html#derivkit.adaptive.fit_core.residuals_relative">residuals_relative() (in module derivkit.adaptive.fit_core)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="S" class="genindex-section">
+  <h2>S</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.sellentin_heavens">sellentin_heavens() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.status">status (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.forecasting.likelihoods.html#derivkit.forecasting.likelihoods.student_t">student_t() (in module derivkit.forecasting.likelihoods)</a>
+</li>
+        <li><a href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.symmetric_offsets">symmetric_offsets() (in module derivkit.adaptive.grid)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="V" class="genindex-section">
+  <h2>V</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.validate.html#derivkit.adaptive.validate.validate_inputs">validate_inputs() (in module derivkit.adaptive.validate)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.value">value (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="X" class="genindex-section">
+  <h2>X</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.finite_difference.html#derivkit.finite_difference.FiniteDifferenceDerivative.x0">x0 (derivkit.finite_difference.FiniteDifferenceDerivative attribute)</a>
+
+        <ul>
+          <li><a href="derivkit.html#derivkit.FiniteDifferenceDerivative.x0">(derivkit.FiniteDifferenceDerivative attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.x_used">x_used (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="Y" class="genindex-section">
+  <h2>Y</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.y_fit">y_fit (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="derivkit.adaptive.estimator.html#derivkit.adaptive.estimator.ComponentOutcome.y_used">y_used (derivkit.adaptive.estimator.ComponentOutcome attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Nikolina Šarčević
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
