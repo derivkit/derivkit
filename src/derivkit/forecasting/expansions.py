@@ -16,6 +16,7 @@ from copy import deepcopy
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.utils import get_partial_function
 
 
 class LikelihoodExpansion:
@@ -172,7 +173,7 @@ class LikelihoodExpansion:
             for m in range(self.n_parameters):
                 # 1 parameter to differentiate, and n_parameters-1 parameters to hold fixed
                 theta0_x = deepcopy(self.theta0)
-                function_to_diff = self._get_partial_function(
+                function_to_diff = get_partial_function(
                     self.function, m, theta0_x
                 )
                 kit = DerivativeKit(function_to_diff, self.theta0[m])
@@ -190,7 +191,7 @@ class LikelihoodExpansion:
                     if m1 == m2:
                         # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
                         theta0_x = deepcopy(self.theta0)
-                        function_to_diff1 = self._get_partial_function(
+                        function_to_diff1 = get_partial_function(
                             self.function, m1, theta0_x
                         )
                         kit1 = DerivativeKit(
@@ -207,7 +208,7 @@ class LikelihoodExpansion:
                         def function_to_diff2(y):
                             theta0_y = deepcopy(self.theta0)
                             theta0_y[m2] = y
-                            function_to_diff1 = self._get_partial_function(
+                            function_to_diff1 = get_partial_function(
                                 self.function, m1, theta0_y
                             )
                             kit1 = DerivativeKit(
@@ -227,36 +228,6 @@ class LikelihoodExpansion:
             return second_order_derivatives
 
         raise RuntimeError("Unreachable code reached in get_forecast_tensors.")
-
-    def _get_partial_function(
-        self, full_function, variable_index, fixed_values
-    ):
-        """Returns a single-variable version of a multivariate function.
-
-        A single parameter must be specified by index. All others parameters
-        are held fixed.
-
-        Args:
-            full_function (callable): A function that takes a list of
-                n_parameters parameters and returns a vector of n_observables
-                observables.
-            variable_index (int): The index of the parameter to treat as the
-                variable.
-            fixed_values (list or np.ndarray): The list of parameter values to
-                use as fixed inputs for all parameters except the one being
-                varied.
-
-        Returns:
-            callable: A function of a single variable, suitable for use in
-                differentiation.
-        """
-
-        def partial_function(x):
-            params = deepcopy(fixed_values)
-            params[variable_index] = x
-            return np.atleast_1d(full_function(params))
-
-        return partial_function
 
     def _inv_cov(self):
         """Return the inverse covariance matrix with minimal diagnostics.
