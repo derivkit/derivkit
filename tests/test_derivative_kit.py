@@ -52,7 +52,7 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
     captured = {"called": False, "kwargs": None}
 
     class FakeAdaptive:
-        def __init__(self, *args, **kwargs):  # noqa: D401
+        def __init__(self, *args, **kwargs):
             pass
 
         def differentiate(self, *, order, diagnostics, n_workers, **_):
@@ -75,7 +75,7 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
             return 0.0, diag
 
     class FakeFinite:
-        def __init__(self, *args, **kwargs):  # noqa: D401
+        def __init__(self, *args, **kwargs):
             pass
 
     monkeypatch.setattr(
