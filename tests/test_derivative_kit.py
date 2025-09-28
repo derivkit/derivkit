@@ -44,7 +44,11 @@ def test_constructor_wires_adaptive_and_finite(monkeypatch):
 
 
 def test_get_used_points_plumbs_diagnostics(monkeypatch):
-    """get_used_points must request diagnostics and unpack them correctly."""
+    """get_used_points forwards kwargs and parses diagnostics.
+
+    Forwards (order, n_workers), requests diagnostics=True, and returns parsed
+    (x_all, y_all, x_used, y_used, used_mask).
+    """
     captured = {"called": False, "kwargs": None}
 
     class FakeAdaptive:
