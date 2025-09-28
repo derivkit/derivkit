@@ -6,7 +6,7 @@ import pytest
 from derivkit.forecasting.expansions import LikelihoodExpansion
 
 
-def test_order():
+def test_derivative_order():
     """High derivative orders (>2) should raise ValueError."""
     like = LikelihoodExpansion(lambda x: x, np.array([1]), np.array([1]))
     with pytest.raises(ValueError):

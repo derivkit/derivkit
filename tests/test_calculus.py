@@ -3,7 +3,7 @@
 import pytest
 
 
-@pytest.mark.skip(reason="TODO(#78): add unit tests for forecasting/calculus.py")
+@pytest.mark.skip(reason="Pending calculus module: tracked in #116")
 def test_calculus_todo():
-    """TODO(#78): add unit tests for forecasting/calculus.py."""
+    """Placeholder until forecasting/calculus.py exists; tests will be added then."""
     pass
