@@ -77,9 +77,8 @@ def test_central_difference_error_estimate(order: int, factor: float):
 
 
 def test_central_difference_error_estimate_invalid_order():
-    """Test that central_difference_error_estimate raises ValueError for invalid order."""
     with pytest.raises(ValueError):
-        _ = central_difference_error_estimate(0.1, order=5)
+        central_difference_error_estimate(0.1, order=5)
 
 
 def test_is_symmetric_grid_true_odd():
