@@ -1,8 +1,15 @@
 """Tests for DerivativeKit wrapper."""
 
+from functools import partial
+
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
+
+
+def quad(x, a=2.0, b=-3.0, c=1.5):
+    """Quadratic function for testing."""
+    return a * x**2 + b * x + c
 
 
 def test_constructor_wires_adaptive_and_finite(monkeypatch):
@@ -32,8 +39,8 @@ def test_constructor_wires_adaptive_and_finite(monkeypatch):
         raising=True,
     )
 
-    def f(x):
-        return x
+    a, b, c = 2.0, -3.0, 1.5
+    f = partial(quad, a=a, b=b, c=c)
 
     dk = DerivativeKit(f, 0.5)
 
