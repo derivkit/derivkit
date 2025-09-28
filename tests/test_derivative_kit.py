@@ -58,6 +58,11 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
     """
     captured = {"called": False, "kwargs": None}
 
+    # Sizes used by the fake diagnostics payload
+    m = 5  # total sample count
+    c = 1  # number of columns in y_all
+    k = 3  # number of "used" points
+
     class FakeAdaptive:
         def __init__(self, *args, **kwargs):
             pass
@@ -69,8 +74,8 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
                 "diagnostics": diagnostics,
                 "n_workers": n_workers,
             }
+
             # Diagnostics payload matching DerivativeKit expectations
-            m, c = 5, 1
             diag = {
                 "x_all": np.linspace(0.0, 1.0, m),
                 "y_all": np.linspace(10.0, 20.0, m).reshape(m, c),
@@ -98,10 +103,10 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
     assert captured["kwargs"] == {"order": order, "diagnostics": True, "n_workers": n_workers}
 
     # Shapes & basic value checks
-    assert x_all.shape == (5,)
-    assert y_all.shape == (5,)
-    assert x_used.shape == (3,)
-    assert y_used.shape == (3,)
-    assert used_mask.shape == (5,)
+    assert x_all.shape == (m,)
+    assert y_all.shape == (m,)
+    assert x_used.shape == (k,)
+    assert y_used.shape == (k,)
+    assert used_mask.shape == (m,)
     np.testing.assert_allclose(x_used, np.array([0.0, 0.25, 0.5]))
     assert used_mask.dtype == bool
