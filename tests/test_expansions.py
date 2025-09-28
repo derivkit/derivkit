@@ -265,8 +265,8 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
         le.get_forecast_tensors(forecast_order=1)  # shape check triggers here
 
 
-def test_le_init_exposes_core_attrs():
-    """Required public attrs are present and consistent."""
+def test_le_init_public_attrs_contract():
+    """Required public attrs exist, counts match, and no unexpected public instance fields."""
     theta0 = np.array([1.0, -2.0])
     cov = np.eye(2)
     like = LikelihoodExpansion(lambda x: x, theta0, cov)
@@ -279,23 +279,11 @@ def test_le_init_exposes_core_attrs():
     assert like.n_parameters == theta0.size
     assert like.n_observables == cov.shape[0]
 
-
-def test_no_unexpected_public_instance_fields():
-    """Guard against accidental new public *instance* fields.
-
-    Only checks data attrs created in __init__ (L.__dict__). Methods/properties
-    are not constrained to avoid brittleness as the API evolves.
-    """
-    like = LikelihoodExpansion(lambda x: x, np.array([1.0, -2.0]), np.eye(2))
-
-    required = {"function", "theta0", "cov", "n_parameters", "n_observables"} # keep tiny & intentional
+    # Guard against accidental new public *instance* fields (methods/properties not constrained)
+    required_instance = {"function", "theta0", "cov"}
     public_instance = {k for k in like.__dict__ if not k.startswith("_")}
-
-    # Must include the required attrs
-    assert required.issubset(public_instance)
-
-    # No unexpected public data attributes (add to 'required' if we later make one intentional)
-    unexpected = public_instance - required
+    assert required_instance.issubset(public_instance)
+    unexpected = public_instance - required_instance
     assert not unexpected, f"Unexpected public instance fields: {sorted(unexpected)}"
 
 
