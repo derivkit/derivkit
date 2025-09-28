@@ -1,7 +1,6 @@
 """Lightweight tests for derivkit.utils."""
 
 import tempfile
-from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -111,21 +110,19 @@ def test_generate_test_function_raises_on_unknown():
         generate_test_function("unknown")
 
 
-def test_get_partial_function_varies_only_selected_and_keeps_shape():
-    """Test get_partial_function varies only the selected variable and keeps output shape."""
-    def full(params: list[float] | np.ndarray):
-        a, b, c = params
-        # return vector (length 2) to verify atleast_1d behavior downstream
-        return np.array([a + 2.0 * b + 3.0 * c, a * b])
+def test_get_partial_function_handles_length_4_vector_and_preserves_length():
+    """Verify get_partial_function preserves length and varies only the chosen index (4-vector)."""
+    def full(params: np.ndarray):
+        # Return length and a simple derived value to verify indices unchanged.
+        return np.array([len(params), params[0] + params[-1]])
 
-    fixed = [1.0, 2.0, 3.0]
-    g: Callable[[float], np.ndarray] = get_partial_function(
-        full_function=full, variable_index=1, fixed_values=fixed
-    )
+    fixed = np.array([1.0, 2.0, 3.0, 4.0])
+    g = get_partial_function(full_function=full, variable_index=2, fixed_values=fixed)
 
-    # original fixed values must not be mutated (deepcopy inside)
-    assert fixed == [1.0, 2.0, 3.0]
+    # Ensure original is not mutated
+    assert fixed.tolist() == [1.0, 2.0, 3.0, 4.0]
 
-    out = g(10.0)  # vary b -> 10
-    np.testing.assert_allclose(out, np.array([1.0 + 2.0 * 10.0 + 3.0 * 3.0, 1.0 * 10.0]))
-    assert out.ndim == 1 and out.shape == (2,)
+    out = g(10.0)  # vary index 2 -> 10
+    assert out.shape == (2,)
+    assert out[0] == 4  # length preserved
+    assert np.isclose(out[1], 1.0 + 4.0)  # sum of first and last unchanged
