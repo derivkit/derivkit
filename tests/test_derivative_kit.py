@@ -69,12 +69,11 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
                 "diagnostics": diagnostics,
                 "n_workers": n_workers,
             }
-
             # Diagnostics payload matching DerivativeKit expectations
-            M, C = 5, 1
+            m, c = 5, 1
             diag = {
-                "x_all": np.linspace(0.0, 1.0, M),
-                "y_all": np.linspace(10.0, 20.0, M).reshape(M, C),
+                "x_all": np.linspace(0.0, 1.0, m),
+                "y_all": np.linspace(10.0, 20.0, m).reshape(m, c),
                 "x_used": [np.array([0.0, 0.25, 0.5])],
                 "y_used": [np.array([10.0, 12.5, 15.0])],
                 "used_mask": [np.array([True, False, True, True, False])],
@@ -85,29 +84,16 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
         def __init__(self, *args, **kwargs):
             pass
 
-    monkeypatch.setattr(
-        "derivkit.derivative_kit.AdaptiveFitDerivative",
-        FakeAdaptive,
-        raising=True,
-    )
-    monkeypatch.setattr(
-        "derivkit.derivative_kit.FiniteDifferenceDerivative",
-        FakeFinite,
-        raising=True,
-    )
+    # Patch immediately after defining the fakes
+    monkeypatch.setattr("derivkit.derivative_kit.AdaptiveFitDerivative", FakeAdaptive, raising=True)
+    monkeypatch.setattr("derivkit.derivative_kit.FiniteDifferenceDerivative", FakeFinite, raising=True)
 
     dk = DerivativeKit(lambda x: x, 0.0)
-    x_all, y_all, x_used, y_used, used_mask = dk.get_used_points(
-        order=2, n_workers=3
-    )
+    x_all, y_all, x_used, y_used, used_mask = dk.get_used_points(order=2, n_workers=3)
 
     # Ensure diagnostics=True and kwargs forwarded
     assert captured["called"] is True
-    assert captured["kwargs"] == {
-        "order": 2,
-        "diagnostics": True,
-        "n_workers": 3,
-    }
+    assert captured["kwargs"] == {"order": 2, "diagnostics": True, "n_workers": 3}
 
     # Shapes & basic value checks
     assert x_all.shape == (5,)
