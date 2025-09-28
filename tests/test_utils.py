@@ -106,9 +106,9 @@ def test_generate_test_function_sin_tuple_and_values():
 
 
 def test_generate_test_function_raises_on_unknown():
-    """Test generate_test_function raises ValueError on unknown name."""
+    """Test generate_test_function raises ValueError on unknown function name."""
     with pytest.raises(ValueError):
-        _ = generate_test_function("unknown")
+        generate_test_function("unknown")
 
 
 def test_get_partial_function_varies_only_selected_and_keeps_shape():
