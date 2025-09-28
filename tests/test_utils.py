@@ -1,5 +1,6 @@
 """Lightweight tests for derivkit.utils."""
 
+import tempfile
 from collections.abc import Callable
 
 import numpy as np
@@ -23,12 +24,12 @@ def test_log_debug_message_prints_when_debug_true(capsys):
     assert "hello utils" in out
 
 
-def test_log_debug_message_writes_to_file(tmp_path):
+def test_log_debug_message_writes_to_file():
     """Test that log_debug_message writes to a file when log_to_file is True."""
-    p = tmp_path / "u.log"
-    log_debug_message("line1", log_to_file=True, log_file=str(p))
-    assert p.exists()
-    assert p.read_text().strip().endswith("line1")
+    with open(tempfile.NamedTemporaryFile().name, "w+") as f:
+        log_debug_message("line1", log_to_file=True, log_file=f)
+        for line in f:
+          assert line == "line1"
 
 
 def test_is_finite_and_differentiable_true_on_vector_function():
