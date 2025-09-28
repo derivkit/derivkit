@@ -42,7 +42,7 @@ def test_is_finite_and_differentiable_true_on_vector_function():
 
 def test_is_finite_and_differentiable_false_on_nan():
     """Test that is_finite_and_differentiable returns False when function returns NaN."""
-    def f(_x: float):
+    def f(_: float):
         return np.nan
 
     assert not is_finite_and_differentiable(f, 0.0)
