@@ -77,6 +77,7 @@ def test_central_difference_error_estimate(order: int, factor: float):
 
 
 def test_central_difference_error_estimate_invalid_order():
+    """Test central_difference_error_estimate raises ValueError for invalid order."""
     with pytest.raises(ValueError):
         central_difference_error_estimate(0.1, order=5)
 
@@ -85,6 +86,7 @@ def test_is_symmetric_grid_true_odd():
     """Test is_symmetric_grid returns True for symmetric odd-length grid."""
     x_odd = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
     assert is_symmetric_grid(x_odd) is True
+
 
 def test_is_symmetric_grid_false_asymmetric():
     """Test is_symmetric_grid returns False for asymmetric grid."""
