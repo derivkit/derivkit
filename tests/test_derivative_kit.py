@@ -85,10 +85,6 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
             }
             return 0.0, diag
 
-    class FakeFinite:
-        def __init__(self, *args, **kwargs):
-            pass
-
     # Patch immediately after defining the fakes
     monkeypatch.setattr("derivkit.derivative_kit.AdaptiveFitDerivative", FakeAdaptive, raising=True)
     monkeypatch.setattr("derivkit.derivative_kit.FiniteDifferenceDerivative", FakeFinite, raising=True)
