@@ -6,7 +6,7 @@ from derivkit.derivative_kit import DerivativeKit
 
 
 def test_constructor_wires_adaptive_and_finite(monkeypatch):
-    """Both calculators are constructed with the same (function, x0)."""
+    """DerivativeKit constructs Adaptive/Finite with identical (function, x0) and stores them."""
     calls = {"adaptive": None, "finite": None}
 
     class FakeAdaptive:
