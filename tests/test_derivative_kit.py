@@ -13,7 +13,13 @@ def quad(x, a=2.0, b=-3.0, c=1.5):
 
 
 def test_constructor_wires_adaptive_and_finite(monkeypatch):
-    """DerivativeKit constructs Adaptive/Finite with identical (function, x0) and stores them."""
+    """Ensure Adaptive and Finite receive the same (function, x0) and are stored.
+
+    Checks:
+      * Both constructors are called with identical (f, x0).
+      * Call arguments are recorded correctly.
+      * Instances are attached as `adaptive` and `finite`.
+    """
     calls = {"adaptive": None, "finite": None}
 
     class FakeAdaptive:
