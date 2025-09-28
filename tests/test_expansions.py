@@ -270,22 +270,13 @@ def test_le_init_public_attrs_contract():
     theta0 = np.array([1.0, -2.0])
     cov = np.eye(2)
     like = LikelihoodExpansion(lambda x: x, theta0, cov)
-
-    # Required public attributes (behavioral contract)
-    for name in ("function", "theta0", "cov", "n_parameters", "n_observables"):
-        assert hasattr(like, name), f"Missing attribute: {name}"
-
-    # Counts should match shapes
     assert like.n_parameters == theta0.size
     assert like.n_observables == cov.shape[0]
 
-    # Guard against accidental new public *instance* fields (methods/properties not constrained)
-    required_instance = {"function", "theta0", "cov"}
-    allowed_extra_instance = {"n_parameters", "n_observables"}  # present as instance attrs here
-    public_instance = {k for k in like.__dict__ if not k.startswith("_")}
-    assert required_instance.issubset(public_instance)
-    unexpected = public_instance - (required_instance | allowed_extra_instance)
-    assert not unexpected, f"Unexpected public instance fields: {sorted(unexpected)}"
+    # Required public attributes
+    expected_attributes = {"function", "theta0", "cov", "n_parameters", "n_observables"}
+    actual_attributes = {k for k in like.__dict__ if not k.startswith("_")}
+    assert expected_attributes == set(actual_attributes)
 
 
 def test_inv_cov_behaves_like_inverse():
