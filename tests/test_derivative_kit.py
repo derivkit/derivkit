@@ -89,11 +89,13 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
     monkeypatch.setattr("derivkit.derivative_kit.FiniteDifferenceDerivative", FakeFinite, raising=True)
 
     dk = DerivativeKit(lambda x: x, 0.0)
-    x_all, y_all, x_used, y_used, used_mask = dk.get_used_points(order=2, n_workers=3)
+    order = 2
+    n_workers = 3
+    x_all, y_all, x_used, y_used, used_mask = dk.get_used_points(order=order, n_workers=n_workers)
 
     # Ensure diagnostics=True and kwargs forwarded
     assert captured["called"] is True
-    assert captured["kwargs"] == {"order": 2, "diagnostics": True, "n_workers": 3}
+    assert captured["kwargs"] == {"order": order, "diagnostics": True, "n_workers": n_workers}
 
     # Shapes & basic value checks
     assert x_all.shape == (5,)
