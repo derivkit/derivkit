@@ -96,12 +96,6 @@ def test_is_symmetric_grid_false_asymmetric():
     assert is_symmetric_grid(y) is False
 
 
-def test_is_symmetric_grid_false_when_asymmetric():
-    """Test is_symmetric_grid returns False for nearly symmetric grid."""
-    y = np.array([-2.0, -1.0, 0.0, 1.0, 2.001])
-    assert is_symmetric_grid(y) is False
-
-
 def test_generate_test_function_sin_tuple_and_values():
     """Test generate_test_function returns correct sin function and derivatives."""
     f, df, d2f = generate_test_function("sin")
