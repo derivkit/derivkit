@@ -281,9 +281,10 @@ def test_le_init_public_attrs_contract():
 
     # Guard against accidental new public *instance* fields (methods/properties not constrained)
     required_instance = {"function", "theta0", "cov"}
+    allowed_extra_instance = {"n_parameters", "n_observables"}  # present as instance attrs here
     public_instance = {k for k in like.__dict__ if not k.startswith("_")}
     assert required_instance.issubset(public_instance)
-    unexpected = public_instance - required_instance
+    unexpected = public_instance - (required_instance | allowed_extra_instance)
     assert not unexpected, f"Unexpected public instance fields: {sorted(unexpected)}"
 
 
