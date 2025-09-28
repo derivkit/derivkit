@@ -69,6 +69,8 @@ def test_normalize_derivative_basic_and_zero_ref():
         (4, 1.0 / 30.0),
     ],
 )
+
+
 def test_central_difference_error_estimate(order: int, factor: float):
     """Test central_difference_error_estimate for orders 1-4."""
     h = 1e-2
@@ -90,7 +92,7 @@ def test_is_symmetric_grid_true_odd():
 
 def test_is_symmetric_grid_false_asymmetric():
     """Test is_symmetric_grid returns False for asymmetric grid."""
-    y = np.array([-3.0, -1.0, 1.0, 3.001])
+    y = np.array([-3.0, -1.0, 1.0, 3.001])  # 1e-3 asymmetry ≫ FP tol; safe from rounding issues
     assert is_symmetric_grid(y) is False
 
 
