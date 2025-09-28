@@ -3,7 +3,7 @@
 import pytest
 
 
-@pytest.mark.skip(reason="TODO(#78): add unit tests for forecasting/likelihoods.py")
+@pytest.mark.skip(reason="Pending likelihoods tests: tracked in #117")
 def test_likelihoods_todo():
-    """TODO(#78): add unit tests for forecasting/likelihoods.py."""
+    """Placeholder until tests for forecasting/likelihoods.py are written."""
     pass
