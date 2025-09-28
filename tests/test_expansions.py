@@ -288,7 +288,7 @@ def test_no_unexpected_public_instance_fields():
     """
     like = LikelihoodExpansion(lambda x: x, np.array([1.0, -2.0]), np.eye(2))
 
-    required = {"function", "theta0", "cov"}  # keep tiny & intentional
+    required = {"function", "theta0", "cov", "n_parameters", "n_observables"} # keep tiny & intentional
     public_instance = {k for k in like.__dict__ if not k.startswith("_")}
 
     # Must include the required attrs
