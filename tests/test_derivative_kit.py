@@ -57,10 +57,12 @@ def test_constructor_wires_adaptive_and_finite(monkeypatch):
 
 
 def test_get_used_points_plumbs_diagnostics(monkeypatch):
-    """get_used_points forwards kwargs and parses diagnostics.
+    """Ensure `get_used_points` forwards kwargs, forces diagnostics, and parses outputs.
 
-    Forwards (order, n_workers), requests diagnostics=True, and returns parsed
-    (x_all, y_all, x_used, y_used, used_mask).
+    Asserts:
+      * `AdaptiveFitDerivative.differentiate` is called with (order, n_workers) and diagnostics=True.
+      * Returned arrays have expected shapes: len(x_all)=len(y_all)=M, len(x_used)=len(y_used)=K,
+        len(used_mask)=M and dtype=bool.
     """
     captured = {"called": False, "kwargs": None}
 
