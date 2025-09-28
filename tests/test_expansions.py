@@ -267,10 +267,18 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
 
 def test_le_init_exposes_core_attrs():
     """Test that core attributes are exposed on the instance."""
-    L = LikelihoodExpansion(lambda x: x, np.array([1.0, -2.0]), np.eye(2))
-    # choose whatever names your class actually sets; adjust if needed
-    for name in ("function", "theta0", "cov"):
-        assert hasattr(L, name)
+    theta0 = np.array([1.0, -2.0])
+    cov = np.eye(2)
+    L = LikelihoodExpansion(lambda x: x, theta0, cov)
+
+    # Must expose these attributes
+    for name in ("function", "theta0", "cov", "n_parameters", "n_observables"):
+        assert hasattr(L, name), f"Missing attribute: {name}"
+
+    # Counts should match the shapes
+    assert L.n_parameters == theta0.size
+    assert L.n_observables == cov.shape[0]
+
 
 def test_inv_cov_behaves_like_inverse():
     """Test that _inv_cov() returns a matrix behaving like the inverse."""
