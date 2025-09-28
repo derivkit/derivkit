@@ -87,7 +87,6 @@ def test_get_used_points_plumbs_diagnostics(monkeypatch):
 
     # Patch immediately after defining the fakes
     monkeypatch.setattr("derivkit.derivative_kit.AdaptiveFitDerivative", FakeAdaptive, raising=True)
-    monkeypatch.setattr("derivkit.derivative_kit.FiniteDifferenceDerivative", FakeFinite, raising=True)
 
     dk = DerivativeKit(lambda x: x, 0.0)
     order = 2
