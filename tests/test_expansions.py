@@ -266,26 +266,45 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
 
 
 def test_le_init_exposes_core_attrs():
-    """Test that core attributes are exposed on the instance."""
+    """Required public attrs are present and consistent."""
     theta0 = np.array([1.0, -2.0])
     cov = np.eye(2)
-    L = LikelihoodExpansion(lambda x: x, theta0, cov)
+    like = LikelihoodExpansion(lambda x: x, theta0, cov)
 
-    # Must expose these attributes
+    # Required public attributes (behavioral contract)
     for name in ("function", "theta0", "cov", "n_parameters", "n_observables"):
-        assert hasattr(L, name), f"Missing attribute: {name}"
+        assert hasattr(like, name), f"Missing attribute: {name}"
 
-    # Counts should match the shapes
-    assert L.n_parameters == theta0.size
-    assert L.n_observables == cov.shape[0]
+    # Counts should match shapes
+    assert like.n_parameters == theta0.size
+    assert like.n_observables == cov.shape[0]
+
+
+def test_no_unexpected_public_instance_fields():
+    """Guard against accidental new public *instance* fields.
+
+    Only checks data attrs created in __init__ (L.__dict__). Methods/properties
+    are not constrained to avoid brittleness as the API evolves.
+    """
+    like = LikelihoodExpansion(lambda x: x, np.array([1.0, -2.0]), np.eye(2))
+
+    required = {"function", "theta0", "cov"}  # keep tiny & intentional
+    public_instance = {k for k in like.__dict__ if not k.startswith("_")}
+
+    # Must include the required attrs
+    assert required.issubset(public_instance)
+
+    # No unexpected public data attributes (add to 'required' if we later make one intentional)
+    unexpected = public_instance - required
+    assert not unexpected, f"Unexpected public instance fields: {sorted(unexpected)}"
 
 
 def test_inv_cov_behaves_like_inverse():
     """Test that _inv_cov() returns a matrix behaving like the inverse."""
     cov = np.array([[2.0, 0.0],
                     [0.0, 0.5]])
-    L = LikelihoodExpansion(lambda x: x, np.array([0.0, 0.0]), cov)
-    inv = L._inv_cov()
+    like = LikelihoodExpansion(lambda x: x, np.array([0.0, 0.0]), cov)
+    inv = like._inv_cov()
     np.testing.assert_allclose(inv @ cov, np.eye(2), atol=1e-12)
     np.testing.assert_allclose(cov @ inv, np.eye(2), atol=1e-12)
 
