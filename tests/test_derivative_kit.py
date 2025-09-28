@@ -17,14 +17,14 @@ def test_constructor_wires_adaptive_and_finite(monkeypatch):
     calls = {"adaptive": None, "finite": None}
 
     class FakeAdaptive:
-        def __init__(self, function, x0, **kwargs):  # noqa: D401
+        def __init__(self, function, x0, **kwargs):
             calls["adaptive"] = (function, x0, kwargs)
 
         def differentiate(self, **kwargs):  # not used here
             return 0.0
 
     class FakeFinite:
-        def __init__(self, function, x0, **kwargs):  # noqa: D401
+        def __init__(self, function, x0, **kwargs):
             calls["finite"] = (function, x0, kwargs)
 
     # Patch module-local symbols used by DerivativeKit
