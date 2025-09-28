@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from derivkit.finite_difference import FiniteDifferenceDerivative
+from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 
 __all__ = ["fallback_fd"]
 

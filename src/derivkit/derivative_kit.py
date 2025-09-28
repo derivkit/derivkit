@@ -16,8 +16,8 @@ derivative is the derivative of function_to_differerentiate at value 1.
 
 from collections.abc import Callable
 
-from derivkit.adaptive_fit import AdaptiveFitDerivative
-from derivkit.finite_difference import FiniteDifferenceDerivative
+from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
+from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 
 
 class DerivativeKit:
