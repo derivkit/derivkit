@@ -185,6 +185,6 @@ def get_partial_function(
     def partial_function(x):
         params = fixed_arr.copy()
         params[variable_index] = x
-        return np.atleast_1d(full_function(params))
+        return np.atleast_1d(full_function(*params))
 
     return partial_function
