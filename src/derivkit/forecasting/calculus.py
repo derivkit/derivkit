@@ -32,7 +32,25 @@ def gradient(function, theta0, n_workers=1):
     return grad
 
 def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> float:
-    """∂f/∂θ_i at theta0."""
+    """Compute the partial derivative ∂f/∂θ_i at ``theta0``.
+
+    Helper used by ``gradient``. Wraps ``function`` into a single-variable
+    callable via ``derivkit.utils.get_partial_function`` and differentiates it
+    with ``DerivativeKit.adaptive.differentiate``.
+
+    Args:
+        function: Callable ``f(theta) -> scalar``. Must be scalar-valued; this
+            is enforced by ``get_partial_function``.
+        theta0: 1D array of parameter values at which to evaluate the derivative.
+            The input is not mutated.
+        i: Zero-based index of the parameter with respect to which to differentiate.
+        n_workers: Number of workers used inside
+            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
+            across parameters.
+
+    Returns:
+        float: The partial derivative ∂f/∂θ_i evaluated at ``theta0``.
+    """
     kit = DerivativeKit(get_partial_function(function, i, theta0), theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
