@@ -22,16 +22,19 @@ def gradient(function, theta0, n_workers=1):
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    def compute_deriv(i: int) -> float:
-        """Compute partial derivative with respect to theta0[i]."""
-        kit = DerivativeKit(get_partial_function(function, i, theta0), theta0[i])
-        # NOTE: n_workers controls inner 1D differentiation
-        return kit.adaptive.differentiate(order=1, n_workers=n_workers)
-
-    grad = np.array([compute_deriv(i) for i in range(theta0.size)], dtype=float)
+    # n_workers controls inner 1D differentiation (not across parameters).
+    grad = np.array(
+        [_grad_component(function, theta0, i, n_workers) for i in range(theta0.size)],
+        dtype = float,
+    )
     if not np.isfinite(grad).all():
         raise FloatingPointError("Non-finite values encountered in gradient.")
     return grad
+
+def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> float:
+    """∂f/∂θ_i at theta0."""
+    kit = DerivativeKit(get_partial_function(function, i, theta0), theta0[i])
+    return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
 
 def jacobian(*args, **kwargs):
