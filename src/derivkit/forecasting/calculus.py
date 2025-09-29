@@ -1,41 +1,38 @@
-import warnings
-from copy import deepcopy
+"""Differential calculus helpers."""
 
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.utils import get_partial_function
 
-"""Differential calculus helpers."""
 
 def gradient(function, theta0, n_workers=1):
-    """Returns the gradient of a function.
+    """Returns the gradient of a scalar-valued function.
 
     Args:
-        function (callable): The scalar-valued function to
-            differentiate. It should accept a list or array of parameter
-            values as input and return a scalar observable value.
-        theta0 (class:`np.ndarray`): The points at which the
-            derivative is evaluated. A 1D array or list of parameter values
-            matching the expected input of the function.
+        function: f(theta) -> scalar.
+        theta0: 1D parameter point (array-like).
+        n_workers: Workers used **inside** DerivativeKit.adaptive.differentiate
+                   (does not parallelize across parameters).
 
     Returns:
-        :class:`np.ndarray`: the gradient of the function, as an array.
+        1D array of gradient values.
     """
+    theta0 = np.asarray(theta0, dtype=float).reshape(-1)
+    if theta0.size == 0:
+        raise ValueError("theta0 must be a non-empty 1D array.")
 
-    n_parameters = theta0.shape[0]
-    gradient = np.zeros(n_parameters, dtype=float)
+    def compute_deriv(i: int) -> float:
+        """Compute partial derivative with respect to theta0[i]."""
+        kit = DerivativeKit(get_partial_function(function, i, theta0), theta0[i])
+        # NOTE: n_workers controls inner 1D differentiation
+        return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
-    for m in range(n_parameters):
-        # 1 parameter to differentiate, and n_parameters-1 parameters to hold fixed
-        theta0_x = deepcopy(theta0)
-        function_to_diff = get_partial_function(
-            function, m, theta0_x
-        )
-        kit = DerivativeKit(function_to_diff, theta0[m])
-        gradient[m] = kit.adaptive.differentiate(
-            order=1, n_workers=n_workers
-        )
-    return gradient
+    grad = np.array([compute_deriv(i) for i in range(theta0.size)], dtype=float)
+    if not np.isfinite(grad).all():
+        raise FloatingPointError("Non-finite values encountered in gradient.")
+    return grad
+
 
 def jacobian(*args, **kwargs):
     """This is a placeholder for a Jacobian computation function."""
@@ -52,33 +49,3 @@ def jacobian_diag(*args, **kwargs):
 def gauss_newton_hessian(*args, **kwargs):
     """This is a placeholder for a Gauss-Newton Hessian computation function."""
     raise NotImplementedError
-    
-def get_partial_function(
-    full_function, variable_index, fixed_values
-):
-    """Returns a single-variable version of a multivariate function.
-
-    A single parameter must be specified by index. All others parameters
-    are held fixed.
-
-    Args:
-        full_function (callable): A function that takes a list of
-            n_parameters parameters and returns a vector of n_observables
-            observables.
-        variable_index (int): The index of the parameter to treat as the
-            variable.
-        fixed_values (list or np.ndarray): The list of parameter values to
-            use as fixed inputs for all parameters except the one being
-            varied.
-
-    Returns:
-        callable: A function of a single variable, suitable for use in
-            differentiation.
-    """
-
-    def partial_function(x):
-        params = deepcopy(fixed_values)
-        params[variable_index] = x
-        return np.atleast_1d(full_function(params))
-
-    return partial_function
