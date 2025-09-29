@@ -58,18 +58,17 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
     i = int(i)  # tolerate NumPy integer types
     partial_vec = get_partial_function(function, i, theta0)
 
-    # Enforce scalar output for gradient() only (utils stays vector-friendly).
-    def partial_scalar(x: float) -> float:
-        val = partial_vec(x)
-        arr = np.asarray(val, dtype=float)
-        if arr.size != 1:
-            raise TypeError(
-                "gradient() expects a scalar-valued function; "
-                f"got shape {arr.shape} from full_function(params)."
-            )
-        return float(arr.squeeze())
+    # One-time scalar validation (no wrapper function needed)
+    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
+    if probe.size != 1:
+        raise TypeError(
+            "gradient() expects a scalar-valued function; "
+            f"got shape {probe.shape} from full_function(params)."
+        )
 
-    kit = DerivativeKit(partial_scalar, theta0[i])
+    # If DerivativeKit accepts size-1/0-d arrays as scalars, we can pass partial_vec directly.
+    # Otherwise (if it requires a true float), we can switch to a tiny lambda cast later.
+    kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
 
