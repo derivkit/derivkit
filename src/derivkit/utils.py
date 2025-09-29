@@ -9,7 +9,6 @@ symmetry checks, and example/test function generators.
 from __future__ import annotations
 
 from collections.abc import Callable
-from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -169,10 +168,22 @@ def get_partial_function(
     Returns:
         callable: A function of a single variable, suitable for use in
             differentiation.
+
+    Raises:
+        ValueError: If ``fixed_values`` is not 1D or if `variable_index`` is out of bounds.
+        TypeError: If ``variable_index`` is not an integer.
+        IndexError: If ``variable_index`` is out of bounds for the size of ``fixed_values``.
     """
+    fixed_arr = np.asarray(fixed_values, dtype=float)
+    if fixed_arr.ndim != 1:
+        raise ValueError(f"fixed_values must be 1D; got shape {fixed_arr.shape}.")
+    if not isinstance(variable_index, (int, np.integer)):
+        raise TypeError(f"variable_index must be an integer; got {type(variable_index).__name__}.")
+    if variable_index < 0 or variable_index >= fixed_arr.size:
+        raise IndexError(f"variable_index {variable_index} out of bounds for size {fixed_arr.size}.")
 
     def partial_function(x):
-        params = deepcopy(fixed_values)
+        params = fixed_arr.copy()
         params[variable_index] = x
         return np.atleast_1d(full_function(params))
 
