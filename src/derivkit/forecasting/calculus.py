@@ -25,7 +25,7 @@ def gradient(function, theta0, n_workers=1):
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
         [_grad_component(function, theta0, i, n_workers) for i in range(theta0.size)],
-        dtype = float,
+        dtype=float,
     )
     if not np.isfinite(grad).all():
         raise FloatingPointError("Non-finite values encountered in gradient.")
@@ -50,8 +50,26 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
 
     Returns:
         float: The partial derivative ∂f/∂θ_i evaluated at ``theta0``.
+
+    Raises:
+        ValueError: If ``i`` is out of bounds for ``theta0``.
+        TypeError: If ``function`` does not return a scalar value.
     """
-    kit = DerivativeKit(get_partial_function(function, i, theta0), theta0[i])
+    i = int(i)  # tolerate NumPy integer types
+    partial_vec = get_partial_function(function, i, theta0)
+
+    # Enforce scalar output for gradient() only (utils stays vector-friendly).
+    def partial_scalar(x: float) -> float:
+        val = partial_vec(x)
+        arr = np.asarray(val, dtype=float)
+        if arr.size != 1:
+            raise TypeError(
+                "gradient() expects a scalar-valued function; "
+                f"got shape {arr.shape} from full_function(params)."
+            )
+        return float(arr.squeeze())
+
+    kit = DerivativeKit(partial_scalar, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
 
