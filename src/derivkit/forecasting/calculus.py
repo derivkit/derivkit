@@ -16,7 +16,7 @@ def gradient(function, theta0, n_workers=1):
                         This setting does not parallelize across parameters.
 
     Returns:
-        1D array of gradient values.
+        (``np.array``): 1D array representing the gradient.
     """
     theta0 = np.asarray(theta0, dtype=float).reshape(-1)
     if theta0.size == 0:
