@@ -12,8 +12,8 @@ def gradient(function, theta0, n_workers=1):
     Args:
         function: f(theta) -> scalar.
         theta0: 1D parameter point (array-like).
-        n_workers: Workers used **inside** DerivativeKit.adaptive.differentiate
-                   (does not parallelize across parameters).
+        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
+                        This setting does not parallelize across parameters.
 
     Returns:
         1D array of gradient values.
