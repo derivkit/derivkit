@@ -52,13 +52,13 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
         float: The partial derivative ∂f/∂θ_i evaluated at ``theta0``.
 
     Raises:
-        ValueError: If ``i`` is out of bounds for ``theta0``.
+        ValueError: If ``theta0`` is not 1D or empty.
+        IndexError: If ``i`` is out of bounds for the size of ``theta0``.
         TypeError: If ``function`` does not return a scalar value.
     """
-    i = int(i)  # tolerate NumPy integer types
     partial_vec = get_partial_function(function, i, theta0)
 
-    # One-time scalar validation (no wrapper function needed)
+    # One-time scalar check for gradient()
     probe = np.asarray(partial_vec(theta0[i]), dtype=float)
     if probe.size != 1:
         raise TypeError(
@@ -66,8 +66,6 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
             f"got shape {probe.shape} from full_function(params)."
         )
 
-    # If DerivativeKit accepts size-1/0-d arrays as scalars, we can pass partial_vec directly.
-    # Otherwise (if it requires a true float), we can switch to a tiny lambda cast later.
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
