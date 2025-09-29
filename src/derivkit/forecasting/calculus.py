@@ -54,8 +54,6 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
         float: The ith component of the gradient of function evaluated at ``theta0``.
 
     Raises:
-        ValueError: If ``theta0`` is not 1D or empty.
-        IndexError: If ``i`` is out of bounds for the size of ``theta0``.
         TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
