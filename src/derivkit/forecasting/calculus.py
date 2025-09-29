@@ -10,8 +10,8 @@ def gradient(function, theta0, n_workers=1):
     """Returns the gradient of a scalar-valued function.
 
     Args:
-        function: f(theta) -> scalar.
-        theta0: 1D parameter point (array-like).
+        function (Callable): The function to be differentiated.
+        theta0  (array-like): The parameter vector at which the gradient is evaluated.
         n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
                         This setting does not parallelize across parameters.
 
