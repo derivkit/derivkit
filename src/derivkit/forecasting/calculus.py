@@ -1,6 +1,7 @@
 """Differential calculus helpers."""
 
 import numpy as np
+from collections.abc import Callable
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
@@ -94,7 +95,7 @@ def jacobian(function, theta0, n_workers=1):
         raise FloatingPointError("Non-finite values encountered in jacobian.")
     return jacobian.T
 
-def _jacobian_component(function, theta0: np.ndarray, i: int, n_workers: int) -> float:
+def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_workers: int) -> np.ndarray:
     """Compute one column of the jacobian of a scalar-valued function.
 
     Helper used by ``jacobian``. Wraps ``function`` into a single-variable
@@ -102,7 +103,7 @@ def _jacobian_component(function, theta0: np.ndarray, i: int, n_workers: int) ->
     with ``DerivativeKit.adaptive.differentiate``.
 
     Args:
-        function (callable): The vector-valued function to
+        function: The vector-valued function to
             differentiate. It should accept a list or array of parameter
             values as input and return an array of observable values.
         theta0: The points at which the derivative is evaluated.
@@ -114,7 +115,7 @@ def _jacobian_component(function, theta0: np.ndarray, i: int, n_workers: int) ->
             across parameters.
 
     Returns:
-        (``np.array``): The ith column of the jacobian of function evaluated at ``theta0``.
+        The ith column of the jacobian of function evaluated at ``theta0``.
     """
     partial_vec = get_partial_function(function, i, theta0)
 
