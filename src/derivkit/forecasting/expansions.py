@@ -347,7 +347,8 @@ class LikelihoodExpansion:
         if inv_cov.shape != (n_obs, n_obs):
             raise ValueError(f"inv_cov has shape {inv_cov.shape}, expected {(n_obs, n_obs)}")
 
-        # d1: (P,N). Prefer public Jacobian (N,P) -> transpose; fallback to internal.
+        # deriv matrix d1 (P, N) shape
+        # try jacobian first for speed; fallback to _get_derivatives for robustness
         try:
             jac = jacobian(self.function, self.theta0, n_workers=n_workers)  # (N, P) shape
             if jac.shape != (n_obs, n_params):
