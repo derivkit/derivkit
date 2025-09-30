@@ -318,7 +318,7 @@ class LikelihoodExpansion:
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
 
-    def fisher_bias(
+    def build_fisher_bias(
             self,
             *,
             delta: np.ndarray | None = None,
