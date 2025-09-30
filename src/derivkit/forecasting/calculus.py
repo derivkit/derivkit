@@ -161,14 +161,14 @@ def hessian(function, theta0, n_workers=1):
     return hess
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
-    """Compute one component of the hessian of a vector-valued function.
+    """Compute one component of the hessian of a scalar-valued function.
 
     Helper used by ``hessian``. Wraps ``function`` into a single-variable
     callable via ``derivkit.utils.get_partial_function`` and differentiates it
     with ``DerivativeKit.adaptive.differentiate``.
 
     Args:
-        function: The vector-valued function to
+        function: The scalar-valued function to
             differentiate. It should accept a list or array of parameter
             values as input and return an array of observable values.
         theta0: The points at which the derivative is evaluated.
