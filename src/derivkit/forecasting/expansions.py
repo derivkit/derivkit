@@ -16,6 +16,7 @@ from copy import deepcopy
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.forecasting.calculus import jacobian
 from derivkit.utils import get_partial_function
 
 
@@ -316,6 +317,120 @@ class LikelihoodExpansion:
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
 
-    def fisher_bias(self, *args, **kwargs):
-        """This is a placeholder for future functionality."""
-        raise NotImplementedError
+    def fisher_bias(self, *, delta=None, datavec_with=None, datavec_without=None, n_workers=1):
+        """Compute the Fisher bias for parameters.
+
+        Args:
+            delta: Data-vector mismatch Δμ. Can be 1D of length N or a 2D array
+                (corr, ell) that will be flattened C-order. If provided, takes
+                precedence over `data_with`/`data_without`.
+            datavec_with: Data vector with the systematic present. 1D (N,) or 2D
+                (corr, ell). Used only if `delta` is None.
+            datavec_without: Data vector without the systematic. Same shape rules
+                as `data_with`. Used only if `delta` is None.
+            n_workers: Number of workers passed to derivative routines.
+
+        Returns:
+            dict: A dictionary with:
+                - "F": Fisher matrix, shape (P, P).
+                - "b": Bias “force” vector Jᵀ C⁻¹ Δμ, shape (P,).
+                - "delta_theta": Parameter bias estimate Δθ, shape (P,).
+
+        Raises:
+            ValueError: If shapes are inconsistent with (N, P), (P, N), or (N, N),
+                or if neither `delta` nor the pair (`data_with`, `data_without`)
+                is provided.
+        """
+        n_obs, n_params = self.n_observables, self.n_parameters
+
+        inv_cov = self._inv_cov()  # (N, N) shape
+        if inv_cov.shape != (n_obs, n_obs):
+            raise ValueError(f"inv_cov has shape {inv_cov.shape}, expected {(n_obs, n_obs)}")
+
+        # d1: (P,N). Prefer public Jacobian (N,P) -> transpose; fallback to internal.
+        try:
+            jac = jacobian(self.function, self.theta0, n_workers=n_workers)  # (N, P) shape
+            if jac.shape != (n_obs, n_params):
+                raise ValueError(f"Jacobian has shape {jac.shape}, expected {(n_obs, n_params)}.")
+            d1 = jac.T  # (P, N) shape here
+        except Exception:
+            d1 = self._get_derivatives(order=1, n_workers=n_workers)  # (P, N) shape niko sanity check
+
+        if d1.shape != (n_params, n_obs):
+            raise ValueError(f"d1 has shape {d1.shape}, expected {(n_params, n_obs)}.")
+        fisher = self._build_fisher(d1, inv_cov)  # (P, P)
+
+        delta_mu = self._build_delta_vector(
+            delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
+        )
+
+        # b = J^T C^{-1} Δμ with J^T = d1
+        bias_vec = d1 @ (inv_cov @ delta_mu)
+
+        try:
+            delta_theta = np.linalg.solve(fisher, bias_vec)
+        except np.linalg.LinAlgError:
+            warnings.warn("Fisher is singular; using pseudoinverse.", RuntimeWarning)
+            delta_theta = np.linalg.pinv(fisher, rcond=1e-12) @ bias_vec
+
+        return {"F": fisher, "b": bias_vec, "delta_theta": delta_theta}
+
+    def _flatten_data_vector(self, data: np.ndarray, n_obs: int) -> np.ndarray:
+        """Return a 1D data vector of length N from 1D/2D input.
+
+        Args:
+            data: Input data. Either 1D of length N or 2D (corr, ell), which will be
+                flattened in C-order.
+            n_obs: Expected length N of the flattened data vector.
+
+        Returns:
+            np.ndarray: Flattened 1D array of length N.
+
+        Raises:
+            ValueError: If `x` is not 1D or 2D, or if the flattened size does not
+                equal `n_obs`.
+        """
+        arr = np.asarray(data, dtype=float)
+        if arr.ndim == 1:
+            if arr.size != n_obs:
+                raise ValueError(f"vector length {arr.size} != covariance dim {n_obs}")
+            return arr
+        if arr.ndim == 2:
+            v = arr.ravel(order="C")
+            if v.size != n_obs:
+                raise ValueError("flattened 2D data length != covariance dimension")
+            return v
+        raise ValueError("data must be 1D or 2D")
+
+    def _build_delta_vector(
+            self,
+            *,
+            delta: np.ndarray | None,
+            data_with: np.ndarray | None,
+            data_without: np.ndarray | None,
+            n_obs: int,
+    ) -> np.ndarray:
+        """Construct the data mismatch Δμ.
+
+        Args:
+            delta: Precomputed mismatch Δμ. If provided, it is validated and used
+                directly (1D length N or 2D to be flattened).
+            data_with: Data vector with the systematic present. Used only if
+                `delta` is None. 1D length N or 2D to be flattened.
+            data_without: Data vector without the systematic. Same shape rules as
+                `data_with`. Used only if `delta` is None.
+            n_obs: Expected length N of the flattened data vector.
+
+        Returns:
+            np.ndarray: Δμ as a 1D vector of length N.
+
+        Raises:
+            ValueError: If neither `delta` nor both `data_with` and `data_without`
+                are provided, or if shapes are inconsistent with `n_obs`.
+        """
+        if delta is not None:
+            return self._flatten_data_vector(delta, n_obs)
+        if data_with is None or data_without is None:
+            raise ValueError("provide `delta` or both `data_with` and `data_without`")
+        return self._flatten_data_vector(data_with, n_obs) - self._flatten_data_vector(data_without, n_obs)
+
