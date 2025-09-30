@@ -3,7 +3,115 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.calculus import hessian, jacobian
+from derivkit.forecasting.calculus import gradient, hessian, jacobian
+
+
+def test_gradient_linear_form():
+    """Test gradient on a linear form."""
+    # f(theta) = c^T theta  =>  grad = c
+    c = np.array([1.5, -2.0, 0.25], dtype=float)
+
+    def f(th):
+        th = np.asarray(th, dtype=float)
+        return float(c @ th)
+
+    theta0 = np.array([0.3, -0.7, 1.2])
+    g = gradient(f, theta0, n_workers=1)
+    assert g.shape == c.shape
+    np.testing.assert_allclose(g, c, atol=1e-12, rtol=0.0)
+
+
+def test_gradient_analytic_scalar():
+    """Test gradient on a function with known analytic gradient."""
+    # f(x, y) = x^2 + sin(y) + x*y
+    # ∂f/∂x = 2x + y ; ∂f/∂y = cos(y) + x
+    def f(th):
+        x, y = th
+        return float(x**2 + np.sin(y) + x * y)
+
+    x0, y0 = 0.4, -0.2
+    theta0 = np.array([x0, y0], dtype=float)
+    g = gradient(f, theta0, n_workers=2)
+    g_true = np.array([2 * x0 + y0, np.cos(y0) + x0], dtype=float)
+    np.testing.assert_allclose(g, g_true, atol=1e-5, rtol=1e-7)
+
+
+def test_gradient_equals_row_of_jacobian_for_scalar():
+    """Teest that gradient matches Jacobian row for scalar-valued function."""
+    # For scalar f: R^n -> R, grad f == J_f (row) of [f]
+    def f(th):
+        x, y, z = th
+        return float(x**2 + np.sin(y) + np.exp(z) + x * y)
+
+    theta0 = np.array([0.3, -0.7, 0.25], dtype=float)
+    grad = gradient(f, theta0, n_workers=1)
+
+    def f_vec(th):
+        return np.array([f(th)], dtype=float)  # length-1 vector
+
+    jac = jacobian(f_vec, theta0, n_workers=2)  # shape (1, n)
+    np.testing.assert_allclose(grad, jac[0, :], atol=2e-6, rtol=2e-6)
+
+
+def test_gradient_workers_invariance():
+    """Test that gradient is invariant to n_workers choice (within tolerance)."""
+    def f(th):
+        x, y = th
+        return float(x**2 + np.sin(y) + 0.5 * x * y)
+
+    theta0 = np.array([0.3, -0.7])
+    grad1 = gradient(f, theta0, n_workers=1)
+    grad2 = gradient(f, theta0, n_workers=4)
+    np.testing.assert_allclose(grad1, grad2, atol=2e-6, rtol=2e-6)
+
+
+def test_gradient_empty_theta_raises():
+    """Test gradient raises ValueError on empty theta0."""
+    def f(th):
+        return 1.0
+    with pytest.raises(ValueError):
+        gradient(f, np.array([]))
+
+
+def test_gradient_raises_on_vector_output():
+    """Input validation: gradient should raise if output is not scalar."""
+    # gradient expects scalar-valued function
+    def f_vec(th):
+        return np.array([1.0, 2.0])
+    with pytest.raises(TypeError):
+        gradient(f_vec, np.array([0.0, 1.0]))
+
+
+def test_gradient_raises_on_nonfinite():
+    """Gradient should raise if function returns non-finite values."""
+    def f(th):
+        x, y = th
+        return float(x + (np.nan * y))
+    with pytest.raises((FloatingPointError, TypeError, ValueError)):
+        gradient(f, np.array([1.0, 2.0]))
+
+
+def test_gradient_accepts_list_and_row_vector():
+    """Ensure gradient accepts list input and 2D row vector input."""
+    def f(th):
+        x, y = th
+        return float(x + y + x * y)
+
+    grad1 = gradient(f, [0.3, -0.7])
+    grad2 = gradient(f, np.array([[0.3, -0.7]]))  # odd shape -> reshaped inside
+    np.testing.assert_allclose(grad1, grad2, atol=1e-12, rtol=0.0)
+
+
+def test_gradient_does_not_modify_input():
+    """Ensure gradient does not modify theta0 in-place."""
+    def f(th):
+        x, y = th
+        return float(x + y + x * y)
+
+    theta0 = np.array([0.1, 0.2])
+    before = theta0.copy()
+    _ = gradient(f, theta0, n_workers=1)
+    assert np.array_equal(theta0, before)
 
 
 def test_jacobian_linear_map():
