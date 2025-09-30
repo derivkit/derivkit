@@ -1,6 +1,7 @@
 """Differential calculus helpers."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -102,9 +103,9 @@ def jacobian(function, theta0, n_workers=1):
         ],
         dtype=float,
     )
-    if not np.isfinite(jacobian).all():
+    if not np.isfinite(jac).all():
         raise FloatingPointError("Non-finite values encountered in jacobian.")
-    return jacobian.T
+    return jac.T
 
 
 def _jacobian_component(
@@ -136,6 +137,7 @@ def _jacobian_component(
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
+
 def build_hessian(function, theta0, n_workers=1):
     """Returns the hessian of a scalar-valued function.
 
@@ -147,32 +149,129 @@ def build_hessian(function, theta0, n_workers=1):
 
     Returns:
         (``np.array``): 2D array representing the hessian.
+
+    Raises:
+        FloatingPointError: If non-finite values are encountered.
     """
-    theta0 = np.asarray(theta0, dtype=float).reshape(-1)
-    if theta0.size == 0:
-        raise ValueError("theta0 must be a non-empty 1D array.")
+    theta0 = np.asarray(theta0, dtype=float)
+    p = theta0.size
+    hess = np.empty((p, p), dtype=float)
 
-    f0 = np.asarray(function(theta0), dtype=float)
-    if f0.size != 1:
-        raise TypeError("hessian() expects a scalar-valued function.")
+    i, j = np.triu_indices(p)  # upper triangle incl. diagonal
+    pairs = list(zip(i, j))
+    vals = np.asarray(_compute_hessian_entries(function, theta0, pairs, n_workers))
 
-    n_parameters = theta0.size
-    hess = np.empty((n_parameters, n_parameters), dtype=float)
-
-    # Diagonals here (pure second orders)
-    for i in range(n_parameters):
-        hess[i, i] = _hessian_component(function, theta0, i, i, n_workers)
-
-    # Off-diagonals here (mixed second orders).
-    for i in range(n_parameters):
-        for j in range(i + 1, n_parameters):
-            hij = _hessian_component(function, theta0, i, j, n_workers)
-            hess[i, j] = hij
-            hess[j, i] = hij
+    hess[i, j] = vals
+    hess[j, i] = vals
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
     return hess
+
+
+def _hess_entry(function: Callable, theta0: np.ndarray, i: int, j: int) -> float:
+    """Compute one component of the hessian of a scalar-valued function.
+
+    Helper used by ``build_hessian``. Wraps ``function`` into a single-variable
+    callable via ``derivkit.utils.get_partial_function`` and differentiates it
+    with ``DerivativeKit.adaptive.differentiate``.
+
+    Args:
+        function (Callable): The function to be differentiated.
+        theta0  (array-like): The parameter vector at which the hessian is evaluated.
+        i (int): Zero-based index of the first parameter with respect to which to differentiate.
+        j (int): Zero-based index of the second parameter with respect to which to differentiate.
+
+    Returns:
+        (``float``): The (i, j) component of the hessian of function evaluated at ``theta0``.
+    """
+    # IMPORTANT: do not spawn workers inside; this is the unit of parlelism
+    return _hessian_component(function, theta0, i, j, n_workers=1)
+
+
+def _compute_hessian_entries(
+    function: Callable,
+    theta0: np.ndarray,
+    pairs: Iterable[tuple[int, int]],
+    n_workers: int = 1,
+) -> list[float]:
+    """Compute Hessian entries for given (i, j) index pairs.
+
+    Args:
+        function (Callable): The function to be differentiated.
+        theta0  (array-like): The parameter vector at which the hessian is evaluated.
+        pairs (Iterable[tuple[int, int]]): Iterable of (i, j) index
+        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
+                        This setting does not parallelize across parameters.
+
+    Returns:
+        (``list``): List of hessian entries corresponding to the input pairs.
+    """
+    tasks = [(function, theta0, int(i), int(j)) for (i, j) in pairs]
+    if n_workers and n_workers > 1:
+        with Pool(processes=n_workers) as pool:
+            return pool.starmap(_hess_entry, tasks)
+    else:
+        return [_hess_entry(*t) for t in tasks]
+
+
+def build_hessian_diag(function: Callable, theta0, n_workers: int = 1) -> np.ndarray:
+    """Diagonal of the Hessian at theta0 as shape (p, ).
+
+    Args:
+        function (Callable): The function to be differentiated.
+        theta0  (array-like): The parameter vector at which the hessian is evaluated.
+        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
+                        This setting does not parallelize across parameters.
+
+    Returns:
+        (``np.array``): 1D array representing the diagonal of the hessian.
+
+    Raises:
+        FloatingPointError: If non-finite values are encountered.
+    """
+    theta0 = np.asarray(theta0, dtype=float)
+    p = theta0.size
+    idx = np.arange(p, dtype=int)
+    pairs = list(zip(idx, idx))  # (i, i)
+    vals = np.asarray(_compute_hessian_entries(function, theta0, pairs, n_workers))
+    if not np.isfinite(vals).all():
+        raise FloatingPointError("Non-finite values encountered in hessian_diag.")
+    return vals
+
+
+def hessian_triangle(
+    function: Callable, theta0, which: str = "upper", n_workers: int = 1
+) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    """Return only the specified triangle (incl. diagonal) entries plus their indices.
+
+    Args:
+        function (Callable): The function to be differentiated.
+        theta0  (array-like): The parameter vector at which the hessian is evaluated.
+        which (str): One of {"upper", "lower"} to specify which triangle to return
+        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
+                        This setting does not parallelize across parameters.
+
+    Returns:
+        (``np.array``): 1D array of the requested triangle entries of the h
+        (``tuple``): Tuple of two 1D arrays (i, j) of zero-based indices corresponding to the entries.
+
+    Raises:
+        ValueError: If ``which`` is not one of {"upper", "lower"}.
+    """
+    theta0 = np.asarray(theta0, dtype=float)
+    p = theta0.size
+    if which == "upper":
+        i, j = np.triu_indices(p)
+    elif which == "lower":
+        i, j = np.tril_indices(p)
+    else:
+        raise ValueError("which must be 'upper' or 'lower'")
+
+    pairs = list(zip(i, j))
+    vals = np.asarray(_compute_hessian_entries(function, theta0, pairs, n_workers))
+    return vals, (i, j)
+
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
     """Compute one component of the hessian of a scalar-valued function.
@@ -240,15 +339,6 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
         return kit2.adaptive.differentiate(
                 order=1, n_workers=n_workers
             )
-    
-def hessian_diag(*args, **kwargs):
-    """This is a placeholder for a Hessian diagonal computation function."""
-    raise NotImplementedError
-
-
-def jacobian_diag(*args, **kwargs):
-    """This is a placeholder for a Jacobian diagonal computation function."""
-    raise NotImplementedError
 
 
 def gauss_newton_hessian(*args, **kwargs):
