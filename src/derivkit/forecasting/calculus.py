@@ -225,7 +225,7 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
         return kit2.adaptive.differentiate(
                 order=1, n_workers=n_workers
             )
-    
+
 def hessian_diag(*args, **kwargs):
     """This is a placeholder for a Hessian diagonal computation function."""
     raise NotImplementedError
