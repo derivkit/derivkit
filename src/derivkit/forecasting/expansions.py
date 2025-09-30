@@ -411,10 +411,10 @@ class LikelihoodExpansion:
             data_without: np.ndarray | None,
             n_obs: int,
     ) -> np.ndarray:
-        """Construct the data mismatch Δμ.
+        """Construct the data mismatch vector delta.
 
         Args:
-            delta: Precomputed mismatch Δμ. If provided, it is validated and used
+            delta: Precomputed mismatch vector. If provided, it is validated and used
                 directly (1D length N or 2D to be flattened).
             data_with: Data vector with the systematic present. Used only if
                 `delta` is None. 1D length N or 2D to be flattened.
@@ -423,7 +423,7 @@ class LikelihoodExpansion:
             n_obs: Expected length N of the flattened data vector.
 
         Returns:
-            np.ndarray: Δμ as a 1D vector of length N.
+            np.ndarray: delta as a 1D vector of length N.
 
         Raises:
             ValueError: If neither `delta` nor both `data_with` and `data_without`
