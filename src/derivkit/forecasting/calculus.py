@@ -153,27 +153,37 @@ def hessian(function, theta0, n_workers=1):
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
+    f0 = np.asarray(function(theta0), dtype=float)
+    if f0.size != 1:
+        raise TypeError("hessian() expects a scalar-valued function.")
+
     n_parameters = theta0.size
-    hessian = np.zeros((n_parameters,n_parameters), dtype=float)
+    hess = np.empty((n_parameters, n_parameters), dtype=float)
 
-    # n_workers controls inner 1D differentiation (not across parameters).
+    # Diagonals here (pure second orders)
     for i in range(n_parameters):
-        for j in range(n_parameters):
-            hessian[i][j] = _hessian_component(function, theta0, i, j, n_workers)
+        hess[i, i] = _hessian_component(function, theta0, i, i, n_workers)
 
-    if not np.isfinite(hessian).all():
+    # Off-diagonals here (mixed second orders).
+    for i in range(n_parameters):
+        for j in range(i + 1, n_parameters):
+            hij = _hessian_component(function, theta0, i, j, n_workers)
+            hess[i, j] = hij
+            hess[j, i] = hij
+
+    if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
-    return hessian
+    return hess
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
-    """Compute one component of the hessian of a scalar-valued function.
+    """Compute one component of the hessian of a vector-valued function.
 
     Helper used by ``hessian``. Wraps ``function`` into a single-variable
     callable via ``derivkit.utils.get_partial_function`` and differentiates it
     with ``DerivativeKit.adaptive.differentiate``.
 
     Args:
-        function: The scalar-valued function to
+        function: The vector-valued function to
             differentiate. It should accept a list or array of parameter
             values as input and return an array of observable values.
         theta0: The points at which the derivative is evaluated.
@@ -201,7 +211,7 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
         probe = np.asarray(partial_vec1(theta0[i]), dtype=float)
         if probe.size != 1:
             raise TypeError(
-                "gradient() expects a scalar-valued function; "
+                "hessian() expects a scalar-valued function; "
                 f"got shape {probe.shape} from full_function(params)."
             )
 
@@ -223,7 +233,7 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
             kit1 = DerivativeKit(
                 partial_vec1, theta0[i]
             )
-            return kit1.adaptive.differentiate(order=1)
+            return kit1.adaptive.differentiate(order=1, n_workers=n_workers)
 
         kit2 = DerivativeKit(
             partial_vec2, theta0[j]
