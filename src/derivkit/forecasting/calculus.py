@@ -131,8 +131,7 @@ def _jacobian_component(
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
-
-def hessian(function, theta0, n_workers=1):
+def build_hessian(function, theta0, n_workers=1):
     """Returns the hessian of a scalar-valued function.
 
     Args:
@@ -155,7 +154,7 @@ def hessian(function, theta0, n_workers=1):
 
     f0 = np.asarray(function(theta0), dtype=float)
     if f0.size != 1:
-        raise TypeError("hessian() expects a scalar-valued function.")
+        raise TypeError("build_hessian() expects a scalar-valued function.")
 
     n_parameters = theta0.size
     hess = np.empty((n_parameters, n_parameters), dtype=float)
@@ -207,11 +206,11 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
             function, i, theta0
         )
 
-        # One-time scalar check for hessian()
+        # One-time scalar check for build_hessian()
         probe = np.asarray(partial_vec1(theta0[i]), dtype=float)
         if probe.size != 1:
             raise TypeError(
-                "hessian() expects a scalar-valued function; "
+                "build_hessian() expects a scalar-valued function; "
                 f"got shape {probe.shape} from full_function(params)."
             )
 
