@@ -1,7 +1,8 @@
 """Differential calculus helpers."""
 
-import numpy as np
 from collections.abc import Callable
+
+import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
@@ -87,16 +88,14 @@ def jacobian(function, theta0, n_workers=1):
         raise ValueError("theta0 must be a non-empty 1D array.")
 
     # n_workers controls inner 1D differentiation (not across parameters).
-    jacobian = np.array(
-        [_jacobian_component(function, theta0, i, n_workers) for i in range(theta0.size)],
-        dtype=float,
-    )
-    if not np.isfinite(jacobian).all():
+    cols = [_jacobian_component(function, theta0, i, n_workers) for i in range(theta0.size)]
+    jac = np.stack(cols, axis=1)  # (m_outputs, n_params)
+    if not np.isfinite(jac).all():
         raise FloatingPointError("Non-finite values encountered in jacobian.")
-    return jacobian.T
+    return jac
 
 def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_workers: int) -> np.ndarray:
-    """Compute one column of the jacobian of a scalar-valued function.
+    """Compute one column of the jacobian of a vector-valued function.
 
     Helper used by ``jacobian``. Wraps ``function`` into a single-variable
     callable via ``derivkit.utils.get_partial_function`` and differentiates it
@@ -120,7 +119,7 @@ def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_worker
     partial_vec = get_partial_function(function, i, theta0)
 
     kit = DerivativeKit(partial_vec, theta0[i])
-    return kit.adaptive.differentiate(order=1, n_workers=n_workers)
+    return np.atleast_1d(np.asarray(kit.adaptive.differentiate(order=1, n_workers=n_workers), dtype=float))
 
 def hessian(function, theta0, n_workers=1):
     """Returns the hessian of a scalar-valued function.
