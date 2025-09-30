@@ -330,7 +330,7 @@ class LikelihoodExpansion:
 
         Args:
             delta: Data-vector mismatch Δμ. Can be 1D of length N or a 2D array
-                (corr, ell) that will be flattened C-order. If provided, takes
+                (corr, ell) that will be flattened C-order (row-major order). If provided, takes
                 precedence over `data_with`/`data_without`.
             datavec_with: Data vector with the systematic present. 1D (N,) or 2D
                 (corr, ell). Used only if `delta` is None.
