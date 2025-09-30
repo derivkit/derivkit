@@ -367,12 +367,12 @@ class LikelihoodExpansion:
             raise ValueError(f"d1 has shape {deriv_matrix.shape}, expected {(n_params, n_obs)}.")
         fisher = self._build_fisher(deriv_matrix, inv_cov)  # (P, P)
 
-        delta_mu = self._build_delta_vector(
+        delta_vector = self._build_delta_vector(
             delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
         )
 
         # bias vector
-        bias_vec = deriv_matrix @ (inv_cov @ delta_mu)
+        bias_vec = deriv_matrix @ (inv_cov @ delta_vector)
 
         delta_theta = solve_or_pinv(
             fisher, bias_vec, rcond=1e-12, assume_symmetric=True, warn_context="Fisher solve"
