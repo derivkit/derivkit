@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+import warnings
 
 import numpy as np
 
@@ -21,6 +22,7 @@ __all__ = [
     "is_symmetric_grid",
     "generate_test_function",
     "get_partial_function",
+    "solve_or_pinv",
 ]
 
 
@@ -195,3 +197,50 @@ def get_partial_function(
         return np.atleast_1d(full_function(params))
 
     return partial_function
+
+
+def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-12,
+                  assume_symmetric: bool = True, warn_context: str = "linear solve") -> np.ndarray:
+    """Solve ``system_matrix @ x = rhs`` with pseudoinverse fallback.
+
+    If ``assume_symmetric`` is True (e.g., Fisher matrices), attempt a
+    Cholesky-based solve. On failure (not SPD / singular), warn and fall
+    back to ``pinv(system_matrix, rcond) @ rhs``.
+
+    Args:
+      system_matrix: Coefficient matrix of shape ``(n, n)``.
+      rhs: Right-hand side vector or matrix of shape ``(n,)`` or ``(n, k)``.
+      rcond: Cutoff for small singular values used by ``np.linalg.pinv``.
+      assume_symmetric: If True, prefer a Cholesky solve (fast path for SPD).
+      warn_context: Short label included in the warning message.
+
+    Returns:
+      Solution array ``x`` with shape matching ``rhs`` (``(n,)`` or ``(n, k)``).
+
+    Raises:
+      ValueError: If shapes of ``system_matrix`` and ``rhs`` are incompatible.
+    """
+    matrix = np.asarray(matrix, dtype=float)
+    vector = np.asarray(vector, dtype=float)
+
+    try:
+        if assume_symmetric:
+            # Fast path for symmetric positive definite matrices (what Fisher should be)
+            spd_matrix = np.linalg.cholesky(matrix)
+            # Solve L y = b, then L.T x = y
+            y = np.linalg.solve(spd_matrix, vector)
+            return np.linalg.solve(spd_matrix.T, y)
+        else:
+            return np.linalg.solve(matrix, vector)
+    except np.linalg.LinAlgError:
+        # Fall back to pinv with a helpful warning
+        try:
+            cond = np.linalg.cond(matrix)
+            cond_msg = f" (cond≈{cond:.2e})"
+        except Exception:
+            cond_msg = ""
+        warnings.warn(
+            f"{warn_context}: matrix not SPD/singular; using pseudoinverse with rcond={rcond}{cond_msg}.",
+            RuntimeWarning,
+        )
+        return np.linalg.pinv(matrix, rcond=rcond) @ vector

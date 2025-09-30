@@ -17,7 +17,7 @@ import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.forecasting.calculus import jacobian
-from derivkit.utils import get_partial_function
+from derivkit.utils import get_partial_function, solve_or_pinv
 
 
 class LikelihoodExpansion:
@@ -365,14 +365,10 @@ class LikelihoodExpansion:
             delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
         )
 
-        # bis vector
+        # bias vector
         bias_vec = d1 @ (inv_cov @ delta_mu)
 
-        try:
-            delta_theta = np.linalg.solve(fisher, bias_vec)
-        except np.linalg.LinAlgError:
-            warnings.warn("Fisher is singular; using pseudoinverse.", RuntimeWarning)
-            delta_theta = np.linalg.pinv(fisher, rcond=1e-12) @ bias_vec
+        delta_theta = solve_or_pinv(jac, bias_vec)
 
         return {"F": fisher, "b": bias_vec, "delta_theta": delta_theta}
 
