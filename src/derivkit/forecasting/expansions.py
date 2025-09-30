@@ -12,6 +12,7 @@ the methods.
 
 import warnings
 from copy import deepcopy
+from typing import Dict
 
 import numpy as np
 
@@ -317,7 +318,14 @@ class LikelihoodExpansion:
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
 
-    def fisher_bias(self, *, delta=None, datavec_with=None, datavec_without=None, n_workers=1):
+    def fisher_bias(
+            self,
+            *,
+            delta: np.ndarray | None = None,
+            datavec_with: np.ndarray | None = None,
+            datavec_without: np.ndarray | None = None,
+            n_workers: int = 1,
+    ) -> Dict[str, np.ndarray]:
         """Compute the Fisher bias for parameters.
 
         Args:
@@ -347,24 +355,24 @@ class LikelihoodExpansion:
         if inv_cov.shape != (n_obs, n_obs):
             raise ValueError(f"inv_cov has shape {inv_cov.shape}, expected {(n_obs, n_obs)}")
 
-        # deriv matrix d1 (P, N) shape
+        # deriv matrix (P, N) shape
         # try jacobian first for speed; fallback to _get_derivatives for robustness
         try:
             jac = jacobian(self.function, self.theta0, n_workers=n_workers)  # (N, P) shape
-            d1 = jac.T  # (P, N) shape here
+            deriv_matrix = jac.T  # (P, N) shape here
         except Exception:
-            d1 = self._get_derivatives(order=1, n_workers=n_workers)  # (P, N) shape niko sanity check
+            deriv_matrix = self._get_derivatives(order=1, n_workers=n_workers)  # (P, N) shape niko sanity check
 
-        if d1.shape != (n_params, n_obs):
-            raise ValueError(f"d1 has shape {d1.shape}, expected {(n_params, n_obs)}.")
-        fisher = self._build_fisher(d1, inv_cov)  # (P, P)
+        if deriv_matrix.shape != (n_params, n_obs):
+            raise ValueError(f"d1 has shape {deriv_matrix.shape}, expected {(n_params, n_obs)}.")
+        fisher = self._build_fisher(deriv_matrix, inv_cov)  # (P, P)
 
         delta_mu = self._build_delta_vector(
             delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
         )
 
         # bias vector
-        bias_vec = d1 @ (inv_cov @ delta_mu)
+        bias_vec = deriv_matrix @ (inv_cov @ delta_mu)
 
         delta_theta = solve_or_pinv(
             fisher, bias_vec, rcond=1e-12, assume_symmetric=True, warn_context="Fisher solve"
