@@ -122,7 +122,7 @@ def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_worker
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
-def hessian(function, theta0, n_workers=1):
+def build_hessian(function, theta0, n_workers=1):
     """Returns the hessian of a scalar-valued function.
 
     Args:
