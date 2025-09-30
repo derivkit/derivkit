@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.calculus import jacobian
+from derivkit.forecasting.calculus import hessian, jacobian
 
 
 def test_jacobian_linear_map():
@@ -176,3 +176,96 @@ def test_jacobian_accepts_list_and_row_vector():
     J2 = jacobian(f, np.array([[0.3, -0.7]]))  # weird shape
     assert J1.shape == (2, 2)
     assert np.allclose(J1, J2)
+
+
+def test_hessian_quadratic_form():
+    """For a quadratic form f(θ)=0.5 θ^T Q θ + b^T θ + c, Hessian should equal Q."""
+    # f(theta) = 0.5 * theta^T Q theta + b^T theta + c
+    # Hessian = Q (constant, symmetric)
+    Q = np.array([[3.0, 1.0, -0.5],
+                  [1.0, 4.0,  0.2],
+                  [-0.5, 0.2, 2.5]], dtype=float)
+    Q = 0.5 * (Q + Q.T)  # ensure symmetric
+    b = np.array([0.1, -0.2, 0.3], dtype=float)
+
+    def f(th):
+        th = np.asarray(th, dtype=float)
+        return float(0.5 * th @ Q @ th + b @ th + 1.23)
+
+    theta0 = np.array([0.2, -0.1, 0.7], dtype=float)
+    H = hessian(f, theta0, n_workers=1)
+    assert H.shape == (3, 3)
+    # symmetry
+    assert np.allclose(H, H.T, atol=1e-12, rtol=0.0)
+    # equals Q
+    assert np.allclose(H, Q, atol=1e-8, rtol=0.0)
+
+
+def test_hessian_mixed_partials_equal():
+    """For a smooth function, mixed partials should be equal: ∂²f/∂x∂y = ∂²f/∂y∂x."""
+    # f(x,y) = x^2 * y + sin(x*y)
+    # ∂²f/∂x∂y should equal ∂²f/∂y∂x
+    def f(th):
+        x, y = th
+        return float(x**2 * y + np.sin(x * y))
+
+    theta0 = np.array([0.4, -0.3], dtype=float)
+    H = hessian(f, theta0, n_workers=2)
+    assert H.shape == (2, 2)
+    assert np.allclose(H[0, 1], H[1, 0], atol=5e-6, rtol=5e-6)
+
+
+def test_hessian_analytic_small_tol():
+    """Test hessian on a function with known analytic Hessian."""
+    # f(x,y) = exp(x) + cos(y) + x*y
+    # Hessian =
+    # [[exp(x), 1],
+    #  [1,    -cos(y)]]
+    def f(th):
+        x, y = th
+        return float(np.exp(x) + np.cos(y) + x * y)
+
+    x0, y0 = 0.1, -0.2
+    theta0 = np.array([x0, y0], dtype=float)
+    H = hessian(f, theta0, n_workers=3)
+    H_true = np.array([[np.exp(x0), 1.0],
+                       [1.0, -np.cos(y0)]], dtype=float)
+    assert H.shape == (2, 2)
+    assert np.allclose(H, H_true, atol=2e-5, rtol=2e-6)
+
+
+def test_hessian_raises_on_vector_output():
+    """Input validation: Hessian should raise if output is not scalar."""
+    # hessian expects scalar-valued function
+    def f_vec(th):
+        return np.array([1.0, 2.0])
+    with pytest.raises(TypeError):
+        hessian(f_vec, np.array([0.0, 1.0]))
+
+
+def test_hessian_empty_theta_raises():
+    """Test hessian raises ValueError on empty theta0."""
+    def f(th):
+        return 1.0
+    with pytest.raises(ValueError):
+        hessian(f, np.array([]))
+
+
+def test_hessian_nonfinite_raises():
+    """Hessian should raise if function returns non-finite values."""
+    def f(th):
+        x, y = th
+        return float((x + y) * np.nan)
+    with pytest.raises((FloatingPointError, TypeError, ValueError)):
+        hessian(f, np.array([0.3, 0.2]))
+
+
+def test_hessian_does_not_modify_input():
+    """Ensure hessian does not modify theta0 in-place."""
+    def f(th):
+        x, y, z = th
+        return float(x**2 + y**2 + z**2 + x * y - y * z)
+    theta0 = np.array([0.1, 0.2, -0.3])
+    theta_copy = theta0.copy()
+    _ = hessian(f, theta0, n_workers=1)
+    assert np.array_equal(theta0, theta_copy)
