@@ -8,9 +8,9 @@ symmetry checks, and example/test function generators.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -208,8 +208,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
     back to ``pinv(system_matrix, rcond) @ rhs``.
 
     Args:
-      system_matrix: Coefficient matrix of shape ``(n, n)``.
-      rhs: Right-hand side vector or matrix of shape ``(n,)`` or ``(n, k)``.
+      matrix: Coefficient matrix of shape ``(n, n)``.
+      vector: Right-hand side vector or matrix of shape ``(n,)`` or ``(n, k)``.
       rcond: Cutoff for small singular values used by ``np.linalg.pinv``.
       assume_symmetric: If True, prefer a Cholesky solve (fast path for SPD).
       warn_context: Short label included in the warning message.

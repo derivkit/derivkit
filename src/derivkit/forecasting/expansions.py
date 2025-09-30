@@ -351,8 +351,6 @@ class LikelihoodExpansion:
         # try jacobian first for speed; fallback to _get_derivatives for robustness
         try:
             jac = jacobian(self.function, self.theta0, n_workers=n_workers)  # (N, P) shape
-            if jac.shape != (n_obs, n_params):
-                raise ValueError(f"Jacobian has shape {jac.shape}, expected {(n_obs, n_params)}.")
             d1 = jac.T  # (P, N) shape here
         except Exception:
             d1 = self._get_derivatives(order=1, n_workers=n_workers)  # (P, N) shape niko sanity check
@@ -368,7 +366,9 @@ class LikelihoodExpansion:
         # bias vector
         bias_vec = d1 @ (inv_cov @ delta_mu)
 
-        delta_theta = solve_or_pinv(jac, bias_vec)
+        delta_theta = solve_or_pinv(
+            fisher, bias_vec, rcond=1e-12, assume_symmetric=True, warn_context="Fisher solve"
+        )
 
         return {"F": fisher, "b": bias_vec, "delta_theta": delta_theta}
 
@@ -377,7 +377,7 @@ class LikelihoodExpansion:
 
         Args:
             data: Input data. Either 1D of length N or 2D (corr, ell), which will be
-                flattened in C-order.
+                  flattened in C-order (row-major order).
             n_obs: Expected length N of the flattened data vector.
 
         Returns:
@@ -385,10 +385,10 @@ class LikelihoodExpansion:
 
         Raises:
             ValueError: If `data` (a ) is not 1D or 2D, or if the flattened size does not
-                equal `n_obs`.
+                        equal `n_obs`.
         """
         data_array = np.asarray(data, dtype=float)
-        if data_array == 1:
+        if data_array.ndim == 1:
             if data_array.size != n_obs:
                 raise ValueError(f"vector length {data_array.size} != covariance dim {n_obs}")
             return data_array
