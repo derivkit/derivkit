@@ -364,7 +364,7 @@ class LikelihoodExpansion:
             delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
         )
 
-        # b = J^T C^{-1} Δμ with J^T = d1
+        # bis vector
         bias_vec = d1 @ (inv_cov @ delta_mu)
 
         try:
