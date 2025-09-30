@@ -388,19 +388,19 @@ class LikelihoodExpansion:
             np.ndarray: Flattened 1D array of length N.
 
         Raises:
-            ValueError: If `x` is not 1D or 2D, or if the flattened size does not
+            ValueError: If `data` (a ) is not 1D or 2D, or if the flattened size does not
                 equal `n_obs`.
         """
-        arr = np.asarray(data, dtype=float)
-        if arr.ndim == 1:
-            if arr.size != n_obs:
-                raise ValueError(f"vector length {arr.size} != covariance dim {n_obs}")
-            return arr
-        if arr.ndim == 2:
-            v = arr.ravel(order="C")
-            if v.size != n_obs:
+        data_array = np.asarray(data, dtype=float)
+        if data_array == 1:
+            if data_array.size != n_obs:
+                raise ValueError(f"vector length {data_array.size} != covariance dim {n_obs}")
+            return data_array
+        if data_array.ndim == 2:
+            data_flattened = data_array.ravel(order="C")
+            if data_flattened.size != n_obs:
                 raise ValueError("flattened 2D data length != covariance dimension")
-            return v
+            return data_flattened
         raise ValueError("data must be 1D or 2D")
 
     def _build_delta_vector(
