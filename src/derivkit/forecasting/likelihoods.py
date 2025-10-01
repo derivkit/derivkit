@@ -34,6 +34,23 @@ def build_gaussian(
             - model_parameters is not a 1D array,
             - the length of model_parameters is not equal to axis 1 of data,
             - cov is not a 2D array compatible with data and model_parameters.
+
+    Examples:
+        A 1D Gaussian likelihood:
+            >>> data = np.linspace(-10, 10, 100)[np.newaxis, :]
+            >>> model_parameters = np.array([1])
+            >>> cov = np.array([[2]])
+            >>> x, y = build_gaussian(data, model_parameters, cov)
+            >>> plt.scatter(x, y)
+        A 2D Gaussian likelihood:
+            >>> data = np.asarray((
+            ...     np.linspace(-10, 10, 30),
+            ...     np.linspace(3, 6, 30),
+            ... ))
+            >>> model_parameters = np.array([0, 4])
+            >>> cov = np.array([[1, 0.2], [0.2, 0.3]])
+            >>> grid, pdf = build_gaussian(data, model_parameters, cov)
+            >>> plt.contour(*grid, pdf)
     """
     # The data is expected to be 2D. However, 1D is allowed, since it can be
     # embedded in a 2D space.
