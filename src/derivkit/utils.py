@@ -225,7 +225,7 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
 
     try:
         if assume_symmetric:
-            # Fast path for symmetric positive definite matrices (what Fisher should be)
+            # Fast path for symmetric positive definite matrices
             spd_matrix = np.linalg.cholesky(matrix)
             # Solve L y = b, then L.T x = y
             y = np.linalg.solve(spd_matrix, vector)
