@@ -227,7 +227,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
         if assume_symmetric:
             # Fast path for symmetric positive definite matrices
             spd_matrix = np.linalg.cholesky(matrix)
-            # Solve L y = b, then L.T x = y
+            # Cholesky: matrix = L @ L.T
+            # Solve in two steps: (1) L y = b, (2) L.T x = y
             y = np.linalg.solve(spd_matrix, vector)
             return np.linalg.solve(spd_matrix.T, y)
         else:
