@@ -20,10 +20,16 @@ def gradient(function, theta0, n_workers=1):
 
     Returns:
         (``np.array``): 1D array representing the gradient.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
     """
     theta0 = np.asarray(theta0, dtype=float).reshape(-1)
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
+
+    # One-time scalar check for gradient()
+    _check_scalar_valued(function, theta0, 0, n_workers)
 
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
@@ -61,19 +67,8 @@ def _grad_component(
 
     Returns:
         float: The ith component of the gradient of function evaluated at ``theta0``.
-
-    Raises:
-        TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
-
-    # One-time scalar check for gradient()
-    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
-    if probe.size != 1:
-        raise TypeError(
-            "gradient() expects a scalar-valued function; "
-            f"got shape {probe.shape} from full_function(params)."
-        )
 
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
@@ -152,10 +147,16 @@ def build_hessian(function, theta0, n_workers=1):
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
     """
     theta0 = np.asarray(theta0, dtype=float)
     p = theta0.size
     hess = np.empty((p, p), dtype=float)
+
+    # One-time scalar check for build_hessian()
+    _check_scalar_valued(function, theta0, 0, n_workers)
 
     i, j = np.triu_indices(p)  # upper triangle incl. diagonal
     pairs = list(zip(i, j))
@@ -295,21 +296,10 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
 
     Returns:
         The ith, jth component of the hessian of function evaluated at ``theta0``.
-
-    Raises:
-        TypeError: If ``function`` does not return a scalar value.
     """
     if i == j:
         # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
         partial_vec1 = get_partial_function(function, i, theta0)
-
-        # One-time scalar check for hessian()
-        probe = np.asarray(partial_vec1(theta0[i]), dtype=float)
-        if probe.size != 1:
-            raise TypeError(
-                "hessian() expects a scalar-valued function; "
-                f"got shape {probe.shape} from full_function(params)."
-            )
 
         kit1 = DerivativeKit(partial_vec1, theta0[i])
         deriv = kit1.adaptive.differentiate(order=2, n_workers=n_workers)
@@ -345,6 +335,33 @@ def mixed_first_deriv_wrt_i(function, theta0, i, j, n_workers):
         return deriv
     return deriv_function
 
+def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
+    """Helper used by ``gradient`` and ``build_hessian``.
+    Raises a TypeError if ``function`` does not return a scalar value.
+
+    Args:
+        function (callable): The scalar-valued function to
+            differentiate. It should accept a list or array of parameter
+            values as input and return a scalar observable value.
+        theta0: The points at which the derivative is evaluated.
+            A 1D array or list of parameter values matching the expected
+            input of the function.
+        i: Zero-based index of the parameter with respect to which to differentiate.
+        n_workers: Number of workers used inside
+            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
+            across parameters.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
+    """
+    partial_vec = get_partial_function(function, i, theta0)
+
+    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
+    if probe.size != 1:
+        raise TypeError(
+            "gradient() expects a scalar-valued function; "
+            f"got shape {probe.shape} from full_function(params)."
+        )
 
 def gauss_newton_hessian(*args, **kwargs):
     """This is a placeholder for a Gauss-Newton Hessian computation function."""
