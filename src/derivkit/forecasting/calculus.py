@@ -317,11 +317,11 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
 
     else:
         # 2 parameters to differentiate once, with other parameters held fixed
-        kit2 = DerivativeKit(mixed_first_deriv_wrt_i, theta0[j])
+        kit2 = DerivativeKit(mixed_first_deriv_wrt_i(function, theta0, i, j, n_workers), theta0[j])
         deriv = kit2.adaptive.differentiate(order=1, n_workers=n_workers)
         return deriv
 
-def mixed_first_deriv_wrt_i(y, function, theta0, i, j, n_workers):
+def mixed_first_deriv_wrt_i(function, theta0, i, j, n_workers):
     """Helper for computing mixed second derivatives for Hessian.
 
     Args:
@@ -336,12 +336,14 @@ def mixed_first_deriv_wrt_i(y, function, theta0, i, j, n_workers):
     Returns:
         The first derivative with respect to parameter i, evaluated at theta[j] = y.
     """
-    theta = np.asarray(theta0, dtype=float).copy()
-    theta[j] = y
-    g_i = get_partial_function(function, i, theta)
-    dk = DerivativeKit(g_i, theta[i])
-    deriv = dk.adaptive.differentiate(order=1, n_workers=n_workers)
-    return deriv
+    def deriv_function(y):
+        theta = np.asarray(theta0, dtype=float).copy()
+        theta[j] = y
+        g_i = get_partial_function(function, i, theta)
+        dk = DerivativeKit(g_i, theta[i])
+        deriv = dk.adaptive.differentiate(order=1, n_workers=n_workers)
+        return deriv
+    return deriv_function
 
 
 def gauss_newton_hessian(*args, **kwargs):
