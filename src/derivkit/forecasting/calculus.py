@@ -19,10 +19,16 @@ def gradient(function, theta0, n_workers=1):
 
     Returns:
         (``np.array``): 1D array representing the gradient.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
     """
     theta0 = np.asarray(theta0, dtype=float).reshape(-1)
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
+
+    # One-time scalar check for gradient()
+    _check_scalar_valued(function, theta0, 0, n_workers)
 
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
@@ -60,19 +66,8 @@ def _grad_component(
 
     Returns:
         float: The ith component of the gradient of function evaluated at ``theta0``.
-
-    Raises:
-        TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
-
-    # One-time scalar check for gradient()
-    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
-    if probe.size != 1:
-        raise TypeError(
-            "gradient() expects a scalar-valued function; "
-            f"got shape {probe.shape} from full_function(params)."
-        )
 
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
@@ -148,6 +143,11 @@ def hessian(function, theta0, n_workers=1):
 
     Returns:
         (``np.array``): 2D array representing the hessian.
+
+    Raises:
+        FloatingPointError: If non-finite values are encountered.
+        ValueError: If ``theta0`` is an empty array.
+        TypeError: If ``function`` does not return a scalar value.
     """
     theta0 = np.asarray(theta0, dtype=float).reshape(-1)
     if theta0.size == 0:
@@ -199,7 +199,7 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
         The ith, jth component of the hessian of function evaluated at ``theta0``.
 
     Raises:
-        TypeError: If ``function`` does not return a scalar value.
+        TypeError: If the function is not scalar-valued.
     """
     if i == j:
         # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
@@ -251,6 +251,33 @@ def jacobian_diag(*args, **kwargs):
     """This is a placeholder for a Jacobian diagonal computation function."""
     raise NotImplementedError
 
+def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
+    """Helper used by ``gradient`` and ``build_hessian``.
+    Raises a TypeError if ``function`` does not return a scalar value.
+
+    Args:
+        function (callable): The scalar-valued function to
+            differentiate. It should accept a list or array of parameter
+            values as input and return a scalar observable value.
+        theta0: The points at which the derivative is evaluated.
+            A 1D array or list of parameter values matching the expected
+            input of the function.
+        i: Zero-based index of the parameter with respect to which to differentiate.
+        n_workers: Number of workers used inside
+            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
+            across parameters.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
+    """
+    partial_vec = get_partial_function(function, i, theta0)
+
+    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
+    if probe.size != 1:
+        raise TypeError(
+            "gradient() expects a scalar-valued function; "
+            f"got shape {probe.shape} from full_function(params)."
+        )
 
 def gauss_newton_hessian(*args, **kwargs):
     """This is a placeholder for a Gauss-Newton Hessian computation function."""
