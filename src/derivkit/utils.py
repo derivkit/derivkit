@@ -227,7 +227,7 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
         else:
             return np.linalg.solve(matrix, vector)
     except np.linalg.LinAlgError:
-        # Fall back to pinv with a helpful warning
+        # Fall back to pseudo inverse with a helpful warning
         try:
             cond = np.linalg.cond(matrix)
             cond_msg = f" (cond≈{cond:.2e})"
