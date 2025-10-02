@@ -241,7 +241,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
         except Exception:
             cond_msg = ""
         warnings.warn(
-            f"{warn_context}: matrix not SPD/singular; using pseudoinverse with rcond={rcond}{cond_msg}.",
+            f"In {warn_context}, the matrix was not SPD or was singular. "
+            f"Falling back to pseudoinverse with rcond={rcond}{cond_msg}.",
             RuntimeWarning,
         )
         return np.linalg.pinv(matrix, rcond=rcond) @ vector
