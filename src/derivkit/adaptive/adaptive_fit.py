@@ -17,7 +17,7 @@ class AdaptiveFitDerivative:
         """Initialize the adaptive derivative estimator.
 
         Args:
-            function: Callable mapping a float to a scalar or 1D array.
+            function (Callable): function mapping a float to a scalar or 1D array.
             x0 (float): Expansion point at which the derivative is estimated.
         """
         self.function = function
