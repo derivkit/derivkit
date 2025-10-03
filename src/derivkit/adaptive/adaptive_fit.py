@@ -72,10 +72,11 @@ class AdaptiveFitDerivative:
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
-        # one knob → (tau_res, kappa_max)
+        # We fstart by checking the acceptance setting and mapping it to
+        # (tau_res, kappa_max) thresholds for the estimator.
         tau, kappa_cap = self._resolve_acceptance(acceptance)
 
-        # 1) build grid around x0
+        # 1) We then build the grid offsets and absolute x values.
         x_offsets, _ = build_x_offsets(
             x0=self.x0,
             order=order,
@@ -85,14 +86,14 @@ class AdaptiveFitDerivative:
         )
         x_values = self.x0 + x_offsets
 
-        # 2) batched evaluate function on the grid → (n_points, n_components)
+        # 2) In the next step we evaluate the function in batch mode.
         y = eval_function_batch(self.function, x_values, n_workers)
         n_components = y.shape[1]
         derivs = np.empty(n_components, dtype=float)
 
         outcomes = []
 
-        # 3) per-component estimation (no FD fallback inside)
+        # 3) We loop over components and estimate each one.
         for i in range(n_components):
             outcome = estimate_component(
                 x0=self.x0,
