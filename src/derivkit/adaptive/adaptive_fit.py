@@ -12,14 +12,23 @@ from derivkit.adaptive.validate import validate_inputs
 
 
 class AdaptiveFitDerivative:
-    """Adaptive polynomial-fit derivative estimator with gate-based acceptance."""
+    """Adaptive polynomial-fit derivative estimator with gate-based acceptance.
+
+    Fits a local polynomial around ``x0``, checks residual-to-signal and
+    conditioning gates, and estimates derivatives component-wise.
+
+    Attributes:
+        function: Forward model called as ``function(x)``.
+        x0: Expansion point about which the local polynomial is fit.
+        min_used_points: Hard lower bound on usable samples after pruning.
+    """
     def __init__(self, function, x0: float):
         """Initialize the adaptive derivative estimator.
 
         Args:
-            function (callable): The function to differentiate. Must accept a single
+            function: The function to differentiate. Must accept a single
                 float argument and return either a scalar or a 1D numpy array.
-            x0 (float): The point at which to estimate the derivative.
+            x0: The point at which to estimate the derivative.
         """
         self.function = function
         self.x0 = float(x0)
@@ -71,11 +80,10 @@ class AdaptiveFitDerivative:
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
-        # We fstart by checking the acceptance setting and mapping it to
-        # (tau_res, kappa_max) thresholds for the estimator.
+        # First, resolve the acceptance setting and map it to (tau_res, kappa_max).
         tau, kappa_cap = self._resolve_acceptance(acceptance)
 
-        # 1) We then build the grid offsets and absolute x values.
+        # 1) Build the grid offsets and absolute x values.
         x_offsets, _ = build_x_offsets(
             x0=self.x0,
             order=order,
@@ -85,14 +93,14 @@ class AdaptiveFitDerivative:
         )
         x_values = self.x0 + x_offsets
 
-        # 2) In the next step we evaluate the function in batch mode.
+        # 2) Evaluate the function in batch mode.
         y = eval_function_batch(self.function, x_values, n_workers)
         n_components = y.shape[1]
         derivs = np.empty(n_components, dtype=float)
 
         outcomes = []
 
-        # 3) We loop over components and estimate each one.
+        # 3) Loop over components and estimate each one.
         for i in range(n_components):
             outcome = estimate_component(
                 x0=self.x0,
@@ -110,7 +118,7 @@ class AdaptiveFitDerivative:
         if not diagnostics:
             return result
 
-        # hand off diagnostics construction to the new module
+        # Build diagnostics dictionary.
         diag = make_diagnostics(
             outcomes=outcomes,
             x_all=x_values,
@@ -137,16 +145,14 @@ class AdaptiveFitDerivative:
         explicitly. Uses a fixed conditioning cap internally.
 
         Args:
-            order (int, default=1): Derivative order to estimate.
-            min_samples (int, default=7): Number of grid points to evaluate.
-            include_zero (bool, default=True): Whether to include ``x0`` in the grid.
-            tau_res (float, default=5e-2): Residual-to-signal threshold (smaller is
-                stricter).
-            n_workers (int, default=1): Number of workers for batched evaluations.
+            order: Derivative order to estimate.
+            min_samples: Number of grid points to evaluate.
+            include_zero: Whether to include ``x0`` in the grid.
+            tau_res: Residual-to-signal threshold (smaller is stricter).
+            n_workers: Number of workers for batched evaluations.
 
         Returns:
-            float | numpy.ndarray: The derivative estimate at ``x0`` (scalar or
-                per-component).
+            The derivative estimate at ``x0`` (scalar or per-component).
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
@@ -179,8 +185,11 @@ class AdaptiveFitDerivative:
     def _resolve_acceptance(self, acceptance) -> tuple[float, float]:
         """Map a single acceptance knob to (tau_res, kappa_max).
 
-        - If `acceptance` is a float a∈(0,1): interpolate between strict and loose.
-        - If it's a preset: map to an a in [0,1].
+        - If ``acceptance`` is given as a floating-point number between zero and one
+          (exclusive), it interpolates between the strict and loose settings.
+        - If it is a preset string, it is mapped to one of these positions on the scale.
+        - Presets: "strict" → smallest residual threshold and lowest conditioning cap;
+          "very_loose" → largest residual threshold and highest conditioning cap.
         """
         tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
         kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
