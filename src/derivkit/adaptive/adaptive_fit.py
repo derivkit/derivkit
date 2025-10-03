@@ -26,14 +26,14 @@ class AdaptiveFitDerivative:
         self.min_used_points = 5  # hard lower bound on min_samples
 
     def differentiate(
-        self,
-        order: int = 1,
-        min_samples: int = 7,
-        include_zero: bool = True,
-        acceptance: str | float = "balanced",
-        n_workers: int = 1,
-        *,
-        diagnostics: bool = False,
+            self,
+            order: int = 1,
+            min_samples: int = 7,
+            include_zero: bool = True,
+            acceptance: str | float = "balanced",
+            n_workers: int = 1,
+            *,
+            diagnostics: bool = False,
     ):
         """Estimate the derivative at ``x0`` with gate-based acceptance.
 
@@ -43,36 +43,32 @@ class AdaptiveFitDerivative:
         (``kappa_max``) are derived from the ``acceptance`` setting.
 
         Args:
-            order (int, optional): Derivative order to estimate. Defaults to 1.
-            min_samples (int, optional): Number of grid points to evaluate.
-                Acts as an evaluation budget; the fitter may use a subset but
-                never fewer than ``min_used_points``. Defaults to 7.
-            include_zero (bool, optional): Whether to include ``x0`` (zero offset)
-                in the evaluation grid. Defaults to True.
-            acceptance (str | float, optional): Either a preset string
-                (``"strict"``, ``"balanced"``, ``"loose"``, ``"very_loose"``)
-                or a float in the range ``0 < a < 1`` that controls thresholds
+            order: Derivative order to estimate. Defaults to 1.
+            min_samples: Number of grid points to evaluate. Acts as an evaluation
+                budget; the fitter may use a subset but never fewer than
+                ``min_used_points``. Defaults to 7.
+            include_zero: Whether to include ``x0`` (zero offset) in the evaluation
+                grid. Defaults to True.
+            acceptance: Preset string (``"strict"``, ``"balanced"``, ``"loose"``,
+                ``"very_loose"``) or a float in ``0 < a < 1`` controlling thresholds
                 via geometric interpolation. Defaults to "balanced".
-            n_workers (int, optional): Number of workers for batched evaluations.
-                Defaults to 1.
-            diagnostics (bool, optional): If True, also return a diagnostics
-                dictionary with grid data and per-component outcomes.
-                Defaults to False.
+            n_workers: Number of workers for batched evaluations. Defaults to 1.
+            diagnostics: If True, also return a diagnostics dictionary with grid
+                data and per-component outcomes. Defaults to False.
 
         Returns:
-            float | np.ndarray | tuple[float | np.ndarray, dict]:
-                The derivative estimate at ``x0``. Scalars are returned for
-                scalar functions; otherwise a 1D array of per-component estimates.
-                If ``diagnostics=True``, returns a tuple ``(estimate, diag)``
-                where ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
-                ``"outcomes"``, ``"order"``, ``"min_samples"``,
-                ``"include_zero"``, ``"tau_res"``, and ``"kappa_max"``.
+            The derivative estimate at ``x0``. A scalar is returned for scalar
+            functions; otherwise a 1D array of per-component estimates. If
+            ``diagnostics=True``, returns a tuple ``(estimate, diag)`` where
+            ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
+            ``"outcomes"``, ``"order"``, ``"min_samples"``, ``"include_zero"``,
+            ``"tau_res"``, and ``"kappa_max"``.
 
         Raises:
             ValueError: If inputs are invalid (unsupported ``order``,
-                insufficient samples, invalid ``acceptance``) or if function
-                outputs are inconsistent across the grid (e.g., wrong shape
-                or non-finite values).
+                insufficient samples, or invalid ``acceptance``) or if function
+                outputs are inconsistent across the grid (e.g., wrong shape or
+                non-finite values).
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
