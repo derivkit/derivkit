@@ -20,6 +20,8 @@ __all__ = [
     "polyfit_u",
     "residuals_relative",
     "fit_once",
+    "derivative_at_x0",
+    "residual_to_signal",
 ]
 
 
@@ -164,3 +166,19 @@ def fit_once(
         "residuals": resid,
         "rel_error": rel_error,
     }
+
+
+def derivative_at_x0(poly_u: np.poly1d, h: float, order: int) -> float:
+    """Return d^order y/dx^order at x0 from poly in normalized coords."""
+    return float(poly_u.deriv(m=order)(0.0) / (h ** order))
+
+
+def residual_to_signal(y_fit: np.ndarray, y_true: np.ndarray, *, floor: float = 1e-12) -> tuple[float, float, float]:
+    """Return (rho, rms_resid, signal_scale) with a robust local signal scale."""
+    y_true = np.asarray(y_true, float)
+    y_fit = np.asarray(y_fit, float)
+    diff = y_fit - y_true
+    rms = float(np.sqrt(np.mean(diff * diff))) if diff.size else 0.0
+    signal = float(np.maximum(np.median(np.abs(y_true)), floor))
+    rho = 0.0 if signal == 0.0 else (rms / signal)
+    return rho, rms, signal

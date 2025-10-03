@@ -1,7 +1,8 @@
 """Differential calculus helpers."""
 
-import numpy as np
 from collections.abc import Callable
+
+import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function

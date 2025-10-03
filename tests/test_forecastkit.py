@@ -19,9 +19,9 @@ def test_forecastkit_delegates(monkeypatch):
                 return np.full((2, 2), 42.0)  # sentinel Fisher
             if forecast_order == 2:
                 calls["dali"] = n_workers
-                G = np.zeros((2, 2, 2))
-                H = np.ones((2, 2, 2, 2))
-                return G, H
+                g_tensor = np.zeros((2, 2, 2))
+                h_tensor = np.ones((2, 2, 2, 2))
+                return g_tensor, h_tensor
             raise AssertionError("Unexpected forecast_order")
 
     # Patch the class that ForecastKit uses internally (module-local import)
@@ -43,15 +43,15 @@ def test_forecastkit_delegates(monkeypatch):
     np.testing.assert_allclose(ctor_cov, cov)
 
     # fisher() -> forecast_order=1, forwards n_workers
-    F = fk.fisher(n_workers=3)
-    assert F.shape == (2, 2)
-    assert np.all(F == 42.0)
+    fish = fk.fisher(n_workers=3)
+    assert fish.shape == (2, 2)
+    assert np.all(fish == 42.0)
     assert calls["fisher"] == 3
 
     # dali() -> forecast_order=2, forwards n_workers
-    G, H = fk.dali(n_workers=4)
-    assert G.shape == (2, 2, 2)
-    assert H.shape == (2, 2, 2, 2)
+    g_tensor, h_tensor = fk.dali(n_workers=4)
+    assert g_tensor.shape == (2, 2, 2)
+    assert h_tensor.shape == (2, 2, 2, 2)
     assert calls["dali"] == 4
 
 
@@ -96,7 +96,7 @@ def test_return_types_match_lx(monkeypatch):
     monkeypatch.setattr("derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True)
 
     fk = ForecastKit(lambda x: np.asarray(x), np.array([0.0]), np.eye(1))
-    F = fk.fisher()
-    assert isinstance(F, np.ndarray)
-    G, H = fk.dali()
-    assert isinstance(G, np.ndarray) and isinstance(H, np.ndarray)
+    fish = fk.fisher()
+    assert isinstance(fish, np.ndarray)
+    g_tensor, h_tensor = fk.dali()
+    assert isinstance(g_tensor, np.ndarray) and isinstance(h_tensor, np.ndarray)

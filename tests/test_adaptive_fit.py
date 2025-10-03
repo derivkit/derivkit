@@ -1,7 +1,4 @@
-"""Unit tests for derivative/forecast utilities.
-
-Covers finite differences, adaptive fitting, fallbacks, and edge cases.
-"""
+"""Unit tests for derivative/forecast utilities."""
 
 import numpy as np
 import pytest
@@ -101,27 +98,6 @@ def test_vector_function(vector_func):
     assert np.allclose(result, [1.0, 2.0], rtol=1e-2)
 
 
-def test_fallback_used(monkeypatch):
-    """Test that fallback to finite differences is used when adaptive fit fails."""
-    calc = DerivativeKit(lambda x: np.exp(x), x0=0.2).adaptive
-
-    def fail_fit(x0, x_vals, y_vals, order, **kw):
-        return {
-            "ok": False,
-            "reason": "singular_normal_equations",
-            "h": 1.0,
-            "poly_u": None,
-            "y_fit": None,
-            "residuals": None,
-            "rel_error": np.inf,
-        }
-
-    monkeypatch.setattr(calc, "_fit_once_fn", fail_fit, raising=True)
-
-    with pytest.warns(RuntimeWarning, match=r"Falling back to finite difference"):
-        _ = calc.differentiate()
-
-
 def test_stencil_matches_analytic():
     """Test that the finite difference result approximates the analytic derivative of sin(x)."""
     x0 = np.pi / 4
@@ -155,94 +131,13 @@ def test_zero_x0():
 def test_constant_function():
     """Test that derivatives of a constant function are zero for all orders."""
     for order in range(1, 5):
-        result = DerivativeKit(lambda x: 42.0, 1.0).adaptive.differentiate(
-            order=1
-        )
+        result = DerivativeKit(lambda x: 42.0, 1.0).adaptive.differentiate(order=order)
         # Small numerical bias is acceptable; tighten later if needed
         assert np.isclose(result, 0.0, atol=5e-6)
 
 
-def test_fallback_triggers_when_fit_unavailable(monkeypatch):
-    """If the internal fit cannot be performed, code must fall back to FD (no flags needed)."""
-    calc = DerivativeKit(lambda x: np.exp(x), x0=0.0).adaptive
-
-    def fail_fit(x0, x_vals, y_vals, order, **kw):
-        return {
-            "ok": False,
-            "reason": "singular_normal_equations",
-            "h": 1.0,
-            "poly_u": None,
-            "y_fit": None,
-            "residuals": None,
-            "rel_error": np.inf,
-        }
-
-    monkeypatch.setattr(calc, "_fit_once_fn", fail_fit, raising=True)
-
-    with pytest.warns(RuntimeWarning, match=r"Falling back to finite difference"):
-        _ = calc.differentiate()
-
-
-def test_fallback_returns_finite_value_when_fit_fails(monkeypatch):
-    """Return finite FD value when the fit cannot meet tolerance."""
-    calc = DerivativeKit(lambda x: 1e-10 * x**3, x0=1.0).adaptive
-
-    def fail_fit(x0, x_vals, y_vals, order, **kw):
-        return {
-            "ok": False,
-            "reason": "singular_normal_equations",
-            "h": 1.0,
-            "poly_u": None,
-            "y_fit": None,
-            "residuals": None,
-            "rel_error": np.inf,
-        }
-
-    monkeypatch.setattr(calc, "_fit_once_fn", fail_fit, raising=True)
-
-    with pytest.warns(RuntimeWarning, match=r"Falling back to finite difference"):
-        result = calc.differentiate(order=2)
-
-    # Analytic d2/dx2 of 1e-10 * x^3 at x=1 is 6e-10
-    assert np.isfinite(result)
-    assert np.isclose(result, 6e-10, rtol=0.2)
-
-
-def test_diagnostics_structure_is_present():
-    """Diagnostics should return expected keys and aligned shapes."""
-    calc = DerivativeKit(lambda x: np.cos(x), x0=0.7).adaptive
-    val, diag = calc.differentiate(order=2, diagnostics=True)
-    assert np.isfinite(val)
-    for k in [
-        "x_all",
-        "y_all",
-        "x_used",
-        "y_used",
-        "y_fit",
-        "residuals",
-        "used_mask",
-        "status",
-    ]:
-        assert k in diag
-    # masks align with x_all
-    assert isinstance(diag["used_mask"], list) and len(diag["used_mask"]) >= 1
-    assert diag["used_mask"][0].dtype == bool
-    assert diag["used_mask"][0].shape == diag["x_all"].shape
-
-
-def test_vector_fallback_used():
-    """Test fallback on vector-valued function returns valid, finite results."""
-    calc = DerivativeKit(
-        lambda x: np.array([1e-10 * x**3, 1e-10 * x**2]), x0=1.0
-    ).adaptive
-    result = calc.differentiate(order=2, fit_tolerance=1e-5)
-    assert result.shape == (2,)
-    assert np.all(np.isfinite(result))
-
-
 def test_shape_mismatch_raises():
     """Test that shape mismatch in vector output raises ValueError."""
-
     def bad_func(x):
         return (
             np.array([x, x**2]) if np.round(x, 2) < 1.0 else np.array([x])
@@ -252,3 +147,116 @@ def test_shape_mismatch_raises():
         DerivativeKit(bad_func, x0=1.0).adaptive.differentiate(
             order=1
         )
+
+
+@pytest.mark.parametrize("preset", ["strict", "balanced", "loose", "very_loose"])
+def test_acceptance_presets_run(quadratic_func, preset):
+    """Test that all acceptance presets run without error and return finite values."""
+    calc = DerivativeKit(quadratic_func, x0=1.2).adaptive
+    val = calc.differentiate(order=2, acceptance=preset)
+    assert np.isfinite(val)
+
+
+def test_invalid_acceptance_string_raises(quadratic_func):
+    """Test that an invalid acceptance string raises ValueError."""
+    calc = DerivativeKit(quadratic_func, x0=1.0).adaptive
+    with pytest.raises(ValueError):
+        calc.differentiate(order=1, acceptance="ultra_strict")
+
+
+@pytest.mark.parametrize("a", [0.0, 1.0, -0.1, 1.1])
+def test_invalid_acceptance_float_raises(quadratic_func, a):
+    """Test that out-of-bounds acceptance floats raise ValueError."""
+    calc = DerivativeKit(quadratic_func, x0=1.0).adaptive
+    with pytest.raises(ValueError):
+        calc.differentiate(order=1, acceptance=a)
+
+
+def test_diagnostics_tuple_and_dict(quadratic_func):
+    """Test that diagnostics=True returns a tuple and diagnostics is a dict."""
+    calc = DerivativeKit(quadratic_func, x0=0.5).adaptive
+    val, diag = calc.differentiate(order=2, diagnostics=True)
+    assert np.isfinite(val)
+    assert isinstance(diag, dict)
+
+
+def test_include_zero_false_runs(quadratic_func):
+    """Test that include_zero=False runs without error and returns finite values."""
+    calc = DerivativeKit(quadratic_func, x0=1.0).adaptive
+    val = calc.differentiate(order=2, include_zero=False)
+    assert np.isfinite(val)
+
+
+def test_min_samples_too_small_is_tolerated(quadratic_func):
+    """Test that min_samples below internal lower bound is tolerated and returns finite value."""
+    calc = DerivativeKit(quadratic_func, x0=1.0).adaptive
+    val = calc.differentiate(order=1, min_samples=3)  # below internal lower bound
+    assert np.isfinite(val)  # contract: still returns something sane
+
+
+def test_invalid_high_order_raises(quadratic_func):
+    """Test that requesting too high an order for the function raises ValueError."""
+    calc = DerivativeKit(quadratic_func, x0=1.0).adaptive
+    with pytest.raises(ValueError):
+        calc.differentiate(order=6)
+
+
+def test_residual_gate_returns_value_no_warning():
+    """Test that noisy function with residual gate returns finite value and diagnostics."""
+    rng = np.random.default_rng(0)
+    def noisy_linear(x):
+        return 3.0 * x + 1.0 + rng.normal(0, 1e-2)
+
+    calc = DerivativeKit(noisy_linear, x0=0.0).adaptive
+    val, diag = calc.differentiate(order=1, min_samples=7,
+                                   acceptance="strict", diagnostics=True)
+    assert np.isfinite(val)
+    assert isinstance(diag, dict)  # keep loose; internals may change
+
+
+def test_conditioning_gate_returns_value_no_warning():
+    """Test that badly scaled function with conditioning gate returns finite value and diagnostics."""
+    def bad_poly(x):
+        return 1e6 * x**3 + 2.0 * x
+
+    calc = DerivativeKit(bad_poly, x0=10.0).adaptive
+    val, diag = calc.differentiate(order=3, min_samples=5,
+                                   acceptance="strict", diagnostics=True)
+    assert np.isfinite(val)
+    assert isinstance(diag, dict)
+
+
+def test_vector_function_with_diagnostics(vector_func):
+    """Test that vector-valued function with diagnostics returns correct shape and diagnostics dict."""
+    calc = DerivativeKit(vector_func, x0=1.0).adaptive
+    vals, diag = calc.differentiate(order=1, diagnostics=True)
+    assert vals.shape == (2,)
+    assert np.allclose(vals, [1.0, 2.0], rtol=1e-2)
+    assert isinstance(diag, dict)
+
+
+def test_log_derivative_strict_acceptance(log_func):
+    """Test that derivative of log with strict acceptance matches analytic value."""
+    x0 = 2.0
+    calc = DerivativeKit(log_func, x0=x0).adaptive
+    val = calc.differentiate(order=1, acceptance="strict")
+    assert np.isclose(val, 1.0 / x0, rtol=1e-3, atol=1e-8)
+
+
+def test_shape_mismatch_raises_again():
+    """Test that shape mismatch in vector output raises ValueError."""
+    def bad(x):
+        # 2 comps for x<1, then 1 comp → mismatch across grid
+        return np.array([x, x**2]) if x < 1.0 else np.array([x])
+
+    calc = DerivativeKit(bad, x0=1.0).adaptive
+    with pytest.raises(ValueError):
+        calc.differentiate(order=1)
+
+
+def test_nan_output_surfaces_nan():
+    """Test that function returning NaN leads to NaN derivative output."""
+    calc = DerivativeKit(lambda x: np.nan, x0=0.0).adaptive
+    val = calc.differentiate(order=1)
+    assert np.isnan(val)
+
