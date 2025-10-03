@@ -66,7 +66,7 @@ def make_diagnostics(
     y_used = [y_all[:, i].copy() for i in range(n_components)]
     used_mask = [np.ones_like(x_all, dtype=bool) for _ in range(n_components)]
 
-    diag: Dict[str, Any] = {
+    return {
         "any_not_accepted": bool(any_not_accepted),
         "component_reasons": reasons,
         "tau_res": float(tau_res),
@@ -85,4 +85,3 @@ def make_diagnostics(
         # human hints
         "hints": hints_from_reasons(reasons=reasons, include_zero=include_zero),
     }
-    return diag
