@@ -17,8 +17,9 @@ class AdaptiveFitDerivative:
         """Initialize the adaptive derivative estimator.
 
         Args:
-            function (Callable): function mapping a float to a scalar or 1D array.
-            x0 (float): Expansion point at which the derivative is estimated.
+            function (callable): The function to differentiate. Must accept a single
+                float argument and return either a scalar or a 1D numpy array.
+            x0 (float): The point at which to estimate the derivative.
         """
         self.function = function
         self.x0 = float(x0)
@@ -36,39 +37,42 @@ class AdaptiveFitDerivative:
     ):
         """Estimate the derivative at ``x0`` with gate-based acceptance.
 
-        Constructs a local grid around ``x0``, evaluates the function in batch, and
-        fits a polynomial sufficient for the requested derivative order. Acceptance
-        thresholds for residuals (``tau_res``) and conditioning (``kappa_max``) are
-        derived from ``acceptance``.
+        Constructs a local grid around ``x0``, evaluates the function in batch,
+        and fits a polynomial sufficient for the requested derivative order.
+        Acceptance thresholds for residuals (``tau_res``) and conditioning
+        (``kappa_max``) are derived from the ``acceptance`` setting.
 
         Args:
-            order (int, default=1): Derivative order to estimate.
-            min_samples (int, default=7): Number of grid points to evaluate. Acts as an
-                evaluation budget; the fitter may use a subset but never fewer than
-                ``min_used_points``.
-            include_zero (bool, default=True): Whether to include ``x0`` (zero offset)
-                in the evaluation grid.
-            acceptance (str | float, default="balanced"): Either a preset string
-                (``"strict"``, ``"balanced"``, ``"loose"``, ``"very_loose"``) or a
-                float ``a`` with ``0 < a < 1`` that controls thresholds via geometric
-                interpolation.
-            n_workers (int, default=1): Number of workers for batched evaluations.
-            diagnostics (bool, default=False): If ``True``, also return a diagnostics
+            order (int, optional): Derivative order to estimate. Defaults to 1.
+            min_samples (int, optional): Number of grid points to evaluate.
+                Acts as an evaluation budget; the fitter may use a subset but
+                never fewer than ``min_used_points``. Defaults to 7.
+            include_zero (bool, optional): Whether to include ``x0`` (zero offset)
+                in the evaluation grid. Defaults to True.
+            acceptance (str | float, optional): Either a preset string
+                (``"strict"``, ``"balanced"``, ``"loose"``, ``"very_loose"``)
+                or a float in the range ``0 < a < 1`` that controls thresholds
+                via geometric interpolation. Defaults to "balanced".
+            n_workers (int, optional): Number of workers for batched evaluations.
+                Defaults to 1.
+            diagnostics (bool, optional): If True, also return a diagnostics
                 dictionary with grid data and per-component outcomes.
+                Defaults to False.
 
         Returns:
-            The derivative estimate at ``x0``. Scalars are returned for scalar
-                functions; otherwise a 1D array of per-component estimates. If
-                ``diagnostics=True``, returns ``(estimate, diag)`` where
-                ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
+            float | np.ndarray | tuple[float | np.ndarray, dict]:
+                The derivative estimate at ``x0``. Scalars are returned for
+                scalar functions; otherwise a 1D array of per-component estimates.
+                If ``diagnostics=True``, returns a tuple ``(estimate, diag)``
+                where ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
                 ``"outcomes"``, ``"order"``, ``"min_samples"``,
-                ``"include_zero"``, ``"tau_res"``, and ``"kappa_max"``
-                (exact contents may evolve).
+                ``"include_zero"``, ``"tau_res"``, and ``"kappa_max"``.
 
         Raises:
-            ValueError: If inputs are invalid (unsupported ``order``, insufficient
-                samples, invalid ``acceptance``) or if function outputs are inconsistent
-                across the grid (shape/finiteness).
+            ValueError: If inputs are invalid (unsupported ``order``,
+                insufficient samples, invalid ``acceptance``) or if function
+                outputs are inconsistent across the grid (e.g., wrong shape
+                or non-finite values).
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
@@ -181,7 +185,6 @@ class AdaptiveFitDerivative:
 
         - If `acceptance` is a float a∈(0,1): interpolate between strict and loose.
         - If it's a preset: map to an a in [0,1].
-
         """
         tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
         kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
