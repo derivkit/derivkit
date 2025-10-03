@@ -60,9 +60,8 @@ class AdaptiveFitDerivative:
             The derivative estimate at ``x0``. A scalar is returned for scalar
             functions; otherwise a 1D array of per-component estimates. If
             ``diagnostics=True``, returns a tuple ``(estimate, diag)`` where
-            ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
-            ``"outcomes"``, ``"order"``, ``"min_samples"``, ``"include_zero"``,
-            ``"tau_res"``, and ``"kappa_max"``.
+            ``diag`` is a diagnostics dictionary with keys described in
+             :func:`make_diagnostics`.
 
         Raises:
             ValueError: If inputs are invalid (unsupported ``order``,
