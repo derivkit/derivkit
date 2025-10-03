@@ -57,17 +57,18 @@ class AdaptiveFitDerivative:
                 dictionary with grid data and per-component outcomes.
 
         Returns:
-        float | numpy.ndarray | tuple[float | numpy.ndarray, dict]:  The derivative estimate at ``x0``.
-         Scalars are returned for scalar functions; otherwise a 1D array of per-component estimates. If
-        ``diagnostics=True``, returns ``(estimate, diag)`` where ``diag`` may
-        include keys such as ``"x_all"``, ``"y_all"``, ``"outcomes"``,
-        ``"order"``, ``"min_samples"``, ``"include_zero"``, ``"tau_res"``,
-        and ``"kappa_max"`` (exact contents may evolve).
+            The derivative estimate at ``x0``. Scalars are returned for scalar
+                functions; otherwise a 1D array of per-component estimates. If
+                ``diagnostics=True``, returns ``(estimate, diag)`` where
+                ``diag`` may include keys such as ``"x_all"``, ``"y_all"``,
+                ``"outcomes"``, ``"order"``, ``"min_samples"``,
+                ``"include_zero"``, ``"tau_res"``, and ``"kappa_max"``
+                (exact contents may evolve).
 
         Raises:
-        ValueError: If inputs are invalid (unsupported ``order``, insufficient
-            samples, invalid ``acceptance``) or if function outputs are inconsistent
-            across the grid (shape/finiteness).
+            ValueError: If inputs are invalid (unsupported ``order``, insufficient
+                samples, invalid ``acceptance``) or if function outputs are inconsistent
+                across the grid (shape/finiteness).
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
@@ -180,6 +181,7 @@ class AdaptiveFitDerivative:
 
         - If `acceptance` is a float a∈(0,1): interpolate between strict and loose.
         - If it's a preset: map to an a in [0,1].
+
         """
         tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
         kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
