@@ -17,7 +17,7 @@ def hints_from_reasons(*, reasons: List[str], include_zero: bool) -> List[str]:
         List of human hints.
     """
     rset = set(reasons)
-    hints: List[str] = []
+    hints = []
     if "rho_gate" in rset:
         hints.append("Increase `min_samples` to enlarge the local fit window.")
         hints.append("Or loosen `acceptance` (e.g., 'loose' or 'very_loose').")
