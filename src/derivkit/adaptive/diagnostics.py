@@ -7,7 +7,15 @@ import numpy as np
 
 
 def hints_from_reasons(*, reasons: List[str], include_zero: bool) -> List[str]:
-    """Convert estimator reasons into short, user-facing suggestions."""
+    """Convert estimator reasons into short, user-facing suggestions.
+
+    Args:
+        reasons: List of reason strings from the estimator outcomes.
+        include_zero: Whether zero was included in the grid.
+
+    Returns:
+        List of human hints.
+    """
     rset = set(reasons)
     hints: List[str] = []
     if "rho_gate" in rset:
