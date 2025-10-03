@@ -183,13 +183,22 @@ class AdaptiveFitDerivative:
         return derivs.item() if derivs.size == 1 else derivs
 
     def _resolve_acceptance(self, acceptance) -> tuple[float, float]:
-        """Map a single acceptance knob to (tau_res, kappa_max).
+        """Convert the acceptance setting into residual and conditioning thresholds.
 
-        - If ``acceptance`` is given as a floating-point number between zero and one
-          (exclusive), it interpolates between the strict and loose settings.
-        - If it is a preset string, it is mapped to one of these positions on the scale.
-        - Presets: "strict" → smallest residual threshold and lowest conditioning cap;
-          "very_loose" → largest residual threshold and highest conditioning cap.
+        Args:
+            acceptance: Either one of the preset strings ("strict", "balanced",
+                "loose", "very_loose") or a floating-point number between zero and
+                one (exclusive). Smaller values mean stricter thresholds; larger
+                values mean looser thresholds.
+
+        Returns:
+            A pair (tau_res, kappa_max) where:
+              - tau_res is the residual-to-signal threshold used by the estimator.
+              - kappa_max is the maximum allowed conditioning value for the fit.
+
+        Raises:
+            ValueError: If the preset is not recognized or if a floating-point
+                value outside the open interval (zero, one) is provided.
         """
         tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
         kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
