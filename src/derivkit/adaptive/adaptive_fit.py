@@ -60,11 +60,13 @@ class AdaptiveFitDerivative:
                 grid. Defaults to True.
             acceptance: Preset string or float controlling acceptance thresholds.
                 Presets:
+
                   - "strict": tight residual gate and conditioning cap (few points pass;
                     best numerical stability).
                   - "balanced": default trade-off between stability and tolerance.
                   - "loose": more tolerant to residuals/conditioning (fewer prunes).
                   - "very_loose": most tolerant; mainly for diagnostics/rough passes.
+
             Alternatively, pass a float a in (0, 1) for geometric interpolation
             between the strictest (a≈0) and loosest (a≈1) thresholds
             n_workers: Number of workers for batched evaluations. Defaults to 1.
@@ -76,7 +78,7 @@ class AdaptiveFitDerivative:
             functions; otherwise a 1D array of per-component estimates. If
             ``diagnostics=True``, returns a tuple ``(estimate, diag)`` where
             ``diag`` is a diagnostics dictionary with keys described in
-             :func:`make_diagnostics`.
+            :func:`make_diagnostics`.
 
         Raises:
             ValueError: If inputs are invalid (unsupported ``order``,
