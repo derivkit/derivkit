@@ -201,7 +201,26 @@ def derivative_at_x0(poly_u: np.poly1d, h: float, order: int) -> float:
 
 
 def residual_to_signal(y_fit: np.ndarray, y_true: np.ndarray, *, floor: float = 1e-12) -> tuple[float, float, float]:
-    """Return (rho, rms_resid, signal_scale) with a robust local signal scale."""
+    """Computes a robust residual-to-signal ratio for a local fit.
+
+    Args:
+      y_fit: Model predictions at the sample points. Must have the same shape as `y_true`.
+      y_true: Observed (or reference) values at the sample points.
+      floor: Small positive lower bound applied when estimating the signal
+        scale to avoid division by a value that is too small. Defaults to 1e-12.
+
+    Returns:
+      A 3-tuple `(rho, rms_resid, signal_scale)` where:
+        - `rho`: Residual-to-signal ratio (`rms_resid` divided by `signal_scale`).
+        - `rms_resid`: Root-mean-square of the elementwise differences between
+          predictions and observations.
+        - `signal_scale`: Robust local signal scale based on the median absolute
+          value of `y_true`, bounded below by `floor`.
+
+    Notes:
+      Intended for acceptance/gate checks. Smaller `rho` indicates a tighter fit
+      relative to local signal level. Empty inputs yield zeros.
+    """
     y_true = np.asarray(y_true, float)
     y_fit = np.asarray(y_fit, float)
     diff = y_fit - y_true
