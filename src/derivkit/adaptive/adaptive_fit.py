@@ -1,104 +1,98 @@
-"""Public API: AdaptiveFitDerivative (thin orchestrator)."""
+"""Public API: Adaptive polynomial-fit derivative estimator with gate-based acceptance."""
 
 from __future__ import annotations
-
-import warnings
-from collections.abc import Callable
-from typing import Optional
 
 import numpy as np
 
 from derivkit.adaptive.batch_eval import eval_function_batch
-from derivkit.adaptive.diagnostics import DiagnosticsRecorder
+from derivkit.adaptive.diagnostics import make_diagnostics
 from derivkit.adaptive.estimator import estimate_component
-from derivkit.adaptive.fallback import fallback_fd as _default_fallback_fn
-from derivkit.adaptive.fit_core import fit_once as _default_fit_once_fn
 from derivkit.adaptive.grid import build_x_offsets
 from derivkit.adaptive.validate import validate_inputs
-from derivkit.adaptive.weights import (
-    inverse_distance_weights as _default_weight_fn,
-)
-
-warnings.simplefilter("once", category=RuntimeWarning)
 
 
 class AdaptiveFitDerivative:
-    """Adaptive polynomial-fit derivative estimator."""
+    """Adaptive polynomial-fit derivative estimator with gate-based acceptance.
 
-    def __init__(
-        self,
-        function,
-        x0: float,
-        *,
-        fit_once_fn: Optional[Callable] = None,
-        fallback_fn: Optional[Callable] = None,
-        weight_fn: Optional[Callable] = None,
-    ):
-        """Initialize AdaptiveFitDerivative.
+    Fits a local polynomial around ``x0``, checks residual-to-signal and
+    conditioning gates, and estimates derivatives component-wise.
+
+    Attributes:
+        function: Forward model called as ``function(x)``.
+        x0: Expansion point about which the local polynomial is fit.
+        min_used_points: Hard lower bound on usable samples after pruning.
+    """
+    def __init__(self, function, x0: float):
+        """Initialize the adaptive derivative estimator.
 
         Args:
-            function: Callable mapping a float to a scalar or 1D array-like.
-            x0: Expansion point for the derivative.
-            fit_once_fn: Optional override for the single-fit routine. Signature:
-                ``(x0, x_vals, y_vals, order, *, weight_eps_frac=...) -> dict``.
-            fallback_fn: Optional override for the fallback path when the fit is
-                rejected or unavailable. Signature:
-                ``(function, x0, order, n_workers) -> float | np.ndarray``.
-            weight_fn: Optional override for the per-sample weighting function.
-                Signature: ``(x_vals, x0, eps_frac) -> np.ndarray``.
+            function: The function to differentiate. Must accept a single
+                float argument and return either a scalar or a 1D numpy array.
+            x0: The point at which to estimate the derivative.
         """
         self.function = function
         self.x0 = float(x0)
-        self.diagnostics_data = None
-        self.min_used_points = 5  # floor for usable samples in a fit
-
-        # Publicly injectable hooks (default to your current implementations)
-        self._fit_once_fn = fit_once_fn or _default_fit_once_fn
-        self._fallback_fn = fallback_fn or _default_fallback_fn
-        self._weight_fn = weight_fn or _default_weight_fn
+        self.min_used_points = 5  # hard lower bound on min_samples
 
     def differentiate(
-        self,
-        order: int = 1,
-        min_samples: int = 7,
-        diagnostics: bool = False,
-        fallback_mode: str = "finite_difference",
-        fit_tolerance: float = 0.05,
-        include_zero: bool = True,
-        floor_accept_multiplier: float = 2.0,
-        n_workers: int = 1,
-        *,
-        # Optional per-call overrides (also public) if you want
-        fit_once_fn: Optional[Callable] = None,
-        fallback_fn: Optional[Callable] = None,
-        weight_fn: Optional[Callable] = None,
+            self,
+            order: int = 1,
+            min_samples: int = 7,
+            include_zero: bool = True,
+            acceptance: str | float = "balanced",
+            n_workers: int = 1,
+            *,
+            diagnostics: bool = False,
     ):
-        """Estimate the derivative at ``x0`` by adaptive polynomial fitting.
+        """Estimate the derivative at ``x0`` with gate-based acceptance.
+
+        Constructs a local grid around ``x0``, evaluates the function in batch,
+        and fits a polynomial sufficient for the requested derivative order.
+        Acceptance thresholds for residuals (``tau_res``) and conditioning
+        (``kappa_max``) are derived from the ``acceptance`` setting.
 
         Args:
-            order: Derivative order to estimate.
-            min_samples: Minimum number of total samples to build the grid.
-            diagnostics: If True, return a tuple of (value, diagnostics_dict).
-            fallback_mode: Strategy when at the sample-count floor and the fit
-                misses tolerance (e.g., ``"finite_difference"``, ``"auto"``,
-                ``"poly_at_floor"``).
-            fit_tolerance: Maximum allowed relative residual to accept a fit.
-            include_zero: Whether to include the center point in the grid.
-            floor_accept_multiplier: Extra headroom on the max residual for
-                auto-acceptance at the floor.
-            n_workers: Parallelism hint for function evaluation / fallback.
-            fit_once_fn: Per-call override of the fit hook.
-            fallback_fn: Per-call override of the fallback hook.
-            weight_fn: Per-call override of the weight function.
+            order: Derivative order to estimate. Defaults to 1.
+            min_samples: Number of grid points to evaluate. Acts as an evaluation
+                budget; the fitter may use a subset but never fewer than
+                ``min_used_points``. Defaults to 7.
+            include_zero: Whether to include ``x0`` (zero offset) in the evaluation
+                grid. Defaults to True.
+            acceptance: Preset string or float controlling acceptance thresholds.
+                Presets:
+
+                  - "strict": tight residual gate and conditioning cap (few points pass;
+                    best numerical stability).
+                  - "balanced": default trade-off between stability and tolerance.
+                  - "loose": more tolerant to residuals/conditioning (fewer prunes).
+                  - "very_loose": most tolerant; mainly for diagnostics/rough passes.
+
+            Alternatively, pass a float a in (0, 1) for geometric interpolation
+            between the strictest (a≈0) and loosest (a≈1) thresholds
+            n_workers: Number of workers for batched evaluations. Defaults to 1.
+            diagnostics: If True, also return a diagnostics dictionary with grid
+                data and per-component outcomes. Defaults to False.
 
         Returns:
-            If ``diagnostics`` is False, returns a float or ``np.ndarray``.
-            If ``diagnostics`` is True, returns ``(value, diagnostics_dict)``.
+            The derivative estimate at ``x0``. A scalar is returned for scalar
+            functions; otherwise a 1D array of per-component estimates. If
+            ``diagnostics=True``, returns a tuple ``(estimate, diag)`` where
+            ``diag`` is a diagnostics dictionary with keys described in
+            :func:`make_diagnostics`.
+
+        Raises:
+            ValueError: If inputs are invalid (unsupported ``order``,
+                insufficient samples, or invalid ``acceptance``) or if function
+                outputs are inconsistent across the grid (e.g., wrong shape or
+                non-finite values).
         """
         validate_inputs(order, min_samples, self.min_used_points)
 
-        # 1) Build sampling grid around x0
-        x_offsets, required_points = build_x_offsets(
+        # First, resolve the acceptance setting and map it to (tau_res, kappa_max).
+        tau, kappa_cap = self._resolve_acceptance(acceptance)
+
+        # 1) Build the grid offsets and absolute x values.
+        x_offsets, _ = build_x_offsets(
             x0=self.x0,
             order=order,
             include_zero=include_zero,
@@ -107,43 +101,137 @@ class AdaptiveFitDerivative:
         )
         x_values = self.x0 + x_offsets
 
-        # 2) Evaluate function on the grid (shape: (n_points, n_components))
-        Y = eval_function_batch(self.function, x_values, n_workers)
-        n_components = Y.shape[1]
-        derivs = np.zeros(n_components, dtype=float)
+        # 2) Evaluate the function in batch mode.
+        y = eval_function_batch(self.function, x_values, n_workers)
+        n_components = y.shape[1]
+        derivs = np.empty(n_components, dtype=float)
 
-        # 3) Diagnostics recorder
-        rec = DiagnosticsRecorder(enabled=diagnostics, x_all=x_values, y_all=Y)
+        outcomes = []
 
-        # Resolve hooks (per-call overrides win over ctor defaults)
-        weight_fn = weight_fn or self._weight_fn
-        fit_once_fn = fit_once_fn or self._fit_once_fn
-        fallback_fn = fallback_fn or self._fallback_fn
-
-        # Prepare closures with your existing default parameters
-        ffit = (  # noqa: E731
-            lambda xv, yv: fit_once_fn(self.x0, xv, yv, order, weight_eps_frac=1e-3)
-        )
-        ffallback = lambda: fallback_fn(  # noqa: E731
-            self.function, self.x0, order, n_workers
-        )
-
-        # 4) Per-component estimation (accept / prune / fallback handled internally)
+        # 3) Loop over components and estimate each one.
         for i in range(n_components):
             outcome = estimate_component(
                 x0=self.x0,
                 x_values=x_values,
-                y_values=Y[:, i],
+                y_values=y[:, i],
                 order=order,
-                required_points=required_points,
-                fit_tolerance=fit_tolerance,
-                fallback_mode=fallback_mode,
-                floor_accept_multiplier=floor_accept_multiplier,
-                fit_once_fn=ffit,
-                fallback_fn=ffallback,
+                tau_res=tau,
+                kappa_max=kappa_cap,
             )
             derivs[i] = outcome.value
-            rec.add(outcome)
+            outcomes.append(outcome)
 
-        value = derivs.item() if derivs.size == 1 else derivs
-        return (value, rec.build()) if diagnostics else value
+        result = derivs.item() if derivs.size == 1 else derivs
+
+        if not diagnostics:
+            return result
+
+        # Build diagnostics dictionary.
+        diag = make_diagnostics(
+            outcomes=outcomes,
+            x_all=x_values,
+            y_all=y,
+            order=order,
+            min_samples=min_samples,
+            include_zero=include_zero,
+            tau_res=tau,
+            kappa_max=kappa_cap,
+        )
+        return result, diag
+
+    def _differentiate(
+        self,
+        order: int = 1,
+        min_samples: int = 7,
+        include_zero: bool = True,
+        tau_res: float = 5e-2,
+        n_workers: int = 1,
+    ) -> float | np.ndarray:
+        """Internal variant that exposes ``tau_res`` directly.
+
+        Bypasses the acceptance resolver and supplies the residual-to-signal threshold
+        explicitly. Uses a fixed conditioning cap internally.
+
+        Args:
+            order: Derivative order to estimate.
+            min_samples: Number of grid points to evaluate.
+            include_zero: Whether to include ``x0`` in the grid.
+            tau_res: Residual-to-signal threshold (smaller is stricter).
+            n_workers: Number of workers for batched evaluations.
+
+        Returns:
+            The derivative estimate at ``x0`` (scalar or per-component).
+        """
+        validate_inputs(order, min_samples, self.min_used_points)
+
+        x_offsets, _ = build_x_offsets(
+            x0=self.x0,
+            order=order,
+            include_zero=include_zero,
+            min_samples=min_samples,
+            min_used_points=self.min_used_points,
+        )
+        x_values = self.x0 + x_offsets
+
+        y = eval_function_batch(self.function, x_values, n_workers)
+        n_components = y.shape[1]
+        derivs = np.empty(n_components, dtype=float)
+
+        for i in range(n_components):
+            outcome = estimate_component(
+                x0=self.x0,
+                x_values=x_values,
+                y_values=y[:, i],
+                order=order,
+                tau_res=float(tau_res),
+                kappa_max=1e8,  # sensible default cap
+            )
+            derivs[i] = outcome.value
+
+        return derivs.item() if derivs.size == 1 else derivs
+
+    def _resolve_acceptance(self, acceptance) -> tuple[float, float]:
+        """Convert the acceptance setting into residual and conditioning thresholds.
+
+        Args:
+            acceptance: Either one of the preset strings ("strict", "balanced",
+                "loose", "very_loose") or a floating-point number between zero and
+                one (exclusive). Smaller values mean stricter thresholds; larger
+                values mean looser thresholds.
+
+        Returns:
+            A pair (tau_res, kappa_max) where:
+              - tau_res is the residual-to-signal threshold used by the estimator.
+              - kappa_max is the maximum allowed conditioning value for the fit.
+
+        Raises:
+            ValueError: If the preset is not recognized or if a floating-point
+                value outside the open interval (zero, one) is provided.
+        """
+        tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
+        kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
+
+        if isinstance(acceptance, str):
+            key = acceptance.strip().lower()
+            # larger a => looser (higher tau_res, higher kappa_max).
+            preset_a = {
+                "strict": 0.0,  # tight residuals & conditioning
+                "balanced": 0.35,  # default trade-off
+                "loose": 0.70,  # more tolerant
+                "very_loose": 1.0,  # most tolerant (diagnostics)
+            }
+            if key not in preset_a:
+                raise ValueError(
+                    f"unknown acceptance preset '{acceptance}'. "
+                    f"choose one of {list(preset_a.keys())} or pass a float in (0,1)."
+                )
+            a = preset_a[key]
+        else:
+            a = float(acceptance)
+            if not (0.0 < a < 1.0):
+                raise ValueError("acceptance as float must be in (0, 1).")
+
+        # geometric interpolation to keep ratios sensible
+        tau = float(tau_min * (tau_max / tau_min) ** a)
+        kappa = float(kappa_min * (kappa_max / kappa_min) ** a)
+        return tau, kappa

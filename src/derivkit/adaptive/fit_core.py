@@ -1,10 +1,14 @@
 """Core polynomial-fitting utilities used by the adaptive estimator.
 
-All fits are performed in normalized coordinates u, defined by shifting the
-abscissae by the expansion point x0 and scaling by the maximum absolute
-deviation h so that u ≈ (x − x0) / h ∈ [−1, 1]. Derivatives in x are
-recovered from the polynomial in u via the chain rule:
-d^m/dx^m = (1 / h^m) * d^m/du^m evaluated at u = 0.
+All fits are performed in normalized coordinates. The input values are
+shifted by the expansion point and then divided by the maximum absolute
+deviation, so that the normalized range is typically between minus one
+and one. This normalization improves numerical stability when fitting
+polynomials.
+
+Derivatives with respect to the original variable can be recovered from
+the fitted polynomial in normalized space by rescaling with the same
+normalization factor.
 """
 
 from __future__ import annotations
@@ -20,28 +24,31 @@ __all__ = [
     "polyfit_u",
     "residuals_relative",
     "fit_once",
+    "derivative_at_x0",
+    "residual_to_signal",
 ]
 
 
 def normalize_coords(x_vals: np.ndarray, x0: float) -> tuple[np.ndarray, float]:
-    """Normalize coordinates around ``x0`` to roughly ``[-1, 1]``.
+    """Normalize coordinates around a given center point.
 
-    Shifts samples by ``x0`` and scales by the maximum absolute deviation
-    ``h = max(|x − x0|)``. Returns normalized coordinates
-    ``u = (x − x0) / h`` and the scale ``h`` (clamped to ``>= 1e-12``).
+    The input values are shifted by ``x0`` and then divided by the maximum
+    absolute deviation from that point. This produces normalized coordinates
+    that typically range between minus one and one. The method also returns
+    the scaling factor that was applied, with a small lower bound to avoid
+    division by zero.
 
-    The normalization improves numerical stability of polynomial fits and
-    provides a simple derivative conversion: if ``p(u)`` fits the data in
-    normalized space, then the m-th derivative in the original variable is
-    ``p^(m)(0) / h**m``.
+    Normalization improves the numerical stability of polynomial fits and
+    provides a straightforward way to convert derivatives from the normalized
+    space back into the original variable.
 
     Args:
-      x_vals: Sample abscissae.
-      x0: Expansion point.
+      x_vals: The sample input values.
+      x0: The center point for normalization.
 
     Returns:
-      tuple[np.ndarray, float]: ``(u_vals, h)`` where ``u_vals`` are the
-      normalized coordinates and ``h`` is the scaling factor.
+      tuple[np.ndarray, float]: A pair consisting of the normalized coordinates
+      and the scaling factor that was applied.
     """
     t = np.asarray(x_vals, dtype=float) - float(x0)
     h = float(np.max(np.abs(t))) if t.size else 0.0
@@ -57,20 +64,25 @@ def polyfit_u(
 ) -> Optional[np.poly1d]:
     """Fit a weighted polynomial in normalized coordinates.
 
-    Fits ``y ≈ p(u)`` with degree ``order`` using ``np.polyfit`` and weights.
-    The resulting polynomial ``p(u)`` is defined in normalized space; to
-    obtain derivatives with respect to ``x`` at ``x0``, use the relation
-    ``d^m y/dx^m = p^(m)(0) / h**m``, where ``h`` is from ``normalize_coords``.
+    A polynomial is fit to the data in normalized coordinates using
+    ``np.polyfit`` and optional per-sample weights. The polynomial is
+    defined in the normalized space, so its coefficients are not directly
+    in terms of the original input values. To obtain derivatives with
+    respect to the original variable at the expansion point, you need
+    to rescale using the normalization factor returned by
+    ``normalize_coords``.
 
     Args:
-      u_vals: Normalized abscissae (typically in ``[-1, 1]``).
-      y_vals: Ordinates.
-      order: Polynomial degree.
-      weights: Per-sample weights.
+      u_vals: The normalized x-coordinates (usually scaled to lie between
+        minus one and one).
+      y_vals: The corresponding y-values of the samples.
+      order: The degree of the polynomial to fit.
+      weights: Per-sample weights to apply in the fit.
 
     Returns:
-      np.poly1d | None: Polynomial model on success, else ``None`` if the
-      system is singular or the fit fails.
+      np.poly1d | None: A polynomial model in the normalized coordinates
+      if the fit succeeds, or ``None`` if the system is singular or the
+      fit fails.
     """
     try:
         coeffs = np.polyfit(
@@ -91,17 +103,22 @@ def residuals_relative(
 ) -> tuple[np.ndarray, float]:
     """Compute elementwise relative residuals and their maximum.
 
-    Uses ``|y_fit − y_true| / max(|y_true|, floor)`` to avoid division by very
-    small values.
+    Each residual is measured as the absolute difference between the
+    predicted and observed values, divided by the larger of the absolute
+    observed value and a small floor value. This prevents the ratio from
+    blowing up when the observed value is very close to zero.
 
     Args:
       y_fit: Model predictions at the sample points.
       y_true: Observed values at the sample points.
-      floor: Denominator floor to prevent blow-ups near zero.
+      floor: Small positive number used as a lower bound in the denominator
+        to avoid division by values near zero.
 
     Returns:
-      tuple[np.ndarray, float]: ``(residuals, rel_error)`` where
-      ``rel_error`` is ``residuals.max()`` (or ``0.0`` if empty).
+      tuple[np.ndarray, float]: A pair consisting of:
+        - an array of elementwise relative residuals,
+        - the maximum residual across all elements (or ``0.0`` if the array
+          is empty).
     """
     y_true = np.asarray(y_true, float)
     y_fit = np.asarray(y_fit, float)
@@ -119,34 +136,32 @@ def fit_once(
     *,
     weight_eps_frac: float = 1e-3,
 ) -> Dict[str, Any]:
-    """Perform one weighted polynomial fit in normalized coordinates.
+    """Perform a weighted polynomial fit in normalized coordinates.
 
-    Steps:
-      1) Normalize: compute ``u = (x − x0) / h`` and record the scale ``h``.
-      2) Weight: build inverse-distance weights around ``x0``.
-      3) Fit: obtain ``poly_u(u)`` with ``np.polyfit`` in normalized space.
-      4) Diagnose: compute fitted values and relative residuals.
-
-    Note:
-      Derivatives in the original variable are obtained via
-      ``d^m y/dx^m = poly_u^(m)(0) / h**m``.
+    The procedure shifts and rescales the sample points relative to the
+    chosen expansion point, applies inverse-distance weights to emphasize
+    nearby values, and then fits a polynomial in this normalized space
+    using ``np.polyfit``. The fitted polynomial is used to evaluate how
+    well the model reproduces the input data and to measure residuals.
+    Derivatives in the original variable can be recovered from the
+    normalized polynomial by applying the appropriate rescaling factor.
 
     Args:
-      x0: Expansion point used for normalization.
-      x_vals: Sample abscissae.
-      y_vals: Sample ordinates.
-      order: Polynomial degree (also the derivative order extracted later).
-      weight_eps_frac: Epsilon fraction for inverse-distance weights.
+        x0: Expansion point used for normalization.
+        x_vals: Sample abscissae.
+        y_vals: Sample ordinates.
+        order: Polynomial degree (also the derivative order extracted later).
+        weight_eps_frac: Epsilon fraction for inverse-distance weights.
 
     Returns:
-      Dict[str, Any]: Keys include:
-        - ``ok`` (bool): Fit succeeded.
-        - ``reason`` (str | None): Failure reason if any.
-        - ``h`` (float): Normalization scale.
-        - ``poly_u`` (np.poly1d | None): Polynomial in normalized coords.
-        - ``y_fit`` (np.ndarray | None): Fitted values at ``u_vals``.
-        - ``residuals`` (np.ndarray | None): Relative residuals.
-        - ``rel_error`` (float): Maximum relative residual.
+        Dict[str, Any]: Keys include:
+            - ``ok`` (bool): Fit succeeded.
+            - ``reason`` (str | None): Failure reason if any.
+            - ``h`` (float): Normalization scale.
+            - ``poly_u`` (np.poly1d | None): Polynomial in normalized coords.
+            - ``y_fit`` (np.ndarray | None): Fitted values in normalized space.
+            - ``residuals`` (np.ndarray | None): Relative residuals.
+            - ``rel_error`` (float): Maximum relative residual.
     """
     u_vals, h = normalize_coords(x_vals, x0)
     weights = inverse_distance_weights(x_vals, x0, eps_frac=weight_eps_frac)
@@ -164,3 +179,52 @@ def fit_once(
         "residuals": resid,
         "rel_error": rel_error,
     }
+
+
+def derivative_at_x0(poly_u: np.poly1d, h: float, order: int) -> float:
+    """Return the derivative of the requested order at the expansion point.
+
+    The polynomial `poly_u` is defined in normalized coordinates; `h` is the
+    scale used during normalization. This function evaluates the derivative
+    of `poly_u` at zero in normalized space and rescales by `h` to obtain the
+    derivative in the original variable.
+
+    Args:
+        poly_u: Polynomial in normalized coordinates.
+        h: Normalization scale (max absolute deviation from expansion point).
+        order: Derivative order to compute.
+
+    Returns:
+        The derivative of the specified order at the expansion point.
+    """
+    return float(poly_u.deriv(m=order)(0.0) / (h ** order))
+
+
+def residual_to_signal(y_fit: np.ndarray, y_true: np.ndarray, *, floor: float = 1e-12) -> tuple[float, float, float]:
+    """Computes a robust residual-to-signal ratio for a local fit.
+
+    Args:
+      y_fit: Model predictions at the sample points. Must have the same shape as `y_true`.
+      y_true: Observed (or reference) values at the sample points.
+      floor: Small positive lower bound applied when estimating the signal
+        scale to avoid division by a value that is too small. Defaults to 1e-12.
+
+    Returns:
+      A 3-tuple `(rho, rms_resid, signal_scale)` where:
+        - `rho`: Residual-to-signal ratio (`rms_resid` divided by `signal_scale`).
+        - `rms_resid`: Root-mean-square of the elementwise differences between
+          predictions and observations.
+        - `signal_scale`: Robust local signal scale based on the median absolute
+          value of `y_true`, bounded below by `floor`.
+
+    Notes:
+      Intended for acceptance/gate checks. Smaller `rho` indicates a tighter fit
+      relative to local signal level. Empty inputs yield zeros.
+    """
+    y_true = np.asarray(y_true, float)
+    y_fit = np.asarray(y_fit, float)
+    diff = y_fit - y_true
+    rms = float(np.sqrt(np.mean(diff * diff))) if diff.size else 0.0
+    signal = float(np.maximum(np.median(np.abs(y_true)), floor))
+    rho = 0.0 if signal == 0.0 else (rms / signal)
+    return rho, rms, signal
