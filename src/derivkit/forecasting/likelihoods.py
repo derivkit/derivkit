@@ -18,8 +18,9 @@ def build_gaussian_likelihood(
             axis 1 represents the data values.
         model_parameters: a 1D array representing the theoretical values
             of the model parameters.
-        cov: a 2D array representing the covariance matrix of the model. The
-            dimensionality must equal the length of model_parameters.
+        cov: the covariance matrix. Must be either a 1D or 2D array.
+            If a 1D array is supplied it must be reshapable to a 2D array
+            consistent with the length of model_parameters.
 
     Returns:
         ``np.ndarray``: an array containing the coordinate grids constructed
@@ -34,6 +35,8 @@ def build_gaussian_likelihood(
             - model_parameters is not a 1D array,
             - the length of model_parameters is not equal to axis 1 of data,
             - cov is not a 2D array compatible with data and model_parameters.
+            - cov cannot be reshaped as a 2D array compatible with data and
+              model_parameters.
 
     Examples:
         A 1D Gaussian likelihood:
@@ -75,6 +78,8 @@ def build_gaussian_likelihood(
             f"Types of data: {number_samples}."
         )
     square_shape = (number_samples, number_model_parameters)
+    if cov.ndim == 1:
+        cov = cov.reshape(square_shape)
     elif cov.shape != square_shape:
         raise ValueError(
             "cov must be a square 2D array of shape "
