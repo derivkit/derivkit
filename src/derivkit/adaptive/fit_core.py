@@ -136,34 +136,32 @@ def fit_once(
     *,
     weight_eps_frac: float = 1e-3,
 ) -> Dict[str, Any]:
-    """Perform one weighted polynomial fit in normalized coordinates.
+    """Perform a weighted polynomial fit in normalized coordinates.
 
-    Steps:
-      1) Normalize: compute ``u = (x − x0) / h`` and record the scale ``h``.
-      2) Weight: build inverse-distance weights around ``x0``.
-      3) Fit: obtain ``poly_u(u)`` with ``np.polyfit`` in normalized space.
-      4) Diagnose: compute fitted values and relative residuals.
-
-    Note:
-      Derivatives in the original variable are obtained via
-      ``d^m y/dx^m = poly_u^(m)(0) / h**m``.
+    The procedure shifts and rescales the sample points relative to the
+    chosen expansion point, applies inverse-distance weights to emphasize
+    nearby values, and then fits a polynomial in this normalized space
+    using ``np.polyfit``. The fitted polynomial is used to evaluate how
+    well the model reproduces the input data and to measure residuals.
+    Derivatives in the original variable can be recovered from the
+    normalized polynomial by applying the appropriate rescaling factor.
 
     Args:
-      x0: Expansion point used for normalization.
-      x_vals: Sample abscissae.
-      y_vals: Sample ordinates.
-      order: Polynomial degree (also the derivative order extracted later).
-      weight_eps_frac: Epsilon fraction for inverse-distance weights.
+        x0: Expansion point used for normalization.
+        x_vals: Sample abscissae.
+        y_vals: Sample ordinates.
+        order: Polynomial degree (also the derivative order extracted later).
+        weight_eps_frac: Epsilon fraction for inverse-distance weights.
 
     Returns:
-      Dict[str, Any]: Keys include:
-        - ``ok`` (bool): Fit succeeded.
-        - ``reason`` (str | None): Failure reason if any.
-        - ``h`` (float): Normalization scale.
-        - ``poly_u`` (np.poly1d | None): Polynomial in normalized coords.
-        - ``y_fit`` (np.ndarray | None): Fitted values at ``u_vals``.
-        - ``residuals`` (np.ndarray | None): Relative residuals.
-        - ``rel_error`` (float): Maximum relative residual.
+        Dict[str, Any]: Keys include:
+            - ``ok`` (bool): Fit succeeded.
+            - ``reason`` (str | None): Failure reason if any.
+            - ``h`` (float): Normalization scale.
+            - ``poly_u`` (np.poly1d | None): Polynomial in normalized coords.
+            - ``y_fit`` (np.ndarray | None): Fitted values in normalized space.
+            - ``residuals`` (np.ndarray | None): Relative residuals.
+            - ``rel_error`` (float): Maximum relative residual.
     """
     u_vals, h = normalize_coords(x_vals, x0)
     weights = inverse_distance_weights(x_vals, x0, eps_frac=weight_eps_frac)
