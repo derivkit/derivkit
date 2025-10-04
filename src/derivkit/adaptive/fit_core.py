@@ -182,7 +182,21 @@ def fit_once(
 
 
 def derivative_at_x0(poly_u: np.poly1d, h: float, order: int) -> float:
-    """Return d^order y/dx^order at x0 from poly in normalized coords."""
+    """Return the derivative of the requested order at the expansion point.
+
+    The polynomial `poly_u` is defined in normalized coordinates; `h` is the
+    scale used during normalization. This function evaluates the derivative
+    of `poly_u` at zero in normalized space and rescales by `h` to obtain the
+    derivative in the original variable.
+
+    Args:
+        poly_u: Polynomial in normalized coordinates.
+        h: Normalization scale (max absolute deviation from expansion point).
+        order: Derivative order to compute.
+
+    Returns:
+        The derivative of the specified order at the expansion point.
+    """
     return float(poly_u.deriv(m=order)(0.0) / (h ** order))
 
 
