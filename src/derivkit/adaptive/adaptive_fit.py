@@ -144,7 +144,7 @@ class AdaptiveFitDerivative:
         include_zero: bool = True,
         tau_res: float = 5e-2,
         n_workers: int = 1,
-    ):
+    ) -> float | numpy.ndarray:
         """Internal variant that exposes ``tau_res`` directly.
 
         Bypasses the acceptance resolver and supplies the residual-to-signal threshold
