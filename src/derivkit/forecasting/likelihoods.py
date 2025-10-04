@@ -55,6 +55,8 @@ def build_gaussian_likelihood(
     # The data is expected to be 2D. However, 1D is allowed, since it can be
     # embedded in a 2D space.
     _data = np.copy(data)
+    number_samples = _data.shape[0]
+    number_model_parameters = model_parameters.shape[0]
     if _data.ndim == 1:
         _data = np.array([[*_data]])
     elif _data.ndim > 2:
@@ -66,16 +68,17 @@ def build_gaussian_likelihood(
             "model_parameters must be a 1D array, "
             f"but is a {model_parameters.ndim}D array."
         )
-    if _data.shape[0] != model_parameters.shape[0]:
+    if number_samples != number_model_parameters:
         raise ValueError(
             "There must be as many model parameters as there are types of data."
-            f" Number of model parameters: {model_parameters.shape[0]}. "
-            f"Types of data: {_data.shape[1]}."
+            f" Number of model parameters: {number_model_parameters}. "
+            f"Types of data: {number_samples}."
         )
-    if cov.shape != (data.shape[0], model_parameters.shape[0]):
+    square_shape = (number_samples, number_model_parameters)
+    elif cov.shape != square_shape:
         raise ValueError(
             "cov must be a square 2D array of shape "
-            f"{(_data.shape[0], _data.shape[0])}. Actual shape {cov.shape}."
+            f"{square_shape}. Actual shape {cov.shape}."
         )
 
     # The data are coordinate vectors, which have to be extended into a
