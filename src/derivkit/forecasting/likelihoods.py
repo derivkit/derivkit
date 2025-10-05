@@ -34,9 +34,9 @@ def build_gaussian_likelihood(
             - data is not a 1D or 2D array,
             - model_parameters is not a 1D array,
             - the length of model_parameters is not equal to axis 1 of data,
+            - cov is a 1D array and cannot be reshaped as a 2D array compatible
+              with data and model_parameters.
             - cov is not a 2D array compatible with data and model_parameters.
-            - cov cannot be reshaped as a 2D array compatible with data and
-              model_parameters.
 
     Examples:
         A 1D Gaussian likelihood:
