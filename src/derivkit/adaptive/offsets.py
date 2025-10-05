@@ -16,7 +16,7 @@ def get_adaptive_offsets(
     num_offsets: int = 10,
     max_rel: float = 0.05,
     max_abs: float = 1e-2,
-    step_mode: str = "auto",
+    step_mode: str = "auto",  # now supports: "auto", "absolute", "relative"
     x_small_threshold: float = 1e-3,
 ) -> np.ndarray:
     """Return strictly positive step sizes tailored to the scale of ``x0``.
@@ -46,14 +46,15 @@ def get_adaptive_offsets(
     """
     x0 = float(x0)
     use_abs = (step_mode == "absolute") or (
-        step_mode == "auto" and abs(x0) < x_small_threshold
+            step_mode == "auto" and abs(x0) < x_small_threshold
     )
     if use_abs:
-        bases = [min(base_abs * (factor**i), max_abs) for i in range(num_offsets)]
+        bases = [min(base_abs * (factor ** i), max_abs) for i in range(num_offsets)]
     else:
+        # treat both "auto" (large |x0|) and explicit "relative" the same here
         scale = max(abs(x0), x_small_threshold)
         bases = [
-            min(base_rel * (factor**i), max_rel) * scale for i in range(num_offsets)
+            min(base_rel * (factor ** i), max_rel) * scale for i in range(num_offsets)
         ]
     offs = np.unique([b for b in bases if b > 0.0])
     if offs.size == 0:

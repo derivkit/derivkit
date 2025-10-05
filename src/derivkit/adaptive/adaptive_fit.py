@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Optional
+from functools import partial
+
 import numpy as np
 
 from derivkit.adaptive.batch_eval import eval_function_batch
@@ -9,6 +12,7 @@ from derivkit.adaptive.diagnostics import make_diagnostics
 from derivkit.adaptive.estimator import estimate_component
 from derivkit.adaptive.grid import build_x_offsets
 from derivkit.adaptive.validate import validate_inputs
+from derivkit.adaptive.offsets import get_adaptive_offsets as _default_get_adaptive_offsets
 
 
 class AdaptiveFitDerivative:
@@ -43,6 +47,9 @@ class AdaptiveFitDerivative:
             n_workers: int = 1,
             *,
             diagnostics: bool = False,
+            step_abs: Optional[float] = None,
+            step_rel: Optional[float | str] = None,
+            positive_seeds: Optional[np.ndarray] = None
     ):
         """Estimate the derivative at ``x0`` with gate-based acceptance.
 
@@ -91,6 +98,8 @@ class AdaptiveFitDerivative:
         # First, resolve the acceptance setting and map it to (tau_res, kappa_max).
         tau, kappa_cap = self._resolve_acceptance(acceptance)
 
+        get_off = self._resolve_offset_policy(step_abs, step_rel, positive_seeds)
+
         # 1) Build the grid offsets and absolute x values.
         x_offsets, _ = build_x_offsets(
             x0=self.x0,
@@ -98,8 +107,11 @@ class AdaptiveFitDerivative:
             include_zero=include_zero,
             min_samples=min_samples,
             min_used_points=self.min_used_points,
+            get_adaptive_offsets=get_off,  # <-- may be default or user-custom
         )
         x_values = self.x0 + x_offsets
+
+        print(f"my grid x values: {x_values}")
 
         # 2) Evaluate the function in batch mode.
         y = eval_function_batch(self.function, x_values, n_workers)
@@ -235,3 +247,58 @@ class AdaptiveFitDerivative:
         tau = float(tau_min * (tau_max / tau_min) ** a)
         kappa = float(kappa_min * (kappa_max / kappa_min) ** a)
         return tau, kappa
+
+    def _resolve_offset_policy(
+        self,
+        step_abs: Optional[float],
+        step_rel: Optional[float | str],
+        positive_seeds: Optional[np.ndarray],
+    ):
+        """Return a get_adaptive_offsets-like callable based on user override."""
+        provided = sum(v is not None for v in (step_abs, step_rel, positive_seeds))
+        if provided > 1:
+            raise ValueError("Choose at most one of step_abs, step_rel, positive_seeds.")
+
+        # Case 1: explicit seeds
+        if positive_seeds is not None:
+            seeds = np.asarray(positive_seeds, float)
+            if seeds.ndim != 1 or np.any(seeds <= 0):
+                raise ValueError("positive_seeds must be a 1D array of strictly positive values.")
+            # Return a factory that ignores x0 and just returns the seeds (sorted unique)
+            uniq = np.unique(seeds)
+            return lambda **_: uniq
+
+        # Case 2: literal absolute step
+        if step_abs is not None:
+            h = float(step_abs)
+            if not np.isfinite(h) or h <= 0:
+                raise ValueError("step_abs must be a finite, positive float.")
+            # Pin the base_abs; force absolute stepping
+            return partial(
+                _default_get_adaptive_offsets,
+                base_abs=h,
+                step_mode="absolute",
+            )
+
+        # Case 3: relative step (float or "2%")
+        if step_rel is not None:
+            if isinstance(step_rel, str):
+                s = step_rel.strip()
+                if s.endswith("%"):
+                    frac = float(s[:-1]) / 100.0
+                else:
+                    frac = float(s)  # allow "0.02"
+            else:
+                frac = float(step_rel)
+            if not np.isfinite(frac) or frac <= 0:
+                raise ValueError("step_rel must be a positive fraction.")
+            # Pin the base_rel; force relative stepping
+            return partial(
+                _default_get_adaptive_offsets,
+                base_rel=frac,
+                step_mode="relative",
+            )
+
+        # Default: keep your original adaptive behavior
+        return _default_get_adaptive_offsets
+
