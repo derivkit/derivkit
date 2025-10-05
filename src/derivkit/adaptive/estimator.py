@@ -3,8 +3,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
+import warnings
 
 import numpy as np
+
+from derivkit.adaptive.fit_core import (
+    fit_once,
+    normalize_coords,
+    residual_to_signal,
+)
 
 
 @dataclass
@@ -57,19 +64,12 @@ def estimate_component(
     Raises:
         ValueError: If inputs are invalid.
     """
-    from derivkit.adaptive.fit_core import (
-        fit_once,
-        normalize_coords,
-        residual_to_signal,
-    )
-
     x = np.asarray(x_values, float)
     y = np.asarray(y_values, float)
 
     # Perform the single weighted polynomial fit in normalized coords
     fit = fit_once(x0, x, y, order, weight_eps_frac=1e-3)
     if not fit.get("ok", False):
-        import warnings
         warnings.warn(
             "[AdaptiveFitDerivative] Fit failed; returned NaN. "
             "Consider increasing `min_samples` or loosening `acceptance`.",
@@ -108,7 +108,6 @@ def estimate_component(
     accepted = (rho <= tau_res) and (kappa <= kappa_max)
     reason = "accepted" if accepted else ("rho_gate" if rho > tau_res else "conditioning_gate")
     if not accepted:
-        import warnings
         warnings.warn(
             "[AdaptiveFitDerivative] Acceptance gates not satisfied; returned polynomial "
             f"estimate (reason={reason}, rho≈{rho:.3g}, cond≈{kappa:.3g}). "
