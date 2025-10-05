@@ -32,7 +32,7 @@ def inverse_distance_weights(
     Returns:
         np.ndarray: Unnormalized weights with shape ``(n_points,)``.
     """
-    d = np.abs(np.asarray(x_vals, dtype=float) - float(x0))
-    D = float(np.max(d)) if d.size else 0.0
-    eps = max(eps_frac * D, eps_floor)
-    return 1.0 / (d + eps)
+    distances = np.abs(np.asarray(x_vals, dtype=float) - float(x0))
+    span = float(np.max(distances)) if distances.size else 0.0
+    eps = max(eps_frac * span, eps_floor)
+    return 1.0 / (distances + eps)
