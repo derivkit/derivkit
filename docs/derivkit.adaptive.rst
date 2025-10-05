@@ -11,7 +11,6 @@ Submodules
    derivkit.adaptive.batch_eval
    derivkit.adaptive.diagnostics
    derivkit.adaptive.estimator
-   derivkit.adaptive.fallback
    derivkit.adaptive.fit_core
    derivkit.adaptive.grid
    derivkit.adaptive.offsets

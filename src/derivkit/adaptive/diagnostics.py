@@ -1,92 +1,87 @@
-"""Diagnostics helpers for the adaptive-fit derivative estimator.
-
-This module records per-component information (points used, fitted values,
-residuals, and status) during adaptive polynomial fitting so tests and
-downstream tools can inspect the fitting process.
-"""
-
+"""Diagnostics utilities for the adaptive estimator."""
 from __future__ import annotations
+
+from typing import Any, Dict, List
 
 import numpy as np
 
 
-class DiagnosticsRecorder:
-    """Record per-component diagnostics and build a test-friendly dict.
+def hints_from_reasons(*, reasons: List[str], include_zero: bool) -> List[str]:
+    """Convert estimator reasons into short, user-facing suggestions.
 
-    When disabled, the recorder is not populated and ``build()`` returns an empty dict.
+    Args:
+        reasons: List of reason strings from the estimator outcomes.
+        include_zero: Whether zero was included in the grid.
+
+    Returns:
+        List of human hints.
     """
+    rset = set(reasons)
+    hints = []
+    if "rho_gate" in rset:
+        hints.append("Increase `min_samples` to enlarge the local fit window.")
+        hints.append("Or loosen `acceptance` (e.g., 'loose' or 'very_loose').")
+    if "conditioning_gate" in rset:
+        hints.append("Increase `min_samples` to improve numerical conditioning.")
+        hints.append("Or loosen `acceptance` slightly.")
+        if not include_zero:
+            hints.append("Set `include_zero=True` for a symmetric, anchored grid.")
+    if "fit_failed" in rset:
+        hints.append("Increase `min_samples` and ensure the function returns finite values on the grid.")
+    return hints
 
-    def __init__(self, *, enabled: bool, x_all: np.ndarray, y_all: np.ndarray):
-        """Initialize the recorder.
 
-        Args:
-          enabled: If False, this recorder is not populated.
-          x_all: All abscissae used for evaluation (1D array).
-          y_all: All function values evaluated at ``x_all``. Shape is
-            ``(n_points,)`` or ``(n_points, n_components)``.
-        """
-        self.enabled = bool(enabled)
-        if not self.enabled:
-            self._data = None
-            return
-        self._x_all = np.asarray(x_all, float)
-        self._y_all = np.asarray(y_all, float)
-        self._x_used = []
-        self._y_used = []
-        self._y_fit = []
-        self._residuals = []
-        self._used_mask = []
-        self._status = []
+def make_diagnostics(
+    *,
+    outcomes,
+    x_all: np.ndarray,
+    y_all: np.ndarray,
+    order: int,
+    min_samples: int,
+    include_zero: bool,
+    tau_res: float,
+    kappa_max: float,
+) -> Dict[str, Any]:
+    """Daignostics dictionary for an adaptive fit operation.
 
-    def add(self, outcome) -> None:
-        """Append diagnostics for one component outcome.
+    Args:
+        outcomes: List of ComponentOutcome objects from the fit.
+        x_all: Full grid of x offsets used (1D array).
+        y_all: Full grid of function values (2D array, shape [n_points,
+            n_components]).
+        order: Derivative order requested.
+        min_samples: Minimum samples requested.
+        include_zero: Whether zero was included in the grid.
+        tau_res: Residual-to-signal threshold used.
+        kappa_max: Conditioning cap used.
 
-        The ``outcome`` object is expected to expose attributes:
-        ``x_used``, ``y_used``, ``y_fit``, ``residuals``, and ``status``.
-        Missing attributes or ``None`` values are handled gracefully.
+    Returns:
+        Dictionary with diagnostics and human hints.
+    """
+    reasons = [o.status.get("reason") for o in outcomes]
+    any_not_accepted = any(not o.status.get("accepted", True) for o in outcomes)
 
-        Args:
-          outcome: Per-component fitting result with the attributes listed
-            above.
-        """
-        if not self.enabled:
-            return
-        xu = None if outcome.x_used is None else np.asarray(outcome.x_used).copy()
-        yu = None if outcome.y_used is None else np.asarray(outcome.y_used).copy()
-        yf = None if outcome.y_fit is None else np.asarray(outcome.y_fit).copy()
-        rr = None if outcome.residuals is None else np.asarray(outcome.residuals).copy()
+    n_components = int(y_all.shape[1])
+    x_used = [x_all.copy() for _ in range(n_components)]
+    y_used = [y_all[:, i].copy() for i in range(n_components)]
+    used_mask = [np.ones_like(x_all, dtype=bool) for _ in range(n_components)]
 
-        self._x_used.append(xu)
-        self._y_used.append(yu)
-        self._y_fit.append(yf)
-        self._residuals.append(rr)
-
-        if xu is None:
-            mask = np.zeros_like(self._x_all, dtype=bool)
-        else:
-            mask = np.isclose(self._x_all[:, None], xu, rtol=1e-12, atol=1e-15).any(axis=1)
-        self._used_mask.append(mask)
-
-        self._status.append(dict(outcome.status))
-
-    def build(self) -> dict:
-        """Build the diagnostics dictionary in the structure tests expect.
-
-        Returns:
-          A dictionary with keys:
-          ``x_all``, ``y_all``, ``x_used``, ``y_used``, ``y_fit``,
-          ``residuals``, ``used_mask``, and ``status``. Returns ``{}`` if the
-          recorder is disabled.
-        """
-        if not self.enabled:
-            return {}
-        return {
-            "x_all": self._x_all.copy(),
-            "y_all": self._y_all.copy(),
-            "x_used": self._x_used,
-            "y_used": self._y_used,
-            "y_fit": self._y_fit,
-            "residuals": self._residuals,
-            "used_mask": self._used_mask,
-            "status": self._status,
-        }
+    return {
+        "any_not_accepted": bool(any_not_accepted),
+        "component_reasons": reasons,
+        "tau_res": float(tau_res),
+        "kappa_max": float(kappa_max),
+        "order": int(order),
+        "min_samples": int(min_samples),
+        "include_zero": bool(include_zero),
+        # full grid & per-component mirrors (compat fields)
+        "x_all": x_all.copy(),
+        "y_all": y_all.copy(),
+        "x_used": x_used,
+        "y_used": y_used,
+        "used_mask": used_mask,
+        # per-component raw status for deeper inspection if needed
+        "component_status": [o.status for o in outcomes],
+        # human hints
+        "hints": hints_from_reasons(reasons=reasons, include_zero=include_zero),
+    }
