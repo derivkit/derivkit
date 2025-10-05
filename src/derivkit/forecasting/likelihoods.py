@@ -14,7 +14,7 @@ def build_gaussian_likelihood(
 
     Args:
         data: a 1D or 2D array representing the given data values. It is
-            expected that axis 0 represents different kinds of data while
+            expected that axis 0 represents different samples of data while
             axis 1 represents the data values.
         model_parameters: a 1D array representing the theoretical values
             of the model parameters.
@@ -73,7 +73,7 @@ def build_gaussian_likelihood(
         )
     if number_samples != number_model_parameters:
         raise ValueError(
-            "There must be as many model parameters as there are types of data."
+            "There must be as many model parameters as there are samples of data."
             f" Number of model parameters: {number_model_parameters}. "
             f"Types of data: {number_samples}."
         )
