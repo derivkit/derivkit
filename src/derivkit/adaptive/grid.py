@@ -93,6 +93,8 @@ def build_x_offsets(
     *,
     x0: float,
     order: int,
+    is_relative: bool = False,
+    delta: float,
     include_zero: bool,
     min_samples: int,
     min_used_points: int,
@@ -107,6 +109,8 @@ def build_x_offsets(
     Args:
       x0: Expansion point (forwarded to ``get_adaptive_offsets``).
       order: Derivative order (sets a stability floor).
+      is_relative: When set to try, take ``delta`` to be relative to ``x0``.
+      delta: The change in ``x0`` used to evaluate the derivative.
       include_zero: Include 0 in the symmetric grid.
       min_samples: Requested minimum total samples.
       min_used_points: Hard floor for usable samples.
@@ -118,7 +122,7 @@ def build_x_offsets(
     """
     order_floor = order + 2
     required = max(min_samples, max(min_used_points, order_floor))
-    pos = get_adaptive_offsets(x0=x0)
+    pos = get_adaptive_offsets(x0=x0, base=delta, is_relative=is_relative)
     growth_limit = pos[-1] * (1.5**3)
     x_offsets = extend_offsets_to_required(
         offsets=pos,

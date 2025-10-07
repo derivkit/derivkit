@@ -42,6 +42,8 @@ class AdaptiveFitDerivative:
             acceptance: str | float = "balanced",
             n_workers: int = 1,
             *,
+            delta: float = 1e-9,
+            is_relative: bool = False,
             diagnostics: bool = False,
     ):
         """Estimate the derivative at ``x0`` with gate-based acceptance.
@@ -67,11 +69,14 @@ class AdaptiveFitDerivative:
                   - "loose": more tolerant to residuals/conditioning (fewer prunes).
                   - "very_loose": most tolerant; mainly for diagnostics/rough passes.
 
-            Alternatively, pass a float a in (0, 1) for geometric interpolation
-            between the strictest (a≈0) and loosest (a≈1) thresholds
+                Alternatively, pass a float a in (0, 1) for geometric interpolation
+                between the strictest (a≈0) and loosest (a≈1) thresholds.
             n_workers: Number of workers for batched evaluations. Defaults to 1.
             diagnostics: If True, also return a diagnostics dictionary with grid
                 data and per-component outcomes. Defaults to False.
+            is_relative: When set to try, take ``delta`` to be relative to ``x0``.
+            delta: The change in ``x0`` used to evaluate the derivative.
+
 
         Returns:
             The derivative estimate at ``x0``. A scalar is returned for scalar
@@ -98,6 +103,8 @@ class AdaptiveFitDerivative:
             include_zero=include_zero,
             min_samples=min_samples,
             min_used_points=self.min_used_points,
+            is_relative=is_relative,
+            delta=delta,
         )
         x_values = self.x0 + x_offsets
 

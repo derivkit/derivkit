@@ -10,14 +10,10 @@ __all__ = ["get_adaptive_offsets"]
 def get_adaptive_offsets(
     x0: float,
     *,
-    base_rel: float = 0.01,
-    base_abs: float = 1e-6,
+    base: float = 1e-6,
     factor: float = 1.5,
     num_offsets: int = 10,
-    max_rel: float = 0.05,
-    max_abs: float = 1e-2,
-    step_mode: str = "auto",
-    x_small_threshold: float = 1e-3,
+    is_relative: bool = False,
 ) -> np.ndarray:
     """Return strictly positive step sizes tailored to the scale of ``x0``.
 
@@ -28,15 +24,10 @@ def get_adaptive_offsets(
 
     Args:
         x0: Expansion point used to determine relative scaling.
-        base_rel: Base relative step (fraction of the scale) for the first offset.
-        base_abs: Base absolute step (in data units) for the first offset.
+        base: Base step for the first offset.
         factor: Geometric growth factor between consecutive offsets.
         num_offsets: Number of candidate offsets to generate before deduplication.
-        max_rel: Maximum relative step (fraction of the scale).
-        max_abs: Maximum absolute step (in data units).
-        step_mode: One of ``"auto"``, ``"absolute"``. In ``"auto"``, absolute
-            mode is used when ``|x0| < x_small_threshold``.
-        x_small_threshold: Threshold determining when ``x0`` is considered small.
+        is_relative: When set to true, base is taken relative to x0.
 
     Returns:
         A strictly positive, increasing ``np.ndarray`` of offsets.
@@ -45,15 +36,11 @@ def get_adaptive_offsets(
         ValueError: If no valid offsets are generated (e.g., after clipping).
     """
     x0 = float(x0)
-    use_abs = (step_mode == "absolute") or (
-        step_mode == "auto" and abs(x0) < x_small_threshold
-    )
-    if use_abs:
-        bases = [min(base_abs * (factor**i), max_abs) for i in range(num_offsets)]
+    if not is_relative:
+        bases = [base * (factor**i) for i in range(num_offsets)]
     else:
-        scale = max(abs(x0), x_small_threshold)
         bases = [
-            min(base_rel * (factor**i), max_rel) * scale for i in range(num_offsets)
+            base * (factor**i) * abs(x0) for i in range(num_offsets)
         ]
     offs = np.unique([b for b in bases if b > 0.0])
     if offs.size == 0:
