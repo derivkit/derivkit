@@ -37,7 +37,7 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
             raise ValueError("numeric spacing must be positive and finite.")
         return h
 
-    # auto: scale with |x0| but never below floor
+    # auto: scale with absolute value of x0 but never below floor
     if spacing == "auto":
         h = 0.02 * abs(float(x0))
         return float(max(h, floor))

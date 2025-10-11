@@ -54,8 +54,8 @@ class AdaptiveFitDerivative:
             n_points: Number of sample points around x0 used for the fit. Default is 10.
             spacing: Point spacing specification:
                 - positive float (absolute spacing),
-                - percentage string like "1%" (relative to |x0|),
-                - "auto" (scaled by |x0| with a floor),
+                - percentage string like "1%" (relative to abs val of x0),
+                - "auto" (scaled by `absolute value of x0 with a floor),
                 - or a NumPy array of offsets when `use_physical_grid=True`.
             direction: Sampling side relative to x0: "both", "pos", or "neg".
             base_abs: Absolute spacing floor used by "auto" and percentage modes near x0≈0.

@@ -10,12 +10,9 @@ Submodules
    derivkit.adaptive.adaptive_fit
    derivkit.adaptive.batch_eval
    derivkit.adaptive.diagnostics
-   derivkit.adaptive.estimator
-   derivkit.adaptive.fit_core
    derivkit.adaptive.grid
-   derivkit.adaptive.offsets
-   derivkit.adaptive.validate
-   derivkit.adaptive.weights
+   derivkit.adaptive.polyfit_utils
+   derivkit.adaptive.spacing
 
 Module contents
 ---------------

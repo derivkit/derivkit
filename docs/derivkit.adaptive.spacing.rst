@@ -1,5 +1,5 @@
 derivkit.adaptive.spacing module
-=============================
+================================
 
 .. automodule:: derivkit.adaptive.spacing
    :members:
