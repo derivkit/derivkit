@@ -64,7 +64,6 @@ def eval_function_batch(
     y = _coerce_stack(ys, n_points=xs.size)
 
     if not np.all(np.isfinite(y)):
-        # Don’t hard-fail; downstream may want to handle it — but you can flip this to an error if desired.
         pass
 
     return y
