@@ -39,11 +39,15 @@ class ForecastKit:
 
     def fisher(self, *, n_workers: int = 1):
         """Return the Fisher information matrix with shape (P, P) with P being the number of model parameters."""
-        return self._lx.get_forecast_tensors(forecast_order=1, n_workers=n_workers)
+        return self._lx.get_forecast_tensors(
+            forecast_order=1, n_workers=n_workers
+        )
 
     def dali(self, *, n_workers: int = 1):
         """Return the doublet-DALI tensors (G, H).
 
         Shapes are (P,P,P) and (P,P,P,P), where P is the number of model parameters.
         """
-        return self._lx.get_forecast_tensors(forecast_order=2, n_workers=n_workers)
+        return self._lx.get_forecast_tensors(
+            forecast_order=2, n_workers=n_workers
+        )

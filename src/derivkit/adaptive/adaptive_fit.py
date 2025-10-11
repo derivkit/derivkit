@@ -1,304 +1,134 @@
-"""Public API: Adaptive polynomial-fit derivative estimator with gate-based acceptance."""
+"""Adaptive polynomial-fit derivatives and helpers."""
 
 from __future__ import annotations
 
-from typing import Optional
-from functools import partial
-
-import numpy as np
-
 from derivkit.adaptive.batch_eval import eval_function_batch
-from derivkit.adaptive.diagnostics import make_diagnostics
-from derivkit.adaptive.estimator import estimate_component
-from derivkit.adaptive.grid import build_x_offsets
-from derivkit.adaptive.validate import validate_inputs
-from derivkit.adaptive.offsets import get_adaptive_offsets as _default_get_adaptive_offsets
+from derivkit.adaptive.diagnostics import (
+    make_derivative_diag,
+    print_derivative_diagnostics,
+)
+from derivkit.adaptive.grid import make_grid
+from derivkit.adaptive.polyfit_utils import (
+    choose_degree,
+    extract_derivative,
+    fit_multi_power,
+    scale_offsets,
+)
 
 
 class AdaptiveFitDerivative:
-    """Adaptive polynomial-fit derivative estimator with gate-based acceptance.
+    """Higher-order derivative via a single local polynomial fit around x0."""
 
-    Fits a local polynomial around ``x0``, checks residual-to-signal and
-    conditioning gates, and estimates derivatives component-wise.
-
-    Attributes:
-        function: Forward model called as ``function(x)``.
-        x0: Expansion point about which the local polynomial is fit.
-        min_used_points: Hard lower bound on usable samples after pruning.
-    """
-    def __init__(self, function, x0: float):
-        """Initialize the adaptive derivative estimator.
+    def __init__(self, func, x0: float):
+        """Initialize the estimator.
 
         Args:
-            function: The function to differentiate. Must accept a single
-                float argument and return either a scalar or a 1D numpy array.
-            x0: The point at which to estimate the derivative.
+            func: Callable mapping a float to a scalar or 1D array-like output.
+            x0: Expansion point about which derivatives are computed.
         """
-        self.function = function
+        self.func = func
         self.x0 = float(x0)
-        self.min_used_points = 5  # hard lower bound on min_samples
 
     def differentiate(
-            self,
-            order: int = 1,
-            min_samples: int = 7,
-            include_zero: bool = True,
-            acceptance: str | float = "balanced",
-            n_workers: int = 1,
-            *,
-            diagnostics: bool = False,
-            step_abs: Optional[float] = None,
-            step_rel: Optional[float | str] = None,
-            positive_seeds: Optional[np.ndarray] = None
+        self,
+        order: int,
+        *,
+        n_points: int = 10,
+        spacing: float | str | None = "auto",
+        direction: str = "both",
+        base_abs: float | None = None,
+        use_physical_grid: bool = False,
+        n_workers: int = 1,
+        diagnostics: bool = False,
+        meta: dict | None = None,
     ):
-        """Estimate the derivative at ``x0`` with gate-based acceptance.
+        """Compute the derivative of specified order at x0 using an adaptive polynomial fit.
 
-        Constructs a local grid around ``x0``, evaluates the function in batch,
-        and fits a polynomial sufficient for the requested derivative order.
-        Acceptance thresholds for residuals (``tau_res``) and conditioning
-        (``kappa_max``) are derived from the ``acceptance`` setting.
+        This method samples the function at points around x0, fits a polynomial to those
+        samples, and extracts the requested derivative from the fitted coefficients. It
+        supports scalar or vector-valued functions and selects a degree consistent with
+        the number of points and the derivative order.
 
         Args:
-            order: Derivative order to estimate. Defaults to 1.
-            min_samples: Number of grid points to evaluate. Acts as an evaluation
-                budget; the fitter may use a subset but never fewer than
-                ``min_used_points``. Defaults to 7.
-            include_zero: Whether to include ``x0`` (zero offset) in the evaluation
-                grid. Defaults to True.
-            acceptance: Preset string or float controlling acceptance thresholds.
-                Presets:
-
-                  - "strict": tight residual gate and conditioning cap (few points pass;
-                    best numerical stability).
-                  - "balanced": default trade-off between stability and tolerance.
-                  - "loose": more tolerant to residuals/conditioning (fewer prunes).
-                  - "very_loose": most tolerant; mainly for diagnostics/rough passes.
-
-            Alternatively, pass a float a in (0, 1) for geometric interpolation
-            between the strictest (a≈0) and loosest (a≈1) thresholds
-            n_workers: Number of workers for batched evaluations. Defaults to 1.
-            diagnostics: If True, also return a diagnostics dictionary with grid
-                data and per-component outcomes. Defaults to False.
+            order: The derivative order to compute (>= 1).
+            n_points: Number of sample points around x0 used for the fit. Default is 10.
+            spacing: Point spacing specification:
+                - positive float (absolute spacing),
+                - percentage string like "1%" (relative to |x0|),
+                - "auto" (scaled by |x0| with a floor),
+                - or a NumPy array of offsets when `use_physical_grid=True`.
+            direction: Sampling side relative to x0: "both", "pos", or "neg".
+            base_abs: Absolute spacing floor used by "auto" and percentage modes near x0≈0.
+                If None, defaults to 1e-3.
+            use_physical_grid: If True, `spacing` must be an array of explicit offsets.
+            n_workers: Number of worker processes for parallel evaluation (1 = serial).
+            diagnostics: If True, also return a diagnostics dictionary.
+            meta: Optional metadata to include in diagnostics.
 
         Returns:
-            The derivative estimate at ``x0``. A scalar is returned for scalar
-            functions; otherwise a 1D array of per-component estimates. If
-            ``diagnostics=True``, returns a tuple ``(estimate, diag)`` where
-            ``diag`` is a diagnostics dictionary with keys described in
-            :func:`make_diagnostics`.
+            The derivative at x0. For vector-valued functions, returns a 1D NumPy array.
+            If `diagnostics=True`, returns `(derivative, diagnostics_dict)`.
 
         Raises:
-            ValueError: If inputs are invalid (unsupported ``order``,
-                insufficient samples, or invalid ``acceptance``) or if function
-                outputs are inconsistent across the grid (e.g., wrong shape or
-                non-finite values).
+            ValueError: If `order < 1` or spacing/direction parameters are invalid.
         """
-        validate_inputs(order, min_samples, self.min_used_points)
+        if order < 1:
+            raise ValueError("order must be >= 1")
+        need_min = max(5, order + 2)
 
-        # First, resolve the acceptance setting and map it to (tau_res, kappa_max).
-        tau, kappa_cap = self._resolve_acceptance(acceptance)
-
-        get_off = self._resolve_offset_policy(step_abs, step_rel, positive_seeds)
-
-        # 1) Build the grid offsets and absolute x values.
-        x_offsets, _ = build_x_offsets(
-            x0=self.x0,
-            order=order,
-            include_zero=include_zero,
-            min_samples=min_samples,
-            min_used_points=self.min_used_points,
-            get_adaptive_offsets=get_off,  # <-- may be default or user-custom
+        # 1) First create a grid of points
+        x, t, n_pts, spacing_resolved, direction_used = make_grid(
+            self.x0,
+            n_points=n_points,
+            spacing=spacing,
+            direction=direction,
+            base_abs=base_abs,
+            need_min=need_min,
+            use_physical_grid=use_physical_grid,
         )
-        x_values = self.x0 + x_offsets
 
-        print(f"my grid x values: {x_values}")
+        # 2) Then evaluate the function at those points
+        ys = eval_function_batch(self.func, x, n_workers=n_workers)
+        if ys.ndim == 1:
+            ys = ys[:, None]
+        n_components = ys.shape[1]
 
-        # 2) Evaluate the function in batch mode.
-        y = eval_function_batch(self.function, x_values, n_workers)
-        n_components = y.shape[1]
-        derivs = np.empty(n_components, dtype=float)
+        # 3) Fit polynomial
+        offsets, factor = scale_offsets(t)
+        deg = choose_degree(order, n_pts, extra=5)
+        coeffs, rrms = fit_multi_power(offsets, ys, deg)
 
-        outcomes = []
-
-        # 3) Loop over components and estimate each one.
-        for i in range(n_components):
-            outcome = estimate_component(
-                x0=self.x0,
-                x_values=x_values,
-                y_values=y[:, i],
-                order=order,
-                tau_res=tau,
-                kappa_max=kappa_cap,
-            )
-            derivs[i] = outcome.value
-            outcomes.append(outcome)
-
-        result = derivs.item() if derivs.size == 1 else derivs
+        # 4) Compute derivative
+        deriv = extract_derivative(coeffs, order, factor)
+        out = deriv.item() if n_components == 1 else deriv
 
         if not diagnostics:
-            return result
+            return out
 
-        # Build diagnostics dictionary.
-        diag = make_diagnostics(
-            outcomes=outcomes,
-            x_all=x_values,
-            y_all=y,
-            order=order,
-            min_samples=min_samples,
-            include_zero=include_zero,
-            tau_res=tau,
-            kappa_max=kappa_cap,
+        # 5) If diagnostics requested, prepare diagnostics info
+        degree_out = (
+            int(deg) if n_components == 1 else [int(deg)] * n_components
         )
-        return result, diag
-
-    def _differentiate(
-        self,
-        order: int = 1,
-        min_samples: int = 7,
-        include_zero: bool = True,
-        tau_res: float = 5e-2,
-        n_workers: int = 1,
-    ) -> float | np.ndarray:
-        """Internal variant that exposes ``tau_res`` directly.
-
-        Bypasses the acceptance resolver and supplies the residual-to-signal threshold
-        explicitly. Uses a fixed conditioning cap internally.
-
-        Args:
-            order: Derivative order to estimate.
-            min_samples: Number of grid points to evaluate.
-            include_zero: Whether to include ``x0`` in the grid.
-            tau_res: Residual-to-signal threshold (smaller is stricter).
-            n_workers: Number of workers for batched evaluations.
-
-        Returns:
-            The derivative estimate at ``x0`` (scalar or per-component).
-        """
-        validate_inputs(order, min_samples, self.min_used_points)
-
-        x_offsets, _ = build_x_offsets(
-            x0=self.x0,
-            order=order,
-            include_zero=include_zero,
-            min_samples=min_samples,
-            min_used_points=self.min_used_points,
+        diag = make_derivative_diag(
+            x=x,
+            t=t,
+            u=offsets,
+            s=factor,
+            y=ys,
+            degree=degree_out,
+            spacing_resolved=spacing_resolved,
+            rrms=rrms,
         )
-        x_values = self.x0 + x_offsets
-
-        y = eval_function_batch(self.function, x_values, n_workers)
-        n_components = y.shape[1]
-        derivs = np.empty(n_components, dtype=float)
-
-        for i in range(n_components):
-            outcome = estimate_component(
-                x0=self.x0,
-                x_values=x_values,
-                y_values=y[:, i],
-                order=order,
-                tau_res=float(tau_res),
-                kappa_max=1e8,  # sensible default cap
-            )
-            derivs[i] = outcome.value
-
-        return derivs.item() if derivs.size == 1 else derivs
-
-    def _resolve_acceptance(self, acceptance) -> tuple[float, float]:
-        """Convert the acceptance setting into residual and conditioning thresholds.
-
-        Args:
-            acceptance: Either one of the preset strings ("strict", "balanced",
-                "loose", "very_loose") or a floating-point number between zero and
-                one (exclusive). Smaller values mean stricter thresholds; larger
-                values mean looser thresholds.
-
-        Returns:
-            A pair (tau_res, kappa_max) where:
-              - tau_res is the residual-to-signal threshold used by the estimator.
-              - kappa_max is the maximum allowed conditioning value for the fit.
-
-        Raises:
-            ValueError: If the preset is not recognized or if a floating-point
-                value outside the open interval (zero, one) is provided.
-        """
-        tau_min, tau_max = 0.03, 0.20     # residual-to-signal gate
-        kappa_min, kappa_max = 1e7, 1e10  # conditioning gate
-
-        if isinstance(acceptance, str):
-            key = acceptance.strip().lower()
-            # larger a => looser (higher tau_res, higher kappa_max).
-            preset_a = {
-                "strict": 0.0,  # tight residuals & conditioning
-                "balanced": 0.35,  # default trade-off
-                "loose": 0.70,  # more tolerant
-                "very_loose": 1.0,  # most tolerant (diagnostics)
-            }
-            if key not in preset_a:
-                raise ValueError(
-                    f"unknown acceptance preset '{acceptance}'. "
-                    f"choose one of {list(preset_a.keys())} or pass a float in (0,1)."
-                )
-            a = preset_a[key]
-        else:
-            a = float(acceptance)
-            if not (0.0 < a < 1.0):
-                raise ValueError("acceptance as float must be in (0, 1).")
-
-        # geometric interpolation to keep ratios sensible
-        tau = float(tau_min * (tau_max / tau_min) ** a)
-        kappa = float(kappa_min * (kappa_max / kappa_min) ** a)
-        return tau, kappa
-
-    def _resolve_offset_policy(
-        self,
-        step_abs: Optional[float],
-        step_rel: Optional[float | str],
-        positive_seeds: Optional[np.ndarray],
-    ):
-        """Return a get_adaptive_offsets-like callable based on user override."""
-        provided = sum(v is not None for v in (step_abs, step_rel, positive_seeds))
-        if provided > 1:
-            raise ValueError("Choose at most one of step_abs, step_rel, positive_seeds.")
-
-        # Case 1: explicit seeds
-        if positive_seeds is not None:
-            seeds = np.asarray(positive_seeds, float)
-            if seeds.ndim != 1 or np.any(seeds <= 0):
-                raise ValueError("positive_seeds must be a 1D array of strictly positive values.")
-            # Return a factory that ignores x0 and just returns the seeds (sorted unique)
-            uniq = np.unique(seeds)
-            return lambda **_: uniq
-
-        # Case 2: literal absolute step
-        if step_abs is not None:
-            h = float(step_abs)
-            if not np.isfinite(h) or h <= 0:
-                raise ValueError("step_abs must be a finite, positive float.")
-            # Pin the base_abs; force absolute stepping
-            return partial(
-                _default_get_adaptive_offsets,
-                base_abs=h,
-                step_mode="absolute",
-            )
-
-        # Case 3: relative step (float or "2%")
-        if step_rel is not None:
-            if isinstance(step_rel, str):
-                s = step_rel.strip()
-                if s.endswith("%"):
-                    frac = float(s[:-1]) / 100.0
-                else:
-                    frac = float(s)  # allow "0.02"
-            else:
-                frac = float(step_rel)
-            if not np.isfinite(frac) or frac <= 0:
-                raise ValueError("step_rel must be a positive fraction.")
-            # Pin the base_rel; force relative stepping
-            return partial(
-                _default_get_adaptive_offsets,
-                base_rel=frac,
-                step_mode="relative",
-            )
-
-        # Default: keep your original adaptive behavior
-        return _default_get_adaptive_offsets
-
+        meta_payload = {
+            "x0": self.x0,
+            "order": order,
+            "n_points": n_pts if use_physical_grid else n_points,
+            "direction": direction_used,
+            "spacing": spacing,  # may be ndarray if physical grid
+            "base_abs": base_abs,
+            "spacing_resolved": spacing_resolved,
+            "n_workers": n_workers,
+            **(meta or {}),
+        }
+        print_derivative_diagnostics(diag, meta=meta_payload)
+        return out, {**diag, "x0": self.x0, "meta": meta_payload}

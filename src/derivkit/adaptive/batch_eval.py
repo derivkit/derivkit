@@ -16,15 +16,72 @@ from multiprocess import Pool
 __all__ = ["eval_function_batch"]
 
 
-def _eval_serial(function: Callable[[float], Any], xs: np.ndarray) -> list[np.ndarray]:
+def eval_function_batch(
+    function: Callable[[float], Any],
+    xs: np.ndarray,
+    n_workers: int = 1,
+) -> np.ndarray:
+    """Evaluate a function over 1D inputs and return a (n_points, n_comp) float array.
+
+    Evaluates ``function(x)`` for each ``x`` in ``xs``. If ``n_workers > 1``,
+    uses a ``multiprocess.Pool``; otherwise runs serially. Scalars become a single
+    column. For array outputs, this routine coerces to a consistent 2D shape that
+    downstream polynomial-fitting code expects.
+
+    Args:
+      function: Callable mapping a float to a scalar or array-like. Must be
+        picklable if used with multiple processes.
+      xs: 1D array of abscissae.
+      n_workers: If > 1, evaluate in parallel using ``multiprocess.Pool``.
+
+    Returns:
+      np.ndarray: Array of shape ``(n_points, n_comp)`` with dtype ``float``.
+
+    Raises:
+      ValueError: If ``xs`` is not 1D or outputs cannot be coerced consistently.
+
+    Examples:
+      >>> import numpy as np
+      >>> f = lambda x: np.array([x, x**2])
+      >>> xs = np.linspace(-1.0, 1.0, 5)
+      >>> y = eval_function_batch(f, xs)
+      >>> y.shape
+      (5, 2)
+    """
+    xs = np.asarray(xs, dtype=float)
+    if xs.ndim != 1:
+        raise ValueError(
+            f"eval_function_batch: xs.ndim must be 1 but is {xs.ndim}."
+        )
+
+    ys = (
+        _eval_parallel(function, xs, n_workers)
+        if n_workers > 1
+        else _eval_serial(function, xs)
+    )
+
+    # Coerce to clean 2D shape and float dtype.
+    y = _coerce_stack(ys, n_points=xs.size)
+
+    # Optional: basic sanity on finiteness (nice for early detection).
+    if not np.all(np.isfinite(y)):
+        # Don’t hard-fail; downstream may want to handle it — but you can flip this to an error if desired.
+        pass
+
+    return y
+
+
+def _eval_serial(
+    function: Callable[[float], Any], xs: np.ndarray
+) -> list[np.ndarray]:
     """Evaluate a function over points serially.
 
     Args:
-      function: Callable mapping a float to a scalar or 1D array-like.
-      xs: 1D array of abscissae.
+      function: Callable mapping a float to a scalar or array-like.
+      xs: 1D array of x-axis points to evaluate.
 
     Returns:
-      list[np.ndarray]: One array per input x, each at least 1D.
+      list[np.ndarray]: One array per input x (each at least 1D).
     """
     return [np.atleast_1d(function(float(x))) for x in xs]
 
@@ -34,14 +91,13 @@ def _eval_parallel(
     xs: np.ndarray,
     n_workers: int,
 ) -> list[np.ndarray]:
-    """Evaluate a function over points in parallel.
+    """Evaluate a function over points in parallel using multiprocess.Pool.
 
-    Uses ``multiprocess.Pool`` with ``n_workers`` processes. Falls back to the
-    serial path if the workload is too small or if pool creation/execution fails.
+    Falls back to the serial path for tiny workloads or if pool creation/execution fails.
 
     Args:
-      function: Maps a float to a scalar or 1D array-like.
-      xs: 1D abscissae to evaluate.
+      function: Maps a float to a scalar or array-like.
+      xs: 1D points on x-axis to evaluate.
       n_workers: Desired number of processes.
 
     Returns:
@@ -50,7 +106,7 @@ def _eval_parallel(
     if n_workers <= 1:
         return _eval_serial(function, xs)
 
-    # Light heuristic: avoid pool overhead for tiny workloads.
+    # Avoid pool overhead for very small batches.
     n = max(1, min(int(n_workers), int(xs.size)))
     if xs.size < max(8, 2 * n):
         return _eval_serial(function, xs)
@@ -65,53 +121,59 @@ def _eval_parallel(
     return [np.atleast_1d(y) for y in ys]
 
 
-def eval_function_batch(
-    function: Callable[[float], Any],
-    xs: np.ndarray,
-    n_workers: int = 1,
-) -> np.ndarray:
-    """Evaluate a function over 1D inputs and return a 2D array.
+def _coerce_stack(ys: list[np.ndarray], n_points: int) -> np.ndarray:
+    """Coerce a list of per-point outputs into an (n_points, n_comp) float array.
 
-    Evaluates ``function(x)`` for each ``x`` in ``xs``. If ``n_workers > 1``,
-    uses a ``multiprocess.Pool``; otherwise runs serially. Scalar outputs are
-    promoted to shape ``(n_points, 1)``. 1D outputs must have constant length
-    across ``xs``.
+    The user function may return scalars or arrays of varying shapes. This routine
+    coerces them into a consistent 2D array shape that downstream code expects. The rules are:
+        - scalar → column vector
+        - 1D → row
+        - 2D with a transposed batch (n_comp, n_points) → auto-transpose
+        - higher-D → flattened per row
 
     Args:
-      function: Callable mapping a float to a scalar or 1D array-like.
-      xs: 1D array of abscissae.
-      n_workers: If > 1, evaluate in parallel using ``multiprocess``.
+        ys: List of arrays, one per input point. Each array is at least 1
+            dimensional (scalars become shape (1,)).
+        n_points: Number of input points (length of ys).
 
     Returns:
-      np.ndarray: Array of shape ``(n_points, n_components)``.
+        np.ndarray: Array of shape (n_points, n_comp) with dtype float.
 
     Raises:
-      ValueError: If ``xs`` is not 1D or output lengths vary across inputs.
-
-    Examples:
-      >>> import numpy as np
-      >>> f = lambda x: np.array([x, x**2])
-      >>> xs = np.linspace(-1.0, 1.0, 5)
-      >>> y = eval_function_batch(f, xs)
-      >>> y.shape
-      (5, 2)
+        ValueError: If outputs cannot be coerced to a consistent shape.
     """
-    xs = np.asarray(xs, dtype=float)
-    if xs.ndim != 1:
-        raise ValueError(f"eval_function_batch: xs.ndim must be 1 but is {xs.ndim}.")
+    arr = np.asarray(ys, dtype=float)
 
-    ys = _eval_parallel(function, xs, n_workers) if n_workers > 1 else _eval_serial(
-        function, xs
-    )
+    # Common cases fast-path
+    if arr.ndim == 1:
+        # all scalars
+        return arr.reshape(n_points, 1)
+    if arr.ndim == 2 and arr.shape[0] == n_points:
+        # already (n_points, n_comp)
+        return arr
+    if arr.ndim == 2 and arr.shape[1] == n_points:
+        # likely (n_comp, n_points) → transpose
+        return arr.T
 
-    lengths = [np.asarray(y).size for y in ys]
-    if len(set(lengths)) != 1:
-        raise ValueError(
-            "eval_function_batch: function output dimension changed across xs; "
-            f"sizes={lengths}"
-        )
+    # Fallback: stack row-wise and flatten per sample if needed.
+    rows = []
+    for y in ys:
+        y = np.asarray(y, dtype=float)
+        if y.ndim == 0:
+            y = y.reshape(1)
+        elif y.ndim >= 2:
+            y = y.reshape(-1)  # flatten higher-D deterministically
+        rows.append(y)
+    y = np.vstack(rows)
 
-    y = np.vstack([np.atleast_1d(y) for y in ys])
-    if y.ndim == 1:
-        y = y[:, None]
+    # Ensure (n_points, n_comp)
+    if y.shape[0] != n_points:
+        # If the function accidentally returned (n_comp, n_points), fix it once more.
+        if y.shape[1] == n_points and y.shape[0] != n_points:
+            y = y.T
+        else:
+            raise ValueError(
+                f"eval_function_batch: cannot coerce outputs to (n_points, n_comp); "
+                f"got shape {y.shape} for n_points={n_points}"
+            )
     return y

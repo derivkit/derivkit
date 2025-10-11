@@ -1,130 +1,108 @@
-"""Offset grid builders for adaptive sampling around ``x0``.
-
-This module works with *relative* offsets (around 0). You typically:
-
-1) Start from a small set of strictly positive seed offsets near zero;
-2) Mirror them to obtain a symmetric grid about 0 (optionally including 0);
-3) If that symmetric grid is too small for a stable fit, extend the positive
-   side geometrically until the mirrored grid meets a size target
-   (the "required point count").
-"""
+"""Utility functions for building grids of points."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import numpy as np
 
-from derivkit.adaptive.offsets import (
-    get_adaptive_offsets as _default_get_adaptive_offsets,
-)
+from .spacing import resolve_spacing
 
-__all__ = [
-    "build_x_offsets",
-    "symmetric_offsets",
-    "extend_offsets_to_required",
-]
+__all__ = ["make_offsets", "make_grid"]
 
 
-def symmetric_offsets(offsets: np.ndarray, include_zero: bool) -> np.ndarray:
-    """Make a symmetric set around 0 from strictly positive seeds.
-
-    You pass *positive* offsets (e.g., [a, b, c]) and choose whether to include
-    0 itself. The function returns the sorted union of {±a, ±b, ±c} and
-    optionally {0}. It does *not* invent new step sizes; it only mirrors.
+def make_offsets(n_points: int, base: float, direction: str) -> np.ndarray:
+    """Construct a grid of offsets around zero, never including 0.
 
     Args:
-      offsets: Strictly positive offsets (1D).
-      include_zero: If True, also include 0 in the final grid.
+        n_points: number of points to generate (>=1)
+        base: spacing between points (>0)
+        direction: 'both', 'pos', or 'neg'. 'both' gives a symmetric grid around 0,
+                   'pos' gives points > 0, 'neg' gives points < 0.
 
     Returns:
-      np.ndarray: A sorted 1D array symmetric about 0.
-
-    Raises:
-      ValueError: If any input offset is non-positive.
+        Array of offsets (length n_points), never including 0.
     """
-    pos = np.asarray(offsets, float)
-    if np.any(pos <= 0):
-        raise ValueError("symmetric_offsets expects strictly positive offsets.")
-    steps = np.insert(pos, 0, 0.0) if include_zero else pos
-    out = np.unique(np.concatenate([steps, -steps]))
-    return np.sort(out)
+    if not np.isfinite(base) or base <= 0:
+        raise ValueError("Resolved spacing is not a positive finite number.")
+    if n_points < 1:
+        raise ValueError("n_points must be >= 1.")
+    if direction not in {"both", "pos", "neg"}:
+        raise ValueError("direction must be 'both', 'pos', or 'neg'.")
+
+    h = float(base)
+
+    if direction == "both":
+        left = n_points // 2
+        right = n_points - left
+        k = np.concatenate(
+            (
+                -np.arange(left, 0, -1, dtype=float),
+                np.arange(1, right + 1, dtype=float),
+            )
+        )
+        return h * k
+
+    if direction == "pos":
+        return h * np.arange(1, n_points + 1, dtype=float)
+
+    # direction == "neg"
+    return -h * np.arange(1, n_points + 1, dtype=float)
 
 
-def extend_offsets_to_required(
-    offsets: np.ndarray,
-    include_zero: bool,
-    factor: float,
-    growth_limit: float,
-    required_points: int,
-) -> np.ndarray:
-    """Extend seeds until the *symmetric* grid reaches a target size.
-
-    You provide initial strictly positive seeds. If, after mirroring (and
-    optionally adding 0), the symmetric grid has fewer than ``required_points``
-    samples, we *extend the positive seeds* by multiplying the last seed by
-    ``factor`` (geometric growth), then mirror again. We stop when the size
-    target is met or when the next candidate would exceed ``growth_limit``.
-
-    Args:
-      offsets: Initial strictly positive offsets (1D).
-      include_zero: Whether to include 0 when forming the symmetric grid.
-      factor: Geometric growth factor applied to the last positive seed.
-      growth_limit: Maximum allowed positive offset value.
-      required_points: Target number of samples in the final symmetric grid.
-        This is the “required point count” used by the fit loop (see
-        ``build_x_offsets``).
-
-    Returns:
-      np.ndarray: The final symmetric 1D grid meeting size/limit criteria.
-    """
-    cur = np.array(offsets, float)
-    while True:
-        grid = symmetric_offsets(cur, include_zero)
-        if grid.size >= int(required_points):
-            return grid
-        nxt = cur[-1] * float(factor)
-        if nxt > float(growth_limit):
-            return grid
-        cur = np.append(cur, nxt)
-
-
-def build_x_offsets(
-    *,
+def make_grid(
     x0: float,
-    order: int,
-    include_zero: bool,
-    min_samples: int,
-    min_used_points: int,
-    get_adaptive_offsets: Callable[..., np.ndarray] = _default_get_adaptive_offsets,
-) -> tuple[np.ndarray, int]:
-    """Build the symmetric relative grid and compute ``required_points``.
-
-    ``required_points`` is the minimum total samples the fit loop may use:
-    ``max(min_samples, min_used_points, order + 2)``. Offsets are relative
-    to 0; callers typically evaluate at ``x0 + offsets``.
+    *,
+    n_points: int,
+    spacing: str | float | np.ndarray,
+    direction: str,
+    base_abs: float | None,
+    need_min: int,
+    use_physical_grid: bool,
+) -> tuple[np.ndarray, np.ndarray, int, float, str]:
+    """Unified grid builder.
 
     Args:
-      x0: Expansion point (forwarded to ``get_adaptive_offsets``).
-      order: Derivative order (sets a stability floor).
-      include_zero: Include 0 in the symmetric grid.
-      min_samples: Requested minimum total samples.
-      min_used_points: Hard floor for usable samples.
-      get_adaptive_offsets: Factory for strictly positive seed offsets.
+        x0: expansion point
+        n_points: number of points to generate (if not use_physical_grid)
+        spacing: 'auto', '<pct>%', numeric > 0, or array of physical
+                    sample points (if use_physical_grid)
+        direction: 'both', 'pos', or 'neg' (if not use_physical_grid)
+        base_abs: absolute fallback (also used by 'auto'); if None, uses 1
+        need_min: minimum number of points required (for validation)
+        use_physical_grid: if True, spacing is an array of physical sample points
 
     Returns:
-      (x_offsets, required_points): symmetric 1D offsets and the effective
-      minimum sample count.
+      x: array of physical sample points
+      t: offsets (x - x0)
+      n_pts: number of samples
+      spacing_resolved: numeric spacing used (np.nan if physical grid given)
+      direction_used: 'custom' if physical grid, else the input direction
     """
-    order_floor = order + 2
-    required = max(min_samples, max(min_used_points, order_floor))
-    pos = get_adaptive_offsets(x0=x0)
-    growth_limit = pos[-1] * (1.5**3)
-    x_offsets = extend_offsets_to_required(
-        offsets=pos,
-        include_zero=include_zero,
-        factor=1.5,
-        growth_limit=growth_limit,
-        required_points=required,
-    )
-    return x_offsets, required
+    if use_physical_grid:
+        x = np.asarray(spacing, dtype=float)
+        if x.ndim != 1:
+            raise ValueError(
+                "When use_physical_grid=True, spacing must be a 1D array of x-samples."
+            )
+        if not np.all(np.isfinite(x)):
+            raise ValueError(
+                "samples (spacing array) contains non-finite values."
+            )
+        if x.size < need_min:
+            raise ValueError(
+                f"samples must have at least {need_min} points for requested order."
+            )
+        t = x - float(x0)
+        return x, t, x.size, float("nan"), "custom"
+
+    # spacing is spec → resolve + make offsets
+    if direction not in {"both", "pos", "neg"}:
+        raise ValueError("direction must be 'both', 'pos', or 'neg'.")
+    if n_points < need_min:
+        raise ValueError(
+            f"n_points must be >= {need_min} for requested order."
+        )
+
+    h = resolve_spacing(spacing, float(x0), base_abs)
+    t = make_offsets(n_points=n_points, base=h, direction=direction)
+    x = float(x0) + t
+    return x, t, x.size, float(h), direction
