@@ -1,4 +1,4 @@
-"""Utility to resolve spacing specifications."""
+"""Convert a spacing spec ('auto', '<p>%', or number) into a positive step size."""
 
 from __future__ import annotations
 
