@@ -17,7 +17,7 @@ from derivkit.adaptive.polyfit_utils import (
 
 
 class AdaptiveFitDerivative:
-    """Higher-order derivative via a single local polynomial fit around x0."""
+    """Estimate first- or k-th derivatives by fitting a single local polynomial around x0; here 'higher-order' refers to the polynomial's degree, not necessarily the derivative order."""
 
     def __init__(self, func, x0: float):
         """Initialize the estimator.
