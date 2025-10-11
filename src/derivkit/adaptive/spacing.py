@@ -19,7 +19,7 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
     smaller floor.
 
     Args:
-        spacing: "auto", a percentage like "2%", or a positive number.
+        spacing: "auto", a percentage (e.g. a string representing a percentage "2%"), or a positive number.
         x0: Point at which the derivative is evaluated; scale reference for "auto"
             and percentages.
         base_abs: Absolute lower bound for h (defaults to 1e-3 if None).
