@@ -90,10 +90,13 @@ def test_is_symmetric_grid_true_odd():
 
 
 def test_is_symmetric_grid_false_asymmetric():
-    """Test is_symmetric_grid returns False for asymmetric grid."""
-    y = np.array(
-        [-3.0, -1.0, 1.0, 3.001]
-    )  # 1e-3 asymmetry ≫ FP tol; safe from rounding issues
+    """Test that is_symmetric_grid returns False for a deliberately asymmetric grid.
+
+    The last point is offset by 1e-3, which is many orders of magnitude
+    above the floating-point tolerance (~1e-12). This ensures the test
+    fails due to real asymmetry, not rounding error.
+    """
+    y = np.array([-3.0, -1.0, 1.0, 3.001])
     assert is_symmetric_grid(y) is False
 
 
