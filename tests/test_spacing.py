@@ -1,4 +1,4 @@
-"""Unit tests for spacing resolution logic."""
+"""Unit tests for resolve_spacing step-size logic."""
 
 import numpy as np
 import pytest
