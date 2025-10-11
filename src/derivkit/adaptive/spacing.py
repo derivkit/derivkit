@@ -22,7 +22,7 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
         float: A positive, finite spacing value.
 
     Raises:
-        ValueError: If spacing is invalid (non-positive/NaN number, malformed percent, or unsupported type).
+        ValueError: If spacing is invalid (e.g. non-positive/NaN number, malformed percent, or unsupported type).
     """
     floor = 1e-3 if base_abs is None else float(base_abs)
 
