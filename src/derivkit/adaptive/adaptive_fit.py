@@ -1,4 +1,4 @@
-"""Adaptive polynomial-fit derivatives and helpers."""
+"""Adaptive polynomial-fit derivatives for estimating derivatives from function samples spaced around x0."""
 
 from __future__ import annotations
 
@@ -48,15 +48,18 @@ class AdaptiveFitDerivative:
         samples, and extracts the requested derivative from the fitted coefficients. It
         supports scalar or vector-valued functions and selects a degree consistent with
         the number of points and the derivative order.
+        Unlike finite-difference methods, the spacing here controls how far sample
+        points are placed from x0 for the polynomial fit, not the step size used in
+        a finite-difference stencil.
 
         Args:
             order: The derivative order to compute (>= 1).
             n_points: Number of sample points around x0 used for the fit. Default is 10.
-            spacing: Point spacing specification:
-                - positive float (absolute spacing),
-                - percentage string like "1%" (relative to abs val of x0),
-                - "auto" (scaled by `absolute value of x0 with a floor),
-                - or a NumPy array of offsets when `use_physical_grid=True`.
+            spacing: Controls how far sample points lie from x0:
+                    - positive float → fixed absolute distance,
+                    - percentage string like "1%" → relative to the magnitude of x0,
+                    - "auto" → 2% of the magnitude of x0, with a minimum floor,
+                    - NumPy array → explicit offsets when `use_physical_grid=True`.
             direction: Sampling side relative to x0: "both", "pos", or "neg".
             base_abs: Absolute spacing floor used by "auto" and percentage modes near x0≈0.
                 If None, defaults to 1e-3.
