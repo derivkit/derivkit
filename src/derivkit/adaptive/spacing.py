@@ -13,6 +13,8 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
     Converts a user-facing spacing option into a numeric spacing h suitable for
     finite-difference or sampling routines.
 
+    If the scaled value is below the floor, the result is the floor (e.g., with the default 1e-3 and x0≈1e-6, 'auto' returns 1e-3); pass base_abs to choose a smaller floor.
+
     Args:
         spacing: "auto", a percentage like "2%", or a positive number.
         x0: Point at which the derivative is evaluated; scale reference for "auto" and percentages.
