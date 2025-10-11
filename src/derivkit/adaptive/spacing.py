@@ -8,25 +8,21 @@ __all__ = ["resolve_spacing"]
 
 
 def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
-    """Resolve a spacing specification into a positive, finite step size.
+    """Return a positive step size h around x0; 'auto' and '<p>%' scale with the absolute value of x0, numeric inputs are absolute, and base_abs sets the floor.
 
     Converts a user-facing spacing option into a numeric spacing h suitable for
     finite-difference or sampling routines.
 
     Args:
-        spacing (str | int | float): Spacing specification: "auto", a percentage
-        string ending with "%", or a positive number.
-        x0 (float): Point at which the derivative is evaluated; used to scale
-        "auto" and percentage spacings.
-        base_abs (float | None): Optional absolute lower bound for the spacing. If
-        None, a default floor of 1e-3 is used.
+        spacing (str | int | float): "auto", a percentage like "2%", or a positive number.
+        x0 (float): Point at which the derivative is evaluated; scale reference for "auto" and percentages.
+        base_abs (float | None): Absolute lower bound for h (defaults to 1e-3 if None).
 
     Returns:
         float: A positive, finite spacing value.
 
     Raises:
-        ValueError: If spacing is invalid (e.g., non-positive number, malformed
-        percentage, or unsupported type).
+        ValueError: If spacing is invalid (non-positive/NaN number, malformed percent, or unsupported type).
     """
     floor = 1e-3 if base_abs is None else float(base_abs)
 
