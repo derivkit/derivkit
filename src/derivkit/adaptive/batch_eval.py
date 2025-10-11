@@ -60,7 +60,7 @@ def eval_function_batch(
         else _eval_serial(function, xs)
     )
 
-    # Coerce to clean 2D shape and float dtype.
+    # Convert outputs to a consistent 2D float array (n_points × n_outputs).
     y = _coerce_stack(ys, n_points=xs.size)
 
     if not np.all(np.isfinite(y)):
