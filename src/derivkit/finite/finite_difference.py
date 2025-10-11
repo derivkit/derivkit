@@ -71,7 +71,10 @@ class FiniteDifferenceDerivative:
         self.debug = debug
         self.log_file = log_file
 
-    def differentiate(self, order=1, stepsize=0.01, num_points=5, n_workers=1):
+    def differentiate(self, order: int =1,
+                      stepsize: float = 0.01,
+                      num_points: int = 5,
+                      n_workers: int = 1):
         """Computes the derivative using a central finite difference scheme.
 
         Supports 3-, 5-, 7-, or 9-point central difference stencils for
