@@ -63,7 +63,6 @@ def eval_function_batch(
     # Coerce to clean 2D shape and float dtype.
     y = _coerce_stack(ys, n_points=xs.size)
 
-    # Optional: basic sanity on finiteness (nice for early detection).
     if not np.all(np.isfinite(y)):
         # Don’t hard-fail; downstream may want to handle it — but you can flip this to an error if desired.
         pass
