@@ -95,7 +95,6 @@ PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
 [tool.tox.env.docs]
 description = "Build the HTML files using Sphinx"
-allowlist_externals = ["sphinx-apidoc", "sphinx-build"]
 extras = ["docs"]
 commands = [
   [
