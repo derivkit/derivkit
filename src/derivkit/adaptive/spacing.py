@@ -16,7 +16,8 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
 
     If the scaled value is below the floor, the result is the floor (e.g., with the
     default 1e-3 and x0≈1e-6, 'auto' returns 1e-3); pass base_abs to choose a
-    smaller floor.
+    smaller floor. Numeric inputs are absolute and do not use the floor;
+    the floor applies only to "auto" and "<p>%".
 
     Args:
         spacing: "auto", a percentage (e.g. a string representing a percentage "2%"), or a positive number.
@@ -33,7 +34,7 @@ def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
     """
     floor = 1e-3 if base_abs is None else float(base_abs)
 
-    # numeric absolute spacing
+    # numeric absolute spacing (floor does not apply to explicit numbers)
     if isinstance(spacing, (int, float)):
         h = float(spacing)
         if not np.isfinite(h) or h <= 0:
