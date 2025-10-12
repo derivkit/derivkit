@@ -7,7 +7,9 @@ import numpy as np
 __all__ = ["resolve_spacing"]
 
 
-def resolve_spacing(spacing, x0: float, base_abs: float | None) -> float:
+def resolve_spacing(spacing: str | float,
+                    x0: float,
+                    base_abs: float | None) -> float:
     """Return a positive step size h around x0; 'auto' and '<p>%' scale with the absolute value of x0, numeric inputs are absolute, and base_abs sets the floor.
 
     Converts a user-facing spacing option into a numeric spacing h suitable for
