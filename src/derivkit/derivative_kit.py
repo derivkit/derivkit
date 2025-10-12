@@ -36,31 +36,3 @@ class DerivativeKit:
         """
         self.adaptive = AdaptiveFitDerivative(function, x0)
         self.finite = FiniteDifferenceDerivative(function, x0)
-
-    def get_used_points(self, order: int = 1, n_workers=1):
-        """Returns x and y points used in the adaptive fit (for component 0).
-
-        Args:
-            order: Order of the derivative to compute diagnostics
-                for (default is 1).
-            n_workers (int, optional): Number of worker to use in
-                multiprocessing. Default is 1 (no multiprocessing).
-
-        Returns:
-            A tuple of :class:`np.ndarray`.
-        """
-        _, diagnostics = self.adaptive.differentiate(
-            order=order,
-            diagnostics=True,
-            n_workers=n_workers,
-        )
-
-        x_all = diagnostics["x_all"]
-        y_all = diagnostics["y_all"][
-            :, 0
-        ]  # assuming scalar output or first component
-        x_used = diagnostics["x_used"][0]
-        y_used = diagnostics["y_used"][0]
-        used_mask = diagnostics["used_mask"][0]
-
-        return x_all, y_all, x_used, y_used, used_mask

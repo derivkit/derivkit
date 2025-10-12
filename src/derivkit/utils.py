@@ -129,7 +129,7 @@ def is_symmetric_grid(x_vals):
     x_vals = np.sort(np.asarray(x_vals))
     n = len(x_vals)
     mid = n // 2
-    return np.allclose(x_vals[:mid], -x_vals[: mid : -1])
+    return np.allclose(x_vals[:mid], -x_vals[:mid:-1])
 
 
 def generate_test_function(name: str = "sin"):
@@ -145,10 +145,11 @@ def generate_test_function(name: str = "sin"):
         return lambda x: np.sin(x), lambda x: np.cos(x), lambda x: -np.sin(x)
     raise ValueError(f"Unknown test function: {name!r}")
 
+
 def get_partial_function(
-        full_function: Callable,
-        variable_index: int,
-        fixed_values: list | np.ndarray,
+    full_function: Callable,
+    variable_index: int,
+    fixed_values: list | np.ndarray,
 ) -> Callable:
     """Returns a single-variable version of a multivariate function.
 
@@ -176,11 +177,17 @@ def get_partial_function(
     """
     fixed_arr = np.asarray(fixed_values, dtype=float)
     if fixed_arr.ndim != 1:
-        raise ValueError(f"fixed_values must be 1D; got shape {fixed_arr.shape}.")
+        raise ValueError(
+            f"fixed_values must be 1D; got shape {fixed_arr.shape}."
+        )
     if not isinstance(variable_index, (int, np.integer)):
-        raise TypeError(f"variable_index must be an integer; got {type(variable_index).__name__}.")
+        raise TypeError(
+            f"variable_index must be an integer; got {type(variable_index).__name__}."
+        )
     if variable_index < 0 or variable_index >= fixed_arr.size:
-        raise IndexError(f"variable_index {variable_index} out of bounds for size {fixed_arr.size}.")
+        raise IndexError(
+            f"variable_index {variable_index} out of bounds for size {fixed_arr.size}."
+        )
 
     def partial_function(x):
         params = fixed_arr.copy()

@@ -63,14 +63,15 @@ class LikelihoodExpansion:
 
         cov = np.asarray(cov)
         if cov.ndim > 2:
-            raise ValueError(f"cov must be at most two-dimensional; got ndim={cov.ndim}.")
+            raise ValueError(
+                f"cov must be at most two-dimensional; got ndim={cov.ndim}."
+            )
         if cov.ndim == 2 and cov.shape[0] != cov.shape[1]:
             raise ValueError(f"cov must be square; got shape={cov.shape}.")
 
         self.cov = cov
         self.n_parameters = self.theta0.shape[0]
         self.n_observables = self.cov.shape[0]
-
 
     def get_forecast_tensors(self, forecast_order=1, n_workers=1):
         """Returns a set of tensors according to the requested order of the forecast.
@@ -169,7 +170,9 @@ class LikelihoodExpansion:
 
         if order == 1:
             # Get the first-order derivatives
-            first_order_derivatives  = np.zeros((self.n_parameters, self.n_observables), dtype=float)
+            first_order_derivatives = np.zeros(
+                (self.n_parameters, self.n_observables), dtype=float
+            )
             for m in range(self.n_parameters):
                 # 1 parameter to differentiate, and n_parameters-1 parameters to hold fixed
                 theta0_x = deepcopy(self.theta0)
@@ -184,7 +187,10 @@ class LikelihoodExpansion:
 
         elif order == 2:
             # Get the second-order derivatives
-            second_order_derivatives = np.zeros((self.n_parameters, self.n_parameters, self.n_observables), dtype=float)
+            second_order_derivatives = np.zeros(
+                (self.n_parameters, self.n_parameters, self.n_observables),
+                dtype=float,
+            )
 
             for m1 in range(self.n_parameters):
                 for m2 in range(self.n_parameters):
@@ -244,16 +250,20 @@ class LikelihoodExpansion:
         # warn only; do not symmetrize, to match historical fixture values
         classname = self.__class__.__name__
         if not np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12):
-                        warnings.warn(f"[{classname}] `cov` is not symmetric; proceeding as-is (no symmetrization).",
-                                      RuntimeWarning)
+            warnings.warn(
+                f"[{classname}] `cov` is not symmetric; proceeding as-is (no symmetrization).",
+                RuntimeWarning,
+            )
 
         # condition number warning (helps debug instability)
         try:
             cond = np.linalg.cond(cov)
             if cond > 1e12:
-                warnings.warn(f"[{classname}] `cov` is ill-conditioned (cond≈{cond:.2e}); "
-                              "results may be unstable.",
-                              RuntimeWarning)
+                warnings.warn(
+                    f"[{classname}] `cov` is ill-conditioned (cond≈{cond:.2e}); "
+                    "results may be unstable.",
+                    RuntimeWarning,
+                )
         except Exception:
             pass  # if cond() fails, just skip
 
@@ -261,8 +271,10 @@ class LikelihoodExpansion:
         try:
             return np.linalg.inv(cov)
         except np.linalg.LinAlgError:
-            warnings.warn(f"[{classname}] `cov` inversion failed; using pseudoinverse.",
-                          RuntimeWarning)
+            warnings.warn(
+                f"[{classname}] `cov` inversion failed; using pseudoinverse.",
+                RuntimeWarning,
+            )
             return np.linalg.pinv(cov, rcond=1e-12, hermitian=False)
 
     def _build_fisher(self, d1, invcov):

@@ -26,14 +26,20 @@ def gradient(function, theta0, n_workers=1):
 
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
-        [_grad_component(function, theta0, i, n_workers) for i in range(theta0.size)],
+        [
+            _grad_component(function, theta0, i, n_workers)
+            for i in range(theta0.size)
+        ],
         dtype=float,
     )
     if not np.isfinite(grad).all():
         raise FloatingPointError("Non-finite values encountered in gradient.")
     return grad
 
-def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> float:
+
+def _grad_component(
+    function, theta0: np.ndarray, i: int, n_workers: int
+) -> float:
     """Compute one component of the gradient of a scalar-valued function.
 
     Helper used by ``gradient``. Wraps ``function`` into a single-variable
@@ -71,6 +77,7 @@ def _grad_component(function, theta0: np.ndarray, i: int, n_workers: int) -> flo
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
+
 def jacobian(function, theta0, n_workers=1):
     """Returns the jacobian of a vector-valued function.
 
@@ -89,14 +96,20 @@ def jacobian(function, theta0, n_workers=1):
 
     # n_workers controls inner 1D differentiation (not across parameters).
     jacobian = np.array(
-        [_jacobian_component(function, theta0, i, n_workers) for i in range(theta0.size)],
+        [
+            _jacobian_component(function, theta0, i, n_workers)
+            for i in range(theta0.size)
+        ],
         dtype=float,
     )
     if not np.isfinite(jacobian).all():
         raise FloatingPointError("Non-finite values encountered in jacobian.")
     return jacobian.T
 
-def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_workers: int) -> np.ndarray:
+
+def _jacobian_component(
+    function: Callable, theta0: np.ndarray, i: int, n_workers: int
+) -> np.ndarray:
     """Compute one column of the jacobian of a scalar-valued function.
 
     Helper used by ``jacobian``. Wraps ``function`` into a single-variable
@@ -123,15 +136,22 @@ def _jacobian_component(function: Callable, theta0: np.ndarray, i: int, n_worker
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
+
 def hessian(*args, **kwargs):
     """This is a placeholder for a Hessian computation function."""
     raise NotImplementedError
+
+
 def hessian_diag(*args, **kwargs):
     """This is a placeholder for a Hessian diagonal computation function."""
     raise NotImplementedError
+
+
 def jacobian_diag(*args, **kwargs):
     """This is a placeholder for a Jacobian diagonal computation function."""
     raise NotImplementedError
+
+
 def gauss_newton_hessian(*args, **kwargs):
     """This is a placeholder for a Gauss-Newton Hessian computation function."""
     raise NotImplementedError

@@ -1,4 +1,5 @@
 """Tests for ForecastKit class."""
+
 import numpy as np
 
 from derivkit.forecast_kit import ForecastKit
@@ -25,7 +26,9 @@ def test_forecastkit_delegates(monkeypatch):
             raise AssertionError("Unexpected forecast_order")
 
     # Patch the class that ForecastKit uses internally (module-local import)
-    monkeypatch.setattr("derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True)
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True
+    )
 
     # inputs
     def model(theta):
@@ -72,16 +75,19 @@ def test_default_n_workers_forwarded(monkeypatch):
                 return np.zeros((1, 1, 1)), np.zeros((1, 1, 1, 1))
             raise AssertionError("Unexpected forecast_order")
 
-    monkeypatch.setattr("derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True)
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True
+    )
 
     fk = ForecastKit(lambda x: np.asarray(x), np.array([0.0]), np.eye(1))
     fk.fisher()  # no n_workers arg
-    fk.dali()    # no n_workers arg
+    fk.dali()  # no n_workers arg
     assert n_workers_seen["fisher"] == 1 and n_workers_seen["dali"] == 1
 
 
 def test_return_types_match_lx(monkeypatch):
     """Test that return types from ForecastKit match those from LikelihoodExpansion."""
+
     class FakeLX:
         def __init__(self, *a, **k):
             pass
@@ -93,10 +99,14 @@ def test_return_types_match_lx(monkeypatch):
                 return np.zeros((2, 2, 2)), np.zeros((2, 2, 2, 2))
             raise AssertionError("Unexpected forecast_order")
 
-    monkeypatch.setattr("derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True)
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.LikelihoodExpansion", FakeLX, raising=True
+    )
 
     fk = ForecastKit(lambda x: np.asarray(x), np.array([0.0]), np.eye(1))
     fish = fk.fisher()
     assert isinstance(fish, np.ndarray)
     g_tensor, h_tensor = fk.dali()
-    assert isinstance(g_tensor, np.ndarray) and isinstance(h_tensor, np.ndarray)
+    assert isinstance(g_tensor, np.ndarray) and isinstance(
+        h_tensor, np.ndarray
+    )
