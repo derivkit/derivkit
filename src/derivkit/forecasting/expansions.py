@@ -399,7 +399,6 @@ class LikelihoodExpansion:
             warn_context="covariance solve",
         )
 
-        # Compute the bias vector
         bias_vec = j_matrix.T @ cinv_delta
 
         delta_theta = solve_or_pinv(
