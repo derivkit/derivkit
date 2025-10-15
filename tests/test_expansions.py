@@ -544,10 +544,13 @@ def test_fisher_bias_raises_on_wrong_shapes():
     """Test that build_fisher_bias raises on mismatched shapes."""
     model = partial(_linear_model, np.eye(2))
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
-    fisher = np.eye(3)
-    with pytest.raises(ValueError):
-        le.build_fisher_bias(fisher_matrix=fisher, delta_nu=np.zeros(2))
+    # Wrong Fisher shape (3x3 vs 2 params); should raise an exception.
+    fisher_bad = np.eye(3)
+    with pytest.raises(ValueError, match=r"fisher_matrix must be square;|shape.*\(3, 3\).*"):
+        le.build_fisher_bias(fisher_matrix=fisher_bad, delta_nu=np.zeros(2))
 
+    # Fisher shape OK (2x2), but delta_nu length wrong (3 vs n_obs=2);
+    # should raise an exception
     fisher_ok = np.eye(2)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"delta_nu must have length n=2"):
         le.build_fisher_bias(fisher_matrix=fisher_ok, delta_nu=np.zeros(3))
