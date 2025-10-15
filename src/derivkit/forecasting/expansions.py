@@ -14,6 +14,7 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
+from numpy.typing import NDArray
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.forecasting.calculus import jacobian
@@ -319,12 +320,11 @@ class LikelihoodExpansion:
 
     def build_fisher_bias(
             self,
-            *,
-            fisher_matrix: np.ndarray | None = None,
-            delta_nu: np.ndarray | None = None,
+            fisher_matrix: NDArray[np.floating],
+            delta_nu: NDArray[np.floating],
             n_workers: int = 1,
             rcond: float = 1e-12,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
         """Estimate parameter bias using the stored model, expansion point, and covariance.
 
         This method quantifies how differences between two data sets (for example,
@@ -404,11 +404,11 @@ class LikelihoodExpansion:
 
     def build_delta_nu(
             self,
-            data_with: np.ndarray,
-            data_without: np.ndarray,
+            data_with: NDArray[np.floating],
+            data_without: NDArray[np.floating],
             *,
-            dtype: type = float,
-    ) -> np.ndarray:
+            dtype: type | np.dtype = float,
+    ) -> NDArray[np.floating]:
         """Compute the difference between two data vectors. for use in Fisher-bias estimates.
 
         This function is typically used for Fisher-bias estimates, taking two data vectors—
