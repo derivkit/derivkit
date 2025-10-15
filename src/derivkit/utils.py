@@ -213,7 +213,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
       matrix: Coefficient matrix of shape ``(n, n)``.
       vector: Right-hand side vector or matrix of shape ``(n,)`` or ``(n, k)``.
       rcond: Cutoff for small singular values used by ``np.linalg.pinv``.
-      assume_symmetric: If True, prefer a Cholesky solve (fast path for SPD/Hermitian).
+      assume_symmetric: If True, prefer a Cholesky solve
+          (fast path for symmetric positive definite (SPD)/Hermitian).
       warn_context: Short label included in the warning message.
 
     Returns:
