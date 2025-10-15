@@ -421,7 +421,6 @@ def test_fisher_bias_matches_lstsq_identity_cov():
         dtype=float,
     )
 
-    # Bind design_matrix so the model signature is model(theta) -> y
     linear_model = partial(_linear_model, design_matrix)
 
     covariance = np.eye(2)
@@ -435,7 +434,7 @@ def test_fisher_bias_matches_lstsq_identity_cov():
         fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
     )
 
-    # Ground truth for identity covariance would be ordinary least squares:
+    # Reference values for identity covariance would be ordinary least squares:
     expected_bias = design_matrix.T @ delta_nu
     theta_lstsq, *_ = np.linalg.lstsq(design_matrix, delta_nu, rcond=None)
 
@@ -471,7 +470,7 @@ def test_fisher_bias_matches_gls_weighted_cov():
         fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
     )
 
-    # Ground truth via GLS: bias = A^T C^{-1} Δν; Δθ = F^{+} bias (use pinv for singular/ill-conditioned F)
+    # Reference values via GLS:
     expected_bias = design_matrix.T @ (inv_covariance @ delta_nu)
     expected_delta_theta = np.linalg.pinv(fisher_matrix) @ expected_bias
 
