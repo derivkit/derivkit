@@ -1,6 +1,7 @@
 """Tests for LikelihoodExpansion."""
 
 from contextlib import nullcontext
+from functools import partial
 
 import numpy as np
 import pytest
@@ -357,3 +358,303 @@ def test_raises_on_mismatched_obs_cov_dims():
     # DALI path (optional, but good to check both)
     with pytest.raises(ValueError):
         le.get_forecast_tensors(forecast_order=2)
+
+
+def test_build_delta_nu_validation_errors():
+    """Test build_delta_nu raises on bad inputs."""
+    cov = np.eye(2)
+    def linear_model(theta):
+        return np.asarray([theta[0], theta[1]], dtype=float)
+
+    le = LikelihoodExpansion(linear_model, theta0=np.zeros(2), cov=cov)
+
+    with pytest.raises(ValueError):
+        # This should raise an exception because the two data vectors are of incompatible length
+        le.build_delta_nu(np.array([1.0, 2.0]), np.array([1.0]))
+
+    with pytest.raises(FloatingPointError):
+        # This should raise an exception because one of the data vectors contains a NaN.
+        le.build_delta_nu(np.array([np.nan, 1.0]), np.array([0.0, 0.0]))
+
+
+def _linear_model(design_matrix, theta):
+    """Return design_matrix @ theta for linear-model tests."""
+    theta = np.asarray(theta, dtype=float)
+    return design_matrix @ theta
+
+
+def test_build_delta_nu_1d_and_2d_row_major():
+    """Test that build_delta_nu returns correct shapes and values."""
+    # Test the case where theta0 is a 1D array
+    cov_2 = np.eye(2)
+    theta0 = np.zeros(2)
+    model_2 = partial(_linear_model, np.eye(2))
+
+    le2 = LikelihoodExpansion(model_2, theta0=theta0, cov=cov_2)
+
+    data_with = np.array([3.0, -1.0], dtype=float)
+    data_without = np.array([2.5, -2.0], dtype=float)
+    delta_1d = le2.build_delta_nu(data_with, data_without)
+    np.testing.assert_allclose(delta_1d, np.array([0.5, 1.0], dtype=float))
+    assert delta_1d.shape == (le2.n_observables,)
+
+    # Test the case where theta0 is a 2D array
+    cov_6 = np.eye(6)
+
+    model_6 = partial(_linear_model, np.zeros((6,6)))
+
+    le6 = LikelihoodExpansion(model_6, theta0=np.zeros(1), cov=cov_6)
+
+    a2 = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
+    b2 = np.array([[0, 1, 1], [1, 1, 1]], dtype=float)
+    delta_2d = le6.build_delta_nu(a2, b2)
+    np.testing.assert_allclose(delta_2d, (a2 - b2).ravel(order="C"))
+    assert delta_2d.ndim == 1
+    assert delta_2d.size == 6
+
+
+def test_fisher_bias_matches_lstsq_identity_cov():
+    """Fisher bias should match an ordinary least-squares solution when covariance is identity."""
+    design_matrix = np.array(
+        [[1.0, 2.0],
+         [0.5, -1.0]],
+        dtype=float,
+    )
+
+    linear_model = partial(_linear_model, design_matrix)
+
+    covariance = np.eye(2)
+    le = LikelihoodExpansion(linear_model, theta0=np.zeros(2), cov=covariance)
+
+    # Fisher matrix computed by the class.
+    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+
+    delta_nu = np.array([1.0, -0.5], dtype=float)
+    bias_vec, delta_theta = le.build_fisher_bias(
+        fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
+    )
+
+    # Reference values for identity covariance would be ordinary least squares:
+    expected_bias = design_matrix.T @ delta_nu
+    theta_lstsq, *_ = np.linalg.lstsq(design_matrix, delta_nu, rcond=None)
+
+    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(delta_theta, theta_lstsq, rtol=1e-10, atol=1e-12)
+
+
+def test_fisher_bias_matches_gls_weighted_cov():
+    """Fisher bias should match generalized least squares when covariance is non-identity."""
+    design_matrix = np.array(
+        [[1.0, 2.0, 0.0],
+         [0.0, 1.0, 1.0]],
+        dtype=float,
+    )  # n_observables = 2, n_parameters = 3
+
+    # Bind design_matrix so the model signature is model(theta) -> y
+    linear_model = partial(_linear_model, design_matrix)
+
+    covariance = np.array(
+        [[2.0, 0.3],
+         [0.3, 1.0]],
+        dtype=float,
+    )
+    inv_covariance = np.linalg.inv(covariance)
+
+    le = LikelihoodExpansion(linear_model, theta0=np.zeros(3), cov=covariance)
+
+    # Fisher matrix computed by the class with the stored covariance.
+    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+
+    delta_nu = np.array([0.7, -1.2], dtype=float)
+    bias_vec, delta_theta = le.build_fisher_bias(
+        fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
+    )
+
+    # Reference values via GLS:
+    expected_bias = design_matrix.T @ (inv_covariance @ delta_nu)
+    expected_delta_theta = np.linalg.pinv(fisher_matrix) @ expected_bias
+
+    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-10, atol=1e-12)
+
+
+def test_fisher_bias_accepts_2d_delta_row_major_consistency():
+    """Test that build_fisher_bias accepts 2D delta_nu and matches flattened 1D input."""
+    design_matrix = np.array([[1.0, 2.0],
+                              [0.5, -1.0]], float)
+    model = partial(_linear_model, design_matrix)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    delta_2d = np.array([[1.0, -0.5]], float)
+    bias_a, dtheta_a = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_2d)
+
+    delta_1d = le.build_delta_nu(delta_2d, np.zeros_like(delta_2d)).ravel(order="C")
+    bias_b, dtheta_b = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_1d)
+
+    np.testing.assert_allclose(bias_a, bias_b)
+    np.testing.assert_allclose(dtheta_a, dtheta_b)
+
+
+def test_fisher_bias_singular_fisher_uses_pinv_baseline():
+    """Tests that the Fisher bias equation is satisfied for singular Fisher matrices."""
+    design_matrix = np.array([[1.0, 1.0],
+                              [1.0, 1.0]], float)  # rank-1
+    model = partial(_linear_model, design_matrix)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
+    fisher = le.get_forecast_tensors(forecast_order=1)
+    delta = np.array([1.0, -0.5], float)
+
+    bias_vec, delta_theta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+
+    expected_bias = design_matrix.T @ delta
+
+    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(fisher @ delta_theta, expected_bias, rtol=1e-10, atol=1e-12)
+
+
+def test_fisher_bias_singular_covariance_matches_pinv_baseline():
+    """Test that build_fisher_bias with singular covariance matches pinv baseline."""
+    design_matrix = np.array([[1.0, 0.0],
+                              [1.0, 0.0]], float)
+    model = partial(_linear_model, design_matrix)
+
+    cov = np.array([[1.0, 1.0],
+                    [1.0, 1.0]], float)  # rank-1
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    delta = np.array([2.0, -1.0], float)
+
+    with pytest.warns(RuntimeWarning, match="covariance solve"):
+        bias_vec, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+
+    c_pinv = np.linalg.pinv(cov)
+    expected_bias = design_matrix.T @ (c_pinv @ delta)
+    expected_dtheta = np.linalg.pinv(fisher) @ expected_bias
+
+    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-8, atol=1e-10)
+
+
+def test_fisher_bias_raises_on_wrong_shapes():
+    """Test that build_fisher_bias raises on mismatched shapes."""
+    model = partial(_linear_model, np.eye(2))
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
+    # Wrong Fisher shape (3x3 vs 2 params); should raise an exception.
+    fisher_bad = np.eye(3)
+    with pytest.raises(ValueError, match=r"fisher_matrix must be square;|shape.*\(3, 3\).*"):
+        le.build_fisher_bias(fisher_matrix=fisher_bad, delta_nu=np.zeros(2))
+
+    # Fisher shape OK (2x2), but delta_nu length wrong (3 vs n_obs=2);
+    # should raise an exception
+    fisher_ok = np.eye(2)
+    with pytest.raises(ValueError, match=r"delta_nu must have length n=2"):
+        le.build_fisher_bias(fisher_matrix=fisher_ok, delta_nu=np.zeros(3))
+
+
+def test_fisher_bias_linear_ground_truth_end_to_end():
+    """End-to-end test of Fisher bias against linear-model analytic solution."""
+    # 4 observables, 3 parameters
+    A = np.array([[1.0, 2.0, 0.0],
+                  [0.0, 1.0, 1.0],
+                  [2.0, 0.0, 1.0],
+                  [-1.0, 0.5, 0.5]], float)
+    model = partial(_linear_model, A)
+
+    cov = np.diag([0.5, 1.2, 2.0, 0.8])
+    Cinv = np.diag(1.0 / np.diag(cov))
+
+    theta0 = np.zeros(3)
+    le = LikelihoodExpansion(model, theta0, cov)
+
+    # Two data vectors: "with systematics" = y + s, "without" = y
+    y = model(theta0)
+    s = np.array([0.3, -0.1, 0.05, 0.2], float)  # arbitrary systematic
+    d_with, d_without = y + s, y
+
+    delta = le.build_delta_nu(d_with, d_without)  # should equal s (row-major flatten)
+    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher_matrix, delta_nu=delta)
+
+    # analytic solution: b = A^T C^{-1} s ; Δθ = F^{+} b with F = A^T C^{-1} A
+    expected_bias = A.T @ (Cinv @ s)
+    expected_fisher = A.T @ Cinv @ A
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def test_fisher_bias_linear_full_cov_gls_formula():
+    """End-to-end test of Fisher bias against linear-model analytic solution with full cov."""
+    # 3 obervabless, 2 parameters
+    A = np.array([[1.0,  0.0],
+                  [2.0, -1.0],
+                  [0.5, 1.0]], float)
+    model = partial(_linear_model, A)
+
+    cov = np.array([[ 1.0,  0.2, -0.1],
+                  [ 0.2,  2.0,  0.3],
+                  [-0.1,  0.3,  1.5]], float)
+    Cinv = np.linalg.inv(cov)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    s = np.array([0.4, -0.2, 0.1], float)  # “with” – “without”
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=s)
+
+    expected_bias = A.T @ (Cinv @ s)
+    expected_fisher = A.T @ Cinv @ A
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def model_quadratic(theta: np.ndarray) -> np.ndarray:
+    """A simple 2D→2D quadratic model for basic multi-parameter tests."""
+    t0, t1 = np.asarray(theta, float)
+    return np.array([t0**2, 2.0 * t0 * t1], float)
+
+
+def test_fisher_bias_quadratic_small_systematic():
+    """End-to-end test of Fisher bias against quadratic model with small systematic."""
+    theta0 = np.array([1.2, -0.7], float)
+    cov = np.diag([0.8, 1.1])
+    Cinv = np.diag(1.0 / np.diag(cov))
+
+    le = LikelihoodExpansion(model_quadratic, theta0, cov)
+
+    J = np.array([[2.0 * theta0[0], 0.0],
+                  [2.0 * theta0[1], 2.0 * theta0[0]]], float)
+
+    delta = np.array([0.03, -0.02], float)
+
+    expected_fisher = J.T @ Cinv @ J
+    expected_bias = J.T @ (Cinv @ delta)
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    fisher = le.get_forecast_tensors(forecast_order=1)
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+
+    np.testing.assert_allclose(fisher, expected_fisher, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def test_build_fisher_bias_raises_on_nans_in_delta():
+    """If delta_nu contains NaNs, build_fisher_bias should raise FloatingPointError."""
+    A = np.eye(2, dtype=float)
+    model = partial(_linear_model, A)
+    cov = np.eye(2, dtype=float)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    with pytest.raises(FloatingPointError, match="Non-finite values"):
+        le.build_fisher_bias(fisher_matrix=fisher, delta_nu=np.array([np.nan, 0.0]))

@@ -365,6 +365,7 @@ class LikelihoodExpansion:
         Raises:
           ValueError: If input shapes are inconsistent with the stored model, covariance,
             or the Fisher matrix dimensions.
+          FloatingPointError: If the difference vector contains NaNs.
         """
         fisher_matrix = np.asarray(fisher_matrix, dtype=float)
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
@@ -390,6 +391,9 @@ class LikelihoodExpansion:
             delta_nu = delta_nu.ravel(order="C")
         if delta_nu.ndim != 1 or delta_nu.size != n_obs:
             raise ValueError(f"delta_nu must have length n={n_obs}; got shape {delta_nu.shape}.")
+
+        if not np.isfinite(delta_nu).all():
+            raise FloatingPointError("Non-finite values found in delta_nu.")
 
         cinv_delta = solve_or_pinv(
             self.cov,
