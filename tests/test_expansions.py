@@ -511,6 +511,7 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
 
     expected_bias = design_matrix.T @ delta
 
+    # bias must match exactly (within FP tol)
     np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(fisher @ delta_theta, expected_bias, rtol=1e-10, atol=1e-12)
 
