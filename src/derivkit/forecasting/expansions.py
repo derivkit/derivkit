@@ -415,7 +415,7 @@ class LikelihoodExpansion:
         one with a systematic included and one without—and returning their difference as a
         1D array that matches the expected number of observables in this instance. It works
         with both 1D inputs and 2D arrays (for example, correlation × ell) and flattens 2D
-        arrays using the chosen memory order.
+        arrays using NumPy's row-major ("C") order, our standard convention throughout the package.
 
         We standardize on row-major (“C”) flattening of 2D arrays, where the last
         axis varies fastest. Ensure any data vectors and associated covariances are
