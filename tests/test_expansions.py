@@ -373,6 +373,7 @@ def test_build_delta_nu_validation_errors():
         le.build_delta_nu(np.array([1.0, 2.0]), np.array([1.0]))
 
     with pytest.raises(FloatingPointError):
+        # This should raise an exception because one of the data vectors contains a NaN.
         le.build_delta_nu(np.array([np.nan, 1.0]), np.array([0.0, 0.0]))
 
 
@@ -384,13 +385,12 @@ def _linear_model(design_matrix, theta):
 
 def test_build_delta_nu_1d_and_2d_row_major():
     """Test that build_delta_nu returns correct shapes and values."""
-    # 1D case (n_observables = 2)
+    # Test the case where theta0 is a 1D array
     cov_2 = np.eye(2)
+    theta0 = np.zeros(2)
+    model_2 = partial(_linear_model, np.eye(2))
 
-    def model_2(theta):
-        return np.asarray([theta[0], theta[1]], dtype=float)
-
-    le2 = LikelihoodExpansion(model_2, theta0=np.zeros(2), cov=cov_2)
+    le2 = LikelihoodExpansion(model_2, theta0=theta0, cov=cov_2)
 
     data_with = np.array([3.0, -1.0], dtype=float)
     data_without = np.array([2.5, -2.0], dtype=float)
@@ -398,11 +398,10 @@ def test_build_delta_nu_1d_and_2d_row_major():
     np.testing.assert_allclose(delta_1d, np.array([0.5, 1.0], dtype=float))
     assert delta_1d.shape == (le2.n_observables,)
 
-    # 2D case → flattened length 6 (n_observables = 6)
+    # Test the case where theta0 is a 2D array
     cov_6 = np.eye(6)
 
-    def model_6(theta):
-        return np.zeros(6, dtype=float)  # model output not used by build_delta_nu
+    model_6 = partial(_linear_model, np.zeros((6,6)))
 
     le6 = LikelihoodExpansion(model_6, theta0=np.zeros(1), cov=cov_6)
 
@@ -484,7 +483,7 @@ def test_fisher_bias_accepts_2d_delta_row_major_consistency():
     """Test that build_fisher_bias accepts 2D delta_nu and matches flattened 1D input."""
     design_matrix = np.array([[1.0, 2.0],
                               [0.5, -1.0]], float)
-    def model(theta): return design_matrix @ np.asarray(theta, float)
+    model = partial(_linear_model, design_matrix)
 
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
     fisher = le.get_forecast_tensors(forecast_order=1)
@@ -503,7 +502,7 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
     """Tests that the Fisher bias equation is satisfied for singular Fisher matrices."""
     design_matrix = np.array([[1.0, 1.0],
                               [1.0, 1.0]], float)  # rank-1
-    def model(theta): return design_matrix @ np.asarray(theta, float)
+    model = partial(_linear_model, design_matrix)
 
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
     fisher = le.get_forecast_tensors(forecast_order=1)
@@ -521,7 +520,7 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
     """Test that build_fisher_bias with singular covariance matches pinv baseline."""
     design_matrix = np.array([[1.0, 0.0],
                               [1.0, 0.0]], float)
-    def model(theta): return design_matrix @ np.asarray(theta, float)
+    model = partial(_linear_model, design_matrix)
 
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], float)  # rank-1
@@ -543,7 +542,7 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
 
 def test_fisher_bias_raises_on_wrong_shapes():
     """Test that build_fisher_bias raises on mismatched shapes."""
-    def model(theta): return np.asarray([theta[0], theta[1]], float)
+    model = partial(_linear_model, np.eye(2))
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
     fisher = np.eye(3)
     with pytest.raises(ValueError):
