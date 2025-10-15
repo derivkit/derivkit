@@ -554,3 +554,64 @@ def test_fisher_bias_raises_on_wrong_shapes():
     fisher_ok = np.eye(2)
     with pytest.raises(ValueError, match=r"delta_nu must have length n=2"):
         le.build_fisher_bias(fisher_matrix=fisher_ok, delta_nu=np.zeros(3))
+
+
+def test_fisher_bias_linear_ground_truth_end_to_end():
+    """End-to-end test of Fisher bias against linear-model analytic solution."""
+    # 4 observables, 3 parameters
+    A = np.array([[1.0, 2.0, 0.0],
+                  [0.0, 1.0, 1.0],
+                  [2.0, 0.0, 1.0],
+                  [-1.0, 0.5, 0.5]], float)
+    model = partial(_linear_model, A)
+
+    cov = np.diag([0.5, 1.2, 2.0, 0.8])
+    Cinv = np.diag(1.0 / np.diag(cov))
+
+    theta0 = np.zeros(3)
+    le = LikelihoodExpansion(model, theta0, cov)
+
+    # Two data vectors: "with systematics" = y + s, "without" = y
+    y = model(theta0)
+    s = np.array([0.3, -0.1, 0.05, 0.2], float)  # arbitrary systematic
+    d_with, d_without = y + s, y
+
+    delta = le.build_delta_nu(d_with, d_without)  # should equal s (row-major flatten)
+    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher_matrix, delta_nu=delta)
+
+    # analytic solution: b = A^T C^{-1} s ; Δθ = F^{+} b with F = A^T C^{-1} A
+    expected_bias = A.T @ (Cinv @ s)
+    expected_fisher = A.T @ Cinv @ A
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def test_fisher_bias_linear_full_cov_gls_formula():
+    """End-to-end test of Fisher bias against linear-model analytic solution with full cov."""
+    # 3 obervabless, 2 parameters
+    A = np.array([[1.0,  0.0],
+                  [2.0, -1.0],
+                  [0.5, 1.0]], float)
+    model = partial(_linear_model, A)
+
+    cov = np.array([[ 1.0,  0.2, -0.1],
+                  [ 0.2,  2.0,  0.3],
+                  [-0.1,  0.3,  1.5]], float)
+    Cinv = np.linalg.inv(cov)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    s = np.array([0.4, -0.2, 0.1], float)  # “with” – “without”
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=s)
+
+    expected_bias = A.T @ (Cinv @ s)
+    expected_fisher = A.T @ Cinv @ A
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
