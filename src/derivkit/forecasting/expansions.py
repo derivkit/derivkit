@@ -392,7 +392,6 @@ class LikelihoodExpansion:
         # Compute the bias vector
         bias_vec = j_matrix.T @ cinv_delta
 
-        # Compute the parameter shifts
         delta_theta = solve_or_pinv(
             fisher_matrix,
             bias_vec,
