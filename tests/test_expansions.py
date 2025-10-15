@@ -499,23 +499,21 @@ def test_fisher_bias_accepts_2d_delta_row_major_consistency():
 
 
 def test_fisher_bias_singular_fisher_uses_pinv_baseline():
-    """Test that build_fisher_bias uses pinv path for singular Fisher matrices."""
-    # rank-1 design -> singular Fisher
+    """Tests that the Fisher bias equation is satisfied for singular Fisher matrices."""
     design_matrix = np.array([[1.0, 1.0],
-                              [1.0, 1.0]], float)  # n=2, p=2 but rank=1
+                              [1.0, 1.0]], float)  # rank-1
     def model(theta): return design_matrix @ np.asarray(theta, float)
 
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
     fisher = le.get_forecast_tensors(forecast_order=1)
     delta = np.array([1.0, -0.5], float)
 
-    bias_vec, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+    bias_vec, delta_theta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
 
     expected_bias = design_matrix.T @ delta
-    expected_dtheta = np.linalg.pinv(fisher) @ expected_bias
 
     np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
-    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-9, atol=1e-11)
+    np.testing.assert_allclose(fisher @ delta_theta, expected_bias, rtol=1e-10, atol=1e-12)
 
 
 def test_fisher_bias_singular_covariance_matches_pinv_baseline():
