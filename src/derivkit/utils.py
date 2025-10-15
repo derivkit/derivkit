@@ -204,7 +204,7 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
     """Solve ``system_matrix @ x = rhs`` with pseudoinverse fallback.
 
     If ``assume_symmetric`` is True (e.g., Fisher matrices), attempt a
-    Cholesky-based solve. On failure (not SPD / singular), warn and fall
+    Cholesky-based solve. On failure (not symmetric positive definite (SPD) / singular), warn and fall
     back to ``pinv(system_matrix, rcond) @ rhs``.
 
     Args:
