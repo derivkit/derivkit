@@ -341,6 +341,8 @@ class LikelihoodExpansion:
           delta_nu: Difference between two data vectors (for example, with and without
             a systematic). Accepts a 1D array of length n or a 2D array that will be
             flattened in row-major order to length n, where n is the number of observables.
+            If supplied as a 1D array, it must already follow the same row-major (“C”)
+            flattening convention used throughout the package.
           n_workers: Number of workers used by the internal derivative routine when
             forming the Jacobian.
           rcond: Cutoff used by pseudoinverse fallbacks when a linear solve is ill-posed.
@@ -372,7 +374,7 @@ class LikelihoodExpansion:
                 f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = {(n_params, n_params)} from the Jacobian."
             )
 
-        # delta_nu → 1D length n
+        # Make delta_nu a 1D array of length n; 2D inputs are flattened in row-major ("C") order.
         delta_nu = np.asarray(delta_nu, dtype=float)
         if delta_nu.ndim == 2:
             delta_nu = delta_nu.ravel(order="C")
