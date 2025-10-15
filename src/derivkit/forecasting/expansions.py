@@ -409,13 +409,13 @@ class LikelihoodExpansion:
             *,
             dtype: type = float,
     ) -> np.ndarray:
-        """Compute the difference between two data vectors for use in Fisher-bias estimates.
+        """Compute the difference between two data vectors. for use in Fisher-bias estimates.
 
-        This function takes two data vectors—typically one with a systematic included
-        and one without—and returns their difference as a 1D array that matches the
-        expected number of observables in this instance. It works with both 1D inputs
-        and 2D arrays (for example, correlation × ell) and flattens 2D arrays using the
-        chosen memory order.
+        This function is typically used for Fisher-bias estimates, taking two data vectors—
+        one with a systematic included and one without—and returning their difference as a
+        1D array that matches the expected number of observables in this instance. It works
+        with both 1D inputs and 2D arrays (for example, correlation × ell) and flattens 2D
+        arrays using the chosen memory order.
 
         We standardize on row-major (“C”) flattening of 2D arrays, where the last
         axis varies fastest. Ensure any data vectors and associated covariances are
