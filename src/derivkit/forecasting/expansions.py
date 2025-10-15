@@ -320,8 +320,8 @@ class LikelihoodExpansion:
     def build_fisher_bias(
             self,
             *,
-            fisher_matrix: np.ndarray,
-            delta_nu: np.ndarray,
+            fisher_matrix: np.ndarray | None = None,
+            delta_nu: np.ndarray | None = None,
             n_workers: int = 1,
             rcond: float = 1e-12,
     ) -> tuple[np.ndarray, np.ndarray]:
@@ -340,17 +340,17 @@ class LikelihoodExpansion:
             Its shape must be (p, p), where p is the number of parameters.
           delta_nu: Difference between two data vectors (for example, with and without
             a systematic). Accepts a 1D array of length n or a 2D array that will be
-            flattened in row-major order to length n, where n is the number of observables.
+            flattened in row-major order (“C”) to length n, where n is the number of observables.
             If supplied as a 1D array, it must already follow the same row-major (“C”)
             flattening convention used throughout the package.
           n_workers: Number of workers used by the internal derivative routine when
             forming the Jacobian.
-          rcond: Cutoff used by pseudoinverse fallbacks when a linear solve is ill-posed.
+          rcond: Regularization cutoff for pseudoinverse.
 
         Returns:
-          A tuple ``(bias_vec, delta_theta)``:
-            - bias_vec: One-dimensional array of length p containing the bias vector.
-            - delta_theta: One-dimensional array of length p with the estimated parameter shifts.
+          A tuple ``(bias_vec, delta_theta)`` where both entries are 1D arrays of length ``p``:
+            - bias_vec: parameter-space bias vector.
+            - delta_theta: estimated parameter shifts.
 
         Raises:
           ValueError: If input shapes are inconsistent with the stored model, covariance,
