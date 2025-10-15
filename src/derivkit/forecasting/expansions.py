@@ -381,7 +381,6 @@ class LikelihoodExpansion:
         if delta_nu.ndim != 1 or delta_nu.size != n_obs:
             raise ValueError(f"delta_nu must have length n={n_obs}; got shape {delta_nu.shape}.")
 
-        #  Invert the covariance matrix
         cinv_delta = solve_or_pinv(
             self.cov,
             delta_nu,
