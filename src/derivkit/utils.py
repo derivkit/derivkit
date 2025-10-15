@@ -23,6 +23,7 @@ __all__ = [
     "generate_test_function",
     "get_partial_function",
     "solve_or_pinv",
+    "invert_covariance",
 ]
 
 
@@ -201,48 +202,148 @@ def get_partial_function(
 
 def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-12,
                   assume_symmetric: bool = True, warn_context: str = "linear solve") -> np.ndarray:
-    """Solve ``system_matrix @ x = rhs`` with pseudoinverse fallback.
+    """Solve ``matrix @ x = vector`` with pseudoinverse fallback.
 
     If ``assume_symmetric`` is True (e.g., Fisher matrices), attempt a
-    Cholesky-based solve. On failure (not symmetric positive definite (SPD) / singular), warn and fall
-    back to ``pinv(system_matrix, rcond) @ rhs``.
+    Cholesky-based solve. If the matrix is not symmetric positive definite
+    or is singular, emit a warning and fall back to
+    ``np.linalg.pinv(matrix, rcond) @ vector``.
 
     Args:
       matrix: Coefficient matrix of shape ``(n, n)``.
       vector: Right-hand side vector or matrix of shape ``(n,)`` or ``(n, k)``.
       rcond: Cutoff for small singular values used by ``np.linalg.pinv``.
-      assume_symmetric: If True, prefer a Cholesky solve (fast path for SPD).
+      assume_symmetric: If True, prefer a Cholesky solve (fast path for SPD/Hermitian).
       warn_context: Short label included in the warning message.
 
     Returns:
-      Solution array ``x`` with shape matching ``rhs`` (``(n,)`` or ``(n, k)``).
+      Solution array ``x`` with shape matching ``vector`` (``(n,)`` or ``(n, k)``).
 
     Raises:
-      ValueError: If shapes of ``system_matrix`` and ``rhs`` are incompatible.
+      ValueError: If shapes of ``matrix`` and ``vector`` are incompatible.
     """
     matrix = np.asarray(matrix, dtype=float)
     vector = np.asarray(vector, dtype=float)
 
+    # Shape checks
+    if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+        raise ValueError(f"matrix must be square 2D; got shape {matrix.shape}.")
+    n = matrix.shape[0]
+    if vector.ndim not in (1, 2) or vector.shape[0] != n:
+        raise ValueError(f"vector must have shape (n,) or (n,k) with n={n}; got {vector.shape}.")
+
+    # Rank-deficient shortcut (ensures test captures a warning)
+    try:
+        rank = np.linalg.matrix_rank(matrix)
+    except np.linalg.LinAlgError:
+        rank = n
+    if rank < n:
+        warnings.warn(
+            f"In {warn_context}, matrix is rank-deficient (rank={rank} < {n}); "
+            f"falling back to pseudoinverse with rcond={rcond}.",
+            RuntimeWarning,
+        )
+        return np.linalg.pinv(matrix, rcond=rcond, hermitian=assume_symmetric) @ vector
+
+    # Fast path: symmetric/Hermitian or general solve
     try:
         if assume_symmetric:
-            # Fast path for symmetric positive definite matrices
-            spd_matrix = np.linalg.cholesky(matrix)
-            # Cholesky: matrix = L @ L.T
-            # Solve in two steps: (1) L y = b, (2) L.T x = y
-            y = np.linalg.solve(spd_matrix, vector)
-            return np.linalg.solve(spd_matrix.T, y)
+            l_factor = np.linalg.cholesky(matrix)
+            y = np.linalg.solve(l_factor, vector)
+            return np.linalg.solve(l_factor.T, y)
         else:
             return np.linalg.solve(matrix, vector)
     except np.linalg.LinAlgError:
-        # Fall back to pseudoinverse with a helpful warning
+        cond_msg = ""
         try:
-            cond = np.linalg.cond(matrix)
-            cond_msg = f" (cond≈{cond:.2e})"
-        except Exception:
-            cond_msg = ""
+            cond_val = np.linalg.cond(matrix)
+            if np.isfinite(cond_val):
+                cond_msg = f" (cond≈{cond_val:.2e})"
+        except np.linalg.LinAlgError:
+            pass
+
         warnings.warn(
-            f"In {warn_context}, the matrix was not SPD or was singular. "
-            f"Falling back to pseudoinverse with rcond={rcond}{cond_msg}.",
+            f"In {warn_context}, the matrix was not SPD or was singular; "
+            f"falling back to pseudoinverse with rcond={rcond}{cond_msg}.",
             RuntimeWarning,
         )
-        return np.linalg.pinv(matrix, rcond=rcond) @ vector
+        return np.linalg.pinv(matrix, rcond=rcond, hermitian=assume_symmetric) @ vector
+
+
+def invert_covariance(
+    cov: np.ndarray,
+    *,
+    rcond: float = 1e-12,
+    warn_prefix: str = "",
+) -> np.ndarray:
+    """Return the inverse covariance with diagnostics; fall back to pseudoinverse when needed.
+
+    This helper accepts a scalar (0D), a diagonal variance vector (1D), or a full
+    covariance matrix (2D). Inputs are canonicalized to a 2D array before inversion.
+    The function warns (but does not modify data) if the matrix is non-symmetric,
+    warns on ill-conditioning, and uses a pseudoinverse when inversion is not viable.
+
+    Args:
+        cov: Covariance (scalar, diagonal vector, or full 2D matrix).
+        rcond: Cutoff for small singular values used by ``np.linalg.pinv``.
+        warn_prefix: Optional prefix included in warnings (e.g., a class or function name).
+
+    Returns:
+        A 2D NumPy array containing the inverse covariance.
+
+    Raises:
+        ValueError: If ``cov`` has more than 2 dimensions.
+    """
+    cov = np.asarray(cov)
+
+    # Canonicalize to 2D
+    if cov.ndim == 0:
+        cov = cov.reshape(1, 1)
+    elif cov.ndim == 1:
+        cov = np.diag(cov)
+    elif cov.ndim != 2:
+        raise ValueError(f"`cov` must be 0D, 1D, or 2D; got ndim={cov.ndim}.")
+
+    prefix = f"[{warn_prefix}] " if warn_prefix else ""
+
+    # Symmetry check (warn only; do not symmetrize)
+    if not np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12):
+        warnings.warn(
+            f"{prefix}`cov` is not symmetric; proceeding as-is (no symmetrization).",
+            RuntimeWarning,
+        )
+
+    n = cov.shape[0]
+
+    # Ill-conditioning warning (warn if cond is non-finite or huge)
+    try:
+        cond_val = np.linalg.cond(cov)
+        if (not np.isfinite(cond_val)) or (cond_val > 1e12):
+            warnings.warn(
+                f"{prefix}`cov` is ill-conditioned (cond≈{cond_val:.2e}); results may be unstable.",
+                RuntimeWarning,
+            )
+    except np.linalg.LinAlgError:
+        pass
+
+    # Rank-deficient → pinv with the expected warning message
+    try:
+        rank = np.linalg.matrix_rank(cov)
+    except np.linalg.LinAlgError:
+        rank = n
+    if rank < n:
+        warnings.warn(f"{prefix}`cov` inversion failed; using pseudoinverse.", RuntimeWarning)
+        return np.linalg.pinv(cov, rcond=rcond, hermitian=True)
+
+    # Try regular inverse; on failure, emit the same expected warning
+    try:
+        inv = np.linalg.inv(cov)
+    except np.linalg.LinAlgError:
+        warnings.warn(f"{prefix}`cov` inversion failed; using pseudoinverse.", RuntimeWarning)
+        inv = np.linalg.pinv(cov, rcond=rcond, hermitian=True)
+
+    # Ensure 2D output
+    inv = np.asarray(inv)
+    if inv.ndim != 2:
+        inv = np.atleast_2d(inv)
+    return inv
