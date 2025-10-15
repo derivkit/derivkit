@@ -47,3 +47,29 @@ class ForecastKit:
         Shapes are (P,P,P) and (P,P,P,P), where P is the number of model parameters.
         """
         return self._lx.get_forecast_tensors(forecast_order=2, n_workers=n_workers)
+
+    def fisher_bias(self,
+                    *,
+                    fisher_matrix: np.ndarray = None,
+                    delta_nu: np.ndarray = None,
+                    n_workers: int = 1,
+                    rcond: float = 1e-12
+                    ):
+        """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
+        return self._lx.build_fisher_bias(
+            fisher_matrix=fisher_matrix,
+            delta_nu=delta_nu,
+            n_workers=n_workers,
+            rcond=rcond
+        )
+
+    def delta_nu(self,
+                 data_with: np.ndarray,
+                 data_without: np.ndarray,
+                 ):
+        """Return the delta_nu vector with shape (N,) with N being the number of observables."""
+        return self._lx.compute_delta_nu(
+            data_with=data_with,
+            data_without=data_without
+        )
+
