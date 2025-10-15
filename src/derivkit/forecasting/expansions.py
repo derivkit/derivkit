@@ -10,6 +10,7 @@ More details about available options can be found in the documentation of
 the methods.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from typing import Callable, Tuple, Union
 
@@ -99,8 +100,9 @@ class LikelihoodExpansion:
                     - D = 3 would be the triplet-DALI approximation.
 
                 Currently only D = 1, 2 are supported.
-            n_workers: Number of worker to use in multiprocessing.
-                Default is 1 (no multiprocessing).
+            n_workers: Number of workers for per-parameter parallelization/threads.
+                Default 1 (serial). Inner batch evaluation is kept serial to avoid
+                nested pools.
 
         Returns:
             If ``D = 1``: Fisher matrix of shape ``(P, P)``.
@@ -110,7 +112,7 @@ class LikelihoodExpansion:
             ValueError: If `forecast_order` is not 1 or 2.
 
         Warns:
-            RuntimeWarning: If `cov` is not symmetric (proceeding as-is),
+            RuntimeWarning: If `cov` is not symmetric (proceeds as-is, no symmetrization),
                 is ill-conditioned (large condition number), or inversion
                 falls back to the pseudoinverse.
         """
@@ -150,8 +152,8 @@ class LikelihoodExpansion:
 
                 Currently only d = 1, 2 are supported.
 
-            n_workers (int, optional): Number of worker to use in
-                multiprocessing. Default is 1 (no multiprocessing).
+            n_workers (int, optional): Number of workers for per-parameter parallelization
+             (threads). Default 1 (serial).
 
         Returns:
             :class:`np.ndarray`: An array of derivative values:
@@ -174,69 +176,54 @@ class LikelihoodExpansion:
                 "Only first- and second-order derivatives are currently supported."
             )
 
+        n_workers = self._normalize_workers(n_workers)
+        inner_workers = 1 if n_workers > 1 else 1  # keep inner serial; safest
+
         if order == 1:
-            # Get the first-order derivatives
             first_order_derivatives = np.zeros(
                 (self.n_parameters, self.n_observables), dtype=float
             )
-            for m in range(self.n_parameters):
-                # 1 parameter to differentiate, and n_parameters-1 parameters to hold fixed
+
+            def compute_m(m: int) -> np.ndarray:
                 theta0_x = deepcopy(self.theta0)
-                function_to_diff = get_partial_function(
-                    self.function, m, theta0_x
-                )
-                kit = DerivativeKit(function_to_diff, self.theta0[m])
-                first_order_derivatives[m] = kit.adaptive.differentiate(
-                    order=1, n_workers=n_workers
-                )
+                f_to_diff = get_partial_function(self.function, m, theta0_x)
+                kit = DerivativeKit(f_to_diff, self.theta0[m])
+                # still pass n_workers through to adaptive (it can batch-eval)
+                return kit.adaptive.differentiate(order=1, n_workers=inner_workers)
+
+            results = self._map_threads(compute_m, range(self.n_parameters), n_workers)
+            for m, val in enumerate(results):
+                first_order_derivatives[m] = val
             return first_order_derivatives
 
         elif order == 2:
-            # Get the second-order derivatives
             second_order_derivatives = np.zeros(
-                (self.n_parameters, self.n_parameters, self.n_observables),
-                dtype=float,
+                (self.n_parameters, self.n_parameters, self.n_observables), dtype=float
             )
 
-            for m1 in range(self.n_parameters):
+            def compute_row(m1: int) -> tuple[int, np.ndarray]:
+                row = np.zeros((self.n_parameters, self.n_observables), dtype=float)
                 for m2 in range(self.n_parameters):
                     if m1 == m2:
-                        # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
                         theta0_x = deepcopy(self.theta0)
-                        function_to_diff1 = get_partial_function(
-                            self.function, m1, theta0_x
-                        )
-                        kit1 = DerivativeKit(
-                            function_to_diff1, self.theta0[m1]
-                        )
-                        second_order_derivatives[m1][m2] = (
-                            kit1.adaptive.differentiate(
-                                order=2, n_workers=n_workers
-                            )
-                        )
-
+                        f1 = get_partial_function(self.function, m1, theta0_x)
+                        kit1 = DerivativeKit(f1, self.theta0[m1])
+                        row[m2] = kit1.adaptive.differentiate(order=2, n_workers=inner_workers)
                     else:
-                        # 2 parameters to differentiate once, with other parameters held fixed
-                        def function_to_diff2(y):
+                        def f2(y):
                             theta0_y = deepcopy(self.theta0)
                             theta0_y[m2] = y
-                            function_to_diff1 = get_partial_function(
-                                self.function, m1, theta0_y
-                            )
-                            kit1 = DerivativeKit(
-                                function_to_diff1, self.theta0[m1]
-                            )
-                            return kit1.adaptive.differentiate(order=1)
+                            f1_inner = get_partial_function(self.function, m1, theta0_y)
+                            kit1_inner = DerivativeKit(f1_inner, self.theta0[m1])
+                            return kit1_inner.adaptive.differentiate(order=1)
 
-                        kit2 = DerivativeKit(
-                            function_to_diff2, self.theta0[m2]
-                        )
-                        second_order_derivatives[m1][m2] = (
-                            kit2.adaptive.differentiate(
-                                order=1, n_workers=n_workers
-                            )
-                        )
+                        kit2 = DerivativeKit(f2, self.theta0[m2])
+                        row[m2] = kit2.adaptive.differentiate(order=1, n_workers=inner_workers)
+                return m1, row
 
+            rows = self._map_threads(compute_row, range(self.n_parameters), n_workers)
+            for m1, row in rows:
+                second_order_derivatives[m1, :, :] = row
             return second_order_derivatives
 
         raise RuntimeError("Unreachable code reached in get_forecast_tensors.")
@@ -436,3 +423,42 @@ class LikelihoodExpansion:
             raise FloatingPointError("Non-finite values found in delta vector.")
 
         return delta_nu
+
+    def _map_threads(self, fn, tasks, n_workers):
+        """Map a function over tasks using threads.
+
+        Args:
+            fn: Function to apply to each task.
+            tasks: Iterable of tasks to process.
+            n_workers: Number of worker threads to use.
+
+        Returns:
+            List of results from applying fn to each task.
+
+        Raises:
+            None: Invalid n_workers values are coerced to 1.
+        """
+        n_workers = self._normalize_workers(n_workers)
+        if n_workers <= 1:
+            return [fn(t) for t in tasks]
+        with ThreadPoolExecutor(max_workers=n_workers) as ex:
+            futs = [ex.submit(fn, t) for t in tasks]
+            return [f.result() for f in futs]
+
+    def _normalize_workers(self, n_workers):
+        """Ensure n_workers is a positive integer, defaulting to 1.
+
+        Args:
+            n_workers: Input number of workers (can be None, float, negative, etc.)
+
+        Returns:
+            int: A positive integer number of workers (at least 1).
+
+        Raises:
+            None: Invalid inputs are coerced to 1.
+        """
+        try:
+            n = int(n_workers)
+        except (TypeError, ValueError):
+            n = 1
+        return 1 if n < 1 else n
