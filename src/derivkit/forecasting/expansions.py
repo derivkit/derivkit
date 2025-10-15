@@ -360,7 +360,7 @@ class LikelihoodExpansion:
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-        # Jacobian has shape (n, p)
+        # Jacobian matrix has shape (n, p)
         j_matrix = jacobian(self.function, self.theta0, n_workers=n_workers)
         n_obs, n_params = j_matrix.shape
 
