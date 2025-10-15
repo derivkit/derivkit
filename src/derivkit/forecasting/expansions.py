@@ -10,7 +10,6 @@ More details about available options can be found in the documentation of
 the methods.
 """
 
-import warnings
 from copy import deepcopy
 from typing import Callable, Tuple, Union
 
@@ -19,7 +18,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.forecasting.calculus import jacobian
-from derivkit.utils import get_partial_function, solve_or_pinv
+from derivkit.utils import (
+    get_partial_function,
+    invert_covariance,
+    solve_or_pinv,
+)
 
 
 class LikelihoodExpansion:
@@ -125,7 +128,7 @@ class LikelihoodExpansion:
             )
 
         # Compute inverse covariance matrix
-        invcov = self._inv_cov()
+        invcov = invert_covariance(self.cov, warn_prefix=self.__class__.__name__)
         # Compute first-order derivatives
         d1 = self._get_derivatives(order=1, n_workers=n_workers)
 
@@ -237,48 +240,6 @@ class LikelihoodExpansion:
             return second_order_derivatives
 
         raise RuntimeError("Unreachable code reached in get_forecast_tensors.")
-
-    def _inv_cov(self):
-        """Return the inverse covariance matrix with minimal diagnostics.
-
-        Warns:
-            RuntimeWarning: If cov is non-symmetric (checked via allclose),
-                ill-conditioned (cond > 1e12), or if inversion falls back to pinv.
-
-        Returns:
-            np.ndarray: Inverse covariance matrix, shape (n_observables, n_observables).
-        """
-        cov = self.cov
-
-        # warn only; do not symmetrize, to match historical fixture values
-        classname = self.__class__.__name__
-        if not np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12):
-            warnings.warn(
-                f"[{classname}] `cov` is not symmetric; proceeding as-is (no symmetrization).",
-                RuntimeWarning,
-            )
-
-        # condition number warning (helps debug instability)
-        try:
-            cond = np.linalg.cond(cov)
-            if cond > 1e12:
-                warnings.warn(
-                    f"[{classname}] `cov` is ill-conditioned (cond≈{cond:.2e}); "
-                    "results may be unstable.",
-                    RuntimeWarning,
-                )
-        except Exception:
-            pass  # if cond() fails, just skip
-
-        # invert with pinv fallback
-        try:
-            return np.linalg.inv(cov)
-        except np.linalg.LinAlgError:
-            warnings.warn(
-                f"[{classname}] `cov` inversion failed; using pseudoinverse.",
-                RuntimeWarning,
-            )
-            return np.linalg.pinv(cov, rcond=1e-12, hermitian=False)
 
     def _build_fisher(self, d1, invcov):
         """Assemble the Fisher information matrix F from first derivatives.

@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
+from derivkit.utils import invert_covariance
 
 
 def test_derivative_order():
@@ -334,8 +335,7 @@ def test_le_init_public_attrs_contract():
 def test_inv_cov_behaves_like_inverse():
     """Test that _inv_cov() returns a matrix behaving like the inverse."""
     cov = np.array([[2.0, 0.0], [0.0, 0.5]])
-    like = LikelihoodExpansion(lambda x: x, np.array([0.0, 0.0]), cov)
-    inv = like._inv_cov()
+    inv = invert_covariance(cov, rcond=1e-12)
     np.testing.assert_allclose(inv @ cov, np.eye(2), atol=1e-12)
     np.testing.assert_allclose(cov @ inv, np.eye(2), atol=1e-12)
 
