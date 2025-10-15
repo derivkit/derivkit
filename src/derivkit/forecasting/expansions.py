@@ -428,8 +428,8 @@ class LikelihoodExpansion:
         arrays using NumPy's row-major ("C") order, our standard convention throughout the package.
 
         We standardize on row-major (“C”) flattening of 2D arrays, where the last
-        axis varies fastest. Ensure any data vectors and associated covariances are
-        constructed with the same convention for consistent results.
+        axis varies fastest. The user must ensure that any data vectors and associated covariances
+        are constructed with the same convention for consistent results.
 
         Args:
           data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
