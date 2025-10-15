@@ -488,7 +488,7 @@ def test_fisher_bias_accepts_2d_delta_row_major_consistency():
     le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
     fisher = le.get_forecast_tensors(forecast_order=1)
 
-    delta_2d = np.array([[1.0, -0.5]], float)  # (1,2) -> flatten to (2,)
+    delta_2d = np.array([[1.0, -0.5]], float)
     bias_a, dtheta_a = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_2d)
 
     delta_1d = le.build_delta_nu(delta_2d, np.zeros_like(delta_2d)).ravel(order="C")
