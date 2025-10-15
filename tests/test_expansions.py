@@ -646,3 +646,16 @@ def test_fisher_bias_quadratic_small_systematic():
     np.testing.assert_allclose(fisher, expected_fisher, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def test_build_fisher_bias_raises_on_nans_in_delta():
+    """If delta_nu contains NaNs, build_fisher_bias should raise FloatingPointError."""
+    A = np.eye(2, dtype=float)
+    model = partial(_linear_model, A)
+    cov = np.eye(2, dtype=float)
+
+    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
+    fisher = le.get_forecast_tensors(forecast_order=1)
+
+    with pytest.raises(FloatingPointError, match="Non-finite values"):
+        le.build_fisher_bias(fisher_matrix=fisher, delta_nu=np.array([np.nan, 0.0]))
