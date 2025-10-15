@@ -131,14 +131,14 @@ def _jacobian_component(
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
-def build_hessian(function, theta0, n_workers=1):
+def build_hessian(function: Callable, theta0: np.ndarray, n_workers: int=1):
     """Returns the hessian of a scalar-valued function.
 
     Args:
-        function (Callable): The function to be differentiated.
-        theta0  (array-like): The parameter vector at which the hessian is evaluated.
-        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
-                        This setting does not parallelize across parameters.
+        function: The function to be differentiated.
+        theta0: The parameter vector at which the hessian is evaluated.
+        n_workers: Number of workers used by DerivativeKit.adaptive.differentiate.
+            This setting does not parallelize across parameters.
 
     Returns:
         (``np.array``): 2D array representing the hessian.
