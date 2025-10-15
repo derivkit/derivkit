@@ -12,9 +12,10 @@ the methods.
 
 import warnings
 from copy import deepcopy
+from typing import Callable, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.forecasting.calculus import jacobian
@@ -25,37 +26,41 @@ class LikelihoodExpansion:
     """Provides tools for facilitating experimental forecasts.
 
     Attributes:
-         function (callable): The scalar or vector-valued function to
+         function: The scalar or vector-valued function to
              differentiate. It should accept a list or array of parameter
              values as input and return either a scalar or a
              :class:`np.ndarray` of observable values.
-         theta0 (class:`np.ndarray`): The point(s) at which the
+         theta0: The point(s) at which the
              derivative is evaluated. A 1D array or list of parameter values
              matching the expected input of the function.
-         cov (class:`np.ndarray`): The covariance matrix of
+         cov: The covariance matrix of
              the observables. Should be a square matrix with shape
              (n_observables, n_observables), where n_observables is the
              number of observables returned by the function.
-         n_parameters (int): The number of elements of `theta0`.
-         n_observables (int): The number of cosmic observables. Determined
+         n_parameters: The number of elements of `theta0`.
+         n_observables: The number of cosmic observables. Determined
              from the dimension of `cov`.
     """
 
-    def __init__(self, function, theta0, cov):
+    def __init__(
+            self,
+            function: Callable[[ArrayLike], float | NDArray[np.floating]],
+            theta0: ArrayLike,
+            cov: ArrayLike,
+    ) -> None:
         """Initialises the class.
 
         Args:
-            function (callable): The scalar or vector-valued function to
+            function: The scalar or vector-valued function to
                 differentiate. It should accept a list or array of parameter
                 values as input and return either a scalar or a
                 :class:`np.ndarray` of observable values.
-            theta0 (class:`np.ndarray`): The points at which the
+            theta0: The points at which the
                 derivative is evaluated. A 1D array or list of parameter values
                 matching the expected input of the function.
-            cov (class:`np.ndarray`): The covariance matrix of
-                the observables. Should be a square matrix with shape
-                (n_observables, n_observables), where n_observables is the
-                number of observables returned by the function.
+            cov: The covariance matrix of the observables. Should be a square
+                matrix with shape (n_observables, n_observables), where n_observables
+                is the number of observables returned by the function.
 
         Raises:
             ValueError: raised if cov is not a square numpy array.
@@ -75,11 +80,15 @@ class LikelihoodExpansion:
         self.n_parameters = self.theta0.shape[0]
         self.n_observables = self.cov.shape[0]
 
-    def get_forecast_tensors(self, forecast_order=1, n_workers=1):
+    def get_forecast_tensors(
+            self,
+            forecast_order: int = 1,
+            n_workers: int = 1,
+    ) -> Union[NDArray[np.float64], Tuple[NDArray[np.float64], NDArray[np.float64]]]:
         """Returns a set of tensors according to the requested order of the forecast.
 
         Args:
-            forecast_order (int): The requested order D of the forecast:
+            forecast_order: The requested order D of the forecast:
 
                     - D = 1 returns a Fisher matrix.
                     - D = 2 returns the 3-d and 4-d tensors required for the
@@ -87,26 +96,18 @@ class LikelihoodExpansion:
                     - D = 3 would be the triplet-DALI approximation.
 
                 Currently only D = 1, 2 are supported.
-            n_workers (int, optional): Number of worker to use in multiprocessing.
+            n_workers: Number of worker to use in multiprocessing.
                 Default is 1 (no multiprocessing).
 
         Returns:
-            :class:`np.ndarray`: A list of numpy arrays:
-
-                    - D = 1 returns a square matrix of size n_parameters, where
-                      n_parameters is the number of parameters included in the
-                      forecast.
-                    - D = 2 returns one array of shapes
-                      (n_parameters, n_parameters, n_parameters) and one array
-                      of shape (n_parameters, n_parameters, n_parameters, n_parameters),
-                      where n_parameters is the number of parameters included
-                      in the forecast.
+            If ``D = 1``: Fisher matrix of shape ``(P, P)``.
+            If ``D = 2``: tuple ``(G, H)`` with shapes ``(P, P, P)`` and ``(P, P, P, P)``.
 
         Raises:
             ValueError: If `forecast_order` is not 1 or 2.
 
         Warns:
-            RuntimeWarning: If `cov` is not symmetric (it is symmetrized),
+            RuntimeWarning: If `cov` is not symmetric (proceeding as-is),
                 is ill-conditioned (large condition number), or inversion
                 falls back to the pseudoinverse.
         """
@@ -297,20 +298,29 @@ class LikelihoodExpansion:
         # F_ab = Σ_ij d1[a,i] invcov[i,j] d1[b,j]
         return np.einsum("ai,ij,bj->ab", d1, invcov, d1)
 
-    def _build_dali(self, d1, d2, invcov):
-        """Assemble the doublet-DALI tensors (G, H) from first/second derivatives.
+    def _build_dali(
+            self,
+            d1: NDArray[np.float64],
+            d2: NDArray[np.float64],
+            invcov: NDArray[np.float64],
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Assemble the doublet-DALI tensors (G, H) from first- and second-order derivatives.
 
         Computes:
             G_abc = Σ_{i,j} d2[a,b,i] · invcov[i,j] · d1[c,j]
             H_abcd = Σ_{i,j} d2[a,b,i] · invcov[i,j] · d2[c,d,j]
 
         Args:
-            d1 (np.ndarray): First-order derivatives d(obs)/dθ, shape (P, N).
-            d2 (np.ndarray): Second-order derivatives d²(obs)/dθ², shape (P, P, N).
-            invcov (np.ndarray): Inverse covariance of observables, shape (N, N).
+            d1: First-order derivatives of the observables with respect to parameters,
+                shape (P, N).
+            d2: Second-order derivatives of the observables with respect to parameters,
+                shape (P, P, N).
+            invcov: Inverse covariance matrix of the observables, shape (N, N).
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: G with shape (P, P, P) and H with shape (P, P, P, P).
+            A tuple ``(G, H)`` where:
+                - G has shape (P, P, P)
+                - H has shape (P, P, P, P)
         """
         # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
         g_tensor = np.einsum("abi,ij,cj->abc", d2, invcov, d1)
@@ -409,7 +419,7 @@ class LikelihoodExpansion:
             *,
             dtype: type | np.dtype = float,
     ) -> NDArray[np.floating]:
-        """Compute the difference between two data vectors. for use in Fisher-bias estimates.
+        """Compute the difference between two data vectors.
 
         This function is typically used for Fisher-bias estimates, taking two data vectors—
         one with a systematic included and one without—and returning their difference as a
