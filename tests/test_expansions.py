@@ -369,6 +369,7 @@ def test_build_delta_nu_validation_errors():
     le = LikelihoodExpansion(linear_model, theta0=np.zeros(2), cov=cov)
 
     with pytest.raises(ValueError):
+        # This should raise an exception because the two data vectors are of incompatible length
         le.build_delta_nu(np.array([1.0, 2.0]), np.array([1.0]))
 
     with pytest.raises(FloatingPointError):
