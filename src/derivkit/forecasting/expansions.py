@@ -364,7 +364,7 @@ class LikelihoodExpansion:
         j_matrix = jacobian(self.function, self.theta0, n_workers=n_workers)
         n_obs, n_params = j_matrix.shape
 
-        # Check C and F shapes against J
+        # Check shapes of the covariance and Fisher matrices against the Jacobian
         if self.cov.shape != (n_obs, n_obs):
             raise ValueError(
                 f"covariance shape {self.cov.shape} must be (n, n) = {(n_obs, n_obs)} from the Jacobian."
