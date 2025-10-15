@@ -615,3 +615,34 @@ def test_fisher_bias_linear_full_cov_gls_formula():
 
     np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
+
+
+def model_quadratic(theta: np.ndarray) -> np.ndarray:
+    """A simple 2D→2D quadratic model for basic multi-parameter tests."""
+    t0, t1 = np.asarray(theta, float)
+    return np.array([t0**2, 2.0 * t0 * t1], float)
+
+
+def test_fisher_bias_quadratic_small_systematic():
+    """End-to-end test of Fisher bias against quadratic model with small systematic."""
+    theta0 = np.array([1.2, -0.7], float)
+    cov = np.diag([0.8, 1.1])
+    Cinv = np.diag(1.0 / np.diag(cov))
+
+    le = LikelihoodExpansion(model_quadratic, theta0, cov)
+
+    J = np.array([[2.0 * theta0[0], 0.0],
+                  [2.0 * theta0[1], 2.0 * theta0[0]]], float)
+
+    delta = np.array([0.03, -0.02], float)
+
+    expected_fisher = J.T @ Cinv @ J
+    expected_bias = J.T @ (Cinv @ delta)
+    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
+
+    fisher = le.get_forecast_tensors(forecast_order=1)
+    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+
+    np.testing.assert_allclose(fisher, expected_fisher, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
