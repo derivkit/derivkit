@@ -12,7 +12,6 @@ the methods.
 
 import warnings
 from copy import deepcopy
-from typing import Dict
 
 import numpy as np
 
@@ -321,121 +320,141 @@ class LikelihoodExpansion:
     def build_fisher_bias(
             self,
             *,
-            delta: np.ndarray | None = None,
-            datavec_with: np.ndarray | None = None,
-            datavec_without: np.ndarray | None = None,
+            fisher_matrix: np.ndarray,
+            delta_nu: np.ndarray,
             n_workers: int = 1,
-    ) -> Dict[str, np.ndarray]:
-        """Compute the Fisher bias for parameters.
+            rcond: float = 1e-12,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Estimate parameter bias using the stored model, expansion point, and covariance.
+
+        This method quantifies how differences between two data sets (for example,
+        a fiducial prediction and one affected by a systematic) propagate into
+        parameter biases when interpreted through a Fisher forecast. It evaluates
+        the model response internally and uses it, together with the stored
+        covariance and provided Fisher matrix, to estimate both the bias vector
+        and the resulting shift in parameter values.
+        For more information, see https://arxiv.org/abs/0710.5171.
 
         Args:
-            delta: Data-vector mismatch Δμ. Can be 1D of length N or a 2D array
-                (corr, ell) that will be flattened C-order (row-major order). If provided, takes
-                precedence over `data_with`/`data_without`.
-            datavec_with: Data vector with the systematic present. 1D (N,) or 2D
-                (corr, ell). Used only if `delta` is None.
-            datavec_without: Data vector without the systematic. Same shape rules
-                as `data_with`. Used only if `delta` is None.
-            n_workers: Number of workers passed to derivative routines.
+          fisher_matrix: Square matrix describing information about the parameters.
+            Its shape must be (p, p), where p is the number of parameters.
+          delta_nu: Difference between two data vectors (for example, with and without
+            a systematic). Accepts a 1D array of length n or a 2D array that will be
+            flattened in row-major order to length n, where n is the number of observables.
+          n_workers: Number of workers used by the internal derivative routine when
+            forming the Jacobian.
+          rcond: Cutoff used by pseudoinverse fallbacks when a linear solve is ill-posed.
 
         Returns:
-            dict: A dictionary with:
-                - "F": Fisher matrix, shape (P, P).
-                - "b": Bias “force” vector Jᵀ C⁻¹ Δμ, shape (P,).
-                - "delta_theta": Parameter bias estimate Δθ, shape (P,).
+          A tuple ``(bias_vec, delta_theta)``:
+            - bias_vec: One-dimensional array of length p containing the bias vector.
+            - delta_theta: One-dimensional array of length p with the estimated parameter shifts.
 
         Raises:
-            ValueError: If shapes are inconsistent with (N, P), (P, N), or (N, N),
-                or if neither `delta` nor the pair (`data_with`, `data_without`)
-                is provided.
+          ValueError: If input shapes are inconsistent with the stored model, covariance,
+            or the Fisher matrix dimensions.
         """
-        n_obs, n_params = self.n_observables, self.n_parameters
+        fisher_matrix = np.asarray(fisher_matrix, dtype=float)
+        if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
+            raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-        inv_cov = self._inv_cov()  # (N, N) shape
-        if inv_cov.shape != (n_obs, n_obs):
-            raise ValueError(f"inv_cov has shape {inv_cov.shape}, expected {(n_obs, n_obs)}")
+        # Jacobian has shape (n, p)
+        j_matrix = jacobian(self.function, self.theta0, n_workers=n_workers)
+        n_obs, n_params = j_matrix.shape
 
-        # deriv matrix (P, N) shape
-        # try jacobian first for speed; fallback to _get_derivatives for robustness
-        try:
-            jac = jacobian(self.function, self.theta0, n_workers=n_workers)  # (N, P) shape
-            deriv_matrix = jac.T  # (P, N) shape here
-        except Exception:
-            deriv_matrix = self._get_derivatives(order=1, n_workers=n_workers)  # (P, N) shape niko sanity check
+        # Check C and F shapes against J
+        if self.cov.shape != (n_obs, n_obs):
+            raise ValueError(
+                f"covariance shape {self.cov.shape} must be (n, n) = {(n_obs, n_obs)} from the Jacobian."
+            )
+        if fisher_matrix.shape != (n_params, n_params):
+            raise ValueError(
+                f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = {(n_params, n_params)} from the Jacobian."
+            )
 
-        if deriv_matrix.shape != (n_params, n_obs):
-            raise ValueError(f"d1 has shape {deriv_matrix.shape}, expected {(n_params, n_obs)}.")
-        fisher = self._build_fisher(deriv_matrix, inv_cov)  # (P, P)
+        # delta_nu → 1D length n
+        delta_nu = np.asarray(delta_nu, dtype=float)
+        if delta_nu.ndim == 2:
+            delta_nu = delta_nu.ravel(order="C")
+        if delta_nu.ndim != 1 or delta_nu.size != n_obs:
+            raise ValueError(f"delta_nu must have length n={n_obs}; got shape {delta_nu.shape}.")
 
-        delta_vector = self._build_delta_vector(
-            delta=delta, data_with=datavec_with, data_without=datavec_without, n_obs=n_obs
+        #  Invert the covariance matrix
+        cinv_delta = solve_or_pinv(
+            self.cov,
+            delta_nu,
+            rcond=rcond,
+            assume_symmetric=True,
+            warn_context="covariance solve",
         )
 
-        # bias vector
-        bias_vec = deriv_matrix @ (inv_cov @ delta_vector)
+        # Compute the bias vector
+        bias_vec = j_matrix.T @ cinv_delta
 
+        # Compute the parameter shifts
         delta_theta = solve_or_pinv(
-            fisher, bias_vec, rcond=1e-12, assume_symmetric=True, warn_context="Fisher solve"
+            fisher_matrix,
+            bias_vec,
+            rcond=rcond,
+            assume_symmetric=True,
+            warn_context="Fisher solve",
         )
 
-        return {"F": fisher, "b": bias_vec, "delta_theta": delta_theta}
+        return bias_vec, delta_theta
 
-    def _flatten_data_vector(self, data: np.ndarray, n_obs: int) -> np.ndarray:
-        """Return a 1D data vector of length N from 1D/2D input.
-
-        Args:
-            data: Input data. Either 1D of length N or 2D (corr, ell), which will be
-                  flattened in C-order (row-major order).
-            n_obs: Expected length N of the flattened data vector.
-
-        Returns:
-            np.ndarray: Flattened 1D array of length N.
-
-        Raises:
-            ValueError: If `data` (a ) is not 1D or 2D, or if the flattened size does not
-                        equal `n_obs`.
-        """
-        data_array = np.asarray(data, dtype=float)
-        if data_array.ndim == 1:
-            if data_array.size != n_obs:
-                raise ValueError(f"vector length {data_array.size} != covariance dim {n_obs}")
-            return data_array
-        if data_array.ndim == 2:
-            data_flattened = data_array.ravel(order="C")
-            if data_flattened.size != n_obs:
-                raise ValueError("flattened 2D data length != covariance dimension")
-            return data_flattened
-        raise ValueError("data must be 1D or 2D")
-
-    def _build_delta_vector(
+    def build_delta_nu(
             self,
+            data_with: np.ndarray,
+            data_without: np.ndarray,
             *,
-            delta: np.ndarray | None,
-            data_with: np.ndarray | None,
-            data_without: np.ndarray | None,
-            n_obs: int,
+            dtype: type = float,
     ) -> np.ndarray:
-        """Construct the data mismatch vector delta.
+        """Compute the difference between two data vectors for use in Fisher-bias estimates.
+
+        This function takes two data vectors—typically one with a systematic included
+        and one without—and returns their difference as a 1D array that matches the
+        expected number of observables in this instance. It works with both 1D inputs
+        and 2D arrays (for example, correlation × ell) and flattens 2D arrays using the
+        chosen memory order.
+
+        We standardize on row-major (“C”) flattening of 2D arrays, where the last
+        axis varies fastest. Ensure any data vectors and associated covariances are
+        constructed with the same convention for consistent results.
 
         Args:
-            delta: Precomputed mismatch vector. If provided, it is validated and used
-                directly (1D length N or 2D to be flattened).
-            data_with: Data vector with the systematic present. Used only if
-                `delta` is None. 1D length N or 2D to be flattened.
-            data_without: Data vector without the systematic. Same shape rules as
-                `data_with`. Used only if `delta` is None.
-            n_obs: Expected length N of the flattened data vector.
+          data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
+          data_without: Reference data vector without the systematic. Must have the same shape.
+          dtype: Data type of the output array (defaults to float).
 
         Returns:
-            np.ndarray: delta as a 1D vector of length N.
+          A 1D NumPy array of length ``self.n_observables`` representing the data
+          mismatch (delta_nu = data_with − data_without).
 
         Raises:
-            ValueError: If neither `delta` nor both `data_with` and `data_without`
-                are provided, or if shapes are inconsistent with `n_obs`.
+          ValueError: If input shapes differ, inputs are not 1D/2D, or the flattened
+            length does not match ``self.n_observables``.
+          FloatingPointError: If non-finite values are detected in the result.
         """
-        if delta is not None:
-            return self._flatten_data_vector(delta, n_obs)
-        if data_with is None or data_without is None:
-            raise ValueError("provide `delta` or both `data_with` and `data_without`")
-        return self._flatten_data_vector(data_with, n_obs) - self._flatten_data_vector(data_without, n_obs)
+        # define flattening orders for numpy
+        a = np.asarray(data_with, dtype=dtype)
+        b = np.asarray(data_without, dtype=dtype)
 
+        if a.shape != b.shape:
+            raise ValueError(f"Shapes must match: got {a.shape} vs {b.shape}.")
+
+        if a.ndim == 1:
+            delta_nu = a - b
+        elif a.ndim == 2:
+            delta_nu = (a - b).ravel(order="C")
+        else:
+            raise ValueError(f"Only 1D or 2D inputs are supported; got ndim={a.ndim}.")
+
+        if delta_nu.size != self.n_observables:
+            raise ValueError(
+                f"Flattened length {delta_nu.size} != expected self.n_observables {self.n_observables}."
+            )
+
+        if not np.isfinite(delta_nu).all():
+            raise FloatingPointError("Non-finite values found in delta vector.")
+
+        return delta_nu
