@@ -18,7 +18,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.forecasting.calculus import jacobian
+from derivkit.forecasting.calculus import build_jacobian
 from derivkit.utils import (
     get_partial_function,
     invert_covariance,
@@ -320,7 +320,7 @@ class LikelihoodExpansion:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
         # Jacobian matrix has shape (n, p)
-        j_matrix = jacobian(self.function, self.theta0, n_workers=n_workers)
+        j_matrix = build_jacobian(self.function, self.theta0, n_workers=n_workers)
         n_obs, n_params = j_matrix.shape
 
         # Check shapes of the covariance and Fisher matrices against the Jacobian
