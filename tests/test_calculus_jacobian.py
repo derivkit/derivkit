@@ -162,7 +162,7 @@ def test_jacobian_single_output_vector_len1():
 
 
 def test_jacobian_workers_invariance():
-    """Jacobian should not depend on the number of worker threads."""
+    """The resulting jacobian should not depend on the number of worker threads."""
     theta0 = np.array([0.4, -0.2], dtype=float)
     base = build_jacobian(f_analytic_2d, theta0, n_workers=1)
     try:
