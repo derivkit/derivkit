@@ -140,35 +140,6 @@ def build_jacobian(
     return jacobian
 
 
-def _jacobian_component(
-    function: Callable, theta0: np.ndarray, i: int, n_workers: int
-) -> np.ndarray:
-    """Compute one column of the jacobian of a scalar-valued function.
-
-    Helper used by ``jacobian``. Wraps ``function`` into a single-variable
-    callable via ``derivkit.utils.get_partial_function`` and differentiates it
-    with ``DerivativeKit.adaptive.differentiate``.
-
-    Args:
-        function: The vector-valued function to
-            differentiate. It should accept a list or array of parameter
-            values as input and return an array of observable values.
-        theta0: The points at which the derivative is evaluated.
-            A 1D array or list of parameter values matching the expected
-            input of the function.
-        i: Zero-based index of the parameter with respect to which to differentiate.
-        n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
-
-    Returns:
-        The ith column of the jacobian of function evaluated at ``theta0``.
-    """
-    partial_vec = get_partial_function(function, i, theta0)
-
-    kit = DerivativeKit(partial_vec, theta0[i])
-    return kit.adaptive.differentiate(order=1, n_workers=n_workers)
-
 def build_hessian(function: Callable,
                   theta0: np.ndarray,
                   n_workers: int=1
