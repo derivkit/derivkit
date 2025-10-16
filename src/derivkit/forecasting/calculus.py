@@ -58,7 +58,7 @@ def gradient(function, theta0, n_workers=1):
 def _grad_component(
     function, theta0: np.ndarray, i: int, n_workers: int
 ) -> float:
-    """Return one entry of the gradient for a scalar-valued function.
+    """Returns one entry of the gradient for a scalar-valued function.
 
     Used inside ``gradient`` to find how the function changes with respect
     to a single parameter while keeping the others fixed.
