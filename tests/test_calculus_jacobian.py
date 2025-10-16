@@ -240,3 +240,37 @@ def test_jacobian_raises_on_column_vector_output():
     """Test jacobian raises TypeError on 2D column vector output."""
     with pytest.raises(TypeError):
         build_jacobian(f_column_vector, np.array([0.1, 0.2]))
+
+
+def make_shape_function(_, shape):
+    """Return an array of the given shape."""
+    return np.zeros(shape, dtype=float)
+
+
+@pytest.mark.parametrize("shape,should_pass", [
+    ((), False),  # scalar output → should raise
+    ((1,), True),  # 1-D vector output → should work
+    ((2,), True),  # longer 1-D vector → should work
+    ((2, 2), False),  # 2-D matrix → should raise
+    ((2, 1), False),  # column vector → should raise
+    ((1, 2), False),  # row vector → should raise
+    ((2, 2, 2), False),  # 3-D tensor → should raise
+    ((3, 4, 5, 6), False),  # 4-D tensor → should raise
+])
+
+
+def test_jacobian_output_shape_validation(shape, should_pass):
+    """Jacobian should only accept 1-D (vector-valued) outputs.
+
+    Scalars (0-D) and higher-order tensors (2-D or more) must raise TypeError.
+    This test parametrizes the output shape to make that explicit.
+    """
+    func = partial(make_shape_function, shape=shape)
+
+    theta0 = np.array([0.1, 0.2])
+    if should_pass:
+        jac = build_jacobian(func, theta0)
+        assert jac.ndim == 2
+    else:
+        with pytest.raises(TypeError):
+            build_jacobian(func, theta0)
