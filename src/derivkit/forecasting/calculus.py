@@ -174,7 +174,7 @@ def _jacobian_component(
 def build_hessian(function: Callable,
                   theta0: np.ndarray,
                   n_workers: int=1
-                  ) -> NDArray[np.floating]:
+) -> NDArray[np.floating]:
     """Returns the hessian of a scalar-valued function.
 
     Args:
