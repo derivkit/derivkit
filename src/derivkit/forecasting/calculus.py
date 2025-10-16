@@ -138,8 +138,8 @@ def jacobian(
             cols = list(ex.map(worker, range(n)))
 
     # Ensure each column is length-m; works even when m==1 or n==1
-    jac = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])
-    return jac
+    jacobian = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])
+    return jacobian
 
 
 def _jacobian_component(
