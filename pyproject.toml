@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "derivkit"
 version = "0.0.1"
 dependencies = [
-  "matplotlib",
   "numdifftools",
   "numpy",
   "multiprocess",
