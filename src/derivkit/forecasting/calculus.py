@@ -99,8 +99,8 @@ def jacobian(
             It should accept a list or array of parameter values as input and
             return an array of observable values.
         theta0: The parameter vector at which the jacobian is evaluated.
-        n_workers: Number of workers used by ThreadPoolExecutor to
-            parallelize across parameters. If None or 1, no parallelization is used.
+        n_workers: Number of workers used to parallelize across
+            parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
             derivatives with respect to different parameters in parallel.
 
