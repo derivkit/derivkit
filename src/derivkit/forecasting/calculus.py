@@ -120,7 +120,6 @@ def jacobian(
     y0 = np.atleast_1d(function(theta0))
     m, n = int(y0.size), int(theta0.size)
 
-    # Fail fast if the base model output is non-finite
     if not np.isfinite(y0).all():
         raise FloatingPointError("Non-finite values in model output at theta0.")
 
