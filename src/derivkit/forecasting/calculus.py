@@ -181,30 +181,22 @@ def build_hessian(function: Callable,
 
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
-    """Compute one component of the hessian of a scalar-valued function.
+    """Return one entry of the Hessian for a scalar-valued function.
 
-    Helper used by ``hessian``. Wraps ``function`` into a single-variable
-    callable via ``derivkit.utils.get_partial_function`` and differentiates it
-    with ``DerivativeKit.adaptive.differentiate``.
+    Used inside ``build_hessian`` to measure how the function’s change in one
+    parameter depends on changes in another. This can describe both pure
+    second derivatives and mixed ones.
 
     Args:
-        function: The scalar-valued function to
-            differentiate. It should accept a list or array of parameter
-            values as input and return an array of observable values.
-        theta0: The points at which the derivative is evaluated.
-            A 1D array or list of parameter values matching the expected
-            input of the function.
-        i: Zero-based index of the first parameter with respect to which to differentiate.
-        j: Zero-based index of the second parameter with respect to which to differentiate.
-        n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
+        function: A function that returns a single value.
+        theta0: The parameter values where the derivative is evaluated.
+        i: Index of the first parameter.
+        j: Index of the second parameter.
+        n_workers: Number of workers used for the internal derivative step.
 
     Returns:
-        The ith, jth component of the hessian of function evaluated at ``theta0``.
-
-    Raises:
-        TypeError: If the function is not scalar-valued.
+        A single number showing how the rate of change in one parameter
+        depends on another.
     """
     if i == j:
         # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
