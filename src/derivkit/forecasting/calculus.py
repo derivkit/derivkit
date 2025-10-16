@@ -297,11 +297,10 @@ def _grad_for_param(
     theta0: ArrayLike,
     j: int,
 ) -> NDArray[np.floating]:
-    """Derivative of a vector-valued function wrt a single parameter theta[j].
+    """Return how all outputs of a function change when one input changes.
 
-    Helper used by ``jacobian``. Wraps ``function`` into a single-variable
-    callable via ``derivkit.utils.get_partial_function`` and differentiates it
-    with ``DerivativeKit.adaptive.differentiate``.
+    This helper is used by ``jacobian`` to compute the effect of changing
+    a single parameter while keeping the others fixed.
 
     Args:
         function: The vector-valued function to be differentiated.
