@@ -91,7 +91,7 @@ def build_jacobian(
     n_workers: int | None = 1,
 ) -> NDArray[np.floating]:
     """Computes the Jacobian of a vector-valued function.
-    
+
     Each column in the Jacobian is the derivative with respect to one parameter.
 
     Args:
@@ -124,10 +124,8 @@ def build_jacobian(
         raise FloatingPointError("Non-finite values in model output at theta0.")
 
     try:
-        work = int(n_workers) if n_workers is not None else 1
+        work = max(1, int(n_workers or 1))
     except (TypeError, ValueError):
-        work = 1
-    if work < 1:
         work = 1
 
     if work == 1:
