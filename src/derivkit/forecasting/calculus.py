@@ -207,6 +207,9 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
     Returns:
         A single number showing how the rate of change in one parameter
         depends on another.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
     """
     if i == j:
         # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
