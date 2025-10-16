@@ -83,7 +83,11 @@ def rng_seed42(seed=42):
 
 
 def test_jacobian_linear_map():
-    """For a linear map f(θ)=Aθ, the Jacobian should equal A exactly."""
+    """Check that the Jacobian of a fixed linear map equals its matrix.
+
+    Uses a simple predefined matrix to confirm the Jacobian matches it
+    exactly and has the correct shape.
+    """
     vec = np.array([[1.0, -2.0, 0.5],
                   [0.0,  3.0, 1.0]], dtype=float)
     f = partial(f_linear_mat, vec=vec)
@@ -112,7 +116,11 @@ def test_jacobian_empty_theta_raises():
 
 
 def test_jacobian_linear_random_matrix():
-    """For a linear map f(θ)=Aθ, the Jacobian should equal A exactly."""
+    """Check that the Jacobian of a random linear map equals its matrix.
+
+    Uses a fixed-seed random matrix and confirms the Jacobian matches it
+    exactly and has the correct shape.
+    """
     rng = rng_seed42()
     vec = rng.normal(size=(4, 3))
     f = partial(f_linear_mat, vec=vec)
