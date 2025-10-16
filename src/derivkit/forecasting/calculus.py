@@ -90,7 +90,9 @@ def jacobian(
     theta0: ArrayLike,
     n_workers: int | None = 1,
 ) -> NDArray[np.floating]:
-    """Jacobian of a vector-valued function where each column is the derivative wrt one parameter.
+    """Computes the Jacobian of a vector-valued function.
+    
+    Each column in the Jacobian is the derivative with respect to one parameter.
 
     Args:
         function: The vector-valued function to be differentiated.
