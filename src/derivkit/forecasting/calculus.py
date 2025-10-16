@@ -13,7 +13,7 @@ from derivkit.utils import get_partial_function
 
 __all__ = [
     "gradient",
-    "jacobian",
+    "build_jacobian",
     "hessian_diag",
     "build_hessian",
     "gauss_newton_hessian",
@@ -85,7 +85,7 @@ def _grad_component(
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
 
-def jacobian(
+def build_jacobian(
     function: Callable[[ArrayLike], ArrayLike | float],
     theta0: ArrayLike,
     n_workers: int | None = 1,
