@@ -60,6 +60,19 @@ def f_plus_minus(th) -> np.ndarray:
     return np.array([x + y, x - y], dtype=float)
 
 
+def f_matrix_out(_):
+   """2D matrix output, should raise TypeError."""
+   return np.array([[1.0, 2.0],
+                     [3.0, 4.0]], dtype=float)
+
+
+def f_column_vector(_):
+    """2D column vector output, should raise TypeError."""
+    return np.array([[1.0],
+                     [2.0],
+                     [3.0]], dtype=float)
+
+
 def num_jacobian(f, theta, eps=1e-6) -> np.ndarray:
     """Plain central-diff numeric Jacobian (reference)."""
     theta = np.asarray(theta, float)
@@ -200,6 +213,7 @@ def test_jacobian_accepts_list_and_row_vector():
     assert jac1.shape == (2, 2)
     assert np.allclose(jac1, jac2)
 
+
 def test_jacobian_raises_on_scalar_output():
     """Jacobian should raise TypeError when the function returns a scalar."""
     def f_scalar(th):
@@ -214,3 +228,15 @@ def test_jacobian_accepts_vector_output():
     theta0 = np.array([0.3, -0.1], dtype=float)
     jac = build_jacobian(f_analytic_2d, theta0, n_workers=1)
     assert jac.shape == (3, 2)
+
+
+def test_jacobian_raises_on_matrix_output():
+    """Test jacobian raises TypeError on 2D matrix output."""
+    with pytest.raises(TypeError):
+        build_jacobian(f_matrix_out, np.array([0.1, 0.2]))
+
+
+def test_jacobian_raises_on_column_vector_output():
+    """Test jacobian raises TypeError on 2D column vector output."""
+    with pytest.raises(TypeError):
+        build_jacobian(f_column_vector, np.array([0.1, 0.2]))

@@ -106,32 +106,37 @@ def build_jacobian(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If ``function`` does not return a vector value.
     """
-    theta0 = np.asarray(theta0, dtype=float).reshape(-1)
-    if theta0.size == 0:
+    # Validate and flatten theta0
+    theta = np.asarray(theta0, dtype=float).ravel()
+    if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    # force the function to run once to check output shape
-    y0 = np.asarray(function(theta0), dtype=float)
-    if y0.ndim == 0:
-        raise TypeError("jacobian() expects a vector-valued function; got scalar.")
-    m, n = int(y0.size), int(theta0.size)
-
+    # Use flattened theta when calling the function
+    y0 = np.asarray(function(theta), dtype=float)
+    if y0.ndim != 1:
+        raise TypeError(
+            f"build_jacobian expects f: R^n -> R^m with 1-D vector output; got shape {y0.shape}"
+        )
     if not np.isfinite(y0).all():
         raise FloatingPointError("Non-finite values in model output at theta0.")
 
-    try:
+    m = y0.size
+    n = int(theta.size)
+
+    # Resolve worker count robustly
+    try:  # first try to convert to int
         work = max(1, int(n_workers or 1))
     except (TypeError, ValueError):
-        work = 1
+        work = 1  # fallback to serial
 
-    if work == 1:
-        cols = [_grad_for_param(function, theta0, j) for j in range(n)]
-    else:
-        worker = partial(_grad_for_param, function, theta0)
+    if work == 1:  # serial computation
+        cols = [_grad_for_param(function, theta, j) for j in range(n)]
+    else:  # parallel computation
+        worker = partial(_grad_for_param, function, theta)
         with ThreadPoolExecutor(max_workers=work) as ex:
             cols = list(ex.map(worker, range(n)))
 
-    # Ensure each column is length-m; works even when m==1 or n==1
+    # Ensure all columns are finite and stack into 2D array
     jacobian = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])
     return jacobian
 
@@ -156,8 +161,8 @@ def build_hessian(function: Callable,
         ValueError: If ``theta0`` is an empty array.
         TypeError: If ``function`` does not return a scalar value.
     """
-    theta0 = np.asarray(theta0, dtype=float).reshape(-1)
-    if theta0.size == 0:
+    theta = np.asarray(theta0, dtype=float).ravel()
+    if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
     f0 = np.asarray(function(theta0), dtype=float)
