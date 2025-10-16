@@ -56,7 +56,9 @@ def gradient(function, theta0, n_workers=1):
 
 
 def _grad_component(
-    function, theta0: np.ndarray, i: int, n_workers: int
+        function: Callable,
+        theta0: np.ndarray, i:int,
+        n_workers: int
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 
