@@ -346,8 +346,7 @@ def _grad_wrt_param(
     f_i = get_partial_function(function, idx, theta0_x)   # this sets theta[idx]=y
     kit = DerivativeKit(f_i, theta0_x[idx])
     # Keep inner serial to avoid nested pools; adaptive can still batch-eval internally.
-    inner_workers = 1
-    gi = kit.adaptive.differentiate(order=1, n_workers=inner_workers)
+    gi = kit.adaptive.differentiate(order=1)
     gi = np.asarray(gi, dtype=float).reshape(-1)  # ensure (m,)
     return gi
 
