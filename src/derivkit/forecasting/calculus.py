@@ -1,11 +1,23 @@
 """Differential calculus helpers."""
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
+
+__all__ = [
+    "gradient",
+    "jacobian",
+    "hessian_diag",
+    "build_hessian",
+    "gauss_newton_hessian",
+]
 
 
 def gradient(function, theta0, n_workers=1):
@@ -73,33 +85,60 @@ def _grad_component(
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
 
-def jacobian(function, theta0, n_workers=1):
-    """Returns the jacobian of a vector-valued function.
+def jacobian(
+    function: Callable[[ArrayLike], ArrayLike | float],
+    theta0: ArrayLike,
+    n_workers: int | None = 1,
+) -> NDArray[np.floating]:
+    """Jacobian of a vector-valued function where each column is the derivative wrt one parameter.
 
     Args:
-        function (Callable): The function to be differentiated.
-        theta0  (array-like): The parameter vector at which the jacobian is evaluated.
-        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
-                        This setting does not parallelize across parameters.
+        function: The vector-valued function to be differentiated.
+            It should accept a list or array of parameter values as input and
+            return an array of observable values.
+        theta0: The parameter vector at which the jacobian is evaluated.
+        n_workers: Number of workers used by ThreadPoolExecutor to
+            parallelize across parameters. If None or 1, no parallelization is used.
+            If greater than 1, this many threads will be used to compute
+            derivatives with respect to different parameters in parallel.
 
     Returns:
-        (``np.array``): 2D array representing the jacobian.
+        A 2D array representing the jacobian. Each column corresponds to
+            the derivative with respect to one parameter.
+
+    Raises:
+        FloatingPointError: If non-finite values are encountered.
+        ValueError: If ``theta0`` is an empty array.
+        TypeError: If ``function`` does not return a vector value.
     """
     theta0 = np.asarray(theta0, dtype=float).reshape(-1)
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    # n_workers controls inner 1D differentiation (not across parameters).
-    jacobian = np.array(
-        [
-            _jacobian_component(function, theta0, i, n_workers)
-            for i in range(theta0.size)
-        ],
-        dtype=float,
-    )
-    if not np.isfinite(jacobian).all():
-        raise FloatingPointError("Non-finite values encountered in jacobian.")
-    return jacobian.T
+    y0 = np.atleast_1d(function(theta0))
+    m, n = int(y0.size), int(theta0.size)
+
+    # Fail fast if the base model output is non-finite
+    if not np.isfinite(y0).all():
+        raise FloatingPointError("Non-finite values in model output at theta0.")
+
+    try:
+        work = int(n_workers) if n_workers is not None else 1
+    except (TypeError, ValueError):
+        work = 1
+    if work < 1:
+        work = 1
+
+    if work == 1:
+        cols = [_grad_for_param(function, theta0, j) for j in range(n)]
+    else:
+        worker = partial(_grad_for_param, function, theta0)
+        with ThreadPoolExecutor(max_workers=work) as ex:
+            cols = list(ex.map(worker, range(n)))
+
+    # Ensure each column is length-m; works even when m==1 or n==1
+    jac = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])
+    return jac
 
 
 def _jacobian_component(
@@ -131,7 +170,10 @@ def _jacobian_component(
     kit = DerivativeKit(partial_vec, theta0[i])
     return kit.adaptive.differentiate(order=1, n_workers=n_workers)
 
-def build_hessian(function: Callable, theta0: np.ndarray, n_workers: int=1):
+def build_hessian(function: Callable,
+                  theta0: np.ndarray,
+                  n_workers: int=1
+                  ) -> NDArray[np.floating]:
     """Returns the hessian of a scalar-valued function.
 
     Args:
@@ -141,7 +183,7 @@ def build_hessian(function: Callable, theta0: np.ndarray, n_workers: int=1):
             This setting does not parallelize across parameters.
 
     Returns:
-        (``np.array``): 2D array representing the hessian.
+        A 2D array representing the hessian.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
@@ -173,6 +215,7 @@ def build_hessian(function: Callable, theta0: np.ndarray, n_workers: int=1):
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
     return hess
+
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
     """Compute one component of the hessian of a scalar-valued function.
@@ -241,18 +284,14 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_
                 order=1, n_workers=n_workers
             )
 
+
 def hessian_diag(*args, **kwargs):
     """This is a placeholder for a Hessian diagonal computation function."""
     raise NotImplementedError
 
 
-def jacobian_diag(*args, **kwargs):
-    """This is a placeholder for a Jacobian diagonal computation function."""
-    raise NotImplementedError
-
 def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
     """Helper used by ``gradient`` and ``build_hessian``.
-    Raises a TypeError if ``function`` does not return a scalar value.
 
     Args:
         function (callable): The scalar-valued function to
@@ -281,3 +320,62 @@ def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
 def gauss_newton_hessian(*args, **kwargs):
     """This is a placeholder for a Gauss-Newton Hessian computation function."""
     raise NotImplementedError
+
+
+def _grad_wrt_param(
+    function: Callable[[ArrayLike], ArrayLike | float],
+    theta0: ArrayLike,
+    idx: int,
+) -> NDArray[np.floating]:
+    """Derivative of a vector-valued function wrt a single parameter theta[idx].
+
+     Helper used by ``jacobian``. Wraps ``function`` into a single-variable callable via
+    ``derivkit.utils.get_partial_function`` and differentiates it with
+    ``DerivativeKit.adaptive.differentiate``.
+
+    Args:
+        function: The vector-valued function to be differentiated.
+        theta0: The parameter vector at which the derivative is evaluated.
+        idx: Zero-based index of the parameter with respect to which to differentiate.
+
+    Returns:
+        A 1D array representing the derivative of the function with respect to theta[idx].
+    """
+    theta0_x = deepcopy(np.atleast_1d(theta0))
+    f_i = get_partial_function(function, idx, theta0_x)   # this sets theta[idx]=y
+    kit = DerivativeKit(f_i, theta0_x[idx])
+    # Keep inner serial to avoid nested pools; adaptive can still batch-eval internally.
+    inner_workers = 1
+    gi = kit.adaptive.differentiate(order=1, n_workers=inner_workers)
+    gi = np.asarray(gi, dtype=float).reshape(-1)  # ensure (m,)
+    return gi
+
+
+def _grad_for_param(
+    function: Callable[[ArrayLike], ArrayLike | float],
+    theta0: ArrayLike,
+    j: int,
+) -> NDArray[np.floating]:
+    """Derivative of a vector-valued function wrt a single parameter theta[j].
+
+    Helper used by ``jacobian``. Wraps ``function`` into a single-variable
+    callable via ``derivkit.utils.get_partial_function`` and differentiates it
+    with ``DerivativeKit.adaptive.differentiate``.
+
+    Args:
+        function: The vector-valued function to be differentiated.
+        theta0: The parameter vector at which the derivative is evaluated.
+        j: Zero-based index of the parameter with respect to which to differentiate.
+
+    Returns:
+        A 1D array representing the derivative of the function with respect to theta[j].
+    """
+    theta_x = deepcopy(np.asarray(theta0, dtype=float).reshape(-1))
+    f_j = get_partial_function(function, j, theta_x)  # this sets theta[j]=y
+    kit = DerivativeKit(f_j, theta_x[j])
+    g = kit.adaptive.differentiate(order=1, n_workers=1)
+    # Keep inner differentiation serial to avoid nested pools.
+    g = np.atleast_1d(np.asarray(g, dtype=float))
+    if not np.isfinite(g).all():
+        raise FloatingPointError(f"Non-finite derivative for parameter index {j}.")
+    return g
