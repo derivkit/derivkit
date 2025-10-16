@@ -321,34 +321,6 @@ def gauss_newton_hessian(*args, **kwargs):
     raise NotImplementedError
 
 
-def _grad_wrt_param(
-    function: Callable[[ArrayLike], ArrayLike | float],
-    theta0: ArrayLike,
-    idx: int,
-) -> NDArray[np.floating]:
-    """Derivative of a vector-valued function wrt a single parameter theta[idx].
-
-     Helper used by ``jacobian``. Wraps ``function`` into a single-variable callable via
-    ``derivkit.utils.get_partial_function`` and differentiates it with
-    ``DerivativeKit.adaptive.differentiate``.
-
-    Args:
-        function: The vector-valued function to be differentiated.
-        theta0: The parameter vector at which the derivative is evaluated.
-        idx: Zero-based index of the parameter with respect to which to differentiate.
-
-    Returns:
-        A 1D array representing the derivative of the function with respect to theta[idx].
-    """
-    theta0_x = deepcopy(np.atleast_1d(theta0))
-    f_i = get_partial_function(function, idx, theta0_x)   # this sets theta[idx]=y
-    kit = DerivativeKit(f_i, theta0_x[idx])
-    # Keep inner serial to avoid nested pools; adaptive can still batch-eval internally.
-    gi = kit.adaptive.differentiate(order=1)
-    gi = np.asarray(gi, dtype=float).reshape(-1)  # ensure (m,)
-    return gi
-
-
 def _grad_for_param(
     function: Callable[[ArrayLike], ArrayLike | float],
     theta0: ArrayLike,
