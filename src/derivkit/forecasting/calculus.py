@@ -58,26 +58,19 @@ def gradient(function, theta0, n_workers=1):
 def _grad_component(
     function, theta0: np.ndarray, i: int, n_workers: int
 ) -> float:
-    """Compute one component of the gradient of a scalar-valued function.
+    """Return one entry of the gradient for a scalar-valued function.
 
-    Helper used by ``gradient``. Wraps ``function`` into a single-variable
-    callable via ``derivkit.utils.get_partial_function`` and differentiates it
-    with ``DerivativeKit.adaptive.differentiate``.
+    Used inside ``gradient`` to find how the function changes with respect
+    to a single parameter while keeping the others fixed.
 
     Args:
-        function (callable): The scalar-valued function to
-            differentiate. It should accept a list or array of parameter
-            values as input and return a scalar observable value.
-        theta0: The points at which the derivative is evaluated.
-            A 1D array or list of parameter values matching the expected
-            input of the function.
-        i: Zero-based index of the parameter with respect to which to differentiate.
-        n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
+        function: A function that returns a single value.
+        theta0: The parameter values where the derivative is evaluated.
+        i: The index of the parameter being varied.
+        n_workers: Number of workers used for the internal derivative step.
 
     Returns:
-        float: The ith component of the gradient of function evaluated at ``theta0``.
+        A single number showing how the function changes with that parameter.
     """
     partial_vec = get_partial_function(function, i, theta0)
 
