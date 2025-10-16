@@ -207,3 +207,10 @@ def test_jacobian_raises_on_scalar_output():
         return float(x.sum())
     with pytest.raises(TypeError):
         build_jacobian(f_scalar, np.array([0.1, 0.2]))
+
+
+def test_jacobian_accepts_vector_output():
+    """Jacobian should accept functions returning a vector (not array)."""
+    theta0 = np.array([0.3, -0.1], dtype=float)
+    jac = build_jacobian(f_analytic_2d, theta0, n_workers=1)
+    assert jac.shape == (3, 2)
