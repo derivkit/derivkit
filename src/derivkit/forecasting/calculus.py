@@ -110,7 +110,10 @@ def build_jacobian(
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.atleast_1d(function(theta0))
+    # force the function to run once to check output shape
+    y0 = np.asarray(function(theta0), dtype=float)
+    if y0.ndim == 0:
+        raise TypeError("jacobian() expects a vector-valued function; got scalar.")
     m, n = int(y0.size), int(theta0.size)
 
     if not np.isfinite(y0).all():

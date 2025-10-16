@@ -177,8 +177,8 @@ def test_jacobian_chain_rule_linear_wrapper():
 
 
 def test_jacobian_raises_on_nonfinite_output():
-    """Test jacobian raises on non-finite output components."""
-    with pytest.raises((FloatingPointError, ValueError)):
+    """Jacobian should raise FloatingPointError on non-finite outputs."""
+    with pytest.raises(FloatingPointError):
         build_jacobian(f_nonfinite, np.array([1.0, 2.0]))
 
 
@@ -196,3 +196,11 @@ def test_jacobian_accepts_list_and_row_vector():
     jac2 = build_jacobian(f_plus_minus, np.array([[0.3, -0.7]]))
     assert jac1.shape == (2, 2)
     assert np.allclose(jac1, jac2)
+
+def test_jacobian_raises_on_scalar_output():
+    """Jacobian should raise TypeError when the function returns a scalar."""
+    def f_scalar(th):
+        x = np.asarray(th, float)
+        return float(x.sum())
+    with pytest.raises(TypeError):
+        build_jacobian(f_scalar, np.array([0.1, 0.2]))
