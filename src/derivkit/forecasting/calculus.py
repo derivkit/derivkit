@@ -12,7 +12,7 @@ from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
 
 __all__ = [
-    "gradient",
+    "build_gradient",
     "build_jacobian",
     "hessian_diag",
     "build_hessian",
@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-def gradient(function, theta0, n_workers=1):
+def build_gradient(function, theta0, n_workers=1):
     """Returns the gradient of a scalar-valued function.
 
     Args:
