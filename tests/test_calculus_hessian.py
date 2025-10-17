@@ -155,7 +155,7 @@ def test_hessian_raises_on_vector_output():
 
 def test_hessian_raises_on_nonfinite_output():
     """Raises on non-finite output."""
-    with pytest.raises((FloatingPointError, ValueError)):
+    with pytest.raises((FloatingPointError)):
         build_hessian(f_nonfinite, np.array([0.0, 1.0]))
 
 
