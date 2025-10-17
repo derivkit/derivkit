@@ -12,7 +12,7 @@ from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
 
 __all__ = [
-    "gradient",
+    "build_gradient",
     "build_jacobian",
     "hessian_diag",
     "build_hessian",
@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-def gradient(function, theta0, n_workers=1):
+def build_gradient(function, theta0, n_workers=1):
     """Returns the gradient of a scalar-valued function.
 
     Args:
@@ -39,7 +39,7 @@ def gradient(function, theta0, n_workers=1):
     if theta0.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    # One-time scalar check for gradient()
+    # One-time scalar check for build_gradient()
     _check_scalar_valued(function, theta0, 0, n_workers)
 
     # n_workers controls inner 1D differentiation (not across parameters).
@@ -51,7 +51,7 @@ def gradient(function, theta0, n_workers=1):
         dtype=float,
     )
     if not np.isfinite(grad).all():
-        raise FloatingPointError("Non-finite values encountered in gradient.")
+        raise FloatingPointError("Non-finite values encountered in build_gradient.")
     return grad
 
 
@@ -62,7 +62,7 @@ def _grad_component(
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 
-    Used inside ``gradient`` to find how the function changes with respect
+    Used inside ``build_gradient`` to find how the function changes with respect
     to a single parameter while keeping the others fixed.
 
     Args:
@@ -259,7 +259,7 @@ def hessian_diag(*args, **kwargs):
 
 
 def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
-    """Helper used by ``gradient`` and ``build_hessian``.
+    """Helper used by ``build_gradient`` and ``build_hessian``.
 
     Args:
         function (callable): The scalar-valued function to
@@ -281,7 +281,7 @@ def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
     probe = np.asarray(partial_vec(theta0[i]), dtype=float)
     if probe.size != 1:
         raise TypeError(
-            "gradient() expects a scalar-valued function; "
+            "build_gradient() expects a scalar-valued function; "
             f"got shape {probe.shape} from full_function(params)."
         )
 
