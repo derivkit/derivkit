@@ -106,17 +106,19 @@ def build_poissonian_likelihood(
 
     The shape of the data products depend on the shape of ``model_parameters``.
     The assumption is that ``model_parameters`` contains the expectation value
-    of some quantity distributed across a grid of bins. The function will try
-    to reshape ``data`` to align with this grid. In principle the grid can
-    contain any number of axes, but currently the number of axes is hardcoded
-    to 2. Supplying a higher-dimensional array to ``model_parameters`` may
-    produce unexpected results.
+    of some quantity which is either uniform for the entire distribution or is
+    distributed across a grid of bins. It is uniform for the entire distribution
+    if it is a scalar.
+
+    The function will try to reshape ``data`` to align with ``model_parameters``.
+    If ``model_parameters`` is a scalar, then ``data`` will be flattened. Otherwise,
+    the grid can contain any number of axes, but currently the number of axes
+    is hardcoded to 2. Supplying a higher-dimensional array to
+    ``model_parameters`` may produce unexpected results.
 
     This hardcoded limit means that, while it is possible to supply
     ``model_parameters`` along a 1D grid, the output shape will always be a
-    2D row-major array. Similarly, it is possible to supply a single value to
-    ``model_parameters``. The output will still be a 2D array. See Examples for
-    more details.
+    2D row-major array. See Examples for more details.
 
     Args:
         data: an array representing the given data values.
