@@ -117,7 +117,7 @@ def test_hessian_is_symmetric():
     """Hessian is symmetric."""
     x0 = np.array([0.1, 0.2], dtype=float)
     h = build_hessian(f_cubic2d, x0, n_workers=2)
-    assert np.allclose(h, h.T, atol=1e-10)
+    assert np.array_equal(h, h.T)
 
 
 def test_hessian_does_not_modify_input():
