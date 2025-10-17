@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import multivariate_normal, poisson
 
 
-def build_gaussian_likelihood(
+def build_gaussian(
     data: np.ndarray,
     model_parameters: np.ndarray,
     cov: np.ndarray,
@@ -44,7 +44,7 @@ def build_gaussian_likelihood(
             >>> data = np.linspace(-10, 10, 100)[np.newaxis, :]
             >>> model_parameters = np.array([1])
             >>> cov = np.array([[2]])
-            >>> x, y = build_gaussian_likelihood(data, model_parameters, cov)
+            >>> x, y = build_gaussian(data, model_parameters, cov)
             >>> plt.scatter(x, y)
         A 2D Gaussian likelihood:
             >>> data = np.asarray((
@@ -53,7 +53,7 @@ def build_gaussian_likelihood(
             ... ))
             >>> model_parameters = np.array([0, 4])
             >>> cov = np.array([[1, 0.2], [0.2, 0.3]])
-            >>> grid, pdf = build_gaussian_likelihood(data, model_parameters, cov)
+            >>> grid, pdf = build_gaussian(data, model_parameters, cov)
             >>> plt.contour(*grid, pdf)
     """
     # The data is expected to be 2D. However, 1D is allowed, since it can be
