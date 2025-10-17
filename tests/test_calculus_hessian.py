@@ -17,14 +17,14 @@ def f_quadratic(theta, mat: np.ndarray, vec: np.ndarray, const: float = 0.0):
 
 
 def make_pure_quadratic(a: np.ndarray):
-    """f(x) = 0.5 x^T A x (via f_quadratic with vec=0, const=0)."""
+    """Test that Hessian of f(x)=0.5 x^T A x is A."""
     a = np.asarray(a, float)
     b = np.zeros(a.shape[0], dtype=float)
     return partial(f_quadratic, mat=a, vec=b, const=0.0)
 
 
 def make_sum_squares(n: int):
-    """f(x) = x^T x using f_quadratic with A = 2 I, vec=0, const=0."""
+    """Test that Hessian of f(x)=x^T x = sum_i x_i^2 is 2*I."""
     a = 2.0 * np.eye(n, dtype=float)
     b = np.zeros(n, dtype=float)
     return partial(f_quadratic, mat=a, vec=b, const=0.0)
@@ -83,16 +83,25 @@ def num_hessian(f, theta, eps=1e-5):
     return hess
 
 
-def test_hessian_from_raw_quadratic_nonsymmetric_matrix():
-    """Hessian of 0.5 x^T A x equals 0.5 (A + A^T) for non-symmetric A."""
-    a = np.array([[1.0, 2.0, -1.0],
-                  [0.0, 3.0,  4.0],
-                  [5.0, 0.5,  2.0]], dtype=float)
+def test_hessian_quadratic_symmetrizes_matrix():
+    """Test that Hessian of quadratic symmetrizes A."""
+    rng = np.random.default_rng(0)
+    a = rng.normal(size=(3, 3))  # deliberately non-symmetric
     x0 = np.array([0.2, -0.1, 0.7], dtype=float)
+
     f = make_pure_quadratic(a)
     h = build_hessian(f, x0, n_workers=1)
+
     h_true = 0.5 * (a + a.T)
     assert np.allclose(h, h_true, atol=1e-10, rtol=0.0)
+
+    # (Optional) show skew-symmetric parts don't matter:
+    k = rng.normal(size=(3, 3))
+    k = 0.5 * (k - k.T)  # skew-symmetric
+    a2 = a + k  # same quadratic form; same Hessian
+    f2 = make_pure_quadratic(a2)
+    h2 = build_hessian(f2, x0, n_workers=1)
+    assert np.allclose(h2, h_true, atol=1e-10, rtol=0.0)
 
 
 def test_hessian_matches_numeric_reference_on_cubic2d():
