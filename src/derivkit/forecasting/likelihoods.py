@@ -123,10 +123,11 @@ def build_poissonian_likelihood(
         model_parameters: an array representing the means of the data samples.
 
     Returns:
-        ``np.ndarray``: an array containing the probability intervals
-            constructed from the data.
-        ``np.ndarray``: an array containing the values of the Poissonian
-            probibility mass function on the probability intervals.
+        A tuple of arrays containing (in order):
+            
+            - the data, reshaped to align with the model parameters.
+            - the values of the Poissonian probability mass function computed
+              from the data and model parameters.
 
     Raises:
         ValueError: If any of the model_parameters are negative, or the data
