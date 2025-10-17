@@ -7,7 +7,7 @@ import derivkit.forecasting.likelihoods as dkl
 
 
 def test_gaussian_likelihood():
-    """Test that build_gaussian handles input and output correctly."""
+    """Test that build_gaussian_likelihood handles input and output correctly."""
     # Check that 3D data raises ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1, 1))
