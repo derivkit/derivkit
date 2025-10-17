@@ -1,8 +1,8 @@
 """Unit tests for forecasting/calculus.py."""
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import derivkit.forecasting.likelihoods as dkl
 
@@ -172,7 +172,7 @@ def test_gaussian_likelihood():
   ]
 )
 
-def test_poissonian_likelihood_output(
+def test_poissonian_likelihood_negative_parameters(
     input_data,
     input_parameters,
     expected_output_data,
@@ -197,7 +197,7 @@ def test_poissonian_likelihood_output(
     ([[1, 2, 3], [4, 5, 6]], [[0.1, 0.2, 0.3], [0.4, -0.1, 0.6]]),
   ]
 )
-def test_poissonian_likelihood_raises(test_data, test_parameters):
+def test_poissonian_likelihood_incompatible_shapes(test_data, test_parameters):
     """Tests negative parameter value exception triggers."""
     with pytest.raises(ValueError):
         dkl.build_poissonian_likelihood(test_data, test_parameters)
