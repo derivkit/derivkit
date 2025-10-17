@@ -246,7 +246,7 @@ def build_poissonian_likelihood(
         raise ValueError(
             "data cannot be reshaped to align with model_parameters: "
             f"data.shape={values_to_reshape.shape} is incompatible with "
-            f"model_parametres.shape={parameters.shape}."
+            f"model_parameters.shape={parameters.shape}."
         )
 
     return number_events, poisson.pmf(number_events, parameters)
