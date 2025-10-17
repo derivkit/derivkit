@@ -167,21 +167,21 @@ def build_hessian(function: Callable,
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    f0 = np.asarray(function(theta0), dtype=float)
+    f0 = np.asarray(function(theta), dtype=float)
     if f0.size != 1:
         raise TypeError("build_hessian() expects a scalar-valued function.")
 
-    n_parameters = theta0.size
+    n_parameters = theta.size
     hess = np.empty((n_parameters, n_parameters), dtype=float)
 
     # Diagonals here (pure second orders)
     for i in range(n_parameters):
-        hess[i, i] = _hessian_component(function, theta0, i, i, n_workers)
+        hess[i, i] = _hessian_component(function, theta, i, i, n_workers)
 
     # Off-diagonals here (mixed second orders).
     for i in range(n_parameters):
         for j in range(i + 1, n_parameters):
-            hij = _hessian_component(function, theta0, i, j, n_workers)
+            hij = _hessian_component(function, theta, i, j, n_workers)
             hess[i, j] = hij
             hess[j, i] = hij
 

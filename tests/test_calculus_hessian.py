@@ -1,190 +1,152 @@
-"""Unit tests for jacobian forecasting/calculus.py."""
+"""Unit tests for hessian forecasting/calculus.py."""
 
 from functools import partial
 
 import numpy as np
 import pytest
 
-from derivkit.forecasting.calculus import jacobian
+from derivkit.forecasting.calculus import build_hessian
 
 
-def f_linear_mat(th, vec: np.ndarray) -> np.ndarray:
-    """Linear map f(θ)=Aθ."""
-    return np.asarray(vec, float) @ np.asarray(th, float)
+def f_quadratic(theta, mat: np.ndarray, vec: np.ndarray, const: float = 0.0):
+    """A simple quadratic function with known Hessian."""
+    x = np.asarray(theta, float).reshape(-1)
+    a = np.asarray(mat, float)
+    b = np.asarray(vec, float).reshape(-1)
+    return 0.5 * x @ a @ x + b @ x + float(const)
 
 
-def f_analytic_2d(th) -> np.ndarray:
-    """Analytic 2D map with known Jacobian."""
-    x, y = np.asarray(th, float)
-    return np.array([x**2, np.sin(y), x*y], dtype=float)
+def f_quadratic_raw(theta, mat: np.ndarray):
+    """A simple quadratic function with known Hessian, no linear or const term."""
+    x = np.asarray(theta, float).reshape(-1)
+    a = np.asarray(mat, float)
+    return 0.5 * x @ a @ x
 
 
-def f_nonlinear_3d(th) -> np.ndarray:
-    """Nonlinear 3D map used for numeric reference."""
-    x, y, z = np.asarray(th, float)
-    return np.array([x*y + np.sin(z), x**2 + np.cos(y), np.exp(z) * y], dtype=float)
+def f_nonfinite(theta):
+    """Produces a non-finite output."""
+    x = np.asarray(theta, float)
+    return np.nan + x.sum()  # force NaN
 
 
-def f_len1_vector(th) -> np.ndarray:
-    """Returns a length-1 vector."""
-    x, y = np.asarray(th, float)
-    return np.array([x**2 + y], dtype=float)
+def f_vector_out(theta):
+    """Produces a vector output."""
+    x = np.asarray(theta, float)
+    return np.array([x[0] ** 2, x.sum()], dtype=float)  # not scalar → should raise
 
 
-def f_base2(th) -> np.ndarray:
-    """Base function for chain-rule test: R^2 -> R^2."""
-    x, y = np.asarray(th, float)
-    return np.array([x**2 + y, np.sin(x) + np.cos(y)], dtype=float)
+def f_cubic2d(theta):
+    """A cubic function in 2D for numeric reference."""
+    x, y = np.asarray(theta, float)
+    return x**2 + 3.0 * x * y + 2.0 * y**3
 
 
-def f_chain_linear(theta, mat: np.ndarray) -> np.ndarray:
-    """Test function for chain-rule test: f(Bθ)."""
-    return f_base2(np.asarray(mat, float) @ np.asarray(theta, float))
-
-
-def f_nonfinite(th) -> np.ndarray:
-    """Produces a non-finite output component."""
-    x, y = np.asarray(th, float)
-    return np.array([x, np.nan * x + y], dtype=float)
-
-
-def f_sum2(th) -> np.ndarray:
-    """Sum of two components, shape (1,)."""
-    x, y = np.asarray(th, float)
-    return np.array([x + y], dtype=float)
-
-
-def f_plus_minus(th) -> np.ndarray:
-    """Returns a function with both plus and minus."""
-    x, y = np.asarray(th, float)
-    return np.array([x + y, x - y], dtype=float)
-
-
-def num_jacobian(f, theta, eps=1e-6) -> np.ndarray:
-    """Plain central-diff numeric Jacobian (reference)."""
-    theta = np.asarray(theta, float)
-    f0 = np.asarray(f(theta), float)
-    m, n = f0.size, theta.size
-    jac = np.empty((m, n), dtype=float)
-    for j in range(n):
-        tp = theta.copy()
-        tm = theta.copy()
-        tp[j] += eps
-        tm[j] -= eps
-        fp = np.asarray(f(tp), float)
-        fm = np.asarray(f(tm), float)
-        jac[:, j] = (fp - fm) / (2 * eps)
-    return jac
+def f_sum_squares(theta):
+    """A simple sum-of-squares function."""
+    x = np.asarray(theta, float).reshape(-1)
+    return float(x @ x)
 
 
 def rng_seed42(seed=42):
-    """Random number generator with fixed seed (42) for reproducibility."""
+    """Get a random number generator with a fixed seed for reproducibility."""
     return np.random.default_rng(seed=seed)
 
 
-def test_jacobian_linear_map():
-    """For a linear map f(θ)=Aθ, the Jacobian should equal A exactly."""
-    vec = np.array([[1.0, -2.0, 0.5],
-                  [0.0,  3.0, 1.0]], dtype=float)
-    f = partial(f_linear_mat, vec=vec)
-    theta0 = np.array([0.3, -0.7, 1.2], dtype=float)
-    jac = jacobian(f, theta0, n_workers=1)
-    assert jac.shape == (vec.shape[0], theta0.size)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+def num_hessian(f, theta, eps=1e-5):
+    """Central-difference numerical Hessian for reference."""
+    theta = np.asarray(theta, float).reshape(-1)
+    n = theta.size
+    hess = np.empty((n, n), dtype=float)
+    # diagonal terms
+    for i in range(n):
+        e = np.zeros(n, dtype=float)
+        e[i] = 1.0
+        fp = f(theta + eps * e)
+        fm = f(theta - eps * e)
+        f0 = f(theta)
+        hess[i, i] = (fp - 2.0 * f0 + fm) / (eps ** 2)
+    # off-diagonals (mixed partials)
+    for i in range(n):
+        for j in range(i + 1, n):
+            ei = np.zeros(n)
+            ej = np.zeros(n)
+            ei[i] = 1.0
+            ej[j] = 1.0
+            fpp = f(theta + eps * ei + eps * ej)
+            fpm = f(theta + eps * ei - eps * ej)
+            fmp = f(theta - eps * ei + eps * ej)
+            fmm = f(theta - eps * ei - eps * ej)
+            val = (fpp - fpm - fmp + fmm) / (4.0 * eps ** 2)
+            hess[i, j] = val
+            hess[j, i] = val
+    return hess
+
+def test_hessian_from_raw_quadratic_nonsymmetric_matrix():
+    """Check that the Hessian of a quadratic form matches the (symmetrized) matrix."""
+    a = np.array([[1.0, 2.0, -1.0],
+                  [0.0, 3.0,  4.0],
+                  [5.0, 0.5,  2.0]], dtype=float)
+    x0 = np.array([0.2, -0.1, 0.7], dtype=float)
+    f = partial(f_quadratic_raw, mat=a)
+    h = build_hessian(f, x0, n_workers=1)
+    h_true = 0.5 * (a + a.T)
+    assert np.allclose(h, h_true, atol=1e-10, rtol=0.0)
 
 
-def test_jacobian_analytic():
-    """Test jacobian on a function with known analytic Jacobian."""
-    x0, y0 = 0.4, -0.2
-    theta0 = np.array([x0, y0], dtype=float)
-    jac = jacobian(f_analytic_2d, theta0, n_workers=2)
-    jac_true = np.array([[2*x0, 0.0],
-                       [0.0,  np.cos(y0)],
-                       [y0,   x0]], dtype=float)
-    assert jac.shape == (3, 2)
-    assert np.allclose(jac, jac_true, atol=1e-5, rtol=1e-6)
+def test_hessian_matches_numeric_reference_on_cubic2d():
+    """Check that the Hessian of a cubic function in 2D matches numeric reference."""
+    x0 = np.array([0.3, -0.4], dtype=float)
+    h = build_hessian(f_cubic2d, x0, n_workers=1)
+    h_ref = num_hessian(f_cubic2d, x0, eps=1e-5)
+    assert h.shape == (2, 2)
+    assert np.allclose(h, h_ref, atol=5e-5, rtol=5e-6)
 
 
-def test_jacobian_empty_theta_raises():
-    """Test jacobian raises ValueError on empty theta0."""
-    with pytest.raises(ValueError):
-        jacobian(f_len1_vector, np.array([]))
+def test_hessian_workers_invariance():
+    """Check that the Hessian is invariant to the number of workers."""
+    x0 = np.array([0.25, -0.15], dtype=float)
+    h1 = build_hessian(f_cubic2d, x0, n_workers=1)
+    h2 = build_hessian(f_cubic2d, x0, n_workers=3)
+    assert h1.shape == h2.shape == (2, 2)
+    assert np.allclose(h1, h2, atol=2e-10, rtol=0.0)
 
 
-def test_jacobian_linear_random_matrix():
-    """For a linear map f(θ)=Aθ, the Jacobian should equal A exactly."""
-    rng = rng_seed42()
-    vec = rng.normal(size=(4, 3))
-    f = partial(f_linear_mat, vec=vec)
-    theta0 = rng.normal(size=3)
-    jac = jacobian(f, theta0, n_workers=1)
-    assert jac.shape == (4, 3)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+def test_hessian_is_symmetric():
+    """Check that the Hessian is symmetric."""
+    x0 = np.array([0.1, 0.2], dtype=float)
+    h = build_hessian(f_cubic2d, x0, n_workers=2)
+    assert np.allclose(h, h.T, atol=1e-10)
 
 
-def test_jacobian_matches_numeric_reference():
-    """Test jacobian against plain numeric reference implementation."""
-    theta0 = np.array([0.3, -0.7, 0.25], dtype=float)
-    jac = jacobian(f_nonlinear_3d, theta0, n_workers=1)
-    jac_ref = num_jacobian(f_nonlinear_3d, theta0, eps=1e-5)
-    assert jac.shape == (3, 3)
-    assert np.allclose(jac, jac_ref, atol=8e-5, rtol=5e-6)
+def test_hessian_does_not_modify_input():
+    """Check that the input vector is not modified by build_hessian."""
+    x0 = np.array([0.1, 0.2, -0.3], dtype=float)
+    x_copy = x0.copy()
+    _ = build_hessian(f_sum_squares, x0, n_workers=1)
+    assert np.array_equal(x0, x_copy)
 
 
-def test_jacobian_single_output_vector_len1():
-    """Test jacobian on a function returning a length-1 vector."""
-    theta0 = np.array([0.4, -0.2], dtype=float)
-    jac = jacobian(f_len1_vector, theta0, n_workers=1)
-    jac_true = np.array([[2*theta0[0], 1.0]])
-    assert jac.shape == (1, 2)
-    assert np.allclose(jac, jac_true, atol=1e-6, rtol=1e-6)
+def test_hessian_accepts_list_and_row_vector():
+    """Check that the Hessian function accepts list and row vector inputs."""
+    h1 = build_hessian(f_sum_squares, [0.3, -0.7])
+    h2 = build_hessian(f_sum_squares, np.array([[0.3, -0.7]]))
+    assert h1.shape == (2, 2)
+    assert np.allclose(h1, h2)
 
 
-def test_jacobian_workers_invariance():
-    """Test that jacobian results are invariant to n_workers."""
-    theta0 = np.array([0.4, -0.2], dtype=float)
-    jac1 = jacobian(f_analytic_2d, theta0, n_workers=1)
-    jac2 = jacobian(f_analytic_2d, theta0, n_workers=3)
-    assert jac1.shape == jac2.shape == (3, 2)
-    assert np.allclose(jac1, jac2, atol=2e-6, rtol=2e-6)
+def test_hessian_raises_on_vector_output():
+    """Check that the Hessian function raises on non-scalar output."""
+    with pytest.raises(TypeError):
+        build_hessian(f_vector_out, np.array([0.2, 0.1]))
 
 
-def test_jacobian_shape_and_type_errors():
-    """Input validation: empty theta should raise; non-array-like output should error upstream."""
-    with pytest.raises(ValueError):
-        jacobian(lambda th: np.array([1.0, 2.0]), np.array([]))
-
-
-def test_jacobian_chain_rule_linear_wrapper():
-    """Test jacobian via chain rule with a linear wrapper function."""
-    mat = np.array([[1.0, -1.0],
-                  [0.5,  2.0]], dtype=float)
-    g = partial(f_chain_linear, mat=mat)
-    theta0 = np.array([0.2, -0.3], dtype=float)
-    jacg = jacobian(g, theta0, n_workers=1)
-    u0 = mat @ theta0
-    jacf = jacobian(f_base2, u0, n_workers=1)
-    jacg_theory = jacf @ mat
-    assert np.allclose(jacg, jacg_theory, atol=8e-5, rtol=5e-6)
-
-
-def test_jacobian_raises_on_nonfinite_output():
-    """Test jacobian raises on non-finite output components."""
+def test_hessian_raises_on_nonfinite_output():
+    """Check that the Hessian function raises on non-finite output."""
     with pytest.raises((FloatingPointError, ValueError)):
-        jacobian(f_nonfinite, np.array([1.0, 2.0]))
+        build_hessian(f_nonfinite, np.array([0.0, 1.0]))
 
 
-def test_jacobian_does_not_modify_input():
-    """Test jacobian does not modify input theta0."""
-    theta0 = np.array([0.1, 0.2], dtype=float)
-    theta_copy = theta0.copy()
-    _ = jacobian(f_sum2, theta0, n_workers=1)
-    assert np.array_equal(theta0, theta_copy)
-
-
-def test_jacobian_accepts_list_and_row_vector():
-    """Test jacobian accepts list and row-vector inputs."""
-    jac1 = jacobian(f_plus_minus, [0.3, -0.7])
-    jac2 = jacobian(f_plus_minus, np.array([[0.3, -0.7]]))
-    assert jac1.shape == (2, 2)
-    assert np.allclose(jac1, jac2)
+def test_hessian_input_validation_empty_theta():
+    """Input validation: empty theta should raise."""
+    with pytest.raises(ValueError):
+        build_hessian(f_sum_squares, np.array([]))
