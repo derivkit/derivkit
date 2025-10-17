@@ -142,3 +142,57 @@ def test_nworkers_edge_values_behave_serial():
     for n in (0, None, -3):
         F_edge = le.get_forecast_tensors(1, n_workers=n)
         np.testing.assert_allclose(F_serial, F_edge, rtol=0, atol=1e-12)
+
+
+def test_parallel_is_deterministic_across_runs_order1(extra_threads_ok):
+    """Test that order-1 tensors are stable across repeated parallel runs."""
+    if not extra_threads_ok:
+        pytest.skip("no extra threads available")
+    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 1.0, 32), np.eye(3))
+    y_a = le.get_forecast_tensors(1, n_workers=3)
+    y_b = le.get_forecast_tensors(1, n_workers=3)
+    np.testing.assert_allclose(y_a, y_b, rtol=0, atol=0)
+
+
+def test_parallel_matches_serial_for_prime_length(extra_threads_ok):
+    """Test that prime-length workloads still match serial results."""
+    if not extra_threads_ok:
+        pytest.skip("no extra threads available")
+    n = 97  # prime to stress uneven splits
+    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 5.0, n), np.eye(3))
+    y_serial = le.get_forecast_tensors(1, n_workers=1)
+    y_par = le.get_forecast_tensors(1, n_workers=4)
+    np.testing.assert_allclose(y_par, y_serial, rtol=0, atol=0)
+
+
+def test_parallel_caps_or_handles_too_many_workers(extra_threads_ok):
+    """Requesting more workers than CPUs should still behave correctly."""
+    if not extra_threads_ok:
+        pytest.skip("no extra threads available")
+    n_cpu = os.cpu_count() or 1
+    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 2.0, 21), np.eye(3))
+    y_serial = le.get_forecast_tensors(1, n_workers=1)
+    y_par = le.get_forecast_tensors(1, n_workers=n_cpu * 4)  # intentionally large
+    np.testing.assert_allclose(y_par, y_serial, rtol=0, atol=0)
+
+
+def test_parallel_is_deterministic_across_runs_order2(extra_threads_ok):
+    """Order-2 tensors are stable across repeated parallel runs."""
+    if not extra_threads_ok:
+        pytest.skip("no extra threads available")
+    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 1.0, 16), np.eye(3))
+    g1, h1 = le.get_forecast_tensors(2, n_workers=2)
+    g2, h2 = le.get_forecast_tensors(2, n_workers=2)
+    np.testing.assert_allclose(g1, g2, rtol=0, atol=0)
+    np.testing.assert_allclose(h1, h2, rtol=0, atol=0)
+
+
+def test_parallel_preserves_order_with_prime_length_order2(extra_threads_ok):
+    """Order-2: prime-length workload still preserves derivative ordering."""
+    if not extra_threads_ok:
+        pytest.skip("no extra threads available")
+    n = 59
+    le = LikelihoodExpansion(observables_fn_indexed, np.ones(n), np.eye(1))
+    d2_serial = le._get_derivatives(order=2, n_workers=1)
+    d2_par = le._get_derivatives(order=2, n_workers=3)
+    np.testing.assert_allclose(d2_serial, d2_par, rtol=0, atol=0)
