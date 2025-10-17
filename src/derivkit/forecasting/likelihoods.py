@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import multivariate_normal, poisson
 
 
-def build_gaussian(
+def build_gaussian_likelihood(
     data: np.ndarray,
     model_parameters: np.ndarray,
     cov: np.ndarray,
