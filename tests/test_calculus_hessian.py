@@ -113,9 +113,11 @@ def test_hessian_matches_numeric_reference_on_cubic2d():
     assert np.allclose(h, h_ref, atol=5e-5, rtol=5e-6)
 
 
-def test_hessian_workers_invariance():
-    """Hessian is invariant to worker count."""
+def test_hessian_workers_invariance(extra_threads_ok):
+    """Check that the Hessian is invariant to the number of workers."""
     x0 = np.array([0.25, -0.15], dtype=float)
+    if not extra_threads_ok:
+        pytest.skip("cannot spawn extra threads here")
     h1 = build_hessian(f_cubic2d, x0, n_workers=1)
     h2 = build_hessian(f_cubic2d, x0, n_workers=3)
     assert h1.shape == h2.shape == (2, 2)
