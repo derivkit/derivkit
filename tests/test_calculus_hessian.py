@@ -160,7 +160,7 @@ def test_hessian_raises_on_nonfinite_output():
 
 
 def test_hessian_input_validation_empty_theta():
-    """Empty theta should raise."""
+    """Raises on empty theta input."""
     with pytest.raises(ValueError):
         f_ss_1 = make_sum_squares(1)
         build_hessian(f_ss_1, np.array([]))
