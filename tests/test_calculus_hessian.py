@@ -48,9 +48,9 @@ def f_cubic2d(theta):
     return x**2 + 3.0 * x * y + 2.0 * y**3
 
 
-def rng_seed42(seed=42):
-    """Get a random number generator with a fixed seed for reproducibility."""
-    return np.random.default_rng(seed=seed)
+def rng_seed42():
+    """Get a random number generator with a fixed seed (42) for reproducibility."""
+    return np.random.default_rng(seed=42)
 
 
 def num_hessian(f, theta, eps=1e-5):
