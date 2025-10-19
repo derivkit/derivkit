@@ -9,7 +9,11 @@ __all__ = ["extra_threads_ok"]
 
 @pytest.fixture(scope="session")
 def threads_ok():
-    """Return a callable: threads_ok(n) -> True iff we can start >= n threads."""
+    """Return a callable that checks thread-spawning capability.
+
+    The returned function has signature `check(n=2, timeout=1.0) -> bool` and
+    returns True if at least `n` threads can be started and joined within `timeout`.
+    """
     def _can_spawn(n: int = 2, timeout: float = 1.0) -> bool:
         try:
             with ThreadPoolExecutor(max_workers=n) as ex:

@@ -28,14 +28,24 @@ def cpu_heavy(x: float) -> float:
 
 
 @pytest.mark.slow
-def test_eval_function_batch_parallel_is_faster_and_equal(extra_threads_ok):
+def test_eval_function_batch_parallel_is_faster_and_equal(extra_threads_ok, threads_ok):
     """eval_function_batch should be faster with multiple workers and give identical results."""
     if not extra_threads_ok:
         pytest.skip("cannot spawn extra threads in this environment")
 
-    # Fixture guarantees >1 worker possible; size workers from CPU count.
+    # Fixture guarantees we can spawn at least some extra threads, but not necessarily 4.
+    # Choose the highest k ≤ preferred that we can actually spawn.
     n_cpu = os.cpu_count() or 2
-    n_workers = min(4, max(2, n_cpu // 2))
+    preferred = min(4, max(2, n_cpu // 2))
+
+    # choose highest feasible worker count ≤ preferred
+    for k in range(preferred, 1, -1):
+        if threads_ok(k):
+            n_workers = k
+            break
+    else:
+        pytest.skip("cannot spawn >=2 threads despite extra_threads_ok")
+
     assert n_workers >= 2
 
     # Make xs large enough to amortize Pool overhead and pass your internal threshold
