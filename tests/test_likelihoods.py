@@ -172,7 +172,7 @@ def test_gaussian_likelihood():
   ]
 )
 
-def test_poissonian_likelihood_negative_parameters(
+def test_poissonian_likelihood_output(
     input_data,
     input_parameters,
     expected_output_data,
@@ -202,7 +202,7 @@ def test_poissonian_likelihood_negative_parameters(
     ([[1, 2, 3], [4, 5, 6]], [[0.1, 0.2, 0.3], [0.4, np.nan, 0.6]]),
   ]
 )
-def test_poissonian_likelihood_incompatible_shapes(test_data, test_parameters):
+def test_poissonian_likelihood_negative_parameters(test_data, test_parameters):
     """Tests negative parameter value exception triggers."""
     with pytest.raises(ValueError):
         dkl.build_poissonian_likelihood(test_data, test_parameters)
@@ -215,7 +215,7 @@ def test_poissonian_likelihood_incompatible_shapes(test_data, test_parameters):
     ([1, 2, 3, 4, 5], [1, 2]),
   ]
 )
-def test_poissonian_likelihood_raises(test_data, test_parameters):
+def test_poissonian_likelihood_incompatible_shapes(test_data, test_parameters):
     """Tests build_poissonian_likelihood shape mismatch exception triggers."""
     with pytest.raises(ValueError):
         dkl.build_poissonian_likelihood(test_data, test_parameters)
