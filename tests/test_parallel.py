@@ -214,7 +214,13 @@ def test_parallel_is_deterministic_across_runs_order2(extra_threads_ok):
 
 
 def test_parallel_preserves_order_with_prime_length_order2(extra_threads_ok):
-    """Order-2: prime-length workload still preserves derivative ordering."""
+    """Verify derivative ordering is preserved even with uneven parallel splits (order=2).
+
+    Using a prime-length input guarantees the workload cannot be divided evenly among
+    worker threads. This stresses the chunking/merge logic for second-order derivatives
+    (which involve cross-terms and more complex indexing) and ensures that stitching
+    results back together does not permute or misalign derivative entries.
+    """
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
     n = 59
