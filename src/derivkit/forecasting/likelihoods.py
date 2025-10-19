@@ -241,7 +241,7 @@ def build_poissonian_likelihood(
         raise ValueError("values of model_parameters must be non-negative.")
 
     try:
-        number_events = values_to_reshape.reshape(-1, *parameters.shape[-2:])
+        counts = values_to_reshape.reshape(-1, *parameters.shape[-2:])
     except ValueError:
         raise ValueError(
             "data cannot be reshaped to align with model_parameters: "
@@ -249,7 +249,7 @@ def build_poissonian_likelihood(
             f"model_parameters.shape={parameters.shape}."
         )
 
-    return number_events, poisson.pmf(number_events, parameters)
+    return counts, poisson.pmf(counts, parameters)
 
 
 def binomial(*args, **kwargs):
