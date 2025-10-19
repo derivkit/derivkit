@@ -33,11 +33,10 @@ def test_eval_function_batch_parallel_is_faster_and_equal(extra_threads_ok):
     if not extra_threads_ok:
         pytest.skip("cannot spawn extra threads in this environment")
 
-    n_cpu = os.cpu_count() or 1
-    if n_cpu < 2:
-        pytest.skip("only 1 CPU available; skip parallel speed check.")
-
+    # Fixture guarantees >1 worker possible; size workers from CPU count.
+    n_cpu = os.cpu_count() or 2
     n_workers = min(4, max(2, n_cpu // 2))
+    assert n_workers >= 2
 
     # Make xs large enough to amortize Pool overhead and pass your internal threshold
     # Internal threshold is: xs.size >= max(8, 2*n_workers)
