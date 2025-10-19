@@ -107,14 +107,21 @@ def test_incorrect_output_shape_raises():
     else:
         assert False, "Expected a ValueError for incorrect output shape"
 
-def test_large_workload_parallel_execution(extra_threads_ok):
+
+def test_large_workload_parallel_execution(extra_threads_ok, threads_ok):
     """Large workloads should execute in parallel."""
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
-    n_cpu = os.cpu_count() or 1
-    if n_cpu < 2:
-        pytest.skip("only 1 CPU available")
-    n_workers = min(8, max(2, n_cpu // 2))
+
+    # Pick the highest feasible worker count up to a sensible cap.
+    n_cpu = os.cpu_count() or 2
+    preferred = min(8, max(2, n_cpu // 2))
+    for k in range(preferred, 1, -1):
+        if threads_ok(k):
+            n_workers = k
+            break
+    else:
+        pytest.skip("cannot spawn >=2 threads despite extra_threads_ok")
 
     le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 10.0, 100), np.eye(3))
     F = le.get_forecast_tensors(1, n_workers=n_workers)
@@ -127,7 +134,6 @@ def test_large_workload_parallel_execution(extra_threads_ok):
     assert np.all(np.isfinite(F))
     assert np.all(np.isfinite(G))
     assert np.all(np.isfinite(H))
-
 
 
 def observables_fn2(theta):
