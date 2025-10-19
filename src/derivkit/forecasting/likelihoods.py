@@ -27,7 +27,7 @@ def build_gaussian_likelihood(
         ``np.ndarray``: an array containing the coordinate grids constructed
             from the data.
         ``np.ndarray``: an array containing the values of the Gaussian
-            likelihood function on the coodinate grid.
+            likelihood function on the coordinate grid.
 
     Raises:
         ValueError: raised if
