@@ -171,14 +171,29 @@ def test_parallel_matches_serial_for_prime_length(extra_threads_ok):
     np.testing.assert_allclose(y_par, y_serial, rtol=0, atol=0)
 
 
-def test_parallel_caps_or_handles_too_many_workers(extra_threads_ok):
+def test_parallel_caps_or_handles_too_many_workers(extra_threads_ok, threads_ok):
     """Requesting more workers than CPUs should still behave correctly."""
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
-    n_cpu = os.cpu_count() or 1
+
+    n_cpu = os.cpu_count() or 2
+    cap = min(8, max(2, n_cpu // 2))
+
+    # pick the highest feasible k ≤ cap
+    for k in range(cap, 1, -1):
+        if threads_ok(k):
+            n_workers = k
+            break
+    else:
+        pytest.skip("cannot spawn >=2 threads despite extra_threads_ok")
+
+    # Request far more than feasible to ensure capping/handling kicks in
+    excessive_workers = max(n_workers * 4, n_workers + 1)
+
     le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 2.0, 21), np.eye(3))
     y_serial = le.get_forecast_tensors(1, n_workers=1)
-    y_par = le.get_forecast_tensors(1, n_workers=n_cpu * 4)  # intentionally large
+    y_par = le.get_forecast_tensors(1, n_workers=excessive_workers)
+
     np.testing.assert_allclose(y_par, y_serial, rtol=0, atol=0)
 
 
