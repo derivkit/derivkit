@@ -161,14 +161,13 @@ def test_jacobian_single_output_vector_len1():
     assert np.allclose(jac, jac_true, atol=1e-6, rtol=1e-6)
 
 
-def test_jacobian_workers_invariance():
+def test_jacobian_workers_invariance(extra_threads_ok):
     """The resulting jacobian should not depend on the number of worker threads."""
     theta0 = np.array([0.4, -0.2], dtype=float)
+    if not extra_threads_ok:
+        pytest.skip("cannot spawn extra threads here")
     base = build_jacobian(f_analytic_2d, theta0, n_workers=1)
-    try:
-        alt = build_jacobian(f_analytic_2d, theta0, n_workers=2)
-    except Exception as e:
-        pytest.skip(f"cannot spawn extra threads here: {e}")
+    alt = build_jacobian(f_analytic_2d, theta0, n_workers=2)
     assert base.shape == alt.shape == (3, 2)
     assert np.allclose(base, alt, atol=2e-6, rtol=2e-6)
 

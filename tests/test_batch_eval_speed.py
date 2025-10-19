@@ -28,25 +28,32 @@ def cpu_heavy(x: float) -> float:
 
 
 @pytest.mark.slow
-def test_eval_function_batch_parallel_is_faster_and_equal():
-    """Test that eval_function_batch with multiple workers is faster than serial.
+def test_eval_function_batch_parallel_is_faster_and_equal(extra_threads_ok, threads_ok):
+    """eval_function_batch should be faster with multiple workers and give identical results."""
+    if not extra_threads_ok:
+        pytest.skip("cannot spawn extra threads in this environment")
 
-    Also verify the numerical results are identical across modes.
-    """
-    # Determine number of CPUs; skip test if only 1 CPU
-    n_cpu = os.cpu_count() or 1
-    if n_cpu < 2:
-        pytest.skip("Only 1 CPU available; skip parallel speed check.")
+    # Fixture guarantees we can spawn at least some extra threads, but not necessarily 4.
+    # Choose the highest k ≤ preferred that we can actually spawn.
+    n_cpu = os.cpu_count() or 2
+    preferred = min(4, max(2, n_cpu // 2))
 
-    # Choose a sensible worker count
-    n_workers = min(4, max(2, n_cpu // 2))
+    # choose highest feasible worker count ≤ preferred
+    for k in range(preferred, 1, -1):
+        if threads_ok(k):
+            n_workers = k
+            break
+    else:
+        pytest.skip("cannot spawn >=2 threads despite extra_threads_ok")
+
+    assert n_workers >= 2
 
     # Make xs large enough to amortize Pool overhead and pass your internal threshold
     # Internal threshold is: xs.size >= max(8, 2*n_workers)
     # Use a generous multiple of that to ensure real parallel work.
     min_required = max(8, 2 * n_workers)
-    N = min_required * 40  # scale up to get a measurable speedup
-    xs = np.linspace(-1.0, 1.0, N)
+    num = min_required * 40  # scale up to get a measurable speedup
+    xs = np.linspace(-1.0, 1.0, num)
 
     # Warm-ups to JIT caches / fork overhead / first-call penalties
     _ = eval_function_batch(cpu_heavy, xs[:min_required], n_workers=1)
