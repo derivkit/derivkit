@@ -161,7 +161,12 @@ def test_parallel_is_deterministic_across_runs_order1(extra_threads_ok):
 
 
 def test_parallel_matches_serial_for_prime_length(extra_threads_ok):
-    """Test that prime-length workloads still match serial results."""
+    """Ensure parallel and serial results match even when workloads can't split evenly.
+
+    A prime-length input (97) guarantees that the data cannot be divided evenly
+    among worker threads, which stresses chunking logic and verifies that uneven
+    partitions do not alter numerical results.
+    """
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
     n = 97  # prime to stress uneven splits
