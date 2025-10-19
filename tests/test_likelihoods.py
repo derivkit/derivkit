@@ -192,9 +192,14 @@ def test_poissonian_likelihood_negative_parameters(
   "test_data, test_parameters",
   [
     (1, -1),
+    (1, np.inf),
+    (1, np.nan),
+    ([1, 2, 3], [0.1, 0.2, np.inf]),
+    ([1, 2, 3], [0.1, 0.2, np.nan]),
     ([1, 2, 3], [0.1, 0.2, -1.2]),
     ([[1, 2, 3], [4, 5, 6]], -1),
     ([[1, 2, 3], [4, 5, 6]], [[0.1, 0.2, 0.3], [0.4, -0.1, 0.6]]),
+    ([[1, 2, 3], [4, 5, 6]], [[0.1, 0.2, 0.3], [0.4, np.nan, 0.6]]),
   ]
 )
 def test_poissonian_likelihood_incompatible_shapes(test_data, test_parameters):

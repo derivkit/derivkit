@@ -126,14 +126,15 @@ def build_poissonian_likelihood(
 
     Returns:
         A tuple of arrays containing (in order):
-            
+
             - the data, reshaped to align with the model parameters.
             - the values of the Poissonian probability mass function computed
               from the data and model parameters.
 
     Raises:
-        ValueError: If any of the model_parameters are negative, or the data
-            points cannot be reshaped to align with model_parameters.
+        ValueError: If any of the model_parameters are negative or non-finite,
+            or the data points cannot be reshaped to align with
+            model_parameters.
 
     Examples:
         The Poissonian probability of 2 events, given that the mean is
@@ -239,6 +240,8 @@ def build_poissonian_likelihood(
 
     if np.any(parameters < 0):
         raise ValueError("values of model_parameters must be non-negative.")
+    if np.any(~np.isfinite(parameters)):
+        raise ValueError("values of model_parameters must be finite.")
 
     try:
         counts = values_to_reshape.reshape(-1, *parameters.shape[-2:])
