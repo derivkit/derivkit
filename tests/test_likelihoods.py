@@ -79,7 +79,7 @@ def test_gaussian_likelihood_asymmetry_handling():
         dkl.build_gaussian_likelihood(data, mu, a_large)
 
 def test_gaussian_likelihood_output_types():
-    """Test that build_gaussian_likelihood returns correct types."""
+    """Tests that build_gaussian_likelihood returns correct types."""
     data = np.array([[1, 2, 3], [4, 3, 1]])
     model_parameters = np.array([1, 2])
     cov = np.eye(2)
