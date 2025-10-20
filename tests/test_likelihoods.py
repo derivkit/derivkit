@@ -68,8 +68,8 @@ def test_gaussian_likelihood_asymmetry_handling():
     data = np.array([[-1.0, 0.0, 1.0], [3.5, 4.0, 4.5]])
     mu = np.array([0.0, 4.0])
 
-    # Allow only machine-precision asymmetry: we symmetrize 1\2(A + A.T) and
-    # accept covariances that are symmetric up to ~1e-12; larger mismatches raise.
+    # Allow only machine-precision asymmetry: we enforce symmetry via 0.5*(A + A.T)
+    # to remove numerical noise; larger mismatches (>~1e-12) raise.
     a_tiny = np.array([[1.0, 1e-14], [0.0, 2.0]])
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, a_tiny)
     assert np.isfinite(pdf).all()
