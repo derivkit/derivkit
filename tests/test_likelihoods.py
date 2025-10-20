@@ -52,7 +52,7 @@ def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
     assert np.isfinite(pdf).all()
 
 def test_gaussian_likelihood_cov_nonfinite_raises():
-    """Test that non-finite covariance inputs raise ValueError."""
+    """Tests that non-finite covariance inputs raise ValueError."""
     data = np.array([[0.0, 1.0]])
     mu = np.array([0.0])
 
