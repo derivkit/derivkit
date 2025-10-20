@@ -8,7 +8,7 @@ import derivkit.forecasting.likelihoods as dkl
 
 
 def test_gaussian_likelihood_basic_shape_checks():
-    """Check that build_gaussian_likelihood raises exceptions for bad input shapes."""
+    """Checks that build_gaussian_likelihood raises exceptions for bad input shapes."""
     # Check that 3D data raises a ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1, 1))
