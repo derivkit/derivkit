@@ -28,8 +28,12 @@ def build_gaussian_likelihood(
 
     Returns:
         A tuple:
-          - coordinate_grids: tuple of ndarrays from meshgrid (one per axis).
-          - pdf: ndarray of the Gaussian PDF evaluated on the grid.
+          - coordinate_grids: tuple of 1D arrays giving the evaluation coordinates
+            for each dimension (one array per dimension), ordered consistently with
+            the first axis of ``data``.
+          - probability_density: ndarray with the values of the multivariate
+            Gaussian probability density function evaluated on the Cartesian
+            product of those coordinates.
 
     Raises:
         ValueError: raised if
@@ -55,8 +59,11 @@ def build_gaussian_likelihood(
             >>> data = np.asarray((np.linspace(-10, 10, 30), np.linspace(3, 6, 30)))
             >>> model_parameters = np.array([0.0, 4.0])
             >>> cov = np.array([[1.0, 0.2], [0.2, 0.3]])
-            >>> grid, pdf = build_gaussian_likelihood(data, model_parameters, cov)
-            >>> plt.contour(*grid, pdf)  # doctest: +SKIP
+            # Build coordinate arrays and evaluate the probability density on their
+            # Cartesian product. The indexing ensures the coordinate order matches
+            # the order in ``data``.
+            >>> grid, probability_density = build_gaussian_likelihood(data, model_parameters, cov)
+            >>> plt.contour(*grid, probability_density)  # doctest: +SKIP
     """
     # The data is expected to be 2D. However, 1D is allowed, since it can be
     # embedded in a 2D space.
