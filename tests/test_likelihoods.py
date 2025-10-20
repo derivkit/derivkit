@@ -9,21 +9,21 @@ import derivkit.forecasting.likelihoods as dkl
 
 def test_gaussian_likelihood_basic_shape_checks():
     """Check that build_gaussian_likelihood raises exceptions for bad input shapes."""
-    # 3D data -> ValueError
+    # Check that 3D data raises a ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1, 1))
         model_parameter = np.ones(1)
         cov = np.ones((1, 1))
         dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # 2D model_parameter -> ValueError
+    # Check that 2D model parameters raise a ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1))
         model_parameter = np.ones((1, 2))
         cov = np.ones((1, 1))
         dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # model_parameter.size must match axis 0 of data
+    # Check that mismatched data and parameter sizes raise a ValueError
     with pytest.raises(ValueError):
         data = np.ones((2, 1))
         model_parameter = np.ones(1)
