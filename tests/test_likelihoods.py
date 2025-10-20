@@ -74,7 +74,6 @@ def test_gaussian_likelihood_asymmetry_handling():
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, a_tiny)
     assert np.isfinite(pdf).all()
 
-    # larger asymmetry -> ValueError
     a_large = np.array([[1.0, 1e-6], [0.0, 1.0]])
     with pytest.raises(ValueError, match="too asymmetric"):
         dkl.build_gaussian_likelihood(data, mu, a_large)
