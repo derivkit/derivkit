@@ -64,7 +64,7 @@ def test_gaussian_likelihood_cov_nonfinite_raises():
 
 
 def test_gaussian_likelihood_asymmetry_handling():
-    """Test that build_gaussian_likelihood handles asymmetric covariances correctly."""
+    """Tests that build_gaussian_likelihood handles asymmetric covariances correctly."""
     data = np.array([[-1.0, 0.0, 1.0], [3.5, 4.0, 4.5]])
     mu = np.array([0.0, 4.0])
 
