@@ -68,6 +68,8 @@ def build_gaussian_likelihood(
     # The data is expected to be 2D. However, 1D is allowed, since it can be
     # embedded in a 2D space.
     _data = np.array(data, dtype=float, copy=True)
+    if not np.isfinite(_data).all():
+        raise ValueError("data contain non-finite values.")
     if _data.ndim == 1:
         _data = _data[np.newaxis, :]
     elif _data.ndim > 2:
@@ -83,12 +85,17 @@ def build_gaussian_likelihood(
     model_parameters = model_parameters.ravel()
     if not np.isfinite(model_parameters).all():
         raise ValueError("model_parameters contain non-finite values.")
+
     number_model_parameters = model_parameters.size
     if number_samples != number_model_parameters:
         raise ValueError(
             "There must be as many model parameters as there are samples of data. "
             f"(n_params={number_model_parameters}, n_samples={number_samples})"
         )
+
+    cov = np.asarray(cov, dtype=float)
+    if not np.isfinite(cov).all():
+        raise ValueError("cov contains non-finite values.")
 
     sigma = normalize_covariance(cov, n_parameters=number_model_parameters)
 
