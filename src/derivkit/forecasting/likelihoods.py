@@ -64,29 +64,25 @@ def build_gaussian_likelihood(
     if _data.ndim == 1:
         _data = _data[np.newaxis, :]
     elif _data.ndim > 2:
-        raise ValueError(f"data must be a scalar or a 1D or 2D array, but is a {_data.ndim}D array.")
+        raise ValueError(f"data must be a scalar, 1D or 2D array, but is a {_data.ndim}D array.")
 
-    # Validate for correct shapes
     number_samples = _data.shape[0]
-
-    # Validate model parameters
-    model_parameters = np.asarray(model_parameters, dtype=float).ravel()
-    number_model_parameters = model_parameters.shape[0]
+    model_parameters = np.asarray(model_parameters, dtype=float)
     if model_parameters.ndim != 1:
         raise ValueError(
             "model_parameters must be a 1D array, "
             f"but is a {model_parameters.ndim}D array."
         )
-    if number_samples != number_model_parameters:
-        raise ValueError(
-            "There must be as many model parameters as there are samples of data."
-            f" Number of model parameters: {number_model_parameters}. "
-            f"Types of data: {number_samples}."
-        )
+    model_parameters = model_parameters.ravel()
     if not np.isfinite(model_parameters).all():
         raise ValueError("model_parameters contain non-finite values.")
+    number_model_parameters = model_parameters.size
+    if number_samples != number_model_parameters:
+        raise ValueError(
+            "There must be as many model parameters as there are samples of data. "
+            f"(n_params={number_model_parameters}, n_samples={number_samples})"
+        )
 
-    # Here we validate and normalize the covariance matrix
     sigma = normalize_covariance(cov, n_parameters=number_model_parameters)
 
     # The data are coordinate vectors, which have to be extended into a
