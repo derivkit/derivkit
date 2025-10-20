@@ -33,21 +33,20 @@ def test_gaussian_likelihood_basic_shape_checks():
 
 def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
     """Test that build_gaussian_likelihood works for scalar, diag, and full covariances."""
-    # simple 2D grid
     data = np.array([[1.0, 2.0, 3.0], [4.0, 3.0, 1.0]])
     mu = np.array([1.0, 2.0])
 
-    # scalar cov -> interprets as sigma^2 * I
+    # A scalar covariance should be interpreted as σ² times the identity matrix
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, 2.0)
     assert isinstance(grids, tuple) and len(grids) == 2
     assert pdf.shape == (data.shape[1], data.shape[1])
     assert np.isfinite(pdf).all()
 
-    # 1D diag vector
+    # A 1D vector should be treated as a diagonal covariance
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, np.array([1.0, 0.5]))
     assert np.isfinite(pdf).all()
 
-    # full 2D
+    # A full 2D covariance matrix should be handled directly
     cov = np.array([[1.0, 0.2], [0.2, 0.5]])
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, cov)
     assert np.isfinite(pdf).all()
