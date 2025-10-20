@@ -32,7 +32,7 @@ def test_gaussian_likelihood_basic_shape_checks():
 
 
 def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
-    """Test that build_gaussian_likelihood works for scalar, diag, and full covariances."""
+    """Tests that build_gaussian_likelihood works for scalar, diag, and full covariances."""
     data = np.array([[1.0, 2.0, 3.0], [4.0, 3.0, 1.0]])
     mu = np.array([1.0, 2.0])
 
