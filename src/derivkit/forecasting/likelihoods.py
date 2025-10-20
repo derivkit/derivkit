@@ -64,7 +64,7 @@ def build_gaussian_likelihood(
     if _data.ndim == 1:
         _data = _data[np.newaxis, :]
     elif _data.ndim > 2:
-        raise ValueError(f"data must be a scalar, 1D or 2D array, but is a {_data.ndim}D array.")
+        raise ValueError(f"data must be a 1D or 2D array, but is a {_data.ndim}D array.")
 
     number_samples = _data.shape[0]
     model_parameters = np.asarray(model_parameters, dtype=float)
