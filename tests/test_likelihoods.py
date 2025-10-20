@@ -36,7 +36,7 @@ def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
     data = np.array([[1.0, 2.0, 3.0], [4.0, 3.0, 1.0]])
     mu = np.array([1.0, 2.0])
 
-    # A scalar covariance should be interpreted as σ² times the identity matrix
+    # A scalar covariance should be interpreted as a multiple of the identity matrix
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, 2.0)
     assert isinstance(grids, tuple) and len(grids) == 2
     assert pdf.shape == (data.shape[1], data.shape[1])
