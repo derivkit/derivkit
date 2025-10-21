@@ -6,7 +6,7 @@ import numpy as np
 
 from .spacing import resolve_spacing
 
-__all__ = ["make_offsets", "make_grid"]
+__all__ = ["make_offsets", "make_grid", "chebyshev_offsets"]
 
 
 def make_offsets(n_points: int, base: float, direction: str) -> np.ndarray:
@@ -53,7 +53,6 @@ def make_grid(
     *,
     n_points: int,
     spacing: str | float | np.ndarray,
-    direction: str,
     base_abs: float | None,
     need_min: int,
     use_physical_grid: bool,
@@ -65,7 +64,6 @@ def make_grid(
         n_points: number of points to generate (if not use_physical_grid)
         spacing: 'auto', '<pct>%', numeric > 0, or array of physical
                     sample points (if use_physical_grid)
-        direction: 'both', 'pos', or 'neg' (if not use_physical_grid)
         base_abs: absolute fallback (also used by 'auto'); if None, uses 1
         need_min: minimum number of points required (for validation)
         use_physical_grid: if True, spacing is an array of physical sample points
@@ -77,32 +75,52 @@ def make_grid(
       spacing_resolved: numeric spacing used (np.nan if physical grid given)
       direction_used: 'custom' if physical grid, else the input direction
     """
+    x0 = float(x0)
+
     if use_physical_grid:
         x = np.asarray(spacing, dtype=float)
         if x.ndim != 1:
-            raise ValueError(
-                "When use_physical_grid=True, spacing must be a 1D array of x-samples."
-            )
+            raise ValueError("When use_physical_grid=True, spacing must be a 1D array of x-samples.")
         if not np.all(np.isfinite(x)):
-            raise ValueError(
-                "samples (spacing array) contains non-finite values."
-            )
+            raise ValueError("Physical grid contains non-finite values.")
         if x.size < need_min:
-            raise ValueError(
-                f"samples must have at least {need_min} points for requested order."
-            )
-        t = x - float(x0)
-        return x, t, x.size, float("nan"), "custom"
+            raise ValueError(f"Physical grid must have at least {need_min} points for requested order.")
+        t = x - x0
+        return x, t, x.size, float("nan"), "physical"
 
-    # spacing is spec → resolve + make offsets
-    if direction not in {"both", "pos", "neg"}:
-        raise ValueError("direction must be 'both', 'pos', or 'neg'.")
+    # Chebyshev mode
     if n_points < need_min:
-        raise ValueError(
-            f"n_points must be >= {need_min} for requested order."
-        )
+        raise ValueError(f"n_points must be >= {need_min} for requested order.")
 
-    h = resolve_spacing(spacing, float(x0), base_abs)
-    t = make_offsets(n_points=n_points, base=h, direction=direction)
-    x = float(x0) + t
-    return x, t, x.size, float(h), direction
+    halfwidth = resolve_spacing(spacing, x0, base_abs)
+    t = chebyshev_offsets(halfwidth, n_points, include_center=True)
+    x = x0 + t
+    return x, t, x.size, float(halfwidth), "chebyshev"
+
+
+def chebyshev_offsets(halfwidth: float, n_points: int, include_center: bool = True) -> np.ndarray:
+    """Generate Chebyshev-distributed offsets within [-halfwidth, halfwidth].
+
+    This function generates `n_points` offsets based on the Chebyshev nodes,
+    which are distributed to minimize interpolation error. The offsets lie
+    within the interval `[-halfwidth, halfwidth]`. Optionally, the center point
+    `0.0` can be included in the offsets if it is not already present.
+
+    Args:
+        halfwidth: Half the width of the interval (>0).
+        n_points: Number of points to generate (>=1).
+        include_center: If True, include 0.0 in the offsets if not already present.
+                        Default is True.
+
+    Returns:
+        Array of offsets sorted in ascending order.
+    """
+    k = np.arange(1, n_points + 1)
+    u = np.cos((2*k - 1) * np.pi / (2 * n_points))  # (-1,1]
+    t = halfwidth * u
+    if include_center and 0.0 not in t:
+        t = np.sort(np.append(t, 0.0))
+    else:
+        t = np.sort(t)
+    return t
+
