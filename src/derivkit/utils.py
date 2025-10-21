@@ -13,6 +13,7 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 __all__ = [
     "log_debug_message",
@@ -24,6 +25,7 @@ __all__ = [
     "get_partial_function",
     "solve_or_pinv",
     "invert_covariance",
+    "normalize_covariance",
 ]
 
 
@@ -348,3 +350,63 @@ def invert_covariance(
     if inv.ndim != 2:
         inv = np.atleast_2d(inv)
     return inv
+
+
+def normalize_covariance(
+    cov: ArrayLike,
+    n_parameters: int,
+    *,
+    asym_atol: float = 1e-12,
+) -> NDArray[np.float64]:
+    """Return a canonicalized covariance matrix.
+
+    Accepts a scalar (0D), a diagonal variance vector (1D), or a full covariance
+    matrix (2D). Validates shapes and finiteness, symmetrizes full matrices,
+    and returns a 2D array of shape (k, k).
+
+    Args:
+        cov: Covariance (scalar, diagonal vector, or full 2D matrix).
+        n_parameters: Expected size of the covariance (number of parameters).
+        asym_atol: Absolute tolerance for symmetry check of full matrices.
+
+    Returns:
+        A 2D NumPy array containing the canonicalized covariance matrix.
+
+    Raises:
+        ValueError: If ``cov`` has invalid shape, contains non-finite values,
+            or is too asymmetric.
+    """
+    arr = np.asarray(cov, dtype=float)
+
+    # scalar
+    if arr.ndim == 0:
+        if not np.isfinite(arr):
+            raise ValueError("cov scalar must be finite.")
+        return np.eye(n_parameters, dtype=float) * float(arr)
+
+    # 1D diag
+    if arr.ndim == 1:
+        if arr.shape[0] != n_parameters:
+            raise ValueError(f"cov vector length {arr.shape[0]} != k={n_parameters}.")
+        if not np.all(np.isfinite(arr)):
+            raise ValueError("cov diagonal contains non-finite values.")
+        return np.diag(arr)
+
+    # 2D full
+    if arr.ndim == 2:
+        if arr.shape != (n_parameters, n_parameters):
+            raise ValueError(f"cov shape {arr.shape} != ({n_parameters},{n_parameters}).")
+        if not np.all(np.isfinite(arr)):
+            raise ValueError("cov matrix contains non-finite values.")
+        a = arr.astype(float, copy=False)
+        skew = a - a.T
+        fro = np.linalg.norm(a)
+        skew_fro = np.linalg.norm(skew)
+        thresh = asym_atol * (fro if fro > 0.0 else 1.0)
+        if skew_fro > thresh:
+            raise ValueError(
+                f"cov matrix too asymmetric (‖A-A^T‖_F={skew_fro:.2e} > {thresh:.2e})."
+            )
+        return 0.5 * (a + a.T)
+
+    raise ValueError("cov must be scalar, 1D diag vector, or 2D (k,k) matrix.")

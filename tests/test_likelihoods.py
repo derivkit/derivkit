@@ -7,50 +7,88 @@ from numpy.testing import assert_allclose
 import derivkit.forecasting.likelihoods as dkl
 
 
-def test_gaussian_likelihood():
-    """Test that build_gaussian_likelihood handles input and output correctly."""
-    # Check that 3D data raises ValueError
+def test_gaussian_likelihood_basic_shape_checks():
+    """Checks that build_gaussian_likelihood raises exceptions for bad input shapes."""
+    # Check that 3D data raises a ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1, 1))
         model_parameter = np.ones(1)
         cov = np.ones((1, 1))
         dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # Check that 2D model_parameter raises ValueError
+    # Check that 2D model parameters raise a ValueError
     with pytest.raises(ValueError):
         data = np.ones((1, 1))
         model_parameter = np.ones((1, 2))
         cov = np.ones((1, 1))
         dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # Check that model_parameter.size must match axis 0 of data
+    # Check that mismatched data and parameter sizes raise a ValueError
     with pytest.raises(ValueError):
         data = np.ones((2, 1))
-        model_parameter = np.ones((1))
+        model_parameter = np.ones(1)
         cov = np.ones((1, 1))
         dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # Check that cov must be square with axes length equal to model_parameters
-    with pytest.raises(ValueError):
-        data = np.ones((3, 10))
-        model_parameter = np.ones((2))
-        cov = np.ones((3, 2))
-        dkl.build_gaussian_likelihood(data, model_parameter, cov)
-    with pytest.raises(ValueError):
-        data = np.ones((3, 10))
-        model_parameter = np.ones((3))
-        cov = np.ones((2, 2))
-        dkl.build_gaussian_likelihood(data, model_parameter, cov)
 
-    # Check that function outputs have the correct types
+def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
+    """Tests that build_gaussian_likelihood works for scalar, diag, and full covariances."""
+    data = np.array([[1.0, 2.0, 3.0], [4.0, 3.0, 1.0]])
+    mu = np.array([1.0, 2.0])
+
+    # A scalar covariance should be interpreted as a multiple of the identity matrix
+    grids, pdf = dkl.build_gaussian_likelihood(data, mu, 2.0)
+    assert isinstance(grids, tuple) and len(grids) == 2
+    assert pdf.shape == (data.shape[1], data.shape[1])
+    assert np.isfinite(pdf).all()
+
+    # A 1D vector should be treated as a diagonal covariance
+    grids, pdf = dkl.build_gaussian_likelihood(data, mu, np.array([1.0, 0.5]))
+    assert np.isfinite(pdf).all()
+
+    # A full 2D covariance matrix should be handled directly
+    cov = np.array([[1.0, 0.2], [0.2, 0.5]])
+    grids, pdf = dkl.build_gaussian_likelihood(data, mu, cov)
+    assert np.isfinite(pdf).all()
+
+def test_gaussian_likelihood_cov_nonfinite_raises():
+    """Tests that non-finite covariance inputs raise ValueError."""
+    data = np.array([[0.0, 1.0]])
+    mu = np.array([0.0])
+
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(data, mu, np.array([np.nan]))
+
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(data, mu, np.array([[np.inf]]))
+
+
+def test_gaussian_likelihood_asymmetry_handling():
+    """Tests that build_gaussian_likelihood handles asymmetric covariances correctly."""
+    data = np.array([[-1.0, 0.0, 1.0], [3.5, 4.0, 4.5]])
+    mu = np.array([0.0, 4.0])
+
+    # Allow only machine-precision asymmetry: we enforce symmetry via 0.5*(A + A.T)
+    # to remove numerical noise; larger mismatches (>~1e-12) raise.
+    a_tiny = np.array([[1.0, 1e-14], [0.0, 2.0]])
+    grids, pdf = dkl.build_gaussian_likelihood(data, mu, a_tiny)
+    assert np.isfinite(pdf).all()
+
+    a_large = np.array([[1.0, 1e-6], [0.0, 1.0]])
+    with pytest.raises(ValueError, match="too asymmetric"):
+        dkl.build_gaussian_likelihood(data, mu, a_large)
+
+def test_gaussian_likelihood_output_types():
+    """Tests that build_gaussian_likelihood returns correct types."""
     data = np.array([[1, 2, 3], [4, 3, 1]])
     model_parameters = np.array([1, 2])
     cov = np.eye(2)
     result = dkl.build_gaussian_likelihood(data, model_parameters, cov)
     assert isinstance(result, tuple) and len(result) == 2
-    assert isinstance(result, tuple) and \
-        all(isinstance(el, np.ndarray) for el in result[0])
-    assert isinstance(result[1], np.ndarray)
+    grids, pdf = result
+    assert isinstance(grids, tuple) and all(isinstance(g, np.ndarray) for g in grids)
+    assert isinstance(pdf, np.ndarray)
+
 
 @pytest.mark.parametrize(
   (

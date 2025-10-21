@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 from scipy.stats import multivariate_normal, poisson
+
+from derivkit.utils import normalize_covariance
 
 
 def build_gaussian_likelihood(
-    data: np.ndarray,
-    model_parameters: np.ndarray,
-    cov: np.ndarray,
-    ) -> tuple[tuple[np.ndarray, ...], np.ndarray]:
+    data: ArrayLike,
+    model_parameters: ArrayLike,
+    cov: ArrayLike,
+    ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
     """Constructs the Gaussian likelihood function.
 
     Args:
@@ -19,73 +22,82 @@ def build_gaussian_likelihood(
             axis 1 represents the data values.
         model_parameters: a 1D array representing the theoretical values
             of the model parameters.
-        cov: the covariance matrix. Must be either a 1D or 2D array.
-            If a 1D array is supplied it must be reshapable to a 2D array
-            consistent with the length of model_parameters.
+        cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
+            or a full 2D covariance matrix. It will be normalized internally
+            to ensure compatibility with the data and model_parameters.
 
     Returns:
-        ``np.ndarray``: an array containing the coordinate grids constructed
-            from the data.
-        ``np.ndarray``: an array containing the values of the Gaussian
-            likelihood function on the coordinate grid.
+        A tuple:
+          - coordinate_grids: tuple of 1D arrays giving the evaluation coordinates
+            for each dimension (one array per dimension), ordered consistently with
+            the first axis of ``data``.
+          - probability_density: ndarray with the values of the multivariate
+            Gaussian probability density function evaluated on the Cartesian
+            product of those coordinates.
 
     Raises:
         ValueError: raised if
-
-            - data is not a 1D or 2D array,
-            - model_parameters is not a 1D array,
-            - the length of model_parameters is not equal to axis 1 of data,
-            - cov is a 1D array and cannot be reshaped as a 2D array compatible
-              with data and model_parameters.
-            - cov is not a 2D array compatible with data and model_parameters.
+            - data is not 1D or 2D,
+            - model_parameters is not 1D,
+            - the number of samples in data does not match the number of
+              model parameters,
+            - model_parameters contain non-finite values,
+            - cov cannot be normalized to a valid covariance matrix.
 
     Examples:
         A 1D Gaussian likelihood:
+            >>> import numpy as np
+            >>> import matplotlib.pyplot as plt
             >>> data = np.linspace(-10, 10, 100)[np.newaxis, :]
-            >>> model_parameters = np.array([1])
-            >>> cov = np.array([[2]])
-            >>> x, y = build_gaussian_likelihood(data, model_parameters, cov)
-            >>> plt.scatter(x, y)
+            >>> model_parameters = np.array([1.0])
+            >>> cov = np.array([[2.0]])
+            >>> x_grid, pdf = build_gaussian_likelihood(data, model_parameters, cov)
+            >>> plt.plot(x_grid[0], pdf[0])  # doctest: +SKIP
         A 2D Gaussian likelihood:
-            >>> data = np.asarray((
-            ...     np.linspace(-10, 10, 30),
-            ...     np.linspace(3, 6, 30),
-            ... ))
-            >>> model_parameters = np.array([0, 4])
-            >>> cov = np.array([[1, 0.2], [0.2, 0.3]])
-            >>> grid, pdf = build_gaussian_likelihood(data, model_parameters, cov)
-            >>> plt.contour(*grid, pdf)
+            >>> import numpy as np
+            >>> import matplotlib.pyplot as plt
+            >>> data = np.asarray((np.linspace(-10, 10, 30), np.linspace(3, 6, 30)))
+            >>> model_parameters = np.array([0.0, 4.0])
+            >>> cov = np.array([[1.0, 0.2], [0.2, 0.3]])
+            # Build coordinate arrays and evaluate the probability density on their
+            # Cartesian product. The indexing ensures the coordinate order matches
+            # the order in ``data``.
+            >>> grid, probability_density = build_gaussian_likelihood(data, model_parameters, cov)
+            >>> plt.contour(*grid, probability_density)  # doctest: +SKIP
     """
     # The data is expected to be 2D. However, 1D is allowed, since it can be
     # embedded in a 2D space.
-    _data = np.copy(data)
-    number_samples = _data.shape[0]
-    number_model_parameters = model_parameters.shape[0]
+    _data = np.array(data, dtype=float, copy=True)
+    if not np.isfinite(_data).all():
+        raise ValueError("data contain non-finite values.")
     if _data.ndim == 1:
-        _data = np.array([[*_data]])
+        _data = _data[np.newaxis, :]
     elif _data.ndim > 2:
-        raise ValueError(
-            f"data must be a 2D array, but is a {data.ndim}D array."
-        )
+        raise ValueError(f"data must be a 1D or 2D array, but is a {_data.ndim}D array.")
+
+    number_samples = _data.shape[0]
+    model_parameters = np.asarray(model_parameters, dtype=float)
     if model_parameters.ndim != 1:
         raise ValueError(
             "model_parameters must be a 1D array, "
             f"but is a {model_parameters.ndim}D array."
         )
+    model_parameters = model_parameters.ravel()
+    if not np.isfinite(model_parameters).all():
+        raise ValueError("model_parameters contain non-finite values.")
+
+    number_model_parameters = model_parameters.size
     if number_samples != number_model_parameters:
         raise ValueError(
-            "There must be as many model parameters as there are samples of data."
-            f" Number of model parameters: {number_model_parameters}. "
-            f"Types of data: {number_samples}."
+            "There must be as many model parameters as there are samples of data. "
+            f"(n_params={number_model_parameters}, n_samples={number_samples})"
         )
-    square_shape = (number_samples, number_model_parameters)
-    if cov.ndim == 1:
-        cov = cov.reshape(square_shape)
-    elif cov.shape != square_shape:
-        raise ValueError(
-            "cov must be a square 2D array of shape "
-            f"{square_shape}. Actual shape {cov.shape}."
-        )
+
+    cov = np.asarray(cov, dtype=float)
+    if not np.isfinite(cov).all():
+        raise ValueError("cov contains non-finite values.")
+
+    sigma = normalize_covariance(cov, n_parameters=number_model_parameters)
 
     # The data are coordinate vectors, which have to be extended into a
     # coordinate grid (meshgrid). The grids are then combined to give a
@@ -94,7 +106,7 @@ def build_gaussian_likelihood(
     # corresponds to the ordering of the original data.
     coordinate_grids = np.meshgrid(*_data, indexing="ij")
     coordinate_box = np.dstack(coordinate_grids)
-    distribution = multivariate_normal(mean=model_parameters, cov=cov)
+    distribution = multivariate_normal(mean=model_parameters, cov=sigma)
     return coordinate_grids, distribution.pdf(coordinate_box)
 
 
@@ -178,7 +190,7 @@ def build_poissonian_likelihood(
         >>> data = np.array([1, 2, 3, 4, 5, 6])
         >>> x, y = build_poissonian_likelihood(data, model_parameters)
         >>> print(x)
-        [[1 2 3 4 5 6]] 
+        [[1 2 3 4 5 6]]
         >>> print(y)
         [[9.04837418e-02 1.63746151e-02 3.33368199e-03 7.15008049e-04
           1.57950693e-04 3.55629940e-05]]
@@ -207,13 +219,13 @@ def build_poissonian_likelihood(
         >>> print(x)
         [[[ 1  2  3]
           [ 4  5  6]]
-        <BLANKLINE> 
+        <BLANKLINE>
          [[ 7  8  9]
           [10 11 12]]]
         >>> print(y)
          [[[9.04837418e-02 1.63746151e-02 3.33368199e-03]
           [7.15008049e-04 1.57950693e-04 3.55629940e-05]]
-        <BLANKLINE>  
+        <BLANKLINE>
          [[1.79531234e-11 5.19829050e-11 4.01827740e-11]
           [1.93695302e-11 7.41937101e-12 2.49402815e-12]]]
 
@@ -225,13 +237,13 @@ def build_poissonian_likelihood(
         >>> print(x)
         [[[ 1  2  3]
           [ 4  5  6]]
-        <BLANKLINE> 
+        <BLANKLINE>
          [[ 7  8  9]
-          [10 11 12]]] 
+          [10 11 12]]]
         >>> print(y)
          [[[9.04837418e-02 1.63746151e-02 3.33368199e-03]
           [7.15008049e-04 1.57950693e-04 3.55629940e-05]]
-        <BLANKLINE> 
+        <BLANKLINE>
          [[1.79531234e-11 5.19829050e-11 4.01827740e-11]
           [1.93695302e-11 7.41937101e-12 2.49402815e-12]]]
     """
