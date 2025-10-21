@@ -88,7 +88,7 @@ def scale_offsets(t: np.ndarray) -> tuple[np.ndarray, float]:
 
 
 def fit_multi_power(
-    u: np.ndarray, y: np.ndarray, deg: int
+    u: np.ndarray, y: np.ndarray, deg: int, ridge: float = 0.0
 ) -> tuple[np.ndarray, np.ndarray]:
     """Perform a least-squares polynomial fit in the power basis for multiple components.
 
@@ -98,6 +98,7 @@ def fit_multi_power(
         u: 1D array of scaled independent variable values (n_pts,).
         y: 2D array of dependent variable values (n_pts, n_comp).
         deg: Degree of polynomial to fit (integer, >= 0).
+        ridge: Optional ridge regularization parameter (default 0.0).
 
     Returns:
         C: Array of shape (deg+1, n_comp) with power-basis coefficients.
@@ -121,7 +122,13 @@ def fit_multi_power(
         raise ValueError("deg must be in [0, n_pts-1].")
 
     vander = np.vander(u, N=deg + 1, increasing=True)
-    coeffs, *_ = np.linalg.lstsq(vander, y, rcond=None)
+    u, s, vt = np.linalg.svd(vander, full_matrices=False)
+    if ridge and ridge > 0.0:
+        s_filtered = s / (s * s + ridge)
+    else:
+        s_filtered = np.where(s > 0, 1.0 / s, 0.0)
+    coeffs = (vt.T * s_filtered) @ (u.T @ y)
+
     res = y - vander @ coeffs
     rms = np.sqrt(np.mean(res * res, axis=0))
     yc = y - np.mean(y, axis=0, keepdims=True)

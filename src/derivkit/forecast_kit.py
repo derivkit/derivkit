@@ -68,7 +68,7 @@ class ForecastKit:
                  data_without: np.ndarray,
                  ):
         """Return the delta_nu vector with shape (N,) with N being the number of observables."""
-        return self._lx.compute_delta_nu(
+        return self._lx.build_delta_nu(
             data_with=data_with,
             data_without=data_without
         )
