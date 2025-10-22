@@ -20,7 +20,6 @@ def cpu_heavy(x: float) -> float:
     """
     # deterministic CPU burn; avoid numpy (keeps work in Python)
     s = 0.0
-    # ~O(1e5) ops: tune if your CI is too slow/fast
     for k in range(80_000):
         y = x + (k * 1e-7)
         s += (y - math.sin(y)) * (y - math.cos(y))

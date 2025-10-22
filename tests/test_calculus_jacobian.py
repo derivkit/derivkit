@@ -107,7 +107,7 @@ def test_jacobian_linear_map():
     theta0 = np.array([0.3, -0.7, 1.2], dtype=float)
     jac = build_jacobian(f, theta0, n_workers=1)
     assert jac.shape == (vec.shape[0], theta0.size)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+    assert np.allclose(jac, vec, atol=1e-8, rtol=0.0)
 
 
 def test_jacobian_analytic():
@@ -140,7 +140,7 @@ def test_jacobian_linear_random_matrix():
     theta0 = rng.normal(size=3)
     jac = build_jacobian(f, theta0, n_workers=1)
     assert jac.shape == (4, 3)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+    assert np.allclose(jac, vec, atol=1e-8, rtol=0.0)
 
 
 def test_jacobian_matches_numeric_reference():

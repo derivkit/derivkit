@@ -180,21 +180,21 @@ class LikelihoodExpansion:
         inner_workers = 1 if n_workers > 1 else 1  # keep inner serial; safest
 
         if order == 1:
-            first_order_derivatives = np.zeros(
-                (self.n_parameters, self.n_observables), dtype=float
+            # Build Jacobian once (shape expected (n_observables, n_parameters)),
+            # then return as (n_parameters, n_observables) for downstream einsum.
+            j_raw = np.asarray(
+                build_jacobian(self.function, self.theta0, n_workers=inner_workers),
+                dtype=float,
             )
-
-            def compute_m(m: int) -> np.ndarray:
-                theta0_x = deepcopy(self.theta0)
-                f_to_diff = get_partial_function(self.function, m, theta0_x)
-                kit = DerivativeKit(f_to_diff, self.theta0[m])
-                # still pass n_workers through to adaptive (it can batch-eval)
-                return kit.adaptive.differentiate(order=1, n_workers=inner_workers)
-
-            results = self._map_threads(compute_m, range(self.n_parameters), n_workers)
-            for m, val in enumerate(results):
-                first_order_derivatives[m] = val
-            return first_order_derivatives
+            if j_raw.shape == (self.n_observables, self.n_parameters):
+                return j_raw.T
+            if j_raw.shape == (self.n_parameters, self.n_observables):
+                return j_raw
+            raise ValueError(
+                f"build_jacobian returned unexpected shape {j_raw.shape}; "
+                f"expected ({self.n_observables},{self.n_parameters}) or "
+                f"({self.n_parameters},{self.n_observables})."
+            )
 
         elif order == 2:
             second_order_derivatives = np.zeros(
@@ -276,6 +276,7 @@ class LikelihoodExpansion:
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
 
+
     def build_fisher_bias(
             self,
             fisher_matrix: NDArray[np.floating],
@@ -319,19 +320,45 @@ class LikelihoodExpansion:
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-        # Jacobian matrix has shape (n, p)
-        j_matrix = build_jacobian(self.function, self.theta0, n_workers=n_workers)
-        n_obs, n_params = j_matrix.shape
+        # Jacobian — ensure shape is (n_obs, n_params)
+        j_raw = np.asarray(
+            build_jacobian(self.function, self.theta0, n_workers=n_workers),
+            dtype=float,
+        )
+        n_obs = self.n_observables
+        n_params = self.n_parameters
 
-        # Check shapes of the covariance and Fisher matrices against the Jacobian
-        if self.cov.shape != (n_obs, n_obs):
+        candidates = []
+        if j_raw.shape == (n_obs, n_params):
+            candidates.append(j_raw)
+        if j_raw.shape == (n_params, n_obs):
+            candidates.append(j_raw.T)
+        if not candidates:
             raise ValueError(
-                f"covariance shape {self.cov.shape} must be (n, n) = {(n_obs, n_obs)} from the Jacobian."
+                f"build_jacobian returned unexpected shape {j_raw.shape}; "
+                f"expected (n_obs, n_params)=({n_obs},{n_params}) or its transpose."
             )
-        if fisher_matrix.shape != (n_params, n_params):
+
+        j_matrix = candidates[0]
+        if self.cov.shape != (j_matrix.shape[0], j_matrix.shape[0]):
             raise ValueError(
-                f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = {(n_params, n_params)} from the Jacobian."
+                f"covariance shape {self.cov.shape} must be (n, n) = "
+                f"{(j_matrix.shape[0], j_matrix.shape[0])} from the Jacobian."
             )
+        if fisher_matrix.shape != (j_matrix.shape[1], j_matrix.shape[1]):
+            raise ValueError(
+                f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = "
+                f"{(j_matrix.shape[1], j_matrix.shape[1])} from the Jacobian."
+            )
+
+        if len(candidates) == 2:
+            cinv_test = invert_covariance(self.cov, rcond=rcond, warn_prefix=self.__class__.__name__)
+            f0 = candidates[0].T @ cinv_test @ candidates[0]
+            f1 = candidates[1].T @ cinv_test @ candidates[1]
+            j_matrix = candidates[0] if np.linalg.norm(f0 - fisher_matrix) <= np.linalg.norm(f1 - fisher_matrix) else \
+            candidates[1]
+
+        n_obs, n_params = j_matrix.shape  # (n, p)
 
         # Make delta_nu a 1D array of length n; 2D inputs are flattened in row-major ("C") order.
         delta_nu = np.asarray(delta_nu, dtype=float)
@@ -339,17 +366,31 @@ class LikelihoodExpansion:
             delta_nu = delta_nu.ravel(order="C")
         if delta_nu.ndim != 1 or delta_nu.size != n_obs:
             raise ValueError(f"delta_nu must have length n={n_obs}; got shape {delta_nu.shape}.")
-
         if not np.isfinite(delta_nu).all():
             raise FloatingPointError("Non-finite values found in delta_nu.")
 
-        cinv_delta = solve_or_pinv(
-            self.cov,
-            delta_nu,
-            rcond=rcond,
-            assume_symmetric=True,
-            warn_context="covariance solve",
-        )
+        # GLS weighting: exact fast-path for diagonal covariance, otherwise robust solve with warnings
+        if np.allclose(self.cov, np.diag(np.diag(self.cov)), rtol=0.0, atol=0.0):
+            diag = np.diag(self.cov)
+            # guard against zeros on the diagonal (would match singular case)
+            if np.all(diag > 0):
+                cinv_delta = delta_nu / diag
+            else:
+                cinv_delta = solve_or_pinv(
+                    self.cov,
+                    delta_nu,
+                    rcond=rcond,
+                    assume_symmetric=True,
+                    warn_context="covariance solve",
+                )
+        else:
+            cinv_delta = solve_or_pinv(
+                self.cov,
+                delta_nu,
+                rcond=rcond,
+                assume_symmetric=True,
+                warn_context="covariance solve",
+            )
 
         bias_vec = j_matrix.T @ cinv_delta
 

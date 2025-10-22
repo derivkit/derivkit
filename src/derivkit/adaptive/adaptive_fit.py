@@ -9,20 +9,22 @@ from derivkit.adaptive.diagnostics import (
     make_derivative_diag,
     print_derivative_diagnostics,
 )
-
+from derivkit.adaptive.grid import chebyshev_offsets
 from derivkit.adaptive.polyfit_utils import (
+    assess_polyfit_quality,
     extract_derivative,
     fit_multi_power,
     scale_offsets,
 )
-
-from derivkit.adaptive.grid import make_grid, chebyshev_offsets
-from derivkit.adaptive.transforms import (
-    signed_log_forward, signed_log_to_physical, pullback_signed_log,
-    sqrt_domain_forward, sqrt_to_physical, pullback_sqrt_at_zero,
-)
-
 from derivkit.adaptive.spacing import resolve_spacing
+from derivkit.adaptive.transforms import (
+    pullback_signed_log,
+    pullback_sqrt_at_zero,
+    signed_log_forward,
+    signed_log_to_physical,
+    sqrt_domain_forward,
+    sqrt_to_physical,
+)
 
 
 class AdaptiveFitDerivative:
@@ -39,184 +41,207 @@ class AdaptiveFitDerivative:
         self.x0 = float(x0)
 
     def differentiate(
-        self,
-        order: int,
-        *,
-        n_points: int = 10,
-        spacing: float | str | None = "auto",
-        base_abs: float | None = None,
-        use_physical_grid: bool = False,
-        n_workers: int = 1,
-        grid: np.ndarray | None = None,
-        domain: "tuple[float | None, float | None] | None" = None,
-        ridge: float = 1e-8,
-        diagnostics: bool = False,
-        meta: dict | None = None,
+            self,
+            order: int,
+            *,
+            n_points: int = 10,
+            spacing: float | str | None = "auto",
+            base_abs: float | None = None,
+            n_workers: int = 1,
+            grid: tuple[str, np.ndarray] | None = None,  # ('offsets'|'absolute', array)
+            domain: "tuple[float | None, float | None] | None" = None,
+            ridge: float = 1e-8,
+            diagnostics: bool = False,
+            meta: dict | None = None,
     ):
         """Compute the derivative of specified order at x0 using an adaptive polynomial fit.
 
-        This method samples the function at points around x0, fits a polynomial to those
-        samples, and extracts the requested derivative from the fitted coefficients. It
-        supports scalar or vector-valued functions and selects a degree consistent with
-        the number of points and the derivative order.
-        Unlike finite-difference methods, the spacing here controls how far sample
-        points are placed from x0 for the polynomial fit, not the step size used in
-        a finite-difference stencil.
+        Sampling strategy:
+          - grid=None → symmetric Chebyshev offsets around x0 with half-width from `spacing`.
+          - grid=("offsets", arr) → explicit offsets t; samples at x = x0 + t (0 inserted if missing).
+          - grid=("absolute", arr) → explicit absolute x positions; samples at x = arr.
 
         Args:
-            order: The derivative order to compute (>= 1).
-            n_points: Number of sample points around x0 used for the fit. Default is 10.
-            spacing: Controls how far sample points lie from x0:
-                    - positive float → fixed absolute distance,
-                    - percentage string like "1%" → relative to the magnitude of x0,
-                    - "auto" → 2% of the magnitude of x0, with a minimum floor,
-                    - NumPy array → explicit offsets when `use_physical_grid=True`.
-            base_abs: Absolute spacing floor used by "auto" and percentage modes near x0≈0.
-                If None, defaults to 1e-3.
-            use_physical_grid: If True, `spacing` must be an array of explicit offsets.
-            n_workers: Number of worker processes for parallel evaluation (1 = serial).
-            diagnostics: If True, also return a diagnostics dictionary.
-            meta: Optional metadata to include in diagnostics.
+            order: Derivative order (>=1).
+            n_points: Number of sample points when building the default grid.
+            spacing: Scale for default grid: float, percentage string e.g. "2%", or "auto".
+            base_abs: Absolute spacing floor used by "auto"/percentage near x0≈0 (default 1e-3).
+            n_workers: Parallel workers for batched function evals (1 = serial).
+            grid: Either ('offsets', array) or ('absolute', array), or None for default.
+            domain: Optional (lo, hi) used to trigger domain-aware transforms in default mode.
+            ridge: Ridge regularization for polynomial fit.
+            diagnostics: If True, return (derivative, diagnostics_dict).
+            meta: Extra metadata to carry in diagnostics.
 
         Returns:
-            The derivative at x0. For vector-valued functions, returns a 1D NumPy array.
-            If `diagnostics=True`, returns `(derivative, diagnostics_dict)`.
+            Derivative at x0 (scalar or 1D array). If diagnostics=True, also returns a dict.
 
         Raises:
-            ValueError: If `order < 1` or spacing/direction parameters are invalid.
+            ValueError: If inputs are invalid or not enough samples are provided.
         """
         if order < 1:
             raise ValueError("order must be >= 1")
 
-            # ---------------------------
-            # 1) Build an initial grid
-            # ---------------------------
-        if grid is not None:
-            # explicit OFFSETS around x0 (expert mode)
-            t = np.asarray(grid, dtype=float).ravel()
-            if 0.0 not in t:
-                t = np.sort(np.append(t, 0.0))
-            else:
-                t = np.sort(t)
-            x = self.x0 + t
-            spacing_resolved = np.nan
-            mode = "x"
-            sign_used = None
+        max_cheby_points = 30  # guard for ill-conditioning / too-dense default grids
 
-        elif use_physical_grid:
-            # 'spacing' is an array of physical x-samples in this mode
-            provisional_min = 1  # we validate properly after mode selection
-            x, t, _n_pts, spacing_resolved, _ = make_grid(
-                self.x0,
-                n_points=n_points,
-                spacing=spacing,
-                base_abs=base_abs,
-                need_min=provisional_min,
-                use_physical_grid=True,
-            )
-            mode = "x"
-            sign_used = None
+        mode = "x"  # "x" or "signed_log" or "sqrt"
+        sign_used = None
+        spacing_resolved = np.nan
+
+        # 1) Choose sample locations x,t
+        if grid is not None:
+            if not (isinstance(grid, tuple) and len(grid) == 2 and isinstance(grid[0], str)):
+                raise ValueError("grid must be ('offsets'|'absolute', numpy_array) or None.")
+            kind, arr = grid
+            arr = np.asarray(arr, dtype=float).ravel()
+
+            if kind == "offsets":
+                # Ensure center point present; sort for stability
+                t = np.sort(np.unique(np.append(arr, 0.0)))
+                x = self.x0 + t
+
+            elif kind == "absolute":
+                x = np.sort(arr)
+                t = x - self.x0
+
+            else:
+                raise ValueError("grid kind must be 'offsets' or 'absolute'.")
 
         else:
-            # default symmetric Chebyshev OFFSETS around x0
-            H = resolve_spacing(spacing, float(self.x0), base_abs)
-            t = chebyshev_offsets(H, n_points, include_center=True)
+            # Default: symmetric Chebyshev offsets around x0
+            if n_points > max_cheby_points:
+                raise ValueError(
+                    f"Too many points for default Chebyshev grid (n_points={n_points}, max={max_cheby_points}). "
+                    "If you want a denser sampling, increase the local half-width via `spacing` "
+                    "(e.g. a larger float or percentage) so points spread out, or pass an explicit grid: "
+                    "grid=('offsets', offsets_array) or grid=('absolute', x_array)."
+                )
+            half_width = resolve_spacing(spacing, float(self.x0), base_abs)
+            t = chebyshev_offsets(half_width, n_points, include_center=True)
             x = self.x0 + t
-            spacing_resolved = float(H)
-            mode = "x"
-            sign_used = None
+            spacing_resolved = float(half_width)
 
-            # ------------------------------------------------
             # 1a) Optional domain-aware transform selection
-            # ------------------------------------------------
-        single_sign = False
-        single_pos = False  # initialize to avoid NameErrors
+            if domain is not None:
+                lo, hi = domain
+                single_pos = (lo is not None and lo >= 0.0) and (hi is None or hi >= 0.0)
+                single_neg = (hi is not None and hi <= 0.0) and (lo is None or lo <= 0.0)
+                single_sign = single_pos or single_neg
 
-        if domain is not None:
-            lo, hi = domain
-            single_pos = (lo is not None and lo >= 0.0) and (hi is None or hi >= 0.0)
-            single_neg = (hi is not None and hi <= 0.0) and (lo is None or lo <= 0.0)
-            single_sign = single_pos or single_neg
+                if single_sign and self.x0 == 0.0:
+                    # Boundary at zero → sqrt-domain with symmetric u-grid
+                    _u0, sign_used = sqrt_domain_forward(self.x0, +1.0 if single_pos else -1.0)
+                    half_width_u = resolve_spacing(spacing, 0.0, base_abs=1e-3)
+                    if n_points > max_cheby_points:
+                        raise ValueError(
+                            f"Too many points for default Chebyshev grid in sqrt-mode "
+                            f"(n_points={n_points}, max={max_cheby_points}). "
+                            "Increase `spacing` to spread points or provide an explicit grid."
+                        )
+                    tu = chebyshev_offsets(half_width_u, n_points, include_center=True)
+                    t = tu  # internal u-offsets
+                    x = sqrt_to_physical(t, sign_used)  # physical x
+                    spacing_resolved = float(half_width_u)
+                    mode = "sqrt"
 
-            if single_sign and self.x0 == 0.0:
-                # Boundary at zero → sqrt-domain with symmetric u-grid
-                _u0, sign_used = sqrt_domain_forward(self.x0, +1.0 if single_pos else -1.0)
-                Hu = resolve_spacing(spacing, 0.0, base_abs=1e-3)
-                tu = chebyshev_offsets(Hu, n_points, include_center=True)
-                t = tu  # internal u-offsets
-                x = sqrt_to_physical(t, sign_used)  # physical x
-                spacing_resolved = float(Hu)
-                mode = "sqrt"
+                elif single_sign:
+                    # If symmetric x-grid violates domain and x0 != 0 then use signed-log
+                    violates = ((lo is not None) and np.any(x < lo)) or ((hi is not None) and np.any(x > hi))
+                    if violates and self.x0 != 0.0:
+                        q0, sgn = signed_log_forward(self.x0)
+                        half_width_q = resolve_spacing(spacing, q0, base_abs=1e-3)
+                        if n_points > max_cheby_points:
+                            raise ValueError(
+                                f"Too many points for default Chebyshev grid in signed-log mode "
+                                f"(n_points={n_points}, max={max_cheby_points}). "
+                                "Increase `spacing` to spread points or provide an explicit grid."
+                            )
+                        tq = chebyshev_offsets(half_width_q, n_points, include_center=True)
+                        t = tq  # internal q-offsets
+                        x = signed_log_to_physical(q0 + tq, sgn)
+                        spacing_resolved = float(half_width_q)
+                        mode = "signed_log"
 
-            elif single_sign:
-                # If symmetric x-grid violates domain and x0 != 0 → use signed-log
-                violates = ((lo is not None) and np.any(x < lo)) or ((hi is not None) and np.any(x > hi))
-                if violates and self.x0 != 0.0:
-                    q0, sgn = signed_log_forward(self.x0)
-                    Hq = resolve_spacing(spacing, q0, base_abs=1e-3)
-                    tq = chebyshev_offsets(Hq, n_points, include_center=True)
-                    t = tq  # internal q-offsets
-                    x = signed_log_to_physical(q0 + tq, sgn)
-                    spacing_resolved = float(Hq)
-                    mode = "signed_log"
-
-        # ----------------------------------------------------------
-        # 1b) Ensure we have enough samples for the chosen mode/order
-        #     - If user supplied grid/physical points → raise if too few
-        #     - If default Chebyshev → auto-bump to the minimum needed
-        # ----------------------------------------------------------
+        # 1b) Ensure enough samples for desired derivative
         n_eff = len(t)
-        # internal derivative order needed: sqrt needs g^(2*order) at 0
         deg_req = (2 * order) if (mode == "sqrt") else order
         min_pts = 2 * deg_req + 1  # ensure (n_eff - 1)//2 ≥ deg_req
 
         if n_eff < min_pts:
-            if grid is not None or use_physical_grid:
+            if grid is not None:
                 raise ValueError(
-                    f"Not enough samples for order={order} (mode={mode}). "
-                    f"Need ≥{min_pts} points, got {n_eff}."
+                    f"Not enough samples for order={order} (mode={mode}). Need ≥{min_pts} points, got {n_eff}."
                 )
-            # We control the default Chebyshev grid → rebuild with more points
+            # We control the default grid → rebuild with more points
             target = max(min_pts, n_points)
+            if target > max_cheby_points:
+                raise ValueError(
+                    f"Requested derivative/order requires at least {min_pts} points, "
+                    f"but the default Chebyshev grid is capped at {max_cheby_points}. "
+                    "Increase `spacing` (larger half-width spreads Chebyshev nodes), reduce `order`, "
+                    "or supply an explicit grid via grid=('offsets', ...) or grid=('absolute', ...)."
+                )
             if mode == "x":
                 t = chebyshev_offsets(spacing_resolved, target, include_center=True)
                 x = self.x0 + t
             elif mode == "signed_log":
                 q0, sgn = signed_log_forward(self.x0)
-                Hq = resolve_spacing(spacing, q0, base_abs=1e-3)
-                tq = chebyshev_offsets(Hq, target, include_center=True)
+                half_width_q = resolve_spacing(spacing, q0, base_abs=1e-3)
+                tq = chebyshev_offsets(half_width_q, target, include_center=True)
                 t = tq
                 x = signed_log_to_physical(q0 + tq, sgn)
-                spacing_resolved = float(Hq)
+                spacing_resolved = float(half_width_q)
             elif mode == "sqrt":
-                # reuse sign_used from selection above
-                Hu = resolve_spacing(spacing, 0.0, base_abs=1e-3)
-                tu = chebyshev_offsets(Hu, target, include_center=True)
+                half_width_u = resolve_spacing(spacing, 0.0, base_abs=1e-3)
+                tu = chebyshev_offsets(half_width_u, target, include_center=True)
                 t = tu
                 x = sqrt_to_physical(t, sign_used)
-                spacing_resolved = float(Hu)
+                spacing_resolved = float(half_width_u)
             n_eff = len(t)
 
-        # ------------------------------------
-        # 2) Evaluate function on chosen grid
-        # ------------------------------------
+        # 2) Evaluate function on a grid
         ys = eval_function_batch(self.func, x, n_workers=n_workers)
         if ys.ndim == 1:
             ys = ys[:, None]
         n_components = ys.shape[1]
 
-        # --------------------------
-        # 3) Fit polynomial (stable)
-        # --------------------------
+        # 3) Poly fit
         offsets, factor = scale_offsets(t)
-        # Degree with a little elbow room; sqrt(order=2) needs up to 4th in u
-        extra_need = 4 if (mode == "sqrt" and order == 2) else 2
+        extra_need = 4 if (mode == "sqrt" and order == 2) else 2  # elbow room
         deg = min(deg_req + extra_need, (n_eff - 1) // 2)
         coeffs, rrms = fit_multi_power(offsets, ys, deg, ridge=ridge)
 
-        # --------------------------
-        # 4) Extract derivative
-        # --------------------------
+        # Evaluate fit quality (component-wise worst-case metrics)
+        metrics, suggestions = assess_polyfit_quality(
+            offsets,  # u (scaled offsets)
+            ys,  # y (n_pts, n_comp)
+            coeffs,  # (deg+1, n_comp)
+            deg,
+            ridge=ridge,
+            factor=factor,
+            order=order,
+        )
+
+        # define a “clearly bad” gate (tighter/looser if you like)
+        bad = (
+                metrics["rrms_rel"] > 5 * metrics["thresholds"]["rrms_rel"]
+                or metrics["loo_rel"] > 5 * metrics["thresholds"]["loo_rel"]
+                or metrics["cond_vdm"] > 10 * metrics["thresholds"]["cond_vdm"]
+                or metrics["deriv_rel"] > 5 * metrics["thresholds"]["deriv_rel"]
+        )
+
+        # Surface suggestions when it looks poor; keep running (non-fatal)
+        if bad:
+            print(
+                "Polynomial fit looks unstable: "
+                f"rrms_rel={metrics['rrms_rel']:.2e}, "
+                f"loo_rel={metrics['loo_rel']:.2e}, "
+                f"cond_vdm={metrics['cond_vdm']:.2e}, "
+                f"deriv_rel={metrics['deriv_rel']:.2e}. "
+                "Suggestions: " + " ".join(suggestions)
+            )
+
+        # 4) Derivative
         if mode == "signed_log":
             dfdq = extract_derivative(coeffs, 1, factor)
             if order == 1:
@@ -226,7 +251,6 @@ class AdaptiveFitDerivative:
                 deriv = pullback_signed_log(2, self.x0, dfdq, d2fdq2)
             else:
                 raise NotImplementedError("signed-log path supports orders 1 and 2.")
-
         elif mode == "sqrt":
             if order == 1:
                 g2 = extract_derivative(coeffs, 2, factor)
@@ -236,7 +260,6 @@ class AdaptiveFitDerivative:
                 deriv = pullback_sqrt_at_zero(2, sign_used, g4=g4)
             else:
                 raise NotImplementedError("sqrt path supports orders 1 and 2.")
-
         else:
             deriv = extract_derivative(coeffs, order, factor)
 
@@ -244,9 +267,7 @@ class AdaptiveFitDerivative:
         if not diagnostics:
             return out
 
-        # ---------------------------------
-        # 5) Diagnostics & pretty printing
-        # ---------------------------------
+        # 5) Diagnostics (optional)
         degree_out = int(deg) if n_components == 1 else [int(deg)] * n_components
         diag = make_derivative_diag(
             x=x,
@@ -257,7 +278,12 @@ class AdaptiveFitDerivative:
             degree=degree_out,
             spacing_resolved=spacing_resolved,
             rrms=rrms,
+            coeffs=coeffs,
+            ridge=ridge,
+            factor=factor,
+            order=order,
         )
+
         meta_payload = {
             "x0": self.x0,
             "order": order,

@@ -5,12 +5,14 @@ from __future__ import annotations
 from math import factorial
 
 import numpy as np
+import numpy.linalg as npl
 
 __all__ = [
     "choose_degree",
     "scale_offsets",
     "fit_multi_power",
     "extract_derivative",
+    "assess_polyfit_quality"
 ]
 
 
@@ -160,3 +162,120 @@ def extract_derivative(
 
     a_m = coeffs[order, :]
     return (factorial(order) * a_m) / (scale**order)
+
+
+def assess_polyfit_quality(
+    u: np.ndarray,
+    y: np.ndarray,
+    coeffs: np.ndarray,
+    deg: int,
+    ridge: float = 0.0,
+    factor: float = 1.0,
+    order: int = 0,
+) -> tuple[dict[str, float | dict[str, float]], list[str]]:
+    """Assess numerical quality of a power-basis polynomial fit.
+
+    Computes several diagnostics for a polynomial fit evaluated on scaled offsets
+    ``u``:
+
+    - Relative RMS residual (``rrms_rel``)
+    - Leave-one-out (LOO) relative RMSE via the ridge hat matrix (``loo_rel``)
+    - Condition number of the Vandermonde design matrix (``cond_vdm``)
+    - Relative change of the target derivative compared to a degree-1 refit
+      (``deriv_rel``), when feasible
+
+    It also returns human-readable suggestions to improve a poor fit. The thresholds
+    are heuristic and may be tuned for your application. The LOO estimate is derived
+    from the ridge hat-matrix diagonal, which is a fast approximation and works well
+    for spotting overfit/outliers.
+
+    Args:
+        u (ndarray): Scaled offsets, shape ``(n,)``.
+        y (ndarray): Function values at the sample points, shape ``(n, m)``.
+        coeffs (ndarray): Power-basis coefficients of the fit with columns per
+            component, shape ``(deg+1, m)``. Column ``k`` corresponds to the
+            coefficient of ``u**k``.
+        deg (int): Polynomial degree used in the fit (``>= 0``).
+        ridge (float): Ridge regularization used in the fit (``>= 0``).
+        factor (float): Scaling factor such that original offsets ``t = u * factor``.
+            Used only when extracting derivatives in the refit comparison.
+        order (int): Derivative order of interest (``>= 0``).
+
+    Returns:
+        tuple[dict, list[str]]: A tuple ``(metrics, suggestions)`` where:
+
+            - ``metrics`` is a dict with keys:
+                - ``"rrms_rel"`` (float)
+                - ``"loo_rel"`` (float)
+                - ``"cond_vdm"`` (float)
+                - ``"deriv_rel"`` (float)
+                - ``"thresholds"`` (dict): contains the threshold values used for
+                  each metric (same keys as above)
+            - ``suggestions`` is a list of textual recommendations to improve the fit.
+
+    Notes:
+        Large values of any metric indicate potential instability. Consider widening
+        the sampling window (``spacing``), modestly increasing the number of points,
+        or adding light ridge regularization.
+    """
+    # build design matrix [1, u, u^2, ...]
+    design = np.vstack([u ** k for k in range(deg + 1)]).T  # (n, deg+1)
+
+    # predictions and residuals
+    y_hat = design @ coeffs  # (n, m)
+    resid = y - y_hat
+    rrms = np.sqrt(np.mean(resid**2, axis=0))  # (m,)
+    y_scale = np.median(np.abs(y), axis=0) + 1e-12
+    rrms_rel = float(np.max(rrms / y_scale))
+
+    # ridge hat-matrix diagonal for LOO residuals
+    gram = design.T @ design + ridge * np.eye(deg + 1)
+    gram_inv = npl.pinv(gram) if ridge == 0.0 else npl.inv(gram)
+    design_gram_inv = design @ gram_inv
+    h_diag = np.sum(design_gram_inv * design, axis=1)  # (n,)
+    loo_resid = resid / (1.0 - h_diag)[:, None]
+    loo_rmse = np.sqrt(np.mean(loo_resid**2, axis=0))  # (m,)
+    loo_rel = float(np.max(loo_rmse / y_scale))
+
+    # condition number of the design (svd-based, no ridge)
+    sing_vals = npl.svd(design, compute_uv=False)
+    cond_vdm = float((sing_vals[0] / sing_vals[-1]) if sing_vals[-1] > 0 else np.inf)
+
+    # derivative stability vs one-degree-lower refit
+    deriv_rel = 0.0
+    if deg >= max(order, 1) + 1:
+        design_m = design[:, :deg]  # degree-1 design
+        gram_m = design_m.T @ design_m + ridge * np.eye(deg)
+        gram_m_inv = npl.pinv(gram_m) if ridge == 0.0 else npl.inv(gram_m)
+        coeffs_m = (gram_m_inv @ design_m.T @ y)  # (deg, m)
+
+        deriv_full = extract_derivative(coeffs, order, factor)  # shape (m,)
+        deriv_minus = extract_derivative(coeffs_m, order, factor)  # shape (m,)
+        num = np.max(np.abs(deriv_full - deriv_minus))
+        den = np.max(np.abs(deriv_full)) + 1e-12
+        deriv_rel = float(num / den)
+
+    # heuristic thresholds
+    th = {"rrms_rel": 5e-4, "loo_rel": 1e-3, "cond_vdm": 1e8, "deriv_rel": 5e-3}
+
+    # suggestions
+    suggestions: list[str] = []
+    if rrms_rel > th["rrms_rel"] or loo_rel > th["loo_rel"]:
+        suggestions.append("Increase sampling half-width via `spacing` to spread nodes.")
+        suggestions.append("Add a few points (n_points) up to the Chebyshev cap, or pass an explicit grid.")
+    if cond_vdm > th["cond_vdm"]:
+        suggestions.append("Increase `ridge` (e.g., ×10) to stabilize the fit.")
+        suggestions.append("Widen `spacing` to reduce node crowding near zero.")
+    if deriv_rel > th["deriv_rel"]:
+        suggestions.append("Use a slightly higher degree (add 2–4 points) or widen `spacing`.")
+    if not suggestions:
+        suggestions.append("Fit looks numerically healthy.")
+
+    metrics: dict[str, float | dict[str, float]] = {
+        "rrms_rel": rrms_rel,
+        "loo_rel": loo_rel,
+        "cond_vdm": cond_vdm,
+        "deriv_rel": deriv_rel,
+        "thresholds": th,
+    }
+    return metrics, suggestions

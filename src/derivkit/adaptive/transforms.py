@@ -24,14 +24,14 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
     """Compute internal coordinate q0 and sign sgn for the signed-log map.
 
     This method takes a non-zero physical coordinate x0 and computes an
-    internal coordinate q0 = log(|x0|) along with a fixed sign sgn = sign(x0).
+    internal coordinate q0 = log(abs(x0)) along with a fixed sign sgn = sign(abs(x0)).
 
     Args:
         x0: Expansion point in physical coordinates. Must be non-zero.
 
     Returns:
         Tuple[float, float]: (q0, sgn) where
-            - q0 = log(|x0|)
+            - q0 = log(abs(x0))
             - sgn = +1.0 if x0 > 0, else -1.0
 
     Raises:
@@ -50,7 +50,7 @@ def signed_log_to_physical(q: np.ndarray, sgn: float) -> np.ndarray:
     """Map internal signed-log coordinate(s) to physical coordinate(s).
 
     Args:
-        q: Internal coordinate(s) q = log(|x|).
+        q: Internal coordinate(s) q = log(abs(x)).
         sgn: Fixed sign (+1 or -1) taken from sign(x0).
 
     Returns:
