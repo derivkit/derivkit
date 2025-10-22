@@ -50,7 +50,7 @@ class AdaptiveFitDerivative:
             n_workers: int = 1,
             grid: tuple[str, np.ndarray] | None = None,  # ('offsets'|'absolute', array)
             domain: "tuple[float | None, float | None] | None" = None,
-            ridge: float = 1e-8,
+            ridge: float = 0.0,
             diagnostics: bool = False,
             meta: dict | None = None,
     ):
