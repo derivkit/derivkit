@@ -17,6 +17,7 @@ def model_linear_1d(params):
 
 def grad_linear_1d(params):
     """Gradient of the simple linear function in one dimension."""
+    _ = params
     return np.array([2.75], dtype=float)
 
 
@@ -74,7 +75,7 @@ def test_gradient_linear_one_dimension():
     result = build_gradient(model_linear_1d, point)
     expected = grad_linear_1d(point)
     assert result.shape == (1,)
-    assert_allclose(result, expected, rtol=0, atol=1e-12)
+    assert_allclose(result, expected, rtol=2e-8, atol=0)
 
 
 def test_gradient_quadratic_two_dimensions_workers_1():

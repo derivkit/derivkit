@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 from functools import partial
 
 import numpy as np
@@ -187,70 +186,52 @@ def build_hessian(function: Callable,
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
+    # Here I am forcing the symmetry
+    hess = 0.5 * (hess + hess.T)
     return hess
 
 
-def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
-    """Return one entry of the Hessian for a scalar-valued function.
+def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int, n_workers: int) -> float:
+    """Central-difference entry (i,j) of the Hessian for scalar f:R^n->R.
 
-    Used inside ``build_hessian`` to measure how the function’s change in one
-    parameter depends on changes in another. This can describe both pure
-    second derivatives and mixed ones.
-
-    Args:
-        function: A function that returns a single value.
-        theta0: The parameter values where the derivative is evaluated.
-        i: Index of the first parameter.
-        j: Index of the second parameter.
-        n_workers: Number of workers used for the internal derivative step.
-
-    Returns:
-        A single number showing how the rate of change in one parameter
-        depends on another.
-
-    Raises:
-        TypeError: If ``function`` does not return a scalar value.
+    Diagonals:
+        (f(x+h e_i) - 2 f(x) + f(x-h e_i)) / h^2
+    Off-diagonals:
+        (f(x+hi e_i + hj e_j) - f(x+hi e_i - hj e_j)
+         - f(x-hi e_i + hj e_j) + f(x-hi e_i - hj e_j)) / (4 hi hj)
     """
+    x = np.asarray(theta0, dtype=float).ravel()
+    eps = np.finfo(float).eps
+    base = eps ** 0.25  # ~1.2e-4
+    scale = 8.0  # was 1.0; increase to tame 1/h^2 roundoff
+    hi = max(1e-6, scale * base * (1.0 + abs(x[i])))
+
     if i == j:
-        # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
-        partial_vec1 = get_partial_function(
-            function, i, theta0
-        )
+        ei = np.zeros_like(x)
+        ei[i] = 1.0
+        f0 = float(function(x))
+        fp = float(function(x + hi * ei))
+        fm = float(function(x - hi * ei))
+        if not (np.isfinite(fp) and np.isfinite(fm) and np.isfinite(f0)):
+            raise FloatingPointError("Non-finite in diagonal stencil.")
+        return (fp - 2.0 * f0 + fm) / (hi ** 2)
 
-        # One-time scalar check for build_hessian()
-        probe = np.asarray(partial_vec1(theta0[i]), dtype=float)
-        if probe.size != 1:
-            raise TypeError(
-                "build_hessian() expects a scalar-valued function; "
-                f"got shape {probe.shape} from full_function(params)."
-            )
+    # mixed partials
+    hj = max(1e-6, scale * base * (1.0 + abs(x[j])))
+    ei = np.zeros_like(x)
+    ei[i] = 1.0
+    ej = np.zeros_like(x)
+    ej[j] = 1.0
 
-        kit1 = DerivativeKit(
-            partial_vec1, theta0[i]
-        )
-        return kit1.adaptive.differentiate(
-                order=2, n_workers=n_workers
-            )
+    fpp = float(function(x + hi*ei + hj*ej))
+    fpm = float(function(x + hi*ei - hj*ej))
+    fmp = float(function(x - hi*ei + hj*ej))
+    fmm = float(function(x - hi*ei - hj*ej))
 
-    else:
-        # 2 parameters to differentiate once, with other parameters held fixed
-        def partial_vec2(y):
-            theta0_y = theta0.copy()
-            theta0_y[j] = y
-            partial_vec1 = get_partial_function(
-                function, i, theta0_y
-            )
-            kit1 = DerivativeKit(
-                partial_vec1, theta0[i]
-            )
-            return kit1.adaptive.differentiate(order=1, n_workers=n_workers)
+    if not (np.isfinite(fpp) and np.isfinite(fpm) and np.isfinite(fmp) and np.isfinite(fmm)):
+        raise FloatingPointError("Non-finite in mixed-partial stencil.")
 
-        kit2 = DerivativeKit(
-            partial_vec2, theta0[j]
-        )
-        return kit2.adaptive.differentiate(
-                order=1, n_workers=n_workers
-            )
+    return (fpp - fpm - fmp + fmm) / (4.0 * hi * hj)
 
 
 def hessian_diag(*args, **kwargs):
@@ -308,12 +289,25 @@ def _grad_for_param(
     Returns:
         A 1D array representing the derivative of the function with respect to theta[j].
     """
-    theta_x = deepcopy(np.asarray(theta0, dtype=float).reshape(-1))
-    f_j = get_partial_function(function, j, theta_x)  # this sets theta[j]=y
-    kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.adaptive.differentiate(order=1, n_workers=1)
-    # Keep inner differentiation serial to avoid nested pools.
-    g = np.atleast_1d(np.asarray(g, dtype=float))
-    if not np.isfinite(g).all():
-        raise FloatingPointError(f"Non-finite derivative for parameter index {j}.")
-    return g
+    theta = np.asarray(theta0, dtype=float).ravel().copy()
+
+    # Per-parameter step (good default for central differences)
+    sqrt_eps = np.sqrt(np.finfo(float).eps)  # ~1.49e-8
+    h = max(1e-8, sqrt_eps * (1.0 + abs(theta[j])))
+
+    # Evaluate f at theta ± h e_j
+    tp = theta.copy()
+    tp[j] += h
+    tm = theta.copy()
+    tm[j] -= h
+
+    fp = np.asarray(function(tp), dtype=float)
+    fm = np.asarray(function(tm), dtype=float)
+
+    # Must be finite 1-D vectors
+    if fp.ndim != 1 or fm.ndim != 1:
+        raise TypeError("Function must return a 1-D vector.")
+    if (not np.isfinite(fp).all()) or (not np.isfinite(fm).all()):
+        raise FloatingPointError("Non-finite values in function outputs.")
+
+    return (fp - fm) / (2.0 * h)

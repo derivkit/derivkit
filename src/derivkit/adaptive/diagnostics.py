@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 import numpy as np
+from numpy.typing import NDArray
+
+from derivkit.adaptive.polyfit_utils import assess_polyfit_quality
 
 __all__ = [
     "format_derivative_diagnostics",
@@ -23,13 +26,13 @@ def format_derivative_diagnostics(
     """Format derivative diagnostics into a human-readable string.
 
     Args:
-        diag: Diagnostics dictionary as returned by `make_derivative_diag`.
-        meta: Optional metadata dictionary to include in the output.
-        decimals: Number of decimal places for floating-point numbers.
-        max_rows: Maximum number of rows to display for arrays; larger arrays are truncated.
+      diag: Diagnostics dictionary as returned by `make_derivative_diag`.
+      meta: Optional metadata dictionary to include in the output.
+      decimals: Number of decimal places for floating-point numbers.
+      max_rows: Maximum number of rows to display for arrays; larger arrays are truncated.
 
     Returns:
-        A formatted string summarizing the diagnostics.
+      A formatted string summarizing the diagnostics.
     """
     if not isinstance(diag, dict):
         return "‹diagnostics unavailable›"
@@ -42,17 +45,15 @@ def format_derivative_diagnostics(
     step_min = step_max = None
     if t.size >= 2:
         dt = np.diff(np.sort(t))
-        step_min = float(dt.min())
-        step_max = float(dt.max())
+        step_min = float(np.min(dt))
+        step_max = float(np.max(dt))
     uniformish = (
         step_min is not None
         and step_max is not None
         and abs(step_max - step_min) <= 1e-12 * max(1.0, step_max)
     )
 
-    old = np.get_printoptions()
-    np.set_printoptions(precision=decimals, suppress=True)
-    try:
+    with np.printoptions(precision=decimals, suppress=True):
         lines = ["=== Derivative Diagnostics ==="]
         if meta:
             lines.append("Meta:")
@@ -60,20 +61,20 @@ def format_derivative_diagnostics(
                 "x0",
                 "order",
                 "n_points",
-                "direction",
                 "spacing",
                 "base_abs",
                 "spacing_resolved",
                 "n_workers",
+                "domain",
+                "mode",
+                "ridge",
             ]
             for k in wanted:
                 if k in meta:
                     lines.append(f"  {k}={meta[k]}")
-
             for k, v in meta.items():
                 if k not in wanted:
                     lines.append(f"  {k}={v}")
-
             lines.append("")
 
         lines += [
@@ -83,7 +84,9 @@ def format_derivative_diagnostics(
         ]
         if step_min is not None:
             lines.append(
-                f"  step_min={step_min:.{decimals}g}, step_max={step_max:.{decimals}g}, uniformish={uniformish}"
+                f"  step_min={step_min:.{decimals}g}, "
+                f"step_max={step_max:.{decimals}g}, "
+                f"uniformish={uniformish}"
             )
         lines.append("")
 
@@ -97,9 +100,36 @@ def format_derivative_diagnostics(
         if rrms is not None:
             lines.append(f"  rrms: {rrms}")
 
+        fq = diag.get("fit_quality", None)
+        fs = diag.get("fit_suggestions", None)
+        if isinstance(fq, dict):
+            lines.append("")
+            lines.append("Fit quality:")
+            lines.append(
+                "  rrms_rel={:.2e}, loo_rel={:.2e}, cond_vdm={:.2e}, deriv_rel={:.2e}".format(
+                    fq.get("rrms_rel", float("nan")),
+                    fq.get("loo_rel", float("nan")),
+                    fq.get("cond_vdm", float("nan")),
+                    fq.get("deriv_rel", float("nan")),
+                )
+            )
+            th = fq.get("thresholds", {})
+            if not isinstance(th, dict):
+                th = {}
+            lines.append(
+                "  thresholds: rrms_rel={:.1e}, loo_rel={:.1e}, cond_vdm={:.1e}, deriv_rel={:.1e}".format(
+                    th.get("rrms_rel", float("nan")),
+                    th.get("loo_rel", float("nan")),
+                    th.get("cond_vdm", float("nan")),
+                    th.get("deriv_rel", float("nan")),
+                )
+            )
+            if isinstance(fs, (list, tuple)) and len(fs) > 0:
+                lines.append("  suggestions:")
+                for s in fs:
+                    lines.append(f"    - {s}")
+
         return "\n".join(lines)
-    finally:
-        np.set_printoptions(**old)
 
 
 def print_derivative_diagnostics(
@@ -108,11 +138,11 @@ def print_derivative_diagnostics(
     """Print derivative diagnostics to standard output.
 
     Args:
-        diag: Diagnostics dictionary as returned by `make_derivative_diag`.
-        meta: Optional metadata dictionary to include in the output.
+      diag: Diagnostics dictionary as returned by `make_derivative_diag`.
+      meta: Optional metadata dictionary to include in the output.
 
     Returns:
-        None
+      None
     """
     print(format_derivative_diagnostics(diag, meta=meta))
 
@@ -121,11 +151,11 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
     """Return a preview of a 1D array, truncating with NaN if too long.
 
     Args:
-        a: Input 1D array.
-        max_rows: Maximum number of rows to display.
+      a: Input 1D array.
+      max_rows: Maximum number of rows to display.
 
     Returns:
-        A 1D array with at most max_rows elements, with NaN in the middle if truncated.
+      A 1D array with at most `max_rows` elements, with NaN in the middle if truncated.
     """
     a = np.asarray(a)
     if a.ndim != 1 or a.size <= max_rows:
@@ -135,14 +165,14 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
 
 
 def _preview_2d_rows(a: np.ndarray, max_rows: int) -> np.ndarray:
-    """Return a preview of a 2D array by rows, truncating with NaN row if too many.
+    """Return a preview of a 2D array by rows, truncating with a NaN row if too many.
 
     Args:
-        a: Input 2D array.
-        max_rows: Maximum number of rows to display.
+      a: Input 2D array.
+      max_rows: Maximum number of rows to display.
 
     Returns:
-        A 2D array with at most max_rows rows, with a NaN row in the middle if truncated.
+      A 2D array with at most `max_rows` rows, with a NaN row in the middle if truncated.
     """
     a = np.asarray(a)
     if a.ndim != 2 or a.shape[0] <= max_rows:
@@ -160,24 +190,36 @@ def make_derivative_diag(
     y: np.ndarray,
     degree: int | list[int],
     spacing_resolved: float | None = None,
-    rrms: np.ndarray | None = None,
+    rrms: Optional[NDArray[np.floating]] = None,
+    coeffs: Optional[NDArray[np.floating]] = None,
+    ridge: float | None = None,
+    factor: float | None = None,
+    order: int | None = None,
 ) -> dict:
     """Create a diagnostics dictionary for derivative approximations.
 
+    If `coeffs`, `ridge`, `factor`, and `order` are all provided, this will also
+    compute polyfit quality metrics via `assess_polyfit_quality` and embed them.
+
     Args:
-        x: Physical sample points.
-        t: Offsets from expansion point (x - x0).
-        u: Scaled offsets used for polynomial fitting.
-        s: Scaling factor applied to offsets.
-        y: Function values at sample points.
-        degree: Degree of the polynomial fit (int or list of int for multi-component).
-        spacing_resolved: Resolved spacing used (None if not applicable).
-        rrms: Residual root-mean-square error of the polynomial fit (None if not applicable).
+      x: Physical sample points, shape (n,).
+      t: Offsets from expansion point (x - x0), shape (n,).
+      u: Scaled offsets used for polynomial fitting, shape (n,).
+      s: Scaling factor applied to offsets (u = t / s).
+      y: Function values at sample points, shape (n, m).
+      degree: Degree of the polynomial fit (int or list of int for multi-component).
+      spacing_resolved: Resolved spacing used (None if not applicable).
+      rrms: Residual root-mean-square error of the polynomial fit (None if not applicable).
+      coeffs: Power-basis coefficients, shape (deg+1, m). Required for quality block.
+      ridge: Ridge regularization used in the fit. Required for quality block.
+      factor: Scaling factor mapping u -> t (i.e., t = u * factor). Required for quality block.
+      order: Derivative order of interest. Required for quality block.
 
     Returns:
-        A dictionary containing the diagnostics information.
+      A dictionary containing the diagnostics information (and, if enabled,
+      a nested `fit_quality` dict and `fit_suggestions` list).
     """
-    out = {
+    out: Dict[str, Any] = {
         "x": x,
         "t": t,
         "u": u,
@@ -188,7 +230,25 @@ def make_derivative_diag(
     if spacing_resolved is not None:
         out["spacing_resolved"] = float(spacing_resolved)
     if rrms is not None:
-        out["rrms"] = (
-            rrms if not (rrms.ndim == 1 and rrms.size == 1) else float(rrms[0])
+        out["rrms"] = rrms if not (rrms.ndim == 1 and rrms.size == 1) else float(rrms[0])
+
+    have_quality_args = (
+        coeffs is not None
+        and ridge is not None
+        and factor is not None
+        and order is not None
+    )
+    if have_quality_args:
+        metrics, suggestions = assess_polyfit_quality(
+            u=u,
+            y=y,
+            coeffs=coeffs,
+            deg=(degree if isinstance(degree, int) else int(degree[0])),
+            ridge=float(ridge),
+            factor=float(factor),
+            order=int(order),
         )
+        out["fit_quality"] = metrics
+        out["fit_suggestions"] = suggestions
+
     return out

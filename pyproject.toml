@@ -54,7 +54,6 @@ markers = [
 [tool.ruff]
 line-length = 79
 
-
 [tool.ruff.lint]
 # Here we list the styling/formatting rules that Ruff should use.
 # A list of available rules and what each rule does is provided at
