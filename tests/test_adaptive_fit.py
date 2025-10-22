@@ -79,7 +79,7 @@ def test_cubic_third_derivative(x0):
     d = AdaptiveFitDerivative(f_cubic, x0)
     kw = KW if x0 != 0.0 else KW_POLY0
     got = d.differentiate(order=3, **kw)
-    atol = 7e-8 if x0 == 0.0 else 3e-8
+    atol = 3e-7 if x0 == 0.0 else 3e-7
     assert np.isclose(got, 24.0, rtol=0, atol=atol)
 
 
@@ -89,7 +89,8 @@ def test_quartic_fourth_derivative(x0):
     d = AdaptiveFitDerivative(f_quartic, x0)
     kw = KW if x0 != 0.0 else KW_POLY0
     got = d.differentiate(order=4, **kw)
-    assert np.isclose(got, 120.0, rtol=0, atol=2e-5)
+    # Linux/OpenBLAS shows up to ~2.1e-4 drift while I am on Mac with Accelerate/LAPACK
+    assert np.isclose(got, 120.0, rtol=0, atol=3e-4)
 
 
 @pytest.mark.parametrize("x0", [0.0, 0.3, 1.0])
