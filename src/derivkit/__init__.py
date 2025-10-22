@@ -1,20 +1,35 @@
 """Provides all derivkit methods."""
 
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
-from derivkit.calculus_kit import CalculusKit
-from derivkit.derivative_kit import DerivativeKit, register_method
+from derivkit.derivative_kit import DerivativeKit
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
-from derivkit.forecast_kit import ForecastKit
-from derivkit.forecasting.expansions import LikelihoodExpansion
+from derivkit.forecast_kit import ForecastKit as ForecastKit
+from derivkit.forecasting.expansions import (
+    LikelihoodExpansion as LikelihoodExpansion,
+)
+from derivkit.utils import (
+    central_difference_error_estimate,
+    generate_test_function,
+    is_finite_and_differentiable,
+    is_symmetric_grid,
+    log_debug_message,
+    normalize_derivative,
+)
 
-DerivativeKit.__module__ = "derivkit.derivative_kit"
+from derivkit.gaussian_process.gaussian_process import GaussianProcess
+
 
 __all__ = [
     "AdaptiveFitDerivative",
-    "DerivativeKit",
     "FiniteDifferenceDerivative",
+    "DerivativeKit",
+    "log_debug_message",
+    "is_finite_and_differentiable",
+    "normalize_derivative",
+    "central_difference_error_estimate",
+    "is_symmetric_grid",
+    "generate_test_function",
     "ForecastKit",
     "LikelihoodExpansion",
-    "CalculusKit",
-    "register_method",
+    "GaussianProcess"
 ]
