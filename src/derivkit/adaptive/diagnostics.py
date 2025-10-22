@@ -13,6 +13,7 @@ __all__ = [
     "format_derivative_diagnostics",
     "print_derivative_diagnostics",
     "make_derivative_diag",
+    "fit_is_obviously_bad"
 ]
 
 
@@ -252,3 +253,46 @@ def make_derivative_diag(
         out["fit_suggestions"] = suggestions
 
     return out
+
+
+def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
+    """Heuristically flag unstable polynomial fits and compose a brief message.
+
+    This function inspects diagnostic metrics from ``assess_polyfit_quality`` and
+    decides whether the fit is clearly unstable using amplified thresholds. When
+    unstable, it returns ``(True, msg)`` with a short summary string. Otherwise,
+    it returns ``(False, "")``.
+
+    Args:
+      metrics: Dictionary with keys ``"rrms_rel"``, ``"loo_rel"``, ``"cond_vdm"``,
+        ``"deriv_rel"``, and ``"thresholds"`` (a dict containing per-metric
+        thresholds).
+
+    Returns:
+      Tuple[bool, str]: A pair ``(bad, msg)``. ``bad`` is ``True`` if any metric
+        exceeds its amplified threshold (5× for ``rrms_rel``, ``loo_rel``, and
+        ``deriv_rel``; 10× for ``cond_vdm``). ``msg`` is a brief summary string
+        when ``bad`` is ``True``, otherwise an empty string.
+
+    Notes:
+      This gate is intentionally conservative and non-fatal. It is intended to
+      surface suggestions (e.g., widen spacing, add points, add ridge) rather
+      than raise exceptions during routine fits.
+    """
+    th = metrics["thresholds"]
+    bad = (
+        metrics["rrms_rel"] > 5 * th["rrms_rel"]
+        or metrics["loo_rel"] > 5 * th["loo_rel"]
+        or metrics["cond_vdm"] > 10 * th["cond_vdm"]
+        or metrics["deriv_rel"] > 5 * th["deriv_rel"]
+    )
+    if not bad:
+        return False, ""
+    msg = (
+        "Polynomial fit looks unstable: "
+        f"rrms_rel={metrics['rrms_rel']:.2e}, "
+        f"loo_rel={metrics['loo_rel']:.2e}, "
+        f"cond_vdm={metrics['cond_vdm']:.2e}, "
+        f"deriv_rel={metrics['deriv_rel']:.2e}."
+    )
+    return True, msg
