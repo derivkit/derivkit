@@ -16,6 +16,9 @@ from derivkit.utils import (
     normalize_derivative,
 )
 
+from derivkit.gaussian_process.gaussian_process import GaussianProcess
+
+
 __all__ = [
     "AdaptiveFitDerivative",
     "FiniteDifferenceDerivative",
@@ -28,4 +31,5 @@ __all__ = [
     "generate_test_function",
     "ForecastKit",
     "LikelihoodExpansion",
+    "GaussianProcess"
 ]
