@@ -207,9 +207,51 @@ class AdaptiveFitDerivative:
 
         # 3) Poly fit
         offsets, factor = scale_offsets(t)
-        extra_need = 4 if (mode == "sqrt" and order == 2) else 2  # elbow room
-        deg = min(deg_req + extra_need, (n_eff - 1) // 2)
-        coeffs, rrms = fit_multi_power(offsets, ys, deg, ridge=ridge)
+        extra_need = 4 if (mode == "sqrt" and order == 2) else 2
+        deg_req = (2 * order) if (mode == "sqrt") else order
+        deg_hi = min(deg_req + extra_need, (n_eff - 1) // 2)
+        # First, fit with headroom(default path)
+        coeffs, rrms = fit_multi_power(offsets, ys, deg_hi, ridge=ridge)
+        deg = deg_hi  # current choice
+
+        # Heuristic gate for “essentially exact polynomial”
+        y_scale = max(1.0, float(np.nanmax(np.abs(ys))))
+        if (deg_hi > deg_req) and (order >= 3) and float(np.nanmax(rrms)) <= 1e-12 * y_scale:
+            # Refit at minimal degree
+            coeffs_min, rrms_min = fit_multi_power(offsets, ys, deg_req, ridge=ridge)
+
+            # Compare derivatives at x0
+            if mode == "signed_log":
+                dfdq_hi = extract_derivative(coeffs, 1, factor)
+                dfdq_min = extract_derivative(coeffs_min, 1, factor)
+                if order == 1:
+                    deriv_hi = pullback_signed_log(1, self.x0, dfdq_hi)
+                    deriv_min = pullback_signed_log(1, self.x0, dfdq_min)
+                else:  # order == 2
+                    d2fdq2_hi = extract_derivative(coeffs, 2, factor)
+                    d2fdq2_min = extract_derivative(coeffs_min, 2, factor)
+                    deriv_hi = pullback_signed_log(2, self.x0, dfdq_hi, d2fdq2_hi)
+                    deriv_min = pullback_signed_log(2, self.x0, dfdq_min, d2fdq2_min)
+            elif mode == "sqrt":
+                if order == 1:
+                    g2_hi = extract_derivative(coeffs, 2, factor)
+                    g2_min = extract_derivative(coeffs_min, 2, factor)
+                    deriv_hi = pullback_sqrt_at_zero(1, sign_used, g2=g2_hi)
+                    deriv_min = pullback_sqrt_at_zero(1, sign_used, g2=g2_min)
+                else:  # order == 2
+                    g4_hi = extract_derivative(coeffs, 4, factor)
+                    g4_min = extract_derivative(coeffs_min, 4, factor)
+                    deriv_hi = pullback_sqrt_at_zero(2, sign_used, g4=g4_hi)
+                    deriv_min = pullback_sqrt_at_zero(2, sign_used, g4=g4_min)
+            else:
+                deriv_hi = extract_derivative(coeffs, order, factor)
+                deriv_min = extract_derivative(coeffs_min, order, factor)
+
+            # Prefer minimal degree if derivatives are indistinguishable
+            if np.allclose(deriv_hi, deriv_min, rtol=0.0, atol=1e-9):
+                coeffs = coeffs_min
+                rrms = rrms_min
+                deg = deg_req
 
         # Evaluate fit quality (component-wise worst-case metrics)
         metrics, suggestions = assess_polyfit_quality(
