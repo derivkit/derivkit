@@ -214,11 +214,16 @@ class AdaptiveFitDerivative:
         coeffs, rrms = fit_multi_power(offsets, ys, deg_hi, ridge=ridge)
         deg = deg_hi  # current choice
 
-        # Heuristic gate for “essentially exact polynomial”
-        y_scale = max(1.0, float(np.nanmax(np.abs(ys))))
-        if (deg_hi > deg_req) and (order >= 3) and float(np.nanmax(rrms)) <= 1e-12 * y_scale:
-            # Refit at minimal degree
+        # Heuristic: if a minimal-degree refit is essentially exact, prefer it
+        # unconditionally. This removes tiny wiggles introduced by the headroom fit
+        # and makes exact polynomials differentiate exactly (to machine precision).
+        if deg_hi > deg_req and order >= 3:
             coeffs_min, rrms_min = fit_multi_power(offsets, ys, deg_req, ridge=ridge)
+            # Use a strict "essentially exact" gate
+            if np.all(rrms_min < 5e-15):
+                coeffs = coeffs_min
+                rrms = rrms_min
+                deg = deg_req
 
             # Compare derivatives at x0
             if mode == "signed_log":
