@@ -7,12 +7,16 @@ from math import factorial
 import numpy as np
 import numpy.linalg as npl
 
+from .transforms import pullback_signed_log, pullback_sqrt_at_zero
+
 __all__ = [
     "choose_degree",
     "scale_offsets",
     "fit_multi_power",
     "extract_derivative",
-    "assess_polyfit_quality"
+    "assess_polyfit_quality",
+    "fit_with_headroom_and_maybe_minimize",
+    "pullback_derivative_from_fit",
 ]
 
 
@@ -279,3 +283,123 @@ def assess_polyfit_quality(
         "thresholds": th,
     }
     return metrics, suggestions
+
+
+def fit_with_headroom_and_maybe_minimize(
+    u: np.ndarray, y: np.ndarray, *, order: int, mode: str, ridge: float, factor: float
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Perform a polynomial fit with headroom and optionally prefer minimal degree.
+
+    Fits a polynomial of degree ``deg_hi = deg_req + headroom`` to the data and, if the
+    lower-degree fit (``deg_req``) yields effectively identical derivatives, switches
+    to the minimal degree for stability and exactness. The method ensures that exact
+    polynomials or smooth functions yield consistent derivatives without overfitting.
+
+    Args:
+      u: Scaled independent variable values (offsets), shape ``(n_points,)``.
+      y: Function values evaluated at the grid points, shape ``(n_points, n_components)``.
+      order: Derivative order to compute (``>= 1``).
+      mode: Sampling mode — one of ``"x"``, ``"signed_log"``, or ``"sqrt"``.
+        Determines whether additional pullback corrections are applied when comparing fits.
+      ridge: Ridge regularization parameter applied in the least-squares fit.
+      factor: Scaling factor relating physical offsets to scaled ones (``t = u * factor``).
+
+    Returns:
+      Tuple[np.ndarray, np.ndarray, int]:
+        A 3-tuple ``(coeffs, rrms, deg_used)`` where:
+          - ``coeffs``: Power-basis polynomial coefficients, shape ``(deg+1, n_components)``.
+          - ``rrms``: Relative RMS residuals per component, shape ``(n_components,)``.
+          - ``deg_used``: Polynomial degree actually adopted (either ``deg_req`` or ``deg_hi``).
+
+    Raises:
+      ValueError: If the fit fails due to invalid input dimensions or degree constraints.
+
+    Notes:
+      - ``deg_req`` equals ``2 * order`` for ``"sqrt"`` mode, else ``order``.
+      - Headroom is set to +4 for second-order sqrt mode, otherwise +2.
+      - The switch to minimal degree occurs only if both:
+          (a) the lower-degree fit has negligible residuals (``rrms < 5e-15``), and
+          (b) its derivatives match the higher-degree fit within absolute tolerance 1e-9.
+    """
+    n_eff = u.size
+    deg_req = (2 * order) if (mode == "sqrt") else order
+    extra_need = 4 if (mode == "sqrt" and order == 2) else 2
+    deg_hi = min(deg_req + extra_need, (n_eff - 1) // 2)
+
+    c_hi, rrms_hi = fit_multi_power(u, y, deg_hi, ridge=ridge)
+    deg_used = deg_hi
+
+    if deg_hi > deg_req and order >= 3:
+        c_min, rrms_min = fit_multi_power(u, y, deg_req, ridge=ridge)
+        if np.all(rrms_min < 5e-15):
+            return c_min, rrms_min, deg_req
+
+        def _pull(c):
+            if mode == "signed_log":
+                d1 = extract_derivative(c, 1, factor)
+                if order == 1:
+                    return pullback_signed_log(1, 0.0, d1)
+                d2 = extract_derivative(c, 2, factor)
+                return pullback_signed_log(2, 0.0, d1, d2)
+            if mode == "sqrt":
+                if order == 1:
+                    g2 = extract_derivative(c, 2, factor)
+                    return pullback_sqrt_at_zero(1, +1, g2=g2)
+                g4 = extract_derivative(c, 4, factor)
+                return pullback_sqrt_at_zero(2, +1, g4=g4)
+            return extract_derivative(c, order, factor)
+
+        if np.allclose(_pull(c_hi), _pull(c_min), rtol=0.0, atol=1e-9):
+            return c_min, rrms_min, deg_req
+
+    return c_hi, rrms_hi, deg_used
+
+
+def pullback_derivative_from_fit(
+    *, mode: str, order: int, coeffs: np.ndarray, factor: float, x0: float, sign_used: float | None
+) -> np.ndarray:
+    """Extract the derivative at ``x0`` with mode-specific pullbacks.
+
+    Interprets the power-basis polynomial coefficients in the internal coordinate
+    and converts the requested derivative to the physical ``x`` domain. In
+    ``"x"`` mode, the derivative is read directly from the power basis. In
+    transformed modes, an analytic pullback is applied: the signed-log chain
+    rule or the boundary-centered square-root mapping. Note that in ``"sqrt"`` mode,
+    the first derivative in ``x`` uses the internal 2nd coefficient,
+    and the second derivative uses the internal 4th coefficient.
+
+    Args:
+      mode: Sampling/transform mode (``"x"``, ``"signed_log"``, or ``"sqrt"``).
+      order: Derivative order to return (``>= 1``). For transformed modes, only
+        orders 1 and 2 are supported.
+      coeffs: Power-basis coefficients with columns per component, shape
+        ``(deg+1, n_components)``.
+      factor: Positive scaling factor such that physical offsets satisfy
+        ``t = u * factor``.
+      x0: Physical expansion point where the derivative is evaluated.
+      sign_used: For ``"sqrt"`` mode, the branch sign (``+1`` or ``-1``). Ignored
+        for other modes.
+
+    Returns:
+      np.ndarray: The requested derivative at ``x0`` with shape ``(n_components,)``.
+
+    Raises:
+      NotImplementedError: If ``mode`` is ``"signed_log"`` or ``"sqrt"`` and
+        ``order`` is not 1 or 2.
+    """
+    if mode == "signed_log":
+        d1 = extract_derivative(coeffs, 1, factor)
+        if order == 1:
+            return pullback_signed_log(1, x0, d1)
+        d2 = extract_derivative(coeffs, 2, factor)
+        return pullback_signed_log(2, x0, d1, d2)
+
+    if mode == "sqrt":
+        s = +1.0 if (sign_used is None) else float(sign_used)
+        if order == 1:
+            g2 = extract_derivative(coeffs, 2, factor)
+            return pullback_sqrt_at_zero(1, s, g2=g2)
+        g4 = extract_derivative(coeffs, 4, factor)
+        return pullback_sqrt_at_zero(2, s, g4=g4)
+
+    return extract_derivative(coeffs, order, factor)
