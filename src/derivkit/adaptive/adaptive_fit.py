@@ -63,13 +63,13 @@ class AdaptiveFitDerivative:
 
         Args:
             order: Derivative order (>=1).
-            n_points: Number of sample points when building the default grid.
+            n_points: Number of sample points when building the default grid. Default is 10.
             spacing: Scale for default grid: float, percentage string e.g. "2%", or "auto".
             base_abs: Absolute spacing floor used by "auto"/percentage near x0≈0 (default 1e-3).
             n_workers: Parallel workers for batched function evals (1 = serial).
             grid: Either ('offsets', array) or ('absolute', array), or None for default.
             domain: Optional (lo, hi) used to trigger domain-aware transforms in default mode.
-            ridge: Ridge regularization for polynomial fit.
+            ridge: Ridge regularization for polynomial fit. Defaults to 0.0.
             diagnostics: If True, return (derivative, diagnostics_dict).
             meta: Extra metadata to carry in diagnostics.
 
