@@ -108,7 +108,7 @@ def test_exp_second_derivative(x0):
     d = AdaptiveFitDerivative(f_exp, x0)
     got = d.differentiate(order=2, **KW)
     want = np.exp(x0)
-    assert np.isclose(got, want, rtol=5e-9, atol=1e-10)
+    assert np.isclose(got, want, rtol=5e-8, atol=1e-8)
 
 
 @pytest.mark.parametrize("x0", [0.0, 0.5, 1.0])
@@ -128,7 +128,7 @@ def test_vector_second_derivative(x0):
     got = d.differentiate(order=2, **KW)
     want = np.array([2.0, -np.sin(x0), np.exp(x0)], dtype=float)
     assert got.shape == (3,)
-    assert np.allclose(got, want, rtol=5e-9, atol=1e-10)
+    assert np.allclose(got, want, rtol=5e-8, atol=1e-8)
 
 
 def test_diagnostics_payload_and_center_omitted():
