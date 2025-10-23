@@ -83,14 +83,15 @@ class AdaptiveFitDerivative:
                 raise ValueError("grid must be ('offsets'|'absolute', numpy_array) or None.")
             kind, arr = grid
             arr = np.asarray(arr, dtype=float).ravel()
-            if kind == "offsets":
-                t = np.sort(np.unique(np.append(arr, 0.0)))  # ensure center; sorted for stability
-                x = self.x0 + t
-            elif kind == "absolute":
-                x = np.sort(arr)
-                t = x - self.x0
-            else:
-                raise ValueError("grid kind must be 'offsets' or 'absolute'.")
+            match kind:
+                case "offsets":
+                    t = np.sort(np.unique(np.append(arr, 0.0)))  # ensure center; sorted for stability
+                    x = self.x0 + t
+                case "absolute":
+                    x = np.sort(arr)
+                    t = x - self.x0
+                case _:
+                    raise ValueError("grid kind must be 'offsets' or 'absolute'.")
             mode, spacing_resolved, sign_used = "x", float("nan"), None
         else:
             mode, x, t, spacing_resolved, sign_used = make_domain_aware_chebyshev_grid(
