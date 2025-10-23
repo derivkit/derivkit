@@ -130,9 +130,8 @@ def chebyshev_offsets(halfwidth: float, n_points: int, include_center: bool = Tr
     u = np.cos((2*k - 1) * np.pi / (2 * n_points))  # (-1,1]
     t = halfwidth * u
     if include_center and 0.0 not in t:
-        t = np.sort(np.append(t, 0.0))
-    else:
-        t = np.sort(t)
+        t = np.append(t, 0.0)
+    t = np.sort(t)
     return t
 
 
