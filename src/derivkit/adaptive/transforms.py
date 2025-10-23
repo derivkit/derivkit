@@ -204,7 +204,7 @@ def _normalize_sign(s: float) -> float:
     return 1.0 if s >= 0.0 else -1.0
 
 
-def _require_finite(name: str, arr) -> None:
+def _require_finite(name: str, arr: np.ndarray) -> None:
     """Raises a ``ValueError`` if an array contains any non-finite values.
 
     Args:
