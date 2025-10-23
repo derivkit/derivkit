@@ -205,7 +205,7 @@ def _normalize_sign(s: float) -> float:
 
 
 def _require_finite(name: str, arr) -> None:
-    """Raise ValueError if arr contains any non-finite values.
+    """Raises a ``ValueError`` if an array contains any non-finite values.
 
     Args:
         name: Name of the array (for error message).
