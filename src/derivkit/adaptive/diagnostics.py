@@ -139,7 +139,7 @@ def print_derivative_diagnostics(
     """Print derivative diagnostics to standard output.
 
     Args:
-      diag: Diagnostics dictionary as returned by `make_derivative_diag`.
+      diag: Diagnostics dictionary as returned by ``make_derivative_diag``.
       meta: Optional metadata dictionary to include in the output.
 
     Returns:
