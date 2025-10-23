@@ -27,7 +27,7 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
     internal coordinate q0 = log(abs(x0)) along with a fixed sign sgn = sign(abs(x0)).
 
     Args:
-        x0: Expansion point in physical coordinates. Must be non-zero.
+        x0: The expansion point in physical coordinates. Must be non-zero.
 
     Returns:
         Tuple[float, float]: (q0, sgn) where
