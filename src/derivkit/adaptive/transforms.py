@@ -36,9 +36,9 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
         ValueError: If ``x0`` is not `0` or finite.
     """
     if not np.isfinite(x0):
-        raise ValueError("signed_log_forward requires finite x0.")
+        raise ValueError("signed_log_forward requires a finite value of x0.")
     if x0 == 0.0:
-        raise ValueError("signed_log_forward requires x0 != 0.")
+        raise ValueError("signed_log_forward requires that x0 is non-zero.")
     sgn = 1.0 if x0 > 0.0 else -1.0
     q0 = float(np.log(abs(x0)))
     return q0, sgn
