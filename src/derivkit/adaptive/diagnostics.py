@@ -156,7 +156,7 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
       max_rows: Maximum number of rows to display.
 
     Returns:
-      A 1D array with at most `max_rows` elements, with NaN in the middle if truncated.
+      A 1D array with at most ``max_rows` elements, with NaN in the middle if truncated.
     """
     a = np.asarray(a)
     if a.ndim != 1 or a.size <= max_rows:
