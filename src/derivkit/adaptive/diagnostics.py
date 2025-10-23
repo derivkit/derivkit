@@ -166,7 +166,9 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
 
 
 def _preview_2d_rows(a: np.ndarray, max_rows: int) -> np.ndarray:
-    """Return a preview of a 2D array by rows, truncating with a NaN row if too many.
+    """Return a preview of a 2D array by rows.
+    
+    The preview is truncated with a NaN row if there are too many elements.
 
     Args:
       a: Input 2D array.
