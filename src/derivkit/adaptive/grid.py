@@ -112,7 +112,7 @@ def make_grid(
 def chebyshev_offsets(halfwidth: float, n_points: int, include_center: bool = True) -> np.ndarray:
     """Generate Chebyshev-distributed offsets within [-halfwidth, halfwidth].
 
-    This function generates `n_points` offsets based on the Chebyshev nodes,
+    This function generates ``n_points`` offsets based on the Chebyshev nodes,
     which are distributed to minimize interpolation error. The offsets lie
     within the interval `[-halfwidth, halfwidth]`. Optionally, the center point
     `0.0` can be included in the offsets if it is not already present.
