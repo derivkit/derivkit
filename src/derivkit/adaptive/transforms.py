@@ -30,9 +30,7 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
         x0: The expansion point in physical coordinates. Must be non-zero.
 
     Returns:
-        Tuple[float, float]: (q0, sgn) where
-            - q0 = log(abs(x0))
-            - sgn = +1.0 if x0 > 0, else -1.0
+        A tuple of ``float``s, where the first element is ``abs(x0))``, and the second element is the sign of ``x0``.
 
     Raises:
         ValueError: If ``x0`` is not `0` or finite.
