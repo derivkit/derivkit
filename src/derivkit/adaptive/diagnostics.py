@@ -167,7 +167,7 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
 
 def _preview_2d_rows(a: np.ndarray, max_rows: int) -> np.ndarray:
     """Return a preview of a 2D array by rows.
-    
+
     The preview is truncated with a NaN row if there are too many elements.
 
     Args:
@@ -201,26 +201,39 @@ def make_derivative_diag(
 ) -> dict:
     """Create a diagnostics dictionary for derivative approximations.
 
-    If ``coeffs``, ``ridge``, ``factor``, and ``order`` are all provided, this will also
-    compute polyfit quality metrics via ``assess_polyfit_quality`` and embed them.
+    Assembles core diagnostics for an adaptive polynomial derivative fit and,
+    when provided with the necessary inputs, computes and embeds polynomial-fit
+    quality metrics.
 
     Args:
-      x: Physical sample points, shape ``(x.size,)``.
-      t: Offsets from expansion point ``(x - x0)``, shape ``(x.size,)``.
-      u: Scaled offsets used for polynomial fitting, shape ``(x.size,)``.
-      s: Scaling factor applied to offsets (u = t / s).
-      y: Function values at sample points, shape ``(x.size, m)``.
-      degree: Degree of the polynomial fit (``int`` or ``list`` of ``int``s for multi-component).
-      spacing_resolved: Resolved spacing used (``None`` if not applicable).
-      rrms: Residual root-mean-square error of the polynomial fit (``None`` if not applicable).
-      coeffs: Power-basis coefficients, shape ``(degree+1, m)``. Required for quality block.
-      ridge: Ridge regularization used in the fit. Required for quality block.
-      factor: Scaling factor mapping u -> t (i.e., t = u * factor). Required for quality block.
-      order: Derivative order of interest. Required for quality block.
+        x (np.ndarray): Physical sample points, shape ``(x.size,)``.
+        t (np.ndarray): Offsets from the expansion point (``x - x0``), shape ``(x.size,)``.
+        u (np.ndarray): Scaled offsets used for the polynomial fit, shape ``(x.size,)``.
+        s (float): Scaling factor applied to offsets (``u = t / s``).
+        y (np.ndarray): Function values at the sample points, shape ``(x.size, m)``.
+        degree (int | list[int]): Polynomial degree (``int`` or list of ``int`` for multi-component fits).
+        spacing_resolved (float | None): Resolved spacing actually used (``None`` if not applicable).
+        rrms (NDArray[np.floating] | None): Residual root-mean-square error of the polynomial fit
+            (``None`` if not available).
+        coeffs (NDArray[np.floating] | None): Power-basis coefficients, shape ``(degree+1, m)``.
+            Required to compute quality metrics.
+        ridge (float | None): Ridge regularization used in the fit. Required for quality metrics.
+        factor (float | None): Scaling factor mapping ``u to t`` (i.e., ``t = u * factor``).
+            Required for quality metrics.
+        order (int | None): Derivative order of interest. Required for quality metrics.
 
     Returns:
-      A dictionary containing the diagnostics information (and, if enabled,
-      a nested `fit_quality` dict and `fit_suggestions` list).
+        dict: Core diagnostics with keys:
+            - ``"x"``, ``"t"``, ``"u"``, ``"scale_s"``, ``"y"``, ``"degree"`` (always present),
+              plus ``"spacing_resolved"`` and ``"rrms"`` when available.
+            - When quality inputs are provided, the dictionary additionally contains:
+              - ``"fit_quality"`` (dict): metrics such as ``"rrms_rel"``, ``"loo_rel"``,
+                ``"cond_vdm"``, ``"deriv_rel"``, and ``"thresholds"``.
+              - ``"fit_suggestions"`` (list[str]): human-readable suggestions.
+
+    Notes:
+        Quality metrics and suggestions are only computed when ``coeffs``, ``ridge``, ``factor``,
+        and ``order`` are all provided.
     """
     out: Dict[str, Any] = {
         "x": x,
