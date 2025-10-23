@@ -94,7 +94,7 @@ def pullback_signed_log(
     dfdq = np.asarray(dfdq, dtype=float)
     if order == 1:
         return dfdq / x0
-    if order == 2:
+    elif order == 2:
         if d2fdq2 is None:
             raise ValueError("order=2 pullback requires d2fdq2.")
         d2fdq2 = np.asarray(d2fdq2, dtype=float)
