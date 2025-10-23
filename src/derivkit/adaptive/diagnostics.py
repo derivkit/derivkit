@@ -205,15 +205,15 @@ def make_derivative_diag(
     compute polyfit quality metrics via ``assess_polyfit_quality`` and embed them.
 
     Args:
-      x: Physical sample points, shape (n,).
-      t: Offsets from expansion point (x - x0), shape (n,).
-      u: Scaled offsets used for polynomial fitting, shape (n,).
+      x: Physical sample points, shape ``(x.size,)``.
+      t: Offsets from expansion point ``(x - x0)``, shape ``(x.size,)``.
+      u: Scaled offsets used for polynomial fitting, shape ``(x.size,)``.
       s: Scaling factor applied to offsets (u = t / s).
-      y: Function values at sample points, shape (n, m).
-      degree: Degree of the polynomial fit (int or list of int for multi-component).
-      spacing_resolved: Resolved spacing used (None if not applicable).
-      rrms: Residual root-mean-square error of the polynomial fit (None if not applicable).
-      coeffs: Power-basis coefficients, shape (deg+1, m). Required for quality block.
+      y: Function values at sample points, shape ``(x.size, m)``.
+      degree: Degree of the polynomial fit (``int`` or ``list`` of ``int``s for multi-component).
+      spacing_resolved: Resolved spacing used (``None`` if not applicable).
+      rrms: Residual root-mean-square error of the polynomial fit (``None`` if not applicable).
+      coeffs: Power-basis coefficients, shape ``(degree+1, m)``. Required for quality block.
       ridge: Ridge regularization used in the fit. Required for quality block.
       factor: Scaling factor mapping u -> t (i.e., t = u * factor). Required for quality block.
       order: Derivative order of interest. Required for quality block.
