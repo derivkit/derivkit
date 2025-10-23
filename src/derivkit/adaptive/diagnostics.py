@@ -290,9 +290,10 @@ def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
         when ``is_bad`` is ``True``, otherwise an empty string.
 
     Notes:
-      This gate is intentionally conservative and non-fatal. It is intended to
-      surface suggestions (e.g., widen spacing, add points, add ridge) rather
-      than raise exceptions during routine fits.
+      These checks are intentionally conservative and non-fatal. The function
+      returns a flag and a short message with suggested actions (e.g., widen
+      spacing, add points, increase ridge) instead of raising exceptions during
+      normal runs.
     """
     th = metrics["thresholds"]
     is_bad = (
