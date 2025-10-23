@@ -62,9 +62,17 @@ def signed_log_to_physical(q: np.ndarray, sgn: float) -> np.ndarray:
     Raises:
         ValueError: If `sgn` is not +1 or -1, or if `q` contains non-finite values.
     """
-    sgn = _normalize_sign(sgn)
+    try:
+        sgn = _normalize_sign(sgn)
+    except ValueError as e:
+        raise ValueError(f"signed_log_to_physical: invalid `sgn`: {e}") from None
+
     q = np.asarray(q, dtype=float)
-    _require_finite("q", q)
+    try:
+        _require_finite("q", q)
+    except ValueError as e:
+        raise ValueError(f"signed_log_to_physical: {e}") from None
+
     return sgn * np.exp(q)
 
 
