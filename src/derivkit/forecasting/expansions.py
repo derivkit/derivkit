@@ -180,7 +180,7 @@ class LikelihoodExpansion:
         inner_workers = 1 if n_workers > 1 else 1  # keep inner serial; safest
 
         if order == 1:
-            first_order_derivatives = build_jacobian(self.function, self.theta0, n_workers)
+            first_order_derivatives = build_jacobian(self.function, self.theta0, n_workers).T
             return first_order_derivatives
 
         elif order == 2:
