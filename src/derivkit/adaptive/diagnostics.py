@@ -173,7 +173,7 @@ def _preview_2d_rows(a: np.ndarray, max_rows: int) -> np.ndarray:
       max_rows: Maximum number of rows to display.
 
     Returns:
-      A 2D array with at most `max_rows` rows, with a NaN row in the middle if truncated.
+      A 2D array with at most ``max_rows`` rows, with a NaN row in the middle if truncated.
     """
     a = np.asarray(a)
     if a.ndim != 2 or a.shape[0] <= max_rows:
