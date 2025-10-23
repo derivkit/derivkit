@@ -199,8 +199,8 @@ def make_derivative_diag(
 ) -> dict:
     """Create a diagnostics dictionary for derivative approximations.
 
-    If `coeffs`, `ridge`, `factor`, and `order` are all provided, this will also
-    compute polyfit quality metrics via `assess_polyfit_quality` and embed them.
+    If ``coeffs``, ``ridge``, ``factor``, and ``order`` are all provided, this will also
+    compute polyfit quality metrics via ``assess_polyfit_quality`` and embed them.
 
     Args:
       x: Physical sample points, shape (n,).
