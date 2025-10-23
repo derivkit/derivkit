@@ -186,7 +186,6 @@ def build_hessian(function: Callable,
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
-    # Here I am forcing the symmetry
     hess = 0.5 * (hess + hess.T)
     return hess
 
