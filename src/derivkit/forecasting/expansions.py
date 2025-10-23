@@ -180,20 +180,7 @@ class LikelihoodExpansion:
         inner_workers = 1 if n_workers > 1 else 1  # keep inner serial; safest
 
         if order == 1:
-            first_order_derivatives = np.zeros(
-                (self.n_parameters, self.n_observables), dtype=float
-            )
-
-            def compute_m(m: int) -> np.ndarray:
-                theta0_x = deepcopy(self.theta0)
-                f_to_diff = get_partial_function(self.function, m, theta0_x)
-                kit = DerivativeKit(f_to_diff, self.theta0[m])
-                # still pass n_workers through to adaptive (it can batch-eval)
-                return kit.adaptive.differentiate(order=1, n_workers=inner_workers)
-
-            results = self._map_threads(compute_m, range(self.n_parameters), n_workers)
-            for m, val in enumerate(results):
-                first_order_derivatives[m] = val
+            first_order_derivatives = build_jacobian(self.function, self.theta0, n_workers)
             return first_order_derivatives
 
         elif order == 2:
