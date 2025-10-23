@@ -118,8 +118,8 @@ def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
         u0 satisfying x0 = s * u0^2. For x0 == 0, returns 0.0.
 
     Raises:
-        ValueError: If `x0 == 0` and `sign` is None (ambiguous domain)
-        or if `x0` is not finite.
+        ValueError: If ``x0 == 0`` and ``sign`` is ``None`` (ambiguous domain)
+           or if ``x0`` is not finite.
     """
     if not np.isfinite(x0):
         raise ValueError("sqrt_domain_forward requires finite x0.")
