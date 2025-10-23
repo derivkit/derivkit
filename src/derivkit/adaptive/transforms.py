@@ -21,19 +21,22 @@ __all__ = [
 
 
 def signed_log_forward(x0: float) -> Tuple[float, float]:
-    """Compute internal coordinate q0 and sign sgn for the signed-log map.
+    """Computes the signed-log coordinates for an expansion point.
 
-    This method takes a non-zero physical coordinate x0 and computes an
-    internal coordinate q0 = log(abs(x0)) along with a fixed sign sgn = sign(abs(x0)).
+    The *signed-log* map represents a physical coordinate ``x`` as
+    ``x = sgn * exp(q)``, where ``q = log(|x|)`` and ``sgn = sign(x)``.
+    This reparameterization keeps multiplicative variation (orders of magnitude)
+    well-behaved and avoids crossing through zero during local polynomial fits.
 
     Args:
-        x0: The expansion point in physical coordinates. Must be non-zero.
+        x0: Expansion point in physical coordinates. Must be finite and non-zero.
 
     Returns:
-        A tuple of ``float``s, where the first element is ``abs(x0))``, and the second element is the sign of ``x0``.
+        Tuple[float, float]: ``(q0, sgn)``, where ``q0 = log(|x0|)`` and
+        ``sgn = +1.0`` if ``x0 > 0`` else ``-1.0``.
 
     Raises:
-        ValueError: If ``x0`` is not `0` or finite.
+        ValueError: If ``x0`` is not finite or equals zero.
     """
     if not np.isfinite(x0):
         raise ValueError("signed_log_forward requires a finite value of x0.")
