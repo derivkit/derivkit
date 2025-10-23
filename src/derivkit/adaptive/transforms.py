@@ -25,6 +25,8 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
 
     The *signed-log* map represents a physical coordinate ``x`` as
     ``x = sgn * exp(q)``, where ``q = log(|x|)`` and ``sgn = sign(x)``.
+    Here, **physical** means the model’s native parameter (``x``), while
+    **internal** means the reparameterized coordinate used for numerics (``q``).
     This reparameterization keeps multiplicative variation (orders of magnitude)
     well-behaved and avoids crossing through zero during local polynomial fits.
 
