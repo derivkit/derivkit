@@ -205,7 +205,6 @@ def _normalize_sign(s: float) -> float:
     Returns:
         +1.0 if s >= 0.0, else -1.0.
     """
-    s = float(s)
     return 1.0 if s >= 0.0 else -1.0
 
 
