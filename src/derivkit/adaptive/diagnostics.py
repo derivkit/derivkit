@@ -271,10 +271,10 @@ def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
         thresholds).
 
     Returns:
-      Tuple[bool, str]: A pair ``(bad, msg)``. ``bad`` is ``True`` if any metric
+    A pair ``(is_bad, msg)``. ``is_bad`` is ``True`` if any metric
         exceeds its amplified threshold (5× for ``rrms_rel``, ``loo_rel``, and
         ``deriv_rel``; 10× for ``cond_vdm``). ``msg`` is a brief summary string
-        when ``bad`` is ``True``, otherwise an empty string.
+        when ``is_bad`` is ``True``, otherwise an empty string.
 
     Notes:
       This gate is intentionally conservative and non-fatal. It is intended to
