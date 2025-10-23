@@ -282,19 +282,19 @@ def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
       than raise exceptions during routine fits.
     """
     th = metrics["thresholds"]
-    bad = (
+    is_bad = (
         metrics["rrms_rel"] > 5 * th["rrms_rel"]
         or metrics["loo_rel"] > 5 * th["loo_rel"]
         or metrics["cond_vdm"] > 10 * th["cond_vdm"]
         or metrics["deriv_rel"] > 5 * th["deriv_rel"]
     )
-    if not bad:
-        return False, ""
-    msg = (
-        "Polynomial fit looks unstable: "
-        f"rrms_rel={metrics['rrms_rel']:.2e}, "
-        f"loo_rel={metrics['loo_rel']:.2e}, "
-        f"cond_vdm={metrics['cond_vdm']:.2e}, "
-        f"deriv_rel={metrics['deriv_rel']:.2e}."
-    )
-    return True, msg
+    msg = ""
+    if is_bad:
+        msg = (
+            "Polynomial fit looks unstable: "
+            f"rrms_rel={metrics['rrms_rel']:.2e}, "
+            f"loo_rel={metrics['loo_rel']:.2e}, "
+            f"cond_vdm={metrics['cond_vdm']:.2e}, "
+            f"deriv_rel={metrics['deriv_rel']:.2e}."
+        )
+    return is_bad, msg
