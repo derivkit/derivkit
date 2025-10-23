@@ -45,7 +45,7 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
     if x0 == 0.0:
         raise ValueError("signed_log_forward requires that x0 is non-zero.")
     sgn = 1.0 if x0 > 0.0 else -1.0
-    q0 = float(np.log(abs(x0)))
+    q0 = np.log(abs(x0))
     return q0, sgn
 
 
