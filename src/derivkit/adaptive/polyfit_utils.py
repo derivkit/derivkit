@@ -334,22 +334,16 @@ def fit_with_headroom_and_maybe_minimize(
         if np.all(rrms_min < 5e-15):
             return c_min, rrms_min, deg_req
 
-        def _pull(c):
-            if mode == "signed_log":
-                d1 = extract_derivative(c, 1, factor)
-                if order == 1:
-                    return pullback_signed_log(1, 0.0, d1)
-                d2 = extract_derivative(c, 2, factor)
-                return pullback_signed_log(2, 0.0, d1, d2)
-            if mode == "sqrt":
-                if order == 1:
-                    g2 = extract_derivative(c, 2, factor)
-                    return pullback_sqrt_at_zero(1, +1, g2=g2)
-                g4 = extract_derivative(c, 4, factor)
-                return pullback_sqrt_at_zero(2, +1, g4=g4)
-            return extract_derivative(c, order, factor)
+        pull_hi = pullback_derivative_from_fit(
+            mode=mode, order=order, coeffs=c_hi, factor=factor,
+            x0=0.0, sign_used=(+1.0 if mode == "sqrt" else None)
+        )
+        pull_min = pullback_derivative_from_fit(
+            mode=mode, order=order, coeffs=c_min, factor=factor,
+            x0=0.0, sign_used=(+1.0 if mode == "sqrt" else None)
+        )
 
-        if np.allclose(_pull(c_hi), _pull(c_min), rtol=0.0, atol=1e-9):
+        if np.allclose(pull_hi, pull_min, rtol=0.0, atol=1e-9):
             return c_min, rrms_min, deg_req
 
     return c_hi, rrms_hi, deg_used
