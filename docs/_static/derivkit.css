@@ -1,0 +1,117 @@
+/* ===== DerivKit palette ===== */
+:root {
+  --dk-blue:   #3b9ab2;
+  --dk-yellow: #e1af00;
+  --dk-red:    #f21901;
+}
+
+/* Map Furo brand accents to our blue (both themes) */
+html[data-theme="light"],
+html[data-theme="dark"] {
+  --color-brand-primary: var(--dk-blue);
+  --color-brand-content: var(--dk-blue);
+}
+
+/* ===== Code (Pygments) color overrides ===== */
+/* Keywords */
+.highlight .k,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kt { color: var(--dk-blue); font-weight: 600; }
+
+/* Function & method names */
+.highlight .nf,
+.highlight .fm { color: var(--dk-yellow); }
+
+/* Classes / exceptions / namespaces */
+.highlight .nc,
+.highlight .ne,
+.highlight .nn { color: var(--dk-yellow); }
+
+/* Strings */
+.highlight .s,
+.highlight .sa, .highlight .sb, .highlight .sc,
+.highlight .sd, .highlight .s1, .highlight .s2,
+.highlight .se, .highlight .sh, .highlight .si, .highlight .sr,
+.highlight .ss { color: var(--dk-red); }
+
+/* Numbers */
+.highlight .m, .highlight .mb, .highlight .mf, .highlight .mh,
+.highlight .mi, .highlight .mo { color: var(--dk-red); }
+
+/* Operators */
+.highlight .o, .highlight .ow { color: var(--dk-blue); }
+
+/* Comments */
+.highlight .c, .highlight .ch, .highlight .cm, .highlight .c1,
+.highlight .cs, .highlight .cp { color: #6a737d; font-style: italic; }
+
+/* Signatures (API headings) */
+.sig .sig-name, code.descname { color: var(--dk-yellow); }
+.sig .k { color: var(--dk-blue); }
+a.reference code { color: var(--dk-blue); }
+
+/* ===== Links (global) ===== */
+html[data-theme="light"] a:link,
+html[data-theme="dark"]  a:link {
+  color: var(--dk-blue) !important;     /* unvisited = blue */
+}
+
+html[data-theme="light"] a:visited,
+html[data-theme="dark"]  a:visited {
+  color: var(--dk-yellow) !important;   /* visited = yellow */
+}
+
+html[data-theme="light"] a:hover,
+html[data-theme="dark"]  a:hover {
+  color: var(--dk-red) !important;      /* hover = red */
+}
+
+html[data-theme="light"] a:active,
+html[data-theme="dark"]  a:active {
+  color: var(--dk-blue) !important;     /* active = blue */
+}
+
+/* Sidebars & in-page TOCs (stronger specificity) */
+html[data-theme] .sidebar-container a:link,
+html[data-theme] nav.toc a:link {
+  color: var(--dk-blue) !important;
+}
+html[data-theme] .sidebar-container a:visited,
+html[data-theme] nav.toc a:visited {
+  color: var(--dk-yellow) !important;
+}
+
+/* ===== (Optional) Admonition accents — uncomment if desired ===== */
+.admonition.note,
+.admonition.tip,
+.admonition.hint,
+.admonition.important { border-left: 0.25rem solid var(--dk-yellow); }
+
+.admonition.warning,
+.admonition.caution,
+.admonition.attention,
+.admonition.danger,
+.admonition.error       { border-left: 0.25rem solid var(--dk-red); }
+
+/* ===== EXTRA: Make sure we beat basic.css everywhere ===== */
+html[data-theme] body a:link    { color: var(--dk-blue)   !important; }
+html[data-theme] body a:visited { color: var(--dk-yellow) !important; }
+html[data-theme] body a:hover   { color: var(--dk-red)    !important; }
+html[data-theme] body a:active  { color: var(--dk-blue)   !important; }
+
+/* Sidebar & TOCs (cover more structures) */
+html[data-theme] .sidebar-container a:link,
+html[data-theme] nav.toc a:link,
+html[data-theme] .related a:link,
+html[data-theme] .toc-tree a:link {
+  color: var(--dk-blue) !important;
+}
+html[data-theme] .sidebar-container a:visited,
+html[data-theme] nav.toc a:visited,
+html[data-theme] .related a:visited,
+html[data-theme] .toc-tree a:visited {
+  color: var(--dk-yellow) !important;
+}
