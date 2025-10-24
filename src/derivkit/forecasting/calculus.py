@@ -1,7 +1,7 @@
 """Differential calculus helpers."""
 
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 
 import numpy as np
@@ -39,7 +39,7 @@ def build_gradient(function, theta0, n_workers=1):
         raise ValueError("theta0 must be a non-empty 1D array.")
 
     # One-time scalar check for build_gradient()
-    _check_scalar_valued(function, theta0, 0, n_workers)
+    _check_scalar_valued(function, theta0, 0)
 
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
@@ -151,8 +151,7 @@ def build_hessian(function: Callable,
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the hessian is evaluated.
-        n_workers: Number of workers used by DerivativeKit.adaptive.differentiate.
-            This setting does not parallelize across parameters.
+        n_workers: If > 1, compute entries in parallel with that many threads. Default is 1.
 
     Returns:
         A 2D array representing the hessian.
@@ -173,14 +172,41 @@ def build_hessian(function: Callable,
     n_parameters = theta.size
     hess = np.empty((n_parameters, n_parameters), dtype=float)
 
-    # Diagonals here (pure second orders)
-    for i in range(n_parameters):
-        hess[i, i] = _hessian_component(function, theta, i, i, n_workers)
+    # Serial path
+    if not n_workers or n_workers <= 1:
+        for i in range(n_parameters):
+            hess[i, i] = _hessian_component(function, theta, i, i, n_workers)
+        for i in range(n_parameters):
+            for j in range(i + 1, n_parameters):
+                hij = _hessian_component(function, theta, i, j, n_workers)
+                hess[i, j] = hij
+                hess[j, i] = hij
 
-    # Off-diagonals here (mixed second orders).
+        if not np.isfinite(hess).all():
+            raise FloatingPointError("Non-finite values encountered in hessian.")
+        hess = 0.5 * (hess + hess.T)
+        return hess
+
+    # Parallel path (threads)
+    jobs: list[tuple[int, int]] = [(i, i) for i in range(n_parameters)]
+    jobs += [(i, j) for i in range(n_parameters) for j in range(i + 1, n_parameters)]
+
+    worker = partial(_hessian_component, function, theta)
+    results: dict[tuple[int, int], float] = {}
+
+    with ThreadPoolExecutor(max_workers=int(n_workers)) as ex:
+        fut_to_ij = {ex.submit(worker, i, j, n_workers): (i, j) for (i, j) in jobs}
+        for fut in as_completed(fut_to_ij):
+            i, j = fut_to_ij[fut]
+            hij = float(fut.result())
+            results[(i, j)] = hij
+
+    # Fill matrix, mirror upper to lower
+    for i in range(n_parameters):
+        hess[i, i] = results[(i, i)]
     for i in range(n_parameters):
         for j in range(i + 1, n_parameters):
-            hij = _hessian_component(function, theta, i, j, n_workers)
+            hij = results[(i, j)]
             hess[i, j] = hij
             hess[j, i] = hij
 
@@ -203,7 +229,7 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int, n
         theta0: Parameter vector (1-D) at which the Hessian entry is evaluated.
         i: Zero-based index of the first parameter.
         j: Zero-based index of the second parameter.
-        n_workers: Unused here; needs to be added.
+        n_workers: If > 1, compute entries in parallel with that many threads. Default is 1.
 
     Returns:
         A single float: the estimated Hessian entry ``∂²f / (∂θ_i ∂θ_j)`` at ``theta0``.
@@ -250,8 +276,8 @@ def hessian_diag(*args, **kwargs):
     raise NotImplementedError
 
 
-def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
-    """Helper used by ``build_gradient`` and ``build_hessian``.
+def _check_scalar_valued(function, theta0: np.ndarray, i: int):
+    """Checks that the function is scalar-valued at theta0.
 
     Args:
         function (callable): The scalar-valued function to
@@ -261,9 +287,6 @@ def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
             A 1D array or list of parameter values matching the expected
             input of the function.
         i: Zero-based index of the parameter with respect to which to differentiate.
-        n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
 
     Raises:
         TypeError: If ``function`` does not return a scalar value.
