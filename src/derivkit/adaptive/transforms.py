@@ -50,7 +50,7 @@ def signed_log_forward(x0: float) -> Tuple[float, float]:
 
 
 def signed_log_to_physical(q: np.ndarray, sgn: float) -> np.ndarray:
-    """Map internal signed-log coordinate(s) to physical coordinate(s).
+    """Maps internal signed-log coordinate(s) to physical coordinate(s).
 
     Args:
         q: Internal coordinate(s) q = log(abs(x)).
