@@ -119,10 +119,12 @@ def signed_log_derivatives_to_x(
 
 
 def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
-    """Compute the internal domain coordinate u0 for the sqrt-domain map.
+    """Computes the internal domain coordinate u0 for the square-root domain transformation.
 
-    This method computes the internal domain coordinate u0 satisfying x0 = s * u0^2,
-    where s = sign(x0) unless `sign` is provided explicitly. At x0 == 0, u0 = 0.
+    The *square-root domain* transform re-expresses a parameter ``x`` as
+    ``x = s * u**2``, where ``s`` is the domain sign (+1 or –1).  This mapping
+    flattens steep behavior near a boundary such as ``x = 0`` and allows
+    smooth polynomial fitting on either the positive or negative side.
 
     Args:
         x0: Expansion point in physical coordinates (can be zero).
