@@ -320,26 +320,17 @@ class LikelihoodExpansion:
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-        # Jacobian — ensure shape is (n_obs, n_params)
-        j_raw = np.asarray(
-            build_jacobian(self.function, self.theta0, n_workers=n_workers),
-            dtype=float,
-        )
-        n_obs = self.n_observables
-        n_params = self.n_parameters
-
-        candidates = []
-        if j_raw.shape == (n_obs, n_params):
-            candidates.append(j_raw)
-        if j_raw.shape == (n_params, n_obs):
-            candidates.append(j_raw.T)
-        if not candidates:
+        # Jacobian — enforce shape (n_obs, n_params)
+        j_raw = np.asarray(build_jacobian(self.function, self.theta0, n_workers=n_workers), float)
+        n_obs, n_params = self.n_observables, self.n_parameters
+        if j_raw.shape != (n_obs, n_params):
             raise ValueError(
-                f"build_jacobian returned unexpected shape {j_raw.shape}; "
-                f"expected (n_obs, n_params)=({n_obs},{n_params}) or its transpose."
+                f"build_jacobian must return shape (n_obs, n_params)=({n_obs},{n_params}); "
+                f"got {j_raw.shape}."
             )
+        j_matrix = j_raw  # (n_obs, n_params)
 
-        j_matrix = candidates[0]
+        # Shape checks consistent with J
         if self.cov.shape != (j_matrix.shape[0], j_matrix.shape[0]):
             raise ValueError(
                 f"covariance shape {self.cov.shape} must be (n, n) = "
@@ -351,15 +342,6 @@ class LikelihoodExpansion:
                 f"{(j_matrix.shape[1], j_matrix.shape[1])} from the Jacobian."
             )
 
-        if len(candidates) == 2:
-            cinv_test = invert_covariance(self.cov, rcond=rcond, warn_prefix=self.__class__.__name__)
-            f0 = candidates[0].T @ cinv_test @ candidates[0]
-            f1 = candidates[1].T @ cinv_test @ candidates[1]
-            j_matrix = candidates[0] if np.linalg.norm(f0 - fisher_matrix) <= np.linalg.norm(f1 - fisher_matrix) else \
-            candidates[1]
-
-        n_obs, n_params = j_matrix.shape  # (n, p)
-
         # Make delta_nu a 1D array of length n; 2D inputs are flattened in row-major ("C") order.
         delta_nu = np.asarray(delta_nu, dtype=float)
         if delta_nu.ndim == 2:
@@ -369,34 +351,30 @@ class LikelihoodExpansion:
         if not np.isfinite(delta_nu).all():
             raise FloatingPointError("Non-finite values found in delta_nu.")
 
-        # Generalized least squares (GLS) weighting by inv cov:
-        # - if the covariance C is diagonal, we can compute invcov·delta_nu by simple elementwise division.
-        # - otherwise we solve with a symmetric linear solver; if that fails or is ill-conditioned,
-        #   we fall back to a pseudoinverse and emit a warning (via warn_context="covariance solve").
-        # diagonal fast-path check (exact)
+        # GLS weighting by the inverse covariance:
+        # If C is diagonal, compute invcov * delta_nu by elementwise division (fast).
+        # Otherwise solve with a symmetric solver; on ill-conditioning/failure,
+        # fall back to a pseudoinverse and emit a warning.
         off = self.cov.copy()
         np.fill_diagonal(off, 0.0)
-        is_diag = not np.any(off)  # this is true iff all off-diagonals are exactly zero
+        is_diag = not np.any(off)  # True iff all off-diagonals are exactly zero
 
         if is_diag:
             diag = np.diag(self.cov)
             if np.all(diag > 0):
                 cinv_delta = delta_nu / diag
             else:
-                cinv_delta = solve_or_pinv(self.cov, delta_nu, rcond=rcond,
-                                           assume_symmetric=True, warn_context="covariance solve")
+                cinv_delta = solve_or_pinv(
+                    self.cov, delta_nu, rcond=rcond, assume_symmetric=True, warn_context="covariance solve"
+                )
         else:
-            cinv_delta = solve_or_pinv(self.cov, delta_nu, rcond=rcond,
-                                       assume_symmetric=True, warn_context="covariance solve")
+            cinv_delta = solve_or_pinv(
+                self.cov, delta_nu, rcond=rcond, assume_symmetric=True, warn_context="covariance solve"
+            )
 
         bias_vec = j_matrix.T @ cinv_delta
-
         delta_theta = solve_or_pinv(
-            fisher_matrix,
-            bias_vec,
-            rcond=rcond,
-            assume_symmetric=True,
-            warn_context="Fisher solve",
+            fisher_matrix, bias_vec, rcond=rcond, assume_symmetric=True, warn_context="Fisher solve"
         )
 
         return bias_vec, delta_theta
