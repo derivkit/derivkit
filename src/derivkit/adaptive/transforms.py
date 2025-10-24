@@ -13,7 +13,7 @@ import numpy as np
 __all__ = [
     "signed_log_forward",
     "signed_log_to_physical",
-    "pullback_signed_log",
+    "signed_log_derivatives_to_x",
     "sqrt_domain_forward",
     "sqrt_to_physical",
     "pullback_sqrt_at_zero",
@@ -76,13 +76,13 @@ def signed_log_to_physical(q: np.ndarray, sgn: float) -> np.ndarray:
     return sgn * np.exp(q)
 
 
-def pullback_signed_log(
+def signed_log_derivatives_to_x(
     order: int,
     x0: float,
     dfdq: np.ndarray,
     d2fdq2: Optional[np.ndarray] = None,
 ) -> np.ndarray:
-    """Pull back derivatives from q-space (signed-log) to physical x at x0 != 0.
+    """Converts derivatives from the signed-log coordinate ``q`` to the original parameter ``x`` at ``x0 ≠ 0``.
 
     This method uses the chain rule to convert derivatives computed in the
     internal signed-log coordinate q back to physical coordinates x at a
@@ -103,16 +103,16 @@ def pullback_signed_log(
         NotImplementedError: If `order` not in {1, 2}.
     """
     if not np.isfinite(x0) or x0 == 0.0:
-        raise ValueError("pullback_signed_log requires finite x0 != 0.")
+        raise ValueError("signed_log_derivatives_to_x requires finite x0 != 0.")
     dfdq = np.asarray(dfdq, dtype=float)
     if order == 1:
         return dfdq / x0
     elif order == 2:
         if d2fdq2 is None:
-            raise ValueError("order=2 pullback requires d2fdq2.")
+            raise ValueError("order=2 conversion requires d2fdq2.")
         d2fdq2 = np.asarray(d2fdq2, dtype=float)
         return (d2fdq2 - dfdq) / (x0 ** 2)
-    raise NotImplementedError("pullback_signed_log supports orders 1 and 2.")
+    raise NotImplementedError("signed_log_derivatives_to_x supports orders 1 and 2.")
 
 
 def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:

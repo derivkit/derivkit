@@ -7,7 +7,7 @@ from math import factorial
 import numpy as np
 import numpy.linalg as npl
 
-from .transforms import pullback_signed_log, pullback_sqrt_at_zero
+from .transforms import signed_log_derivatives_to_x, pullback_sqrt_at_zero
 
 __all__ = [
     "choose_degree",
@@ -384,9 +384,9 @@ def pullback_derivative_from_fit(
     if mode == "signed_log":
         d1 = extract_derivative(coeffs, 1, factor)
         if order == 1:
-            return pullback_signed_log(1, x0, d1)
+            return signed_log_derivatives_to_x(1, x0, d1)
         d2 = extract_derivative(coeffs, 2, factor)
-        return pullback_signed_log(2, x0, d1, d2)
+        return signed_log_derivatives_to_x(2, x0, d1, d2)
 
     if mode == "sqrt":
         s = +1.0 if (sign_used is None) else float(sign_used)

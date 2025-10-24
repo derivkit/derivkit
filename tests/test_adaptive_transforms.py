@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from derivkit.adaptive.transforms import (
-    pullback_signed_log,
+    signed_log_derivatives_to_x,
     pullback_sqrt_at_zero,
     signed_log_forward,
     signed_log_to_physical,
@@ -60,20 +60,20 @@ def test_pullback_signed_log_order1_and_2():
     d2fdq2 = np.array([5.0, 3.0])
 
     # order 1: d/dx = (df/dq) * dq/dx, with q=log|x| => dq/dx = 1/x
-    d1 = pullback_signed_log(1, x0, dfdq)
+    d1 = signed_log_derivatives_to_x(1, x0, dfdq)
     np.testing.assert_allclose(d1, dfdq / x0)
 
     # order 2: given implementation (d2fdq2 - dfdq) / x^2
-    d2 = pullback_signed_log(2, x0, dfdq, d2fdq2)
+    d2 = signed_log_derivatives_to_x(2, x0, dfdq, d2fdq2)
     np.testing.assert_allclose(d2, (d2fdq2 - dfdq) / (x0 ** 2))
 
     # order 2 missing d2fdq2 -> error
     with pytest.raises(ValueError):
-        pullback_signed_log(2, x0, dfdq, None)
+        signed_log_derivatives_to_x(2, x0, dfdq, None)
 
     # x0 == 0 -> error
     with pytest.raises(ValueError):
-        pullback_signed_log(1, 0.0, dfdq)
+        signed_log_derivatives_to_x(1, 0.0, dfdq)
 
 
 @pytest.mark.parametrize(
