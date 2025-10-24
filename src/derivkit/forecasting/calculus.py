@@ -191,13 +191,25 @@ def build_hessian(function: Callable,
 
 
 def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int, n_workers: int) -> float:
-    """Central-difference entry (i,j) of the Hessian for scalar f:R^n->R.
+    """Computes the (i, j) entry of the Hessian for a scalar-valued function using central differences.
 
-    Diagonals:
-        (f(x+h e_i) - 2 f(x) + f(x-h e_i)) / h^2
-    Off-diagonals:
-        (f(x+hi e_i + hj e_j) - f(x+hi e_i - hj e_j)
-         - f(x-hi e_i + hj e_j) + f(x-hi e_i - hj e_j)) / (4 hi hj)
+    For diagonal entries, this uses a second-order central difference along parameter ``i``.
+    For off-diagonal entries, it uses a symmetric two-direction central difference
+    involving small steps along parameters ``i`` and ``j``. Step sizes are chosen adaptively
+    from machine epsilon and the parameter scales to balance truncation and round-off errors.
+
+    Args:
+        function: Callable that maps a parameter vector to a scalar value.
+        theta0: Parameter vector (1-D) at which the Hessian entry is evaluated.
+        i: Zero-based index of the first parameter.
+        j: Zero-based index of the second parameter.
+        n_workers: Unused here; needs to be added.
+
+    Returns:
+        A single float: the estimated Hessian entry ``∂²f / (∂θ_i ∂θ_j)`` at ``theta0``.
+
+    Raises:
+        FloatingPointError: If the function evaluations produce non-finite values.
     """
     x = np.asarray(theta0, dtype=float).ravel()
     eps = np.finfo(float).eps
