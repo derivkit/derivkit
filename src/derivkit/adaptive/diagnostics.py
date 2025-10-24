@@ -199,41 +199,47 @@ def make_derivative_diag(
     factor: float | None = None,
     order: int | None = None,
 ) -> dict:
-    """Create a diagnostics dictionary for derivative approximations.
+    """Builds a lightweight diagnostics for a local polynomial derivative fit.
 
-    Assembles core diagnostics for an adaptive polynomial derivative fit and,
-    when provided with the necessary inputs, computes and embeds polynomial-fit
-    quality metrics.
+    This assembles the core quantities used in plotting/printing diagnostics and,
+    when enough inputs are provided, augments them with polynomial-fit quality
+    metrics and human-readable suggestions.
 
     Args:
-        x (np.ndarray): Physical sample points, shape ``(x.size,)``.
-        t (np.ndarray): Offsets from the expansion point (``x - x0``), shape ``(x.size,)``.
-        u (np.ndarray): Scaled offsets used for the polynomial fit, shape ``(x.size,)``.
-        s (float): Scaling factor applied to offsets (``u = t / s``).
-        y (np.ndarray): Function values at the sample points, shape ``(x.size, m)``.
-        degree (int | list[int]): Polynomial degree (``int`` or list of ``int`` for multi-component fits).
-        spacing_resolved (float | None): Resolved spacing actually used (``None`` if not applicable).
-        rrms (NDArray[np.floating] | None): Residual root-mean-square error of the polynomial fit
-            (``None`` if not available).
-        coeffs (NDArray[np.floating] | None): Power-basis coefficients, shape ``(degree+1, m)``.
-            Required to compute quality metrics.
-        ridge (float | None): Ridge regularization used in the fit. Required for quality metrics.
-        factor (float | None): Scaling factor mapping ``u to t`` (i.e., ``t = u * factor``).
-            Required for quality metrics.
-        order (int | None): Derivative order of interest. Required for quality metrics.
+        x: Absolute sample locations, shape ``(n,)``.
+        t: Offsets relative to ``x0`` (``t = x - x0``), shape ``(n,)``.
+        u: Scaled offsets used in the polynomial basis (typically ``u = t / s``),
+           shape ``(n,)``.
+        s: Offset scale factor used to build ``u`` (the interval half-width).
+        y: Function evaluations at ``x``, shape ``(n, m)`` for ``m`` components.
+        degree: Final polynomial degree used. May be an ``int`` or per-component list.
+        spacing_resolved: Resolved spacing descriptor for the default grid (numeric
+            half-width or ``None`` if not applicable).
+        rrms: Relative RMS residuals of the fit, shape ``(m,)`` (optional).
+        coeffs: Polynomial coefficients in the scaled basis, shape ``(deg+1, m)`` (optional).
+        ridge: Ridge regularization strength used in the fit (optional).
+        factor: Alias of ``s`` (kept for compatibility) (optional).
+        order: Derivative order of interest (optional).
 
     Returns:
-        dict: Core diagnostics with keys:
-            - ``"x"``, ``"t"``, ``"u"``, ``"scale_s"``, ``"y"``, ``"degree"`` (always present),
-              plus ``"spacing_resolved"`` and ``"rrms"`` when available.
-            - When quality inputs are provided, the dictionary additionally contains:
-              - ``"fit_quality"`` (dict): metrics such as ``"rrms_rel"``, ``"loo_rel"``,
-                ``"cond_vdm"``, ``"deriv_rel"``, and ``"thresholds"``.
-              - ``"fit_suggestions"`` (list[str]): human-readable suggestions.
+        dict: A plain dictionary with fields suited for logging/printing/plotting.
 
-    Notes:
-        Quality metrics and suggestions are only computed when ``coeffs``, ``ridge``, ``factor``,
-        and ``order`` are all provided.
+        Always present:
+            - ``"x"`` : ``np.ndarray``
+            - ``"t"`` : ``np.ndarray``
+            - ``"u"`` : ``np.ndarray``
+            - ``"scale_s"`` : ``float``
+            - ``"y"`` : ``np.ndarray``
+            - ``"degree"`` : ``int`` or ``list[int]``
+
+        Included when available:
+            - ``"spacing_resolved"`` : ``float | None``
+            - ``"rrms"`` : ``np.ndarray`` or ``float``
+
+        Included when quality inputs are provided (``coeffs``, ``ridge``, ``factor``, ``order``):
+            - ``"fit_quality"`` : ``dict`` with keys like ``"rrms_rel"``, ``"loo_rel"``,
+              ``"cond_vdm"``, ``"deriv_rel"``, and a nested ``"thresholds"`` dict.
+            - ``"fit_suggestions"`` : ``list[str]`` with human-readable hints.
     """
     out: Dict[str, Any] = {
         "x": x,
@@ -271,29 +277,27 @@ def make_derivative_diag(
 
 
 def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
-    """Heuristically flag unstable polynomial fits and compose a brief message.
+    """Heuristically flag a clearly unstable polynomial fit and return a brief reason.
 
-    This function inspects diagnostic metrics from ``assess_polyfit_quality`` and
-    decides whether the fit is clearly unstable using amplified thresholds. When
-    unstable, it returns ``(True, msg)`` with a short summary string. Otherwise,
-    it returns ``(False, "")``.
+    This inspects scalar diagnostics (from ``assess_polyfit_quality``) against amplified
+    thresholds. If any metric is far beyond its nominal limit, the fit is flagged.
 
     Args:
-      metrics: Dictionary with keys ``"rrms_rel"``, ``"loo_rel"``, ``"cond_vdm"``,
-        ``"deriv_rel"``, and ``"thresholds"`` (a dict containing per-metric
-        thresholds).
+        metrics: Dictionary with keys like:
+            - ``"rrms_rel"``, ``"loo_rel"``, ``"cond_vdm"``, ``"deriv_rel"``
+            - ``"thresholds"`` : ``dict`` of nominal per-metric thresholds
 
     Returns:
-    A pair ``(is_bad, msg)``. ``is_bad`` is ``True`` if any metric
-        exceeds its amplified threshold (5× for ``rrms_rel``, ``loo_rel``, and
-        ``deriv_rel``; 10× for ``cond_vdm``). ``msg`` is a brief summary string
-        when ``is_bad`` is ``True``, otherwise an empty string.
+        tuple[bool, str]: ``(is_bad, message)`` where:
+            - ``is_bad`` is ``True`` if any metric exceeds its amplified threshold
+              (×5 for ``rrms_rel``, ``loo_rel``, ``deriv_rel``; ×10 for ``cond_vdm``),
+              otherwise ``False``.
+            - ``message`` is a short human-readable summary when ``is_bad`` is ``True``,
+              otherwise ``""``.
 
     Notes:
-      These checks are intentionally conservative and non-fatal. The function
-      returns a flag and a short message with suggested actions (e.g., widen
-      spacing, add points, increase ridge) instead of raising exceptions during
-      normal runs.
+        This is a soft, non-fatal screen for diagnostics/logging. Callers decide how to
+        react (warn, rebuild grid, widen spacing, add samples, increase ridge, etc.).
     """
     th = metrics["thresholds"]
     is_bad = (

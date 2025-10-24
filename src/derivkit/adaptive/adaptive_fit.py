@@ -52,23 +52,26 @@ class AdaptiveFitDerivative:
         """Compute the derivative of specified order at x0 using an adaptive polynomial fit.
 
         Sampling strategy:
-          - grid=None: symmetric Chebyshev offsets around x0 with half-width from `spacing`.
-          - grid=("offsets", arr): explicit offsets t; samples at x = x0 + t (0 inserted if missing).
-          - grid=("absolute", arr): explicit absolute x positions; samples at x = arr.
+            - grid=None: symmetric Chebyshev offsets around x0 with half-width from `spacing`.
+            - grid=("offsets", arr): explicit offsets t; samples at x = x0 + t (0 inserted if missing).
+            - grid=("absolute", arr): explicit absolute x positions; samples at x = arr.
 
         Args:
             order: Derivative order (>=1).
             n_points: Number of sample points when building the default grid. Default is 10.
-            spacing: Scale for the default symmetric grid around ``x0`` (ignored when `grid`` is provided).
-             Accepted forms:
-              - float: interpreted as an absolute half-width ``h``; samples in ``[x0 - h, x0 + h]``.
-              - "<pct>%": percentage string; ``h`` is that fraction of a local scale
-                set by ``abs(x0)`` with a floor ``base_abs`` near zero.
-              - "auto": choose ``h`` adaptively. DerivKit picks a half-width based on
-                the local scale of ``x0`` with a minimum of ``base_abs``; if ``domain``
-                is given, the interval is clipped to stay inside ``(lo, hi)``. The
-                default grid uses Chebyshev nodes on that interval and always includes
-                the center point.
+            spacing: Scale for the default symmetric grid around ``x0`` (ignored when ``grid`` is provided).
+
+                Accepted forms:
+
+                - float: interpreted as an absolute half-width ``h``; samples in ``[x0 - h, x0 + h]``.
+                - "<pct>%": percentage string; ``h`` is that fraction of a local scale
+                  set by ``abs(x0)`` with a floor ``base_abs`` near zero.
+                - "auto": choose ``h`` adaptively. DerivKit picks a half-width based on
+                  the local scale of ``x0`` with a minimum of ``base_abs``; if ``domain``
+                  is given, the interval is clipped to stay inside ``(lo, hi)``. The
+                  default grid uses Chebyshev nodes on that interval and always includes
+                  the center point.
+
             base_abs: Absolute spacing floor used by "auto"/percentage near x0≈0. Defaults to ``1e-3`` if not set.
             n_workers: Parallel workers for batched function evals (1 = serial).
             grid: Either ('offsets', array) or ('absolute', array), or None for default.
