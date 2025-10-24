@@ -7,6 +7,11 @@ from functools import partial
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from derivkit._concurrency import (
+    _inner_workers_var,  # noqa: PLC0415
+    resolve_inner_from_outer,
+    set_inner_derivative_workers,
+)
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
 
@@ -25,8 +30,11 @@ def build_gradient(function, theta0, n_workers=1):
     Args:
         function (Callable): The function to be differentiated.
         theta0  (array-like): The parameter vector at which the gradient is evaluated.
-        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
-                        This setting does not parallelize across parameters.
+        n_workers (int): Number of workers used to parallelize across
+            parameters. If None or 1 , no parallelization is used. If greater than 1,
+            this many threads will be used to compute derivatives with respect to different
+            parameters in parallel. Default is 1. Inner derivative workers are chosen
+            automatically to avoid oversubscription (hidden policy).
 
     Returns:
         (``np.array``): 1D array representing the gradient.
@@ -41,23 +49,30 @@ def build_gradient(function, theta0, n_workers=1):
     # One-time scalar check for build_gradient()
     _check_scalar_valued(function, theta0, 0)
 
-    # n_workers controls inner 1D differentiation (not across parameters).
-    grad = np.array(
-        [
-            _grad_component(function, theta0, i, n_workers)
-            for i in range(theta0.size)
-        ],
-        dtype=float,
-    )
+    try:
+        w_params = max(1, int(n_workers or 1))
+    except (TypeError, ValueError):
+        w_params = 1
+
+    w_inner = resolve_inner_from_outer(w_params)
+    worker = partial(_grad_component, function, theta0)
+
+    if w_params == 1:
+        with set_inner_derivative_workers(w_inner):
+            vals = [worker(i) for i in range(theta0.size)]
+    else:
+        with set_inner_derivative_workers(w_inner), ThreadPoolExecutor(max_workers=w_params) as ex:
+            vals = list(ex.map(worker, range(theta0.size)))
+
+    grad = np.asarray(vals, float)
     if not np.isfinite(grad).all():
-        raise FloatingPointError("Non-finite values encountered in build_gradient.")
+        raise FloatingPointError("Non-finite gradient.")
     return grad
 
 
 def _grad_component(
         function: Callable,
         theta0: np.ndarray, i:int,
-        n_workers: int
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 
@@ -68,7 +83,6 @@ def _grad_component(
         function: A function that returns a single value.
         theta0: The parameter values where the derivative is evaluated.
         i: The index of the parameter being varied.
-        n_workers: Number of workers used for the internal derivative step.
 
     Returns:
         A single number showing how the function changes with that parameter.
@@ -76,7 +90,9 @@ def _grad_component(
     partial_vec = get_partial_function(function, i, theta0)
 
     kit = DerivativeKit(partial_vec, theta0[i])
-    return kit.adaptive.differentiate(order=1, n_workers=n_workers)
+    w_inner = _inner_workers_var.get()
+    return (kit.adaptive.differentiate(order=1) if w_inner is None
+            else kit.adaptive.differentiate(order=1, n_workers=int(w_inner)))
 
 
 def build_jacobian(
@@ -96,7 +112,7 @@ def build_jacobian(
         n_workers: Number of workers used to parallelize across
             parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
-            derivatives with respect to different parameters in parallel.
+            derivatives with respect to different parameters in parallel. Default is 1.
 
     Returns:
         A 2D array representing the jacobian. Each column corresponds to
@@ -151,7 +167,10 @@ def build_hessian(function: Callable,
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the hessian is evaluated.
-        n_workers: If > 1, compute entries in parallel with that many threads. Default is 1.
+        n_workers: Threads to parallelize across (i, j) entries of the Hessian.
+         If None or 1, no parallelization is used. If greater than 1,
+         this many threads will be used to compute derivatives with respect to
+         different parameters in parallel. Default is 1.
 
     Returns:
         A 2D array representing the hessian.
@@ -173,50 +192,48 @@ def build_hessian(function: Callable,
     hess = np.empty((n_parameters, n_parameters), dtype=float)
 
     # Serial path
-    if not n_workers or n_workers <= 1:
+    try:
+        work = max(1, int(n_workers or 1))
+    except (TypeError, ValueError):
+        work = 1
+
+    if work == 1:
         for i in range(n_parameters):
-            hess[i, i] = _hessian_component(function, theta, i, i, n_workers)
+            hess[i, i] = _hessian_component(function, theta, i, i)
         for i in range(n_parameters):
             for j in range(i + 1, n_parameters):
-                hij = _hessian_component(function, theta, i, j, n_workers)
+                hij = _hessian_component(function, theta, i, j)
+                hess[i, j] = hij
+                hess[j, i] = hij
+    else:
+        # Parallel path (upper triangle incl. diag)
+        jobs: list[tuple[int, int]] = [(i, i) for i in range(n_parameters)]
+        jobs += [(i, j) for i in range(n_parameters) for j in range(i + 1, n_parameters)]
+
+        worker = partial(_hessian_component, function, theta)
+        results: dict[tuple[int, int], float] = {}
+
+        with ThreadPoolExecutor(max_workers=work) as ex:
+            fut_to_ij = {ex.submit(worker, i, j): (i, j) for (i, j) in jobs}
+            for fut in as_completed(fut_to_ij):
+                i, j = fut_to_ij[fut]
+                results[(i, j)] = float(fut.result())
+
+        # Fill matrix, mirror upper to lower
+        for i in range(n_parameters):
+            hess[i, i] = results[(i, i)]
+        for i in range(n_parameters):
+            for j in range(i + 1, n_parameters):
+                hij = results[(i, j)]
                 hess[i, j] = hij
                 hess[j, i] = hij
 
-        if not np.isfinite(hess).all():
-            raise FloatingPointError("Non-finite values encountered in hessian.")
-        hess = 0.5 * (hess + hess.T)
-        return hess
-
-    # Parallel path (threads)
-    jobs: list[tuple[int, int]] = [(i, i) for i in range(n_parameters)]
-    jobs += [(i, j) for i in range(n_parameters) for j in range(i + 1, n_parameters)]
-
-    worker = partial(_hessian_component, function, theta)
-    results: dict[tuple[int, int], float] = {}
-
-    with ThreadPoolExecutor(max_workers=int(n_workers)) as ex:
-        fut_to_ij = {ex.submit(worker, i, j, n_workers): (i, j) for (i, j) in jobs}
-        for fut in as_completed(fut_to_ij):
-            i, j = fut_to_ij[fut]
-            hij = float(fut.result())
-            results[(i, j)] = hij
-
-    # Fill matrix, mirror upper to lower
-    for i in range(n_parameters):
-        hess[i, i] = results[(i, i)]
-    for i in range(n_parameters):
-        for j in range(i + 1, n_parameters):
-            hij = results[(i, j)]
-            hess[i, j] = hij
-            hess[j, i] = hij
-
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
-    hess = 0.5 * (hess + hess.T)
-    return hess
+    return 0.5 * (hess + hess.T)
 
 
-def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int, n_workers: int) -> float:
+def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int) -> float:
     """Computes the (i, j) entry of the Hessian for a scalar-valued function using central differences.
 
     For diagonal entries, this uses a second-order central difference along parameter ``i``.
@@ -229,7 +246,6 @@ def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int, n
         theta0: Parameter vector (1-D) at which the Hessian entry is evaluated.
         i: Zero-based index of the first parameter.
         j: Zero-based index of the second parameter.
-        n_workers: If > 1, compute entries in parallel with that many threads. Default is 1.
 
     Returns:
         A single float: the estimated Hessian entry ``∂²f / (∂θ_i ∂θ_j)`` at ``theta0``.

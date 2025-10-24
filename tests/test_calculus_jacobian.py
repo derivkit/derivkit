@@ -273,3 +273,16 @@ def test_jacobian_output_shape_validation(shape, should_pass):
     else:
         with pytest.raises(TypeError):
             build_jacobian(func, theta0)
+
+
+def sin_func(x):
+    """A simple test function to use in jacobian serial/parallel comparison."""
+    return np.array([np.sin(x[0]) + x[1]**2, x[0]*x[1]])
+
+
+def test_build_jacobian_parallel_equals_serial():
+    """Test that parallel and serial jacobian computations yield the same result."""
+    t = np.array([0.2, -0.5])
+    J1 = build_jacobian(sin_func, t, n_workers=1)
+    J4 = build_jacobian(sin_func, t, n_workers=4)
+    np.testing.assert_allclose(J4, J1, rtol=1e-8, atol=1e-10)
