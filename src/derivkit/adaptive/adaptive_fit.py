@@ -75,8 +75,21 @@ class AdaptiveFitDerivative:
             base_abs: Absolute spacing floor used by "auto"/percentage near x0≈0. Defaults to ``1e-3`` if not set.
             n_workers: Parallel workers for batched function evals (1 = serial).
             grid: Either ('offsets', array) or ('absolute', array), or None for default.
+
+                This lets user supply thier own sampling points instead of using the
+                automatically built Chebyshev grid. With ``('offsets', arr)``, the array
+                gives relative offsets from ``x0`` (samples at ``x = x0 + t``). With
+                ``('absolute', arr)``, the array gives absolute ``x`` positions. If
+                ``None``, the method builds a symmetric default grid around ``x0``.
+
             domain: Optional (lo, hi) used to trigger domain-aware transforms in default mode.
             ridge: Ridge regularization for polynomial fit. Defaults to 0.0.
+
+                This term adds a small penalty to the fit to keep the coefficients from
+                becoming too large when the Vandermonde matrix is nearly singular.
+                Increasing ``ridge`` makes the fit more stable but slightly smoother;
+                setting it to 0 disables the regularization. Default is 0.0.
+
             diagnostics: If True, return (derivative, diagnostics_dict).
             meta: Extra metadata to carry in diagnostics.
 
