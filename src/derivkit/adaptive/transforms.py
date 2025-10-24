@@ -156,7 +156,7 @@ def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
 
 
 def sqrt_to_physical(u: np.ndarray, sign: float) -> np.ndarray:
-    """Map internal domain coordinate(s) to physical coordinate(s).
+    """Maps internal domain coordinate(s) to physical coordinate(s).
 
     This method maps internal coordinate(s) u to physical coordinate(s) x
     using the relation x = sign * u^2.
