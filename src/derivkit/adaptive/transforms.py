@@ -92,8 +92,10 @@ def signed_log_derivatives_to_x(
         order: Derivative order to return (1 or 2).
         x0: Expansion point in the original parameter ``x`` (the model’s native coordinate);
             must be finite and non-zero.
-        dfdq: First derivative in q (shape: (n_comp,) or broadcastable).
-        d2fdq2: Second derivative in q (same shape as dfdq); required for order=2.
+        dfdq: First derivative in q (shape: (n_components,) or broadcastable).
+        d2fdq2: Second derivative with respect to ``q``; required when ``order == 2``.
+            A 1-D array with one value per component (shape ``(n_components,)``) or
+            broadcastable to that.
 
     Returns:
         The derivative(s) in physical coordinates at x0.
