@@ -143,10 +143,14 @@ def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
         raise ValueError("sqrt_domain_forward requires finite x0.")
     if x0 == 0.0 and sign is None:
         raise ValueError("At x0=0 you must pass sign=+1 (x≥0) or -1 (x≤0).")
-    s = _normalize_sign(sign) if sign is not None else (1.0 if x0 > 0.0 else -1.0)
-    # Here we guarantee that x0 and s are consistent.
-    if x0 != 0.0 and np.sign(x0) != s:
+
+    # Normalize sign in one place (explicit or inferred)
+    s = _normalize_sign(sign if sign is not None else np.sign(x0))
+
+    # Guard against accidental branch mismatch when x0 ≠ 0
+    if x0 != 0.0 and s != np.sign(x0):
         raise ValueError(f"Inconsistent sign {s:+.0f} for x0={x0}.")
+
     u0 = 0.0 if x0 == 0.0 else float(np.sqrt(abs(x0)))
     return u0, s
 
