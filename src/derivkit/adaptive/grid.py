@@ -182,7 +182,7 @@ def make_domain_aware_chebyshev_grid(
       include the center if not already present.
     """
     mode = "x"
-    sign_used: float | None = None
+    sign_used = None
 
     if n_points > max_cheby_points:
         raise ValueError(
@@ -205,7 +205,7 @@ def make_domain_aware_chebyshev_grid(
 
     if single_sign and x0 == 0.0:
         # sqrt-domain centered at 0 boundary, symmetric in u
-        _u0, sgn = sqrt_domain_forward(x0, +1.0 if pos_only else -1.0)
+        _u0, sgn = sqrt_domain_forward(x0)
         half_u = resolve_spacing(spacing, 0.0, base_abs=1e-3)
         if n_points > max_cheby_points:
             raise ValueError(
@@ -247,7 +247,7 @@ def ensure_min_samples_and_maybe_rebuild(
     order: int,
     n_points: int,
     spacing: str | float,
-    base_abs: float | None,
+    base_abs: float = 1e-3,
     max_cheby_points: int = 30,
 ) -> tuple[str, np.ndarray, np.ndarray, float, float | None]:
     """Guarantee sufficient samples for the requested derivative; rebuild if needed.
@@ -273,7 +273,7 @@ def ensure_min_samples_and_maybe_rebuild(
       order: Derivative order (``>= 1``).
       n_points: Target number of Chebyshev nodes if a rebuild is performed.
       spacing: Half-width control used when rebuilding (``"auto"``, percentage string, or positive float).
-      base_abs: Absolute fallback scale for resolving ``spacing`` near zero.
+      base_abs: Absolute fallback scale for resolving ``spacing`` near zero. Defaults to ``1e-3``.
       max_cheby_points: Safety cap on Chebyshev node count when rebuilding.
 
     Returns:
@@ -319,13 +319,13 @@ def ensure_min_samples_and_maybe_rebuild(
 
     if mode == "signed_log":
         q0, sgn = signed_log_forward(x0)
-        half_q = resolve_spacing(spacing, q0, base_abs=1e-3)
+        half_q = resolve_spacing(spacing, q0, base_abs=base_abs)
         tq = chebyshev_offsets(half_q, target, include_center=True)
         x = signed_log_to_physical(q0 + tq, sgn)
         return mode, x, tq, float(half_q), sgn
 
     if mode == "sqrt":
-        half_u = resolve_spacing(spacing, 0.0, base_abs=1e-3)
+        half_u = resolve_spacing(spacing, 0.0, base_abs=base_abs)
         tu = chebyshev_offsets(half_u, target, include_center=True)
         x = sqrt_to_physical(tu, sign_used)
         return mode, x, tu, float(half_u), sign_used
