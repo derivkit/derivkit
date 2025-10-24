@@ -142,7 +142,7 @@ def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
     if not np.isfinite(x0):
         raise ValueError("sqrt_domain_forward requires finite x0.")
     if x0 == 0.0 and sign is None:
-        raise ValueError("At x0=0 you must pass sign=+1 (x≥0) or -1 (x≤0).")
+        raise ValueError("At x0=0, set sign=+1 (non-negative x) or sign=-1 (non-positive x).")
 
     # Normalize sign in one place (explicit or inferred)
     s = _normalize_sign(sign if sign is not None else np.sign(x0))
