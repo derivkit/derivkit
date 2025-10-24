@@ -1,0 +1,245 @@
+"""Helpers for parameter transformations and converting derivatives between coordinate systems.
+
+This module provides small, self-contained transforms that make adaptive
+polynomial fitting robust near parameter boundaries.
+"""
+
+from __future__ import annotations
+
+from typing import Optional, Tuple
+
+import numpy as np
+
+__all__ = [
+    "signed_log_forward",
+    "signed_log_to_physical",
+    "signed_log_derivatives_to_x",
+    "sqrt_domain_forward",
+    "sqrt_to_physical",
+    "sqrt_derivatives_to_x_at_zero",
+]
+
+
+def signed_log_forward(x0: float) -> Tuple[float, float]:
+    """Computes the signed-log coordinates for an expansion point.
+
+    The *signed-log* map represents a physical coordinate ``x`` as
+    ``x = sgn * exp(q)``, where ``q = log(|x|)`` and ``sgn = sign(x)``.
+    Here, **physical** means the model’s native parameter (``x``), while
+    **internal** means the reparameterized coordinate used for numerics (``q``).
+    This reparameterization keeps multiplicative variation (orders of magnitude)
+    well-behaved and avoids crossing through zero during local polynomial fits.
+
+    Args:
+        x0: Expansion point in physical coordinates. Must be finite and non-zero.
+
+    Returns:
+        Tuple[float, float]: ``(q0, sgn)``, where ``q0 = log(|x0|)`` and
+        ``sgn = +1.0`` if ``x0 > 0`` else ``-1.0``.
+
+    Raises:
+        ValueError: If ``x0`` is not finite or equals zero.
+    """
+    if not np.isfinite(x0):
+        raise ValueError("signed_log_forward requires a finite value of x0.")
+    if x0 == 0.0:
+        raise ValueError("signed_log_forward requires that x0 is non-zero.")
+    sgn = 1.0 if x0 > 0.0 else -1.0
+    q0 = np.log(abs(x0))
+    return q0, sgn
+
+
+def signed_log_to_physical(q: np.ndarray, sgn: float) -> np.ndarray:
+    """Maps internal signed-log coordinate(s) to physical coordinate(s).
+
+    Args:
+        q: Internal coordinate(s) q = log(abs(x)).
+        sgn: Fixed sign (+1 or -1) taken from sign(x0).
+
+    Returns:
+        Physical coordinate(s) x = sgn * exp(q).
+
+    Raises:
+        ValueError: If `sgn` is not +1 or -1, or if `q` contains non-finite values.
+    """
+    try:
+        sgn = _normalize_sign(sgn)
+    except ValueError as e:
+        raise ValueError(f"signed_log_to_physical: invalid `sgn`: {e}") from None
+
+    q = np.asarray(q, dtype=float)
+    try:
+        _require_finite("q", q)
+    except ValueError as e:
+        raise ValueError(f"signed_log_to_physical: {e}") from None
+
+    return sgn * np.exp(q)
+
+
+def signed_log_derivatives_to_x(
+    order: int,
+    x0: float,
+    dfdq: np.ndarray,
+    d2fdq2: Optional[np.ndarray] = None,
+) -> np.ndarray:
+    """Converts derivatives from the signed-log coordinate ``q`` to the original parameter ``x`` at ``x0 ≠ 0``.
+
+    This method uses the chain rule to convert derivatives computed in the
+    internal signed-log coordinate q back to physical coordinates x at a
+    non-zero expansion point x0.
+
+    Args:
+        order: Derivative order to return (1 or 2).
+        x0: Expansion point in the original parameter ``x`` (the model’s native coordinate);
+            must be finite and non-zero.
+        dfdq: First derivative in q (shape: (n_components,) or broadcastable).
+        d2fdq2: Second derivative with respect to ``q``; required when ``order == 2``.
+            A 1-D array with one value per component (shape ``(n_components,)``) or
+            broadcastable to that.
+
+    Returns:
+        The derivative(s) in physical coordinates at x0.
+
+    Raises:
+        ValueError: If `x0 == 0`, if required inputs (d2fdq2) are missing for order=2,
+            or if `x0` is not finite.
+        NotImplementedError: If `order` not in {1, 2}.
+    """
+    if not np.isfinite(x0) or x0 == 0.0:
+        raise ValueError("signed_log_derivatives_to_x requires finite x0 != 0.")
+    dfdq = np.asarray(dfdq, dtype=float)
+    if order == 1:
+        return dfdq / x0
+    elif order == 2:
+        if d2fdq2 is None:
+            raise ValueError("order=2 conversion requires d2fdq2.")
+        d2fdq2 = np.asarray(d2fdq2, dtype=float)
+        return (d2fdq2 - dfdq) / (x0 ** 2)
+    raise NotImplementedError("signed_log_derivatives_to_x supports orders 1 and 2.")
+
+
+def sqrt_domain_forward(x0: float) -> tuple[float, float]:
+    """Computes the internal domain coordinate u0 for the square-root domain transformation.
+
+    The *square-root domain* transform re-expresses a parameter ``x`` as
+    ``x = s * u**2``, where ``s`` is the domain sign (+1 or –1).  This mapping
+    flattens steep behavior near a boundary such as ``x = 0`` and allows
+    smooth polynomial fitting on either the positive or negative side.
+
+    Args:
+        x0: Expansion point in physical coordinates (finite). May be ±0.0
+
+    Returns:
+        Tuple[float, float]: ``(u0, s)``, with u0 >= 0 and sgn in {+1.0, -1.0}.
+    """
+    if not np.isfinite(x0):
+        raise ValueError("sqrt_domain_forward requires finite x0.")
+    sgn = _sgn_from_x0(x0)
+    u0 = 0.0 if x0 == 0.0 else float(np.sqrt(abs(x0)))
+    return u0, sgn
+
+
+def sqrt_to_physical(u: np.ndarray, sign: float) -> np.ndarray:
+    """Maps internal domain coordinate(s) to physical coordinate(s).
+
+    This method maps internal coordinate(s) u to physical coordinate(s) x
+    using the relation x = sign * u^2.
+
+    Args:
+        u: Internal coordinate(s).
+        sign: Domain sign (+1 for x ≥ 0, -1 for x ≤ 0).
+
+    Returns:
+        Physical coordinate(s) x = sign * u^2.
+
+    Raises:
+        ValueError: If `sign` is not +1 or -1, or if `u` contains non-finite values.
+    """
+    u = np.asarray(u, dtype=float)
+    _require_finite("u", u)
+    s = _normalize_sign(sign)
+    return s * (u ** 2)
+
+
+def sqrt_derivatives_to_x_at_zero(
+    order: int,
+    x0: float,
+    g2: Optional[np.ndarray] = None,
+    g4: Optional[np.ndarray] = None,
+) -> np.ndarray:
+    """Pull back derivatives at value x0=0 from u-space (sqrt-domain) to physical x.
+
+    This method maps derivatives computed in the internal sqrt-domain coordinate u
+    back to physical coordinates x at the expansion point x0=0 using the chain rule.
+
+    Args:
+        order: Derivative order to return (1 or 2).
+        x0: Expansion point in physical coordinates (finite). May be +0.0 or -0.0 to
+            select the domain side at the boundary. The domain sign is inferred
+            solely from x0 (including the sign of zero).
+        g2: Second derivative of g with respect to u at u=0; required for order=1.
+        g4: Fourth derivative of g with respect to u at u=0; required for order=2.
+
+    Returns:
+        The derivative(s) in physical coordinates at x0=0.
+
+    Raises:
+        ValueError: If required inputs (g2/g4) are missing for the requested order.
+        NotImplementedError: If `order` not in {1, 2}.
+    """
+    s = _sgn_from_x0(x0)
+    if order == 1:
+        if g2 is None:
+            raise ValueError("order=1 conversion requires g2 (g'' at u=0).")
+        return np.asarray(g2, dtype=float) / (2.0 * s)
+    if order == 2:
+        if g4 is None:
+            raise ValueError("order=2 conversion requires g4 (g'''' at u=0).")
+        return np.asarray(g4, dtype=float) / (12.0 * s * s)
+    raise NotImplementedError("sqrt_derivatives_to_x_at_zero supports orders 1 and 2.")
+
+
+def _normalize_sign(s: float) -> float:
+    """Validate and normalize a sign value to exactly +1.0 or -1.0.
+
+    Args:
+        s: Input sign value (must be approximately ±1).
+
+    Returns:
+        +1.0 or -1.0.
+
+    Raises:
+        ValueError: If s is not finite or not approximately ±1.
+    """
+    if not np.isfinite(s):
+        raise ValueError("sign must be finite.")
+    if np.isclose(abs(s), 1.0, rtol=0.0, atol=1e-12):
+        return 1.0 if s > 0.0 else -1.0
+    raise ValueError("sign must be +1 or -1.")
+
+
+def _require_finite(name: str, arr: np.ndarray) -> None:
+    """Raises a ``ValueError`` if an array contains any non-finite values.
+
+    Args:
+        name: Name of the array (for error message).
+        arr: Array to check.
+
+    Raises:
+        ValueError: If arr contains any non-finite values.
+    """
+    if not np.all(np.isfinite(arr)):
+        raise ValueError(f"{name} must be finite.")
+
+
+def _sgn_from_x0(x0: float) -> float:
+    """Returns the sign of x0, disambiguating zero using np.signbit."""
+    if not np.isfinite(x0):
+        raise ValueError("x0 must be finite.")
+    if x0 > 0.0:
+        return 1.0
+    if x0 < 0.0:
+        return -1.0
+        # x0 == 0.0: disambiguate +0.0 vs -0.0
+    return -1.0 if np.signbit(x0) else 1.0
+

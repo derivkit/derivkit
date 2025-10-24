@@ -13,6 +13,7 @@ Submodules
    derivkit.adaptive.grid
    derivkit.adaptive.polyfit_utils
    derivkit.adaptive.spacing
+   derivkit.adaptive.transforms
 
 Module contents
 ---------------

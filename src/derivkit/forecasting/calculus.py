@@ -1,13 +1,17 @@
 """Differential calculus helpers."""
 
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from derivkit._concurrency import (
+    _inner_workers_var,  # noqa: PLC0415
+    resolve_inner_from_outer,
+    set_inner_derivative_workers,
+)
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import get_partial_function
 
@@ -26,8 +30,11 @@ def build_gradient(function, theta0, n_workers=1):
     Args:
         function (Callable): The function to be differentiated.
         theta0  (array-like): The parameter vector at which the gradient is evaluated.
-        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
-                        This setting does not parallelize across parameters.
+        n_workers (int): Number of workers used to parallelize across
+            parameters. If None or 1 , no parallelization is used. If greater than 1,
+            this many threads will be used to compute derivatives with respect to different
+            parameters in parallel. Default is 1. Inner derivative workers are chosen
+            automatically to avoid oversubscription (hidden policy).
 
     Returns:
         (``np.array``): 1D array representing the gradient.
@@ -40,25 +47,32 @@ def build_gradient(function, theta0, n_workers=1):
         raise ValueError("theta0 must be a non-empty 1D array.")
 
     # One-time scalar check for build_gradient()
-    _check_scalar_valued(function, theta0, 0, n_workers)
+    _check_scalar_valued(function, theta0, 0)
 
-    # n_workers controls inner 1D differentiation (not across parameters).
-    grad = np.array(
-        [
-            _grad_component(function, theta0, i, n_workers)
-            for i in range(theta0.size)
-        ],
-        dtype=float,
-    )
+    try:
+        w_params = max(1, int(n_workers or 1))
+    except (TypeError, ValueError):
+        w_params = 1
+
+    w_inner = resolve_inner_from_outer(w_params)
+    worker = partial(_grad_component, function, theta0)
+
+    if w_params == 1:
+        with set_inner_derivative_workers(w_inner):
+            vals = [worker(i) for i in range(theta0.size)]
+    else:
+        with set_inner_derivative_workers(w_inner), ThreadPoolExecutor(max_workers=w_params) as ex:
+            vals = list(ex.map(worker, range(theta0.size)))
+
+    grad = np.asarray(vals, float)
     if not np.isfinite(grad).all():
-        raise FloatingPointError("Non-finite values encountered in build_gradient.")
+        raise FloatingPointError("Non-finite gradient.")
     return grad
 
 
 def _grad_component(
         function: Callable,
         theta0: np.ndarray, i:int,
-        n_workers: int
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 
@@ -69,7 +83,6 @@ def _grad_component(
         function: A function that returns a single value.
         theta0: The parameter values where the derivative is evaluated.
         i: The index of the parameter being varied.
-        n_workers: Number of workers used for the internal derivative step.
 
     Returns:
         A single number showing how the function changes with that parameter.
@@ -77,7 +90,9 @@ def _grad_component(
     partial_vec = get_partial_function(function, i, theta0)
 
     kit = DerivativeKit(partial_vec, theta0[i])
-    return kit.adaptive.differentiate(order=1, n_workers=n_workers)
+    w_inner = _inner_workers_var.get()
+    return (kit.adaptive.differentiate(order=1) if w_inner is None
+            else kit.adaptive.differentiate(order=1, n_workers=int(w_inner)))
 
 
 def build_jacobian(
@@ -97,7 +112,7 @@ def build_jacobian(
         n_workers: Number of workers used to parallelize across
             parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
-            derivatives with respect to different parameters in parallel.
+            derivatives with respect to different parameters in parallel. Default is 1.
 
     Returns:
         A 2D array representing the jacobian. Each column corresponds to
@@ -152,8 +167,10 @@ def build_hessian(function: Callable,
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the hessian is evaluated.
-        n_workers: Number of workers used by DerivativeKit.adaptive.differentiate.
-            This setting does not parallelize across parameters.
+        n_workers: Threads to parallelize across (i, j) entries of the Hessian.
+         If None or 1, no parallelization is used. If greater than 1,
+         this many threads will be used to compute derivatives with respect to
+         different parameters in parallel. Default is 1.
 
     Returns:
         A 2D array representing the hessian.
@@ -174,83 +191,100 @@ def build_hessian(function: Callable,
     n_parameters = theta.size
     hess = np.empty((n_parameters, n_parameters), dtype=float)
 
-    # Diagonals here (pure second orders)
-    for i in range(n_parameters):
-        hess[i, i] = _hessian_component(function, theta, i, i, n_workers)
+    # Serial path
+    try:
+        work = max(1, int(n_workers or 1))
+    except (TypeError, ValueError):
+        work = 1
 
-    # Off-diagonals here (mixed second orders).
-    for i in range(n_parameters):
-        for j in range(i + 1, n_parameters):
-            hij = _hessian_component(function, theta, i, j, n_workers)
-            hess[i, j] = hij
-            hess[j, i] = hij
+    if work == 1:
+        for i in range(n_parameters):
+            hess[i, i] = _hessian_component(function, theta, i, i)
+        for i in range(n_parameters):
+            for j in range(i + 1, n_parameters):
+                hij = _hessian_component(function, theta, i, j)
+                hess[i, j] = hij
+                hess[j, i] = hij
+    else:
+        # Parallel path (upper triangle incl. diag)
+        jobs: list[tuple[int, int]] = [(i, i) for i in range(n_parameters)]
+        jobs += [(i, j) for i in range(n_parameters) for j in range(i + 1, n_parameters)]
+
+        worker = partial(_hessian_component, function, theta)
+        results: dict[tuple[int, int], float] = {}
+
+        with ThreadPoolExecutor(max_workers=work) as ex:
+            fut_to_ij = {ex.submit(worker, i, j): (i, j) for (i, j) in jobs}
+            for fut in as_completed(fut_to_ij):
+                i, j = fut_to_ij[fut]
+                results[(i, j)] = float(fut.result())
+
+        # Fill matrix, mirror upper to lower
+        for i in range(n_parameters):
+            hess[i, i] = results[(i, i)]
+        for i in range(n_parameters):
+            for j in range(i + 1, n_parameters):
+                hij = results[(i, j)]
+                hess[i, j] = hij
+                hess[j, i] = hij
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")
-    return hess
+    return 0.5 * (hess + hess.T)
 
 
-def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j:int, n_workers: int) -> float:
-    """Return one entry of the Hessian for a scalar-valued function.
+def _hessian_component(function: Callable, theta0: np.ndarray, i: int, j: int) -> float:
+    """Computes the (i, j) entry of the Hessian for a scalar-valued function using central differences.
 
-    Used inside ``build_hessian`` to measure how the function’s change in one
-    parameter depends on changes in another. This can describe both pure
-    second derivatives and mixed ones.
+    For diagonal entries, this uses a second-order central difference along parameter ``i``.
+    For off-diagonal entries, it uses a symmetric two-direction central difference
+    involving small steps along parameters ``i`` and ``j``. Step sizes are chosen adaptively
+    from machine epsilon and the parameter scales to balance truncation and round-off errors.
 
     Args:
-        function: A function that returns a single value.
-        theta0: The parameter values where the derivative is evaluated.
-        i: Index of the first parameter.
-        j: Index of the second parameter.
-        n_workers: Number of workers used for the internal derivative step.
+        function: Callable that maps a parameter vector to a scalar value.
+        theta0: Parameter vector (1-D) at which the Hessian entry is evaluated.
+        i: Zero-based index of the first parameter.
+        j: Zero-based index of the second parameter.
 
     Returns:
-        A single number showing how the rate of change in one parameter
-        depends on another.
+        A single float: the estimated Hessian entry ``∂²f / (∂θ_i ∂θ_j)`` at ``theta0``.
 
     Raises:
-        TypeError: If ``function`` does not return a scalar value.
+        FloatingPointError: If the function evaluations produce non-finite values.
     """
+    x = np.asarray(theta0, dtype=float).ravel()
+    eps = np.finfo(float).eps
+    base = eps ** 0.25  # ~1.2e-4
+    scale = 8.0  # was 1.0; increase to tame 1/h^2 roundoff
+    hi = max(1e-6, scale * base * (1.0 + abs(x[i])))
+
     if i == j:
-        # 1 parameter to differentiate twice, and n_parameters-1 parameters to hold fixed
-        partial_vec1 = get_partial_function(
-            function, i, theta0
-        )
+        ei = np.zeros_like(x)
+        ei[i] = 1.0
+        f0 = float(function(x))
+        fp = float(function(x + hi * ei))
+        fm = float(function(x - hi * ei))
+        if not (np.isfinite(fp) and np.isfinite(fm) and np.isfinite(f0)):
+            raise FloatingPointError("Non-finite in diagonal stencil.")
+        return (fp - 2.0 * f0 + fm) / (hi ** 2)
 
-        # One-time scalar check for build_hessian()
-        probe = np.asarray(partial_vec1(theta0[i]), dtype=float)
-        if probe.size != 1:
-            raise TypeError(
-                "build_hessian() expects a scalar-valued function; "
-                f"got shape {probe.shape} from full_function(params)."
-            )
+    # mixed partials
+    hj = max(1e-6, scale * base * (1.0 + abs(x[j])))
+    ei = np.zeros_like(x)
+    ei[i] = 1.0
+    ej = np.zeros_like(x)
+    ej[j] = 1.0
 
-        kit1 = DerivativeKit(
-            partial_vec1, theta0[i]
-        )
-        return kit1.adaptive.differentiate(
-                order=2, n_workers=n_workers
-            )
+    fpp = float(function(x + hi*ei + hj*ej))
+    fpm = float(function(x + hi*ei - hj*ej))
+    fmp = float(function(x - hi*ei + hj*ej))
+    fmm = float(function(x - hi*ei - hj*ej))
 
-    else:
-        # 2 parameters to differentiate once, with other parameters held fixed
-        def partial_vec2(y):
-            theta0_y = theta0.copy()
-            theta0_y[j] = y
-            partial_vec1 = get_partial_function(
-                function, i, theta0_y
-            )
-            kit1 = DerivativeKit(
-                partial_vec1, theta0[i]
-            )
-            return kit1.adaptive.differentiate(order=1, n_workers=n_workers)
+    if not (np.isfinite(fpp) and np.isfinite(fpm) and np.isfinite(fmp) and np.isfinite(fmm)):
+        raise FloatingPointError("Non-finite in mixed-partial stencil.")
 
-        kit2 = DerivativeKit(
-            partial_vec2, theta0[j]
-        )
-        return kit2.adaptive.differentiate(
-                order=1, n_workers=n_workers
-            )
+    return (fpp - fpm - fmp + fmm) / (4.0 * hi * hj)
 
 
 def hessian_diag(*args, **kwargs):
@@ -258,8 +292,8 @@ def hessian_diag(*args, **kwargs):
     raise NotImplementedError
 
 
-def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
-    """Helper used by ``build_gradient`` and ``build_hessian``.
+def _check_scalar_valued(function, theta0: np.ndarray, i: int):
+    """Checks that the function is scalar-valued at theta0.
 
     Args:
         function (callable): The scalar-valued function to
@@ -269,9 +303,6 @@ def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
             A 1D array or list of parameter values matching the expected
             input of the function.
         i: Zero-based index of the parameter with respect to which to differentiate.
-        n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
 
     Raises:
         TypeError: If ``function`` does not return a scalar value.
@@ -308,12 +339,25 @@ def _grad_for_param(
     Returns:
         A 1D array representing the derivative of the function with respect to theta[j].
     """
-    theta_x = deepcopy(np.asarray(theta0, dtype=float).reshape(-1))
-    f_j = get_partial_function(function, j, theta_x)  # this sets theta[j]=y
-    kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.adaptive.differentiate(order=1, n_workers=1)
-    # Keep inner differentiation serial to avoid nested pools.
-    g = np.atleast_1d(np.asarray(g, dtype=float))
-    if not np.isfinite(g).all():
-        raise FloatingPointError(f"Non-finite derivative for parameter index {j}.")
-    return g
+    theta = np.asarray(theta0, dtype=float).ravel().copy()
+
+    # Per-parameter step (good default for central differences)
+    sqrt_eps = np.sqrt(np.finfo(float).eps)
+    h = max(1e-8, sqrt_eps * (1.0 + abs(theta[j])))
+
+    # Evaluate f at theta ± h e_j
+    tp = theta.copy()
+    tp[j] += h
+    tm = theta.copy()
+    tm[j] -= h
+
+    fp = np.asarray(function(tp), dtype=float)
+    fm = np.asarray(function(tm), dtype=float)
+
+    # Must be finite 1-D vectors
+    if fp.ndim != 1 or fm.ndim != 1:
+        raise TypeError("Function must return a 1-D vector.")
+    if (not np.isfinite(fp).all()) or (not np.isfinite(fm).all()):
+        raise FloatingPointError("Non-finite values in function outputs.")
+
+    return (fp - fm) / (2.0 * h)
