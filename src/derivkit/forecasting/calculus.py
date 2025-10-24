@@ -342,7 +342,7 @@ def _grad_for_param(
     theta = np.asarray(theta0, dtype=float).ravel().copy()
 
     # Per-parameter step (good default for central differences)
-    sqrt_eps = np.sqrt(np.finfo(float).eps)  # ~1.49e-8
+    sqrt_eps = np.sqrt(np.finfo(float).eps)
     h = max(1e-8, sqrt_eps * (1.0 + abs(theta[j])))
 
     # Evaluate f at theta ± h e_j

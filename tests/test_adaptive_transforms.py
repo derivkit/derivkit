@@ -86,7 +86,7 @@ def test_pullback_signed_log_order1_and_2():
     ],
 )
 def test_sqrt_domain_forward_basic(x0, expected_u, expected_s):
-    """Maps x to (u, sign) with u≥0 for the sqrt-domain reparameterization; sgn is inferred from x0 (including ±0.0)"""
+    """Maps x to (u, sign) with u≥0 for the sqrt-domain reparameterization; sgn is inferred from x0 (including ±0.0)."""
     u0, s = sqrt_domain_forward(x0)
     assert s == expected_s
     assert pytest.approx(u0) == expected_u

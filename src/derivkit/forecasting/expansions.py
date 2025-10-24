@@ -369,7 +369,11 @@ class LikelihoodExpansion:
         if not np.isfinite(delta_nu).all():
             raise FloatingPointError("Non-finite values found in delta_nu.")
 
-        # GLS weighting: exact fast-path for diagonal covariance, otherwise robust solve with warnings
+        # Generalized least squares (GLS) weighting by inv cov:
+        # - if the covariance C is diagonal, we can compute invcov·delta_nu by simple elementwise division.
+        # - otherwise we solve with a symmetric linear solver; if that fails or is ill-conditioned,
+        #   we fall back to a pseudoinverse and emit a warning (via warn_context="covariance solve").
+
         if np.allclose(self.cov, np.diag(np.diag(self.cov)), rtol=0.0, atol=0.0):
             diag = np.diag(self.cov)
             # guard against zeros on the diagonal (would match singular case)
