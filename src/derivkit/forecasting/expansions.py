@@ -373,28 +373,21 @@ class LikelihoodExpansion:
         # - if the covariance C is diagonal, we can compute invcov·delta_nu by simple elementwise division.
         # - otherwise we solve with a symmetric linear solver; if that fails or is ill-conditioned,
         #   we fall back to a pseudoinverse and emit a warning (via warn_context="covariance solve").
+        # diagonal fast-path check (exact)
+        off = self.cov.copy()
+        np.fill_diagonal(off, 0.0)
+        is_diag = not np.any(off)  # this is true iff all off-diagonals are exactly zero
 
-        if np.allclose(self.cov, np.diag(np.diag(self.cov)), rtol=0.0, atol=0.0):
+        if is_diag:
             diag = np.diag(self.cov)
-            # guard against zeros on the diagonal (would match singular case)
             if np.all(diag > 0):
                 cinv_delta = delta_nu / diag
             else:
-                cinv_delta = solve_or_pinv(
-                    self.cov,
-                    delta_nu,
-                    rcond=rcond,
-                    assume_symmetric=True,
-                    warn_context="covariance solve",
-                )
+                cinv_delta = solve_or_pinv(self.cov, delta_nu, rcond=rcond,
+                                           assume_symmetric=True, warn_context="covariance solve")
         else:
-            cinv_delta = solve_or_pinv(
-                self.cov,
-                delta_nu,
-                rcond=rcond,
-                assume_symmetric=True,
-                warn_context="covariance solve",
-            )
+            cinv_delta = solve_or_pinv(self.cov, delta_nu, rcond=rcond,
+                                       assume_symmetric=True, warn_context="covariance solve")
 
         bias_vec = j_matrix.T @ cinv_delta
 
