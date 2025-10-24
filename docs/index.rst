@@ -65,7 +65,7 @@ If you use ``derivkit`` in your research, please cite it as follows:
 ::
 
   @software{sarcevic2025derivkit,
-    author       = {Nikolina Šarčević and Matthijs van der Wild},
+    author       = {Nikolina Šarčević and Matthijs van der Wild and Cynthia Trendafilova and Bastien Carreres},
     title        = {derivkit: A Python Toolkit for Numerical Derivatives},
     year         = {2025},
     publisher    = {GitHub},
@@ -81,4 +81,4 @@ Have a look at :ref:`contributing`!
 
 License
 -------
-MIT License © 2025 Niko Šarčević, Matthijs van der Wild
+MIT License © 2025 Niko Šarčević, Matthijs van der Wild et al.

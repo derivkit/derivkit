@@ -52,4 +52,6 @@ html_theme_options = {
 }
 
 html_static_path = ["_static"]
-html_css_files = ["derivkit.css"]
+html_css_files = [
+    "derivkit.css",  # keep LAST; bump v to bust cache
+]
