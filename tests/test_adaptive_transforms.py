@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 from derivkit.adaptive.transforms import (
-    pullback_sqrt_at_zero,
     signed_log_derivatives_to_x,
     signed_log_forward,
     signed_log_to_physical,
+    sqrt_derivatives_to_x_at_zero,
     sqrt_domain_forward,
     sqrt_to_physical,
 )
@@ -126,17 +126,17 @@ def test_pullback_sqrt_at_zero_orders_and_errors():
     # order 1: g''(0) / (2*s)
     for s in (1.0, -1.0):
         g2 = np.array([2.0, -4.0])
-        d1 = pullback_sqrt_at_zero(1, s, g2=g2)
+        d1 = sqrt_derivatives_to_x_at_zero(1, s, g2=g2)
         np.testing.assert_allclose(d1, g2 / (2.0 * s))
 
     # order 2: g''''(0) / (12*s^2)
     for s in (1.0, -1.0):
         g4 = np.array([12.0, -24.0])
-        d2 = pullback_sqrt_at_zero(2, s, g4=g4)
+        d2 = sqrt_derivatives_to_x_at_zero(2, s, g4=g4)
         np.testing.assert_allclose(d2, g4 / (12.0 * s * s))
 
     # missing g2/g4 errors
     with pytest.raises(ValueError):
-        pullback_sqrt_at_zero(1, 1.0, g2=None)
+        sqrt_derivatives_to_x_at_zero(1, 1.0, g2=None)
     with pytest.raises(ValueError):
-        pullback_sqrt_at_zero(2, 1.0, g4=None)
+        sqrt_derivatives_to_x_at_zero(2, 1.0, g4=None)

@@ -1,4 +1,4 @@
-"""Parameter reparameterization helpers and derivative pullbacks.
+"""Helpers for parameter transformations and converting derivatives between coordinate systems.
 
 This module provides small, self-contained transforms that make adaptive
 polynomial fitting robust near parameter boundaries.
@@ -16,7 +16,7 @@ __all__ = [
     "signed_log_derivatives_to_x",
     "sqrt_domain_forward",
     "sqrt_to_physical",
-    "pullback_sqrt_at_zero",
+    "sqrt_derivatives_to_x_at_zero",
 ]
 
 
@@ -177,7 +177,7 @@ def sqrt_to_physical(u: np.ndarray, sign: float) -> np.ndarray:
     return s * (u**2)
 
 
-def pullback_sqrt_at_zero(
+def sqrt_derivatives_to_x_at_zero(
     order: int,
     sign: float,
     g2: Optional[np.ndarray] = None,
@@ -204,13 +204,13 @@ def pullback_sqrt_at_zero(
     s = _normalize_sign(sign)
     if order == 1:
         if g2 is None:
-            raise ValueError("order=1 pullback requires g2 (g'' at u=0).")
+            raise ValueError("order=1 conversion requires g2 (g'' at u=0).")
         return np.asarray(g2, dtype=float) / (2.0 * s)
     if order == 2:
         if g4 is None:
-            raise ValueError("order=2 pullback requires g4 (g'''' at u=0).")
+            raise ValueError("order=2 conversion requires g4 (g'''' at u=0).")
         return np.asarray(g4, dtype=float) / (12.0 * s * s)
-    raise NotImplementedError("pullback_sqrt_at_zero supports orders 1 and 2.")
+    raise NotImplementedError("sqrt_derivatives_to_x_at_zero supports orders 1 and 2.")
 
 
 def _normalize_sign(s: float) -> float:
