@@ -77,34 +77,29 @@ def test_pullback_signed_log_order1_and_2():
 
 
 @pytest.mark.parametrize(
-    "x0, sign, expected_u, expected_s",
+    "x0, expected_u, expected_s",
     [
-        (4.0, None, 2.0, 1.0),
-        (-9.0, None, 3.0, -1.0),
-        (0.0, +1.0, 0.0, 1.0),
-        (0.0, -1.0, 0.0, -1.0),
+        (4.0, 2.0, 1.0),
+        (-9.0, 3.0, -1.0),
+        (0.0, 0.0, 1.0),
+        (np.copysign(0.0, -1.0), 0.0, -1.0),
     ],
 )
-def test_sqrt_domain_forward_basic(x0, sign, expected_u, expected_s):
-    """Maps x to (u, sign) with u≥0 for the sqrt-domain reparameterization."""
-    u0, s = sqrt_domain_forward(x0, sign)
+def test_sqrt_domain_forward_basic(x0, expected_u, expected_s):
+    """Maps x to (u, sign) with u≥0 for the sqrt-domain reparameterization; sgn is inferred from x0 (including ±0.0)"""
+    u0, s = sqrt_domain_forward(x0)
     assert s == expected_s
     assert pytest.approx(u0) == expected_u
 
 
 def test_sqrt_domain_forward_errors():
     """Raises ValueError on ambiguous or inconsistent sqrt-domain inputs."""
-    # x0 == 0 and sign None -> ambiguous
     with pytest.raises(ValueError):
-        sqrt_domain_forward(0.0, None)
-    # inconsistent sign with nonzero x0
+        sqrt_domain_forward(float("nan"))
     with pytest.raises(ValueError):
-        sqrt_domain_forward(1.0, -1.0)
+        sqrt_domain_forward(float("inf"))
     with pytest.raises(ValueError):
-        sqrt_domain_forward(-1.0, +1.0)
-    # non-finite x0
-    with pytest.raises(ValueError):
-        sqrt_domain_forward(float("nan"), 1.0)
+        sqrt_domain_forward(-float("inf"))
 
 
 @pytest.mark.parametrize("sign", [1.0, -1.0])
@@ -121,22 +116,24 @@ def test_sqrt_to_physical_nonfinite_u_raises():
         sqrt_to_physical(np.array([1.0, np.inf]), 1.0)
 
 
-def test_pullback_sqrt_at_zero_orders_and_errors():
+def test_sqrt_derivatives_to_x_at_zero_orders_and_errors():
     """Computes pullbacks at x=0 for sqrt map and validates required inputs."""
     # order 1: g''(0) / (2*s)
     for s in (1.0, -1.0):
+        x0 = 0.0 if s > 0 else np.copysign(0.0, -1.0)  # +0.0 or -0.0 selects branch
         g2 = np.array([2.0, -4.0])
-        d1 = sqrt_derivatives_to_x_at_zero(1, s, g2=g2)
+        d1 = sqrt_derivatives_to_x_at_zero(1, x0, g2=g2)
         np.testing.assert_allclose(d1, g2 / (2.0 * s))
 
     # order 2: g''''(0) / (12*s^2)
     for s in (1.0, -1.0):
+        x0 = 0.0 if s > 0 else np.copysign(0.0, -1.0)
         g4 = np.array([12.0, -24.0])
-        d2 = sqrt_derivatives_to_x_at_zero(2, s, g4=g4)
+        d2 = sqrt_derivatives_to_x_at_zero(2, x0, g4=g4)
         np.testing.assert_allclose(d2, g4 / (12.0 * s * s))
 
-    # missing g2/g4 errors
+    # missing g2/g4 errors (x0 can be +0.0 for these checks)
     with pytest.raises(ValueError):
-        sqrt_derivatives_to_x_at_zero(1, 1.0, g2=None)
+        sqrt_derivatives_to_x_at_zero(1, 0.0, g2=None)
     with pytest.raises(ValueError):
-        sqrt_derivatives_to_x_at_zero(2, 1.0, g4=None)
+        sqrt_derivatives_to_x_at_zero(2, 0.0, g4=None)

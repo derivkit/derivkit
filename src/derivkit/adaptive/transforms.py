@@ -118,7 +118,7 @@ def signed_log_derivatives_to_x(
     raise NotImplementedError("signed_log_derivatives_to_x supports orders 1 and 2.")
 
 
-def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
+def sqrt_domain_forward(x0: float) -> tuple[float, float]:
     """Computes the internal domain coordinate u0 for the square-root domain transformation.
 
     The *square-root domain* transform re-expresses a parameter ``x`` as
@@ -127,32 +127,16 @@ def sqrt_domain_forward(x0: float, sign: Optional[float] = None) -> float:
     smooth polynomial fitting on either the positive or negative side.
 
     Args:
-        x0: Expansion point in physical coordinates (can be zero).
-        sign: Domain sign (optional). If None, infer s = sign(x0).
-            - For x ≥ 0 domain, pass sign=+1 explicitly when x0 == 0.
-            - For x ≤ 0 domain, pass sign=-1 explicitly when x0 == 0.
+        x0: Expansion point in physical coordinates (finite). May be ±0.0
 
     Returns:
-        u0 satisfying x0 = s * u0^2. For x0 == 0, returns 0.0.
-
-    Raises:
-        ValueError: If ``x0 == 0`` and ``sign`` is ``None`` (ambiguous domain)
-           or if ``x0`` is not finite.
+        Tuple[float, float]: ``(u0, s)``, with u0 >= 0 and sgn in {+1.0, -1.0}.
     """
     if not np.isfinite(x0):
         raise ValueError("sqrt_domain_forward requires finite x0.")
-    if x0 == 0.0 and sign is None:
-        raise ValueError("At x0=0, set sign=+1 (non-negative x) or sign=-1 (non-positive x).")
-
-    # Normalize sign in one place (explicit or inferred)
-    s = _normalize_sign(sign if sign is not None else np.sign(x0))
-
-    # Guard against accidental branch mismatch when x0 ≠ 0
-    if x0 != 0.0 and s != np.sign(x0):
-        raise ValueError(f"Inconsistent sign {s:+.0f} for x0={x0}.")
-
+    sgn = _sgn_from_x0(x0)
     u0 = 0.0 if x0 == 0.0 else float(np.sqrt(abs(x0)))
-    return u0, s
+    return u0, sgn
 
 
 def sqrt_to_physical(u: np.ndarray, sign: float) -> np.ndarray:
@@ -174,12 +158,12 @@ def sqrt_to_physical(u: np.ndarray, sign: float) -> np.ndarray:
     u = np.asarray(u, dtype=float)
     _require_finite("u", u)
     s = _normalize_sign(sign)
-    return s * (u**2)
+    return s * (u ** 2)
 
 
 def sqrt_derivatives_to_x_at_zero(
     order: int,
-    sign: float,
+    x0: float,
     g2: Optional[np.ndarray] = None,
     g4: Optional[np.ndarray] = None,
 ) -> np.ndarray:
@@ -190,7 +174,9 @@ def sqrt_derivatives_to_x_at_zero(
 
     Args:
         order: Derivative order to return (1 or 2).
-        sign: Domain sign (+1 for x ≥ 0, -1 for x ≤ 0).
+        x0: Expansion point in physical coordinates (finite). May be +0.0 or -0.0 to
+            select the domain side at the boundary. The domain sign is inferred
+            solely from x0 (including the sign of zero).
         g2: Second derivative of g with respect to u at u=0; required for order=1.
         g4: Fourth derivative of g with respect to u at u=0; required for order=2.
 
@@ -201,7 +187,7 @@ def sqrt_derivatives_to_x_at_zero(
         ValueError: If required inputs (g2/g4) are missing for the requested order.
         NotImplementedError: If `order` not in {1, 2}.
     """
-    s = _normalize_sign(sign)
+    s = _sgn_from_x0(x0)
     if order == 1:
         if g2 is None:
             raise ValueError("order=1 conversion requires g2 (g'' at u=0).")
@@ -214,15 +200,22 @@ def sqrt_derivatives_to_x_at_zero(
 
 
 def _normalize_sign(s: float) -> float:
-    """Normalize a sign value to +1 or -1.
+    """Validate and normalize a sign value to exactly +1.0 or -1.0.
 
     Args:
-        s: Input sign value.
+        s: Input sign value (must be approximately ±1).
 
     Returns:
-        +1.0 if s >= 0.0, else -1.0.
+        +1.0 or -1.0.
+
+    Raises:
+        ValueError: If s is not finite or not approximately ±1.
     """
-    return 1.0 if s >= 0.0 else -1.0
+    if not np.isfinite(s):
+        raise ValueError("sign must be finite.")
+    if np.isclose(abs(s), 1.0, rtol=0.0, atol=1e-12):
+        return 1.0 if s > 0.0 else -1.0
+    raise ValueError("sign must be +1 or -1.")
 
 
 def _require_finite(name: str, arr: np.ndarray) -> None:
@@ -237,3 +230,16 @@ def _require_finite(name: str, arr: np.ndarray) -> None:
     """
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{name} must be finite.")
+
+
+def _sgn_from_x0(x0: float) -> float:
+    """Returns the sign of x0, disambiguating zero using np.signbit."""
+    if not np.isfinite(x0):
+        raise ValueError("x0 must be finite.")
+    if x0 > 0.0:
+        return 1.0
+    if x0 < 0.0:
+        return -1.0
+        # x0 == 0.0: disambiguate +0.0 vs -0.0
+    return -1.0 if np.signbit(x0) else 1.0
+
