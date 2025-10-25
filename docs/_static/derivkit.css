@@ -1,0 +1,136 @@
+/* ==========================================================================
+   DerivKit — compact Furo overrides (light + dark)
+   ========================================================================== */
+
+/* --- Brand palette ------------------------------------------------------- */
+:root {
+  --dk-blue:   #3b9ab2;
+  --dk-yellow: #e1af00;
+  --dk-red:    #f21901;
+}
+
+/* --- Furo variable mapping (both themes) -------------------------------- */
+html[data-theme="light"],
+html[data-theme="dark"] {
+  --color-brand-primary: var(--dk-blue);
+  --color-brand-content: var(--dk-blue);
+
+  /* Link variables used by Furo widgets/components */
+  --color-link: var(--dk-blue);
+  --color-link--hover: var(--dk-red);
+  --color-link--visited: var(--dk-yellow);
+}
+
+/* ==========================================================================
+   LINKS — one place to rule them all
+   (covers content, sidebars, TOC, related, homepage toctree & tiles)
+   ========================================================================== */
+
+/* Base colors (unvisited, visited, hover, active) */
+html[data-theme] a:link    { color: var(--dk-blue)   !important; }
+html[data-theme] a:visited { color: var(--dk-yellow) !important; }
+html[data-theme] a:hover   { color: var(--dk-red)    !important; }
+html[data-theme] a:active  { color: var(--dk-blue)   !important; }
+
+/* Keep underline matching text color */
+html[data-theme] a { text-decoration-color: currentColor; }
+
+/* Stronger targets for common doc regions */
+html[data-theme]
+  :is(.content, .sidebar-container, nav.toc, .related, .toc-tree,
+      .toctree-wrapper, table.contentstable) a:link       { color: var(--dk-blue)   !important; }
+html[data-theme]
+  :is(.content, .sidebar-container, nav.toc, .related, .toc-tree,
+      .toctree-wrapper, table.contentstable) a:visited    { color: var(--dk-yellow) !important; }
+html[data-theme]
+  :is(.content, .sidebar-container, nav.toc, .related, .toc-tree,
+      .toctree-wrapper, table.contentstable) a:hover      { color: var(--dk-red)    !important; }
+html[data-theme]
+  :is(.content, .sidebar-container, nav.toc, .related, .toc-tree,
+      .toctree-wrapper, table.contentstable) a:active     { color: var(--dk-blue)   !important; }
+
+/* Old Sphinx index tiles (noop if not used) */
+html[data-theme] a.biglink:link    { color: var(--dk-blue)   !important; }
+html[data-theme] a.biglink:visited { color: var(--dk-yellow) !important; }
+html[data-theme] a.biglink:hover   { color: var(--dk-red)    !important; }
+html[data-theme] a.biglink:active  { color: var(--dk-blue)   !important; }
+
+/* FINAL hammer for the last offender: unvisited hover */
+html[data-theme] a:link:hover { color: var(--dk-red) !important; }
+
+/* ==========================================================================
+   CODE (Pygments) — light mode tokens
+   ========================================================================== */
+.highlight .k,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kt { color: var(--dk-blue); font-weight: 600; }        /* keywords */
+
+.highlight .nf, .highlight .fm,
+.highlight .nc, .highlight .ne, .highlight .nn { color: var(--dk-yellow); }  /* funcs/classes */
+
+.highlight .s, .highlight .m { color: var(--dk-red); }             /* strings & numbers */
+
+.highlight .o, .highlight .ow { color: var(--dk-blue); }           /* operators */
+
+.highlight .c, .highlight .ch, .highlight .cm, .highlight .c1,
+.highlight .cs, .highlight .cp { color: #6a737d; font-style: italic; }  /* comments */
+
+/* API signatures */
+.sig .sig-name, code.descname { color: var(--dk-yellow); }
+.sig .k { color: var(--dk-blue); }
+a.reference code { color: var(--dk-blue); }
+
+/* ==========================================================================
+   CODE (Pygments) — dark mode fixes (minimal, no duplication)
+   ========================================================================== */
+html[data-theme="dark"] .highlight .k,
+html[data-theme="dark"] .highlight .kd,
+html[data-theme="dark"] .highlight .kn,
+html[data-theme="dark"] .highlight .kp,
+html[data-theme="dark"] .highlight .kr,
+html[data-theme="dark"] .highlight .kt {
+  color: var(--dk-blue) !important; font-weight: 600 !important;
+}
+
+html[data-theme="dark"] .highlight .nf,
+html[data-theme="dark"] .highlight .fm,
+html[data-theme="dark"] .highlight .nc,
+html[data-theme="dark"] .highlight .ne,
+html[data-theme="dark"] .highlight .nn {
+  color: var(--dk-yellow) !important;
+}
+
+html[data-theme="dark"] .highlight .s,
+html[data-theme="dark"] .highlight .m {
+  color: var(--dk-red) !important;
+}
+
+html[data-theme="dark"] .highlight .c {
+  color: #8899aa !important; font-style: italic !important;
+}
+
+/* Optional: unify code block background/foreground in dark */
+html[data-theme="dark"] .highlight,
+html[data-theme="dark"] pre,
+html[data-theme="dark"] code {
+  background-color: #1b1b1b; color: #e6e6e6;
+}
+
+/* ==========================================================================
+   COMPONENT ACCENTS
+   ========================================================================== */
+
+/* Admonition borders */
+.admonition.note,
+.admonition.tip,
+.admonition.hint,
+.admonition.important { border-left: 0.25rem solid var(--dk-yellow); }
+
+.admonition.warning,
+.admonition.caution,
+.admonition.attention,
+.admonition.danger,
+.admonition.error { border-left: 0.25rem solid var(--dk-red); }
