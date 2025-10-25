@@ -134,3 +134,16 @@ html[data-theme="dark"] code {
 .admonition.attention,
 .admonition.danger,
 .admonition.error { border-left: 0.25rem solid var(--dk-red); }
+
+/* Team cards */
+.team-grid { display: grid; gap: 1rem; }
+@media (min-width: 700px){ .team-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+.team-card { background: var(--color-background-secondary); padding: 1rem; border-radius: 12px; }
+.team-card .headshot { width: 96px; height: 96px; border-radius: 9999px; object-fit: cover; }
+.team-card h3 { margin: .5rem 0 0; font-size: 1.05rem; }
+.team-card p.role { margin: .25rem 0 .5rem; color: var(--color-foreground-secondary); }
+.team-links a { margin-right: .5rem; font-size: .95em; }
+
+/* Names in red, roles in blue */
+.name-red  { color: var(--dk-red) !important; font-weight: 700; }
+.role-blue { color: var(--dk-blue) !important; font-style: italic; }
