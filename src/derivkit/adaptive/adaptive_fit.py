@@ -76,7 +76,7 @@ class AdaptiveFitDerivative:
             n_workers: Parallel workers for batched function evals (1 = serial).
             grid: Either ("offsets", array) or ('absolute', array), or None for default.
 
-                This lets user supply their own sampling points instead of using the
+                This lets the user supply their own sampling points instead of using the
                 automatically built Chebyshev grid. With ``("offsets", arr)``, the array
                 gives relative offsets from ``x0`` (samples at ``x = x0 + t``). With
                 ``('absolute', arr)``, the array gives absolute ``x`` positions. If
