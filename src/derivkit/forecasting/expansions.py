@@ -180,21 +180,21 @@ class LikelihoodExpansion:
         inner_workers = 1 if n_workers > 1 else 1  # keep inner serial; safest
 
         if order == 1:
-            first_order_derivatives = np.zeros(
-                (self.n_parameters, self.n_observables), dtype=float
+            # Build Jacobian once (shape expected (n_observables, n_parameters)),
+            # then return as (n_parameters, n_observables) for downstream einsum.
+            j_raw = np.asarray(
+                build_jacobian(self.function, self.theta0, n_workers=inner_workers),
+                dtype=float,
             )
-
-            def compute_m(m: int) -> np.ndarray:
-                theta0_x = deepcopy(self.theta0)
-                f_to_diff = get_partial_function(self.function, m, theta0_x)
-                kit = DerivativeKit(f_to_diff, self.theta0[m])
-                # still pass n_workers through to adaptive (it can batch-eval)
-                return kit.adaptive.differentiate(order=1, n_workers=inner_workers)
-
-            results = self._map_threads(compute_m, range(self.n_parameters), n_workers)
-            for m, val in enumerate(results):
-                first_order_derivatives[m] = val
-            return first_order_derivatives
+            if j_raw.shape == (self.n_observables, self.n_parameters):
+                return j_raw.T
+            if j_raw.shape == (self.n_parameters, self.n_observables):
+                return j_raw
+            raise ValueError(
+                f"build_jacobian returned unexpected shape {j_raw.shape}; "
+                f"expected ({self.n_observables},{self.n_parameters}) or "
+                f"({self.n_parameters},{self.n_observables})."
+            )
 
         elif order == 2:
             second_order_derivatives = np.zeros(
@@ -276,6 +276,7 @@ class LikelihoodExpansion:
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
 
+
     def build_fisher_bias(
             self,
             fisher_matrix: NDArray[np.floating],
@@ -319,18 +320,26 @@ class LikelihoodExpansion:
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-        # Jacobian matrix has shape (n, p)
-        j_matrix = build_jacobian(self.function, self.theta0, n_workers=n_workers)
-        n_obs, n_params = j_matrix.shape
-
-        # Check shapes of the covariance and Fisher matrices against the Jacobian
-        if self.cov.shape != (n_obs, n_obs):
+        # Jacobian — enforce shape (n_obs, n_params)
+        j_raw = np.asarray(build_jacobian(self.function, self.theta0, n_workers=n_workers), float)
+        n_obs, n_params = self.n_observables, self.n_parameters
+        if j_raw.shape != (n_obs, n_params):
             raise ValueError(
-                f"covariance shape {self.cov.shape} must be (n, n) = {(n_obs, n_obs)} from the Jacobian."
+                f"build_jacobian must return shape (n_obs, n_params)=({n_obs},{n_params}); "
+                f"got {j_raw.shape}."
             )
-        if fisher_matrix.shape != (n_params, n_params):
+        j_matrix = j_raw  # (n_obs, n_params)
+
+        # Shape checks consistent with J
+        if self.cov.shape != (j_matrix.shape[0], j_matrix.shape[0]):
             raise ValueError(
-                f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = {(n_params, n_params)} from the Jacobian."
+                f"covariance shape {self.cov.shape} must be (n, n) = "
+                f"{(j_matrix.shape[0], j_matrix.shape[0])} from the Jacobian."
+            )
+        if fisher_matrix.shape != (j_matrix.shape[1], j_matrix.shape[1]):
+            raise ValueError(
+                f"fisher_matrix shape {fisher_matrix.shape} must be (p, p) = "
+                f"{(j_matrix.shape[1], j_matrix.shape[1])} from the Jacobian."
             )
 
         # Make delta_nu a 1D array of length n; 2D inputs are flattened in row-major ("C") order.
@@ -339,26 +348,33 @@ class LikelihoodExpansion:
             delta_nu = delta_nu.ravel(order="C")
         if delta_nu.ndim != 1 or delta_nu.size != n_obs:
             raise ValueError(f"delta_nu must have length n={n_obs}; got shape {delta_nu.shape}.")
-
         if not np.isfinite(delta_nu).all():
             raise FloatingPointError("Non-finite values found in delta_nu.")
 
-        cinv_delta = solve_or_pinv(
-            self.cov,
-            delta_nu,
-            rcond=rcond,
-            assume_symmetric=True,
-            warn_context="covariance solve",
-        )
+        # GLS weighting by the inverse covariance:
+        # If C is diagonal, compute invcov * delta_nu by elementwise division (fast).
+        # Otherwise solve with a symmetric solver; on ill-conditioning/failure,
+        # fall back to a pseudoinverse and emit a warning.
+        off = self.cov.copy()
+        np.fill_diagonal(off, 0.0)
+        is_diag = not np.any(off)  # True iff all off-diagonals are exactly zero
+
+        if is_diag:
+            diag = np.diag(self.cov)
+            if np.all(diag > 0):
+                cinv_delta = delta_nu / diag
+            else:
+                cinv_delta = solve_or_pinv(
+                    self.cov, delta_nu, rcond=rcond, assume_symmetric=True, warn_context="covariance solve"
+                )
+        else:
+            cinv_delta = solve_or_pinv(
+                self.cov, delta_nu, rcond=rcond, assume_symmetric=True, warn_context="covariance solve"
+            )
 
         bias_vec = j_matrix.T @ cinv_delta
-
         delta_theta = solve_or_pinv(
-            fisher_matrix,
-            bias_vec,
-            rcond=rcond,
-            assume_symmetric=True,
-            warn_context="Fisher solve",
+            fisher_matrix, bias_vec, rcond=rcond, assume_symmetric=True, warn_context="Fisher solve"
         )
 
         return bias_vec, delta_theta

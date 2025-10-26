@@ -157,7 +157,7 @@ def test_hessian_raises_on_vector_output():
 
 def test_hessian_raises_on_nonfinite_output():
     """Raises on non-finite output."""
-    with pytest.raises((FloatingPointError)):
+    with pytest.raises(FloatingPointError):
         build_hessian(f_nonfinite, np.array([0.0, 1.0]))
 
 
@@ -166,3 +166,16 @@ def test_hessian_input_validation_empty_theta():
     with pytest.raises(ValueError):
         f_ss_1 = make_sum_squares(1)
         build_hessian(f_ss_1, np.array([]))
+
+
+def poly_trig_simple(x):
+    """A simple function to test parallel vs serial Hessian."""
+    return float((x[0]**3)/3 + 2*x[0]*x[1] + np.cos(x[1]))
+
+
+def test_build_hessian_parallel_equals_serial():
+    """Test that parallel and serial Hessian computations yield the same result."""
+    t = np.array([0.1, 0.3])
+    H1 = build_hessian(poly_trig_simple, t, n_workers=1)
+    H4 = build_hessian(poly_trig_simple, t, n_workers=8)
+    np.testing.assert_allclose(H4, H1, rtol=1e-8, atol=1e-10)

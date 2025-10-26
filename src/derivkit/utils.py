@@ -246,7 +246,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
             f"falling back to pseudoinverse with rcond={rcond}.",
             RuntimeWarning,
         )
-        return np.linalg.pinv(matrix, rcond=rcond, hermitian=assume_symmetric) @ vector
+        hermitian = np.allclose(matrix, matrix.T, rtol=1e-12, atol=1e-12)
+        return (np.linalg.pinv(matrix, rcond=rcond, hermitian=hermitian) @ vector).astype(float, copy=False)
 
     # Fast path: symmetric/Hermitian or general solve
     try:
@@ -270,7 +271,8 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
             f"falling back to pseudoinverse with rcond={rcond}{cond_msg}.",
             RuntimeWarning,
         )
-        return np.linalg.pinv(matrix, rcond=rcond, hermitian=assume_symmetric) @ vector
+        hermitian = np.allclose(matrix, matrix.T, rtol=1e-12, atol=1e-12)
+        return (np.linalg.pinv(matrix, rcond=rcond, hermitian=hermitian) @ vector).astype(float, copy=False)
 
 
 def invert_covariance(
@@ -297,7 +299,7 @@ def invert_covariance(
     Raises:
         ValueError: If ``cov`` has more than 2 dimensions.
     """
-    cov = np.asarray(cov)
+    cov = np.asarray(cov, dtype=float)
 
     # Canonicalize to 2D
     if cov.ndim == 0:
@@ -318,10 +320,18 @@ def invert_covariance(
 
     n = cov.shape[0]
 
-    # Ill-conditioning warning (warn if cond is non-finite or huge)
+    # Symmetry check (warn only; do not symmetrize)
+    symmetric = np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12)
+    if not symmetric:
+        warnings.warn(
+            f"{prefix}`cov` is not symmetric; proceeding as-is",
+            RuntimeWarning,
+        )
+
+    # Ill-conditioning warning
     try:
         cond_val = np.linalg.cond(cov)
-        if (not np.isfinite(cond_val)) or (cond_val > 1e12):
+        if (not np.isfinite(cond_val)) or (cond_val > 1.0 / rcond):
             warnings.warn(
                 f"{prefix}`cov` is ill-conditioned (cond≈{cond_val:.2e}); results may be unstable.",
                 RuntimeWarning,
@@ -329,27 +339,31 @@ def invert_covariance(
     except np.linalg.LinAlgError:
         pass
 
-    # Rank-deficient → pinv with the expected warning message
+    # Rank check
     try:
         rank = np.linalg.matrix_rank(cov)
     except np.linalg.LinAlgError:
         rank = n
-    if rank < n:
-        warnings.warn(f"{prefix}`cov` inversion failed; using pseudoinverse.", RuntimeWarning)
-        return np.linalg.pinv(cov, rcond=rcond, hermitian=True)
 
-    # Try regular inverse; on failure, emit the same expected warning
-    try:
-        inv = np.linalg.inv(cov)
-    except np.linalg.LinAlgError:
-        warnings.warn(f"{prefix}`cov` inversion failed; using pseudoinverse.", RuntimeWarning)
-        inv = np.linalg.pinv(cov, rcond=rcond, hermitian=True)
+    # Try exact inverse when full rank; otherwise pseudoinverse
+    if rank == n:
+        try:
+            inv = np.linalg.inv(cov)
+            return np.asarray(inv, dtype=float)
+        except np.linalg.LinAlgError:
+            # fall through to pinv with warning
+            warnings.warn(
+                f"{prefix}`cov` inversion failed; using pseudoinverse.",
+                RuntimeWarning,
+            )
 
-    # Ensure 2D output
-    inv = np.asarray(inv)
-    if inv.ndim != 2:
-        inv = np.atleast_2d(inv)
-    return inv
+    # Pseudoinverse path — IMPORTANT: hermitian = symmetric flag
+    warnings.warn(
+        f"{prefix}`cov` inversion failed; using pseudoinverse.",
+        RuntimeWarning,
+    )
+    inv_cov = np.linalg.pinv(cov, rcond=rcond, hermitian=symmetric).astype(float, copy=False)
+    return inv_cov
 
 
 def normalize_covariance(

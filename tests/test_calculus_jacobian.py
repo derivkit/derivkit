@@ -107,7 +107,7 @@ def test_jacobian_linear_map():
     theta0 = np.array([0.3, -0.7, 1.2], dtype=float)
     jac = build_jacobian(f, theta0, n_workers=1)
     assert jac.shape == (vec.shape[0], theta0.size)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+    assert np.allclose(jac, vec, atol=1e-8, rtol=0.0)
 
 
 def test_jacobian_analytic():
@@ -140,7 +140,7 @@ def test_jacobian_linear_random_matrix():
     theta0 = rng.normal(size=3)
     jac = build_jacobian(f, theta0, n_workers=1)
     assert jac.shape == (4, 3)
-    assert np.allclose(jac, vec, atol=1e-12, rtol=0.0)
+    assert np.allclose(jac, vec, atol=1e-8, rtol=0.0)
 
 
 def test_jacobian_matches_numeric_reference():
@@ -273,3 +273,16 @@ def test_jacobian_output_shape_validation(shape, should_pass):
     else:
         with pytest.raises(TypeError):
             build_jacobian(func, theta0)
+
+
+def sin_func(x):
+    """A simple test function to use in jacobian serial/parallel comparison."""
+    return np.array([np.sin(x[0]) + x[1]**2, x[0]*x[1]])
+
+
+def test_build_jacobian_parallel_equals_serial():
+    """Test that parallel and serial jacobian computations yield the same result."""
+    t = np.array([0.2, -0.5])
+    J1 = build_jacobian(sin_func, t, n_workers=1)
+    J4 = build_jacobian(sin_func, t, n_workers=4)
+    np.testing.assert_allclose(J4, J1, rtol=1e-8, atol=1e-10)

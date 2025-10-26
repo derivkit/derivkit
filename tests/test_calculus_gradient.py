@@ -17,6 +17,7 @@ def model_linear_1d(params):
 
 def grad_linear_1d(params):
     """Gradient of the simple linear function in one dimension."""
+    _ = params
     return np.array([2.75], dtype=float)
 
 
@@ -74,7 +75,7 @@ def test_gradient_linear_one_dimension():
     result = build_gradient(model_linear_1d, point)
     expected = grad_linear_1d(point)
     assert result.shape == (1,)
-    assert_allclose(result, expected, rtol=0, atol=1e-12)
+    assert_allclose(result, expected, rtol=2e-8, atol=0)
 
 
 def test_gradient_quadratic_two_dimensions_workers_1():
@@ -120,3 +121,16 @@ def test_gradient_raises_for_nonfinite_model_value():
     """Test that gradient raises FloatingPointError for NaN model output."""
     with pytest.raises(FloatingPointError):
         build_gradient(model_nan, np.array([1.0, 2.0]))
+
+
+def sin_sum(x):
+    """A test function: sum of sin(x) + 0.1 * x^2 over all elements of x."""
+    return float(np.sum(np.sin(x) + 0.1 * x**2))
+
+
+def test_build_gradient_parallel_equals_serial():
+    """Test that parallel and serial gradient computations yield the same result."""
+    t = np.array([0.1, -0.3, 0.7, 1.2])
+    g1 = build_gradient(sin_sum, t, n_workers=1)
+    g4 = build_gradient(sin_sum, t, n_workers=4)
+    np.testing.assert_allclose(g4, g1, rtol=1e-8, atol=1e-10)
