@@ -74,10 +74,10 @@ class AdaptiveFitDerivative:
 
             base_abs: Absolute spacing floor used by "auto"/percentage near x0≈0. Defaults to ``1e-3`` if not set.
             n_workers: Parallel workers for batched function evals (1 = serial).
-            grid: Either ('offsets', array) or ('absolute', array), or None for default.
+            grid: Either ("offsets", array) or ('absolute', array), or None for default.
 
-                This lets user supply thier own sampling points instead of using the
-                automatically built Chebyshev grid. With ``('offsets', arr)``, the array
+                This lets user supply their own sampling points instead of using the
+                automatically built Chebyshev grid. With ``("offsets", arr)``, the array
                 gives relative offsets from ``x0`` (samples at ``x = x0 + t``). With
                 ``('absolute', arr)``, the array gives absolute ``x`` positions. If
                 ``None``, the method builds a symmetric default grid around ``x0``.
