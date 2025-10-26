@@ -137,7 +137,7 @@ def test_diagnostics_payload_and_center_omitted():
     val, diag = d.differentiate(order=2, diagnostics=True, **KW)
     assert np.isfinite(val)
 
-    for key in ("x", "t", "u", "scale_s", "y", "degree"):
+    for key in ("x", "t", "u", "y", "degree"):
         assert key in diag
 
     t = np.asarray(diag["t"])
@@ -153,7 +153,7 @@ def test_diagnostics_payload_and_center_present():
     val, diag = d.differentiate(order=2, diagnostics=True, **KW)
     assert np.isfinite(val)
 
-    for key in ("x", "t", "u", "scale_s", "y", "degree"):
+    for key in ("x", "t", "u", "y", "degree"):
         assert key in diag
 
     t = np.asarray(diag["t"])

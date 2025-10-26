@@ -177,14 +177,12 @@ class AdaptiveFitDerivative:
             x=x,
             t=t,
             u=u,
-            s=factor,
             y=ys,
             degree=degree_out,
             spacing_resolved=spacing_resolved,
             rrms=rrms,
             coeffs=coeffs,
             ridge=ridge,
-            factor=factor,
             order=order,
         )
         meta_payload = {

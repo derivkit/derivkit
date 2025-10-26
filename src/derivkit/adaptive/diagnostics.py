@@ -81,11 +81,12 @@ def format_derivative_diagnostics(
         lines += [
             "Grid:",
             f"  t offsets (preview): {_preview_1d(t, max_rows)}",
+            f"  u offsets (preview): {_preview_1d(np.asarray(diag.get('u', []), float), max_rows)}",
             f"  x points  (preview): {_preview_1d(x, max_rows)}",
         ]
         if step_min is not None:
             lines.append(
-                f"  step_min={step_min:.{decimals}g}, "
+                f"step_min={step_min:.{decimals}g}, "
                 f"step_max={step_max:.{decimals}g}, "
                 f"uniformish={uniformish}"
             )
@@ -156,7 +157,7 @@ def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
       max_rows: Maximum number of rows to display.
 
     Returns:
-      A 1D array with at most ``max_rows` elements, with NaN in the middle if truncated.
+      A 1D array with at most ``max_rows`` elements, with NaN in the middle if truncated.
     """
     a = np.asarray(a)
     if a.ndim != 1 or a.size <= max_rows:
@@ -189,14 +190,12 @@ def make_derivative_diag(
     x: np.ndarray,
     t: np.ndarray,
     u: np.ndarray,
-    s: float,
     y: np.ndarray,
     degree: int | list[int],
     spacing_resolved: float | None = None,
     rrms: Optional[NDArray[np.floating]] = None,
     coeffs: Optional[NDArray[np.floating]] = None,
     ridge: float | None = None,
-    factor: float | None = None,
     order: int | None = None,
 ) -> dict:
     """Builds a lightweight diagnostics for a local polynomial derivative fit.
@@ -206,37 +205,35 @@ def make_derivative_diag(
     metrics and human-readable suggestions.
 
     Args:
-        x: Absolute sample locations, shape ``(n,)``.
-        t: Offsets relative to ``x0`` (``t = x - x0``), shape ``(n,)``.
+        x: Absolute sample locations, shape ``(n_points,)``.
+        t: Offsets relative to ``x0`` (``t = x - x0``), shape ``(n_points,)``.
         u: Scaled offsets used in the polynomial basis (typically ``u = t / s``),
-           shape ``(n,)``.
-        s: Offset scale factor used to build ``u`` (the interval half-width).
-        y: Function evaluations at ``x``, shape ``(n, m)`` for ``m`` components.
-        degree: Final polynomial degree used. May be an ``int`` or per-component list.
+           shape ``(n_points,)``.
+        y: Function evaluations at ``x``, shape ``(n_points, n_obs)``.
+        degree: Final polynomial degree used. May be an ``int`` or a per-observable
+            list of ints (length ``n_obs``).
         spacing_resolved: Resolved spacing descriptor for the default grid (numeric
             half-width or ``None`` if not applicable).
-        rrms: Relative RMS residuals of the fit, shape ``(m,)`` (optional).
-        coeffs: Polynomial coefficients in the scaled basis, shape ``(deg+1, m)`` (optional).
+        rrms: Relative RMS residuals of the fit, shape ``(n_obs,)`` (optional).
+        coeffs: Polynomial coefficients in the scaled basis, shape ``(deg+1, n_obs)`` (optional).
         ridge: Ridge regularization strength used in the fit (optional).
-        factor: Alias of ``s`` (kept for compatibility) (optional).
         order: Derivative order of interest (optional).
 
     Returns:
         dict: A plain dictionary with fields suited for logging/printing/plotting.
 
         Always present:
-            - ``"x"`` : ``np.ndarray``
-            - ``"t"`` : ``np.ndarray``
-            - ``"u"`` : ``np.ndarray``
-            - ``"scale_s"`` : ``float``
-            - ``"y"`` : ``np.ndarray``
+            - ``"x"`` : ``np.ndarray`` with shape ``(n_points,)``
+            - ``"t"`` : ``np.ndarray`` with shape ``(n_points,)``
+            - ``"u"`` : ``np.ndarray`` with shape ``(n_points,)``
+            - ``"y"`` : ``np.ndarray`` with shape ``(n_points, n_obs)``
             - ``"degree"`` : ``int`` or ``list[int]``
 
         Included when available:
             - ``"spacing_resolved"`` : ``float | None``
             - ``"rrms"`` : ``np.ndarray`` or ``float``
 
-        Included when quality inputs are provided (``coeffs``, ``ridge``, ``factor``, ``order``):
+        Included when quality inputs are provided (``coeffs``, ``ridge``, ``order``):
             - ``"fit_quality"`` : ``dict`` with keys like ``"rrms_rel"``, ``"loo_rel"``,
               ``"cond_vdm"``, ``"deriv_rel"``, and a nested ``"thresholds"`` dict.
             - ``"fit_suggestions"`` : ``list[str]`` with human-readable hints.
@@ -245,7 +242,6 @@ def make_derivative_diag(
         "x": x,
         "t": t,
         "u": u,
-        "scale_s": float(s),
         "y": y,
         "degree": degree,
     }
@@ -257,7 +253,6 @@ def make_derivative_diag(
     have_quality_args = (
         coeffs is not None
         and ridge is not None
-        and factor is not None
         and order is not None
     )
     if have_quality_args:
@@ -267,7 +262,6 @@ def make_derivative_diag(
             coeffs=coeffs,
             deg=(degree if isinstance(degree, int) else int(degree[0])),
             ridge=float(ridge),
-            factor=float(factor),
             order=int(order),
         )
         out["fit_quality"] = metrics
