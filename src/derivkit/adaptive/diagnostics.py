@@ -205,17 +205,18 @@ def make_derivative_diag(
     metrics and human-readable suggestions.
 
     Args:
-        x: Absolute sample locations, shape ``(n_points,)``.
+        x: Absolute sample locations, shape ``(n_points,)`` where ``n_points`` is the
+            number of grid points where the function was evaluated.
         t: Offsets relative to ``x0`` (``t = x - x0``), shape ``(n_points,)``.
         u: Scaled offsets used in the polynomial basis (typically ``u = t / s``),
            shape ``(n_points,)``.
-        y: Function evaluations at ``x``, shape ``(n_points, n_obs)``.
+        y: Function evaluations at ``x``, shape ``(n_points, n_observables)``.
         degree: Final polynomial degree used. May be an ``int`` or a per-observable
-            list of ints (length ``n_obs``).
+            list of ints (length ``n_observables``).
         spacing_resolved: Resolved spacing descriptor for the default grid (numeric
             half-width or ``None`` if not applicable).
-        rrms: Relative RMS residuals of the fit, shape ``(n_obs,)`` (optional).
-        coeffs: Polynomial coefficients in the scaled basis, shape ``(deg+1, n_obs)`` (optional).
+        rrms: Relative RMS residuals of the fit, shape ``(n_observables,)`` (optional).
+        coeffs: Polynomial coefficients in the scaled basis, shape ``(deg+1, n_observables)`` (optional).
         ridge: Ridge regularization strength used in the fit (optional).
         order: Derivative order of interest (optional).
 
@@ -226,7 +227,7 @@ def make_derivative_diag(
             - ``"x"`` : ``np.ndarray`` with shape ``(n_points,)``
             - ``"t"`` : ``np.ndarray`` with shape ``(n_points,)``
             - ``"u"`` : ``np.ndarray`` with shape ``(n_points,)``
-            - ``"y"`` : ``np.ndarray`` with shape ``(n_points, n_obs)``
+            - ``"y"`` : ``np.ndarray`` with shape ``(n_points, n_observables)``
             - ``"degree"`` : ``int`` or ``list[int]``
 
         Included when available:
