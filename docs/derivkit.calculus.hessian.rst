@@ -1,7 +1,7 @@
-derivkit.adaptive.spacing module
+derivkit.calculus.hessian module
 ================================
 
-.. automodule:: derivkit.adaptive.spacing
+.. automodule:: derivkit.calculus.hessian
    :members:
    :show-inheritance:
    :undoc-members:
