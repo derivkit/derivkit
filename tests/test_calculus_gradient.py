@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from derivkit.calculus import build_gradient
+from derivkit.calculus.gradient import build_gradient
 
 
 def model_linear_1d(params):

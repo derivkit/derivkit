@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.calculus import build_jacobian
+from derivkit.calculus.jacobian import build_jacobian
 
 
 def f_linear_mat(th, vec: np.ndarray) -> np.ndarray:

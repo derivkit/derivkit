@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.calculus import build_hessian
+from derivkit.calculus.hessian import build_hessian
 
 
 def f_quadratic(theta, mat: np.ndarray, vec: np.ndarray, const: float = 0.0):
