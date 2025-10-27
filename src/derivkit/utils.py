@@ -424,3 +424,31 @@ def normalize_covariance(
         return 0.5 * (a + a.T)
 
     raise ValueError("cov must be scalar, 1D diag vector, or 2D (k,k) matrix.")
+
+
+def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
+    """Helper used by ``build_gradient`` and ``build_hessian``.
+
+    Args:
+        function (callable): The scalar-valued function to
+            differentiate. It should accept a list or array of parameter
+            values as input and return a scalar observable value.
+        theta0: The points at which the derivative is evaluated.
+            A 1D array or list of parameter values matching the expected
+            input of the function.
+        i: Zero-based index of the parameter with respect to which to differentiate.
+        n_workers: Number of workers used inside
+            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
+            across parameters.
+
+    Raises:
+        TypeError: If ``function`` does not return a scalar value.
+    """
+    partial_vec = get_partial_function(function, i, theta0)
+
+    probe = np.asarray(partial_vec(theta0[i]), dtype=float)
+    if probe.size != 1:
+        raise TypeError(
+            "build_gradient() expects a scalar-valued function; "
+            f"got shape {probe.shape} from full_function(params)."
+        )
