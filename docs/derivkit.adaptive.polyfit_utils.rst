@@ -1,5 +1,5 @@
-derivkit.adaptive.polyfit_utils module
-======================================
+derivkit.adaptive.polyfit\_utils module
+=======================================
 
 .. automodule:: derivkit.adaptive.polyfit_utils
    :members:

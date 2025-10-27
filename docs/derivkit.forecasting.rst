@@ -7,7 +7,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   derivkit.forecasting.calculus
    derivkit.forecasting.expansions
    derivkit.forecasting.likelihoods
 

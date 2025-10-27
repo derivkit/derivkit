@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    derivkit.adaptive
+   derivkit.calculus
    derivkit.forecasting
 
 Submodules
@@ -16,6 +17,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   derivkit.calculus_kit
    derivkit.derivative_kit
    derivkit.forecast_kit
    derivkit.utils

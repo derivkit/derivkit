@@ -1,4 +1,4 @@
-"""Unit tests for forecasting/calculus.py."""
+"""Unit tests for forecasting.likelihoods.py."""
 
 import numpy as np
 import pytest
