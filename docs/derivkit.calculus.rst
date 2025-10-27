@@ -1,7 +1,7 @@
-derivkit.forecasting.calculus module
+derivkit.calculus module
 ====================================
 
-.. automodule:: derivkit.forecasting.calculus
+.. automodule:: derivkit.calculus
    :members:
    :show-inheritance:
    :undoc-members:
