@@ -1,10 +1,10 @@
-"""Unit tests for the gradient function in derivkit.forecasting.calculus."""
+"""Unit tests for the gradient function in derivkit.calculus."""
 
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from derivkit.forecasting.calculus import build_gradient
+from derivkit.calculus import build_gradient
 
 
 def model_linear_1d(params):

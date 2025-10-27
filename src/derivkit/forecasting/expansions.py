@@ -18,7 +18,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.forecasting.calculus import build_jacobian
+from derivkit.calculus import build_jacobian
 from derivkit.utils import (
     get_partial_function,
     invert_covariance,
