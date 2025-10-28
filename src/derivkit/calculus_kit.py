@@ -6,7 +6,7 @@ for gradient, Jacobian, and Hessian computations.
 Typical usage examples:
 
 >>> import numpy as np
->>> from derivkit.calculus_kit import CalculusKit  # noqa: F401
+>>> from derivkit.calculus_kit import CalculusKit
 >>>
 >>> def sin_function(x):
 ...     # scalar-valued function: f(θ) = sin(θ0)
