@@ -9,7 +9,7 @@ Typical usage examples:
 >>> from derivkit.calculus_kit import CalculusKit
 >>>
 >>> def sin_function(x):
-...     # scalar-valued function: f(θ) = sin(θ0)
+...     # scalar-valued function: f(x) = sin(x[0])
 ...     return np.sin(x[0])
 >>>
 >>> def identity_function(x):
