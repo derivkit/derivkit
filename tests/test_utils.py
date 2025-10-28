@@ -1,34 +1,11 @@
 """Lightweight tests for derivkit.utils."""
 
-import tempfile
-
-import numpy as np
 import pytest
 
-from derivkit.utils import (
-    central_difference_error_estimate,
-    generate_test_function,
-    get_partial_function,
-    is_finite_and_differentiable,
-    is_symmetric_grid,
-    log_debug_message,
-    normalize_derivative,
-)
+import numpy as np
 
-
-def test_log_debug_message_prints_when_debug_true(capsys):
-    """Test that log_debug_message prints to stdout when debug is True."""
-    log_debug_message("hello utils", debug=True)
-    out = capsys.readouterr().out
-    assert "hello utils" in out
-
-
-def test_log_debug_message_writes_to_file():
-    """Test that log_debug_message writes to a file when log_to_file is True."""
-    with open(tempfile.NamedTemporaryFile().name, "w+") as f:
-        log_debug_message("line1", log_to_file=True, log_file=f)
-        for line in f:
-            assert line == "line1"
+from derivkit.utils.sandbox import generate_test_function, get_partial_function
+from derivkit.utils.validate import is_finite_and_differentiable
 
 
 def test_is_finite_and_differentiable_true_on_vector_function():
@@ -47,57 +24,6 @@ def test_is_finite_and_differentiable_false_on_nan():
         return np.nan
 
     assert not is_finite_and_differentiable(f, 0.0)
-
-
-def test_normalize_derivative_basic_and_zero_ref():
-    """Test normalize_derivative with basic inputs and zero reference."""
-    deriv = np.array([2.0, -2.0, 0.0])
-    ref = np.array([1.0, -1.0, 0.0])
-
-    out = normalize_derivative(deriv, ref)
-    eps = 1e-12
-    expected = (deriv - ref) / (np.abs(ref) + eps)
-
-    np.testing.assert_allclose(out, expected, rtol=0.0, atol=1e-12)
-
-
-@pytest.mark.parametrize(
-    ("order", "factor"),
-    [
-        (1, 1.0 / 6.0),
-        (2, 1.0 / 12.0),
-        (3, 1.0 / 20.0),
-        (4, 1.0 / 30.0),
-    ],
-)
-def test_central_difference_error_estimate(order: int, factor: float):
-    """Test central_difference_error_estimate for orders 1-4."""
-    h = 1e-2
-    est = central_difference_error_estimate(h, order=order)
-    assert np.isclose(est, factor * h * h)
-
-
-def test_central_difference_error_estimate_invalid_order():
-    """Test central_difference_error_estimate raises ValueError for invalid order."""
-    with pytest.raises(ValueError):
-        central_difference_error_estimate(0.1, order=5)
-
-
-def test_is_symmetric_grid_true_odd():
-    """Test is_symmetric_grid returns True for symmetric odd-length grid."""
-    x_odd = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
-    assert is_symmetric_grid(x_odd) is True
-
-
-def test_is_symmetric_grid_false_asymmetric():
-    """Test that is_symmetric_grid returns False for a deliberately asymmetric grid.
-
-    The last point is offset by 1e-3, which is many orders of magnitude
-    above the floating-point tolerance (~1e-12). This ensures the test
-    fails due to real asymmetry, not rounding error.
-    """
-    y = np.array([-3.0, -1.0, 1.0, 3.001])
-    assert is_symmetric_grid(y) is False
 
 
 def test_generate_test_function_sin_tuple_and_values():

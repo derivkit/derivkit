@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils import get_partial_function
+from derivkit.utils.sandbox import get_partial_function
 
 
 def build_jacobian(
