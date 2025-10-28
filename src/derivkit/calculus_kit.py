@@ -39,7 +39,7 @@ class CalculusKit:
         function: Callable[[Sequence[float] | np.ndarray], float | NDArray[np.floating]],
         x0: Sequence[float] | np.ndarray,
     ):
-        """Initialise with function and expansion point.
+        """Initialises class with function and expansion point.
 
         Args:
             function: The function to be differentiated. Accepts a 1D array-like. Must return
