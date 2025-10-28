@@ -1,8 +1,7 @@
 """Lightweight tests for derivkit.utils."""
 
-import pytest
-
 import numpy as np
+import pytest
 
 from derivkit.utils.sandbox import generate_test_function, get_partial_function
 from derivkit.utils.validate import is_finite_and_differentiable

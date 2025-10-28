@@ -2,16 +2,10 @@
 
 from __future__ import annotations
 
-import numpy as np
+__all__ = [
+    "central_difference_error_estimate",
+]
 
-
-def relative_difference(
-    derivative: float | np.ndarray,
-    reference: float | np.ndarray,
-) -> np.ndarray:
-    """Signed relative difference: (x - ref) / (|ref| + eps)."""
-    reference = np.asarray(reference)
-    return (np.asarray(derivative) - reference) / (np.abs(reference) + 1e-12)
 
 def central_difference_error_estimate(step_size, order: int = 1):
     """Rule-of-thumb truncation error for central differences.
