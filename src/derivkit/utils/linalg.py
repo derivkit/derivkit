@@ -1,4 +1,13 @@
-"""Linear algebra helper functions with diagnostics and canonicalization."""
+"""This module provides small linear-algebra helpers with two goals:
+
+1) Diagnostics: warn about non-symmetric inputs, ill-conditioning, and rank issues,
+   and choose a safe fallback when a fast path fails.
+
+2) Canonicalization: accept covariance inputs in multiple forms (scalar, 1D diagonal
+   vector, or 2D matrix) and convert them into a consistent 2D array with validated
+   shape and finite values. In other words, we normalize the input representation
+   so downstream code always receives a well-formed (k x k) array.
+"""
 
 from __future__ import annotations
 
