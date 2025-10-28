@@ -42,9 +42,8 @@ class CalculusKit:
         """Initialise with function and expansion point.
 
         Args:
-            function: Maps parameters -> observable(s). Accepts a 1D array-like of length P.
-                      Returns either a scalar (for gradient/Hessian of scalar f)
-                      or a 1D array (for Jacobian).
+            function: The function to be differentiated. Accepts a 1D array-like. Must return
+                      either a scalar (for gradient/Hessian) or a 1D array (for Jacobian).
             x0: Point at which to evaluate derivatives (shape (P,)).
         """
         self.function = function
