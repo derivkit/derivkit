@@ -1,6 +1,6 @@
 """Provides all derivkit methods."""
 
-from derivkit.derivative_api import DerivativeAPI
+from derivkit.derivative_new import DerivativeProcedure, DerivativeAPI
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
@@ -18,6 +18,7 @@ from derivkit.utils import (
 )
 
 __all__ = [
+    "DerivativeProcedure",
     "AdaptiveFitDerivative",
     "FiniteDifferenceDerivative",
     "DerivativeKit",
