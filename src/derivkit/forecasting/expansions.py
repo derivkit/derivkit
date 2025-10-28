@@ -19,11 +19,8 @@ from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus.jacobian import build_jacobian
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils import (
-    get_partial_function,
-    invert_covariance,
-    solve_or_pinv,
-)
+from derivkit.utils.linalg import invert_covariance, solve_or_pinv
+from derivkit.utils.sandbox import get_partial_function
 
 
 class LikelihoodExpansion:

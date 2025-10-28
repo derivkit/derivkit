@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
-from derivkit.utils import invert_covariance
+from derivkit.utils.linalg import invert_covariance
 
 
 def test_derivative_order():
