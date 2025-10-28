@@ -17,8 +17,8 @@ from typing import Callable, Tuple, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.derivative_kit import DerivativeKit
 from derivkit.calculus.jacobian import build_jacobian
+from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils import (
     get_partial_function,
     invert_covariance,

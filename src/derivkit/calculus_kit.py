@@ -1,64 +1,62 @@
 """Provides the CalculusKit class.
 
-The class is essentially a wrapper for the modules in derivkit.calculus.
-The user must specify the base function and the central value at which
-the derivatives should be evaluated. More details about available options
-can be found in the documentation of the methods.
+A wrapper around the calculus helpers that exposes the gradient, Jacobian, and Hessian functions.
 
 Typical usage examples:
 
-Calculating the gradient of a scalar-valued function:
->>>  import numpy as np
->>>  from derivkit.calculus_kit import CalculusKit
->>>  calc  = CalculusKit(lambda x: x[0] * x[1], np.array([1, 2]))
->>>  grad = calc.gradient()
-
-Calculating the Jacobian of a vector-valued function:
->>>  import numpy as np
->>>  from derivkit.calculus_kit import CalculusKit
->>>  calc  = CalculusKit(lambda x: x, np.array([1, 2]))
->>>  jacobian = calc.jacobian()
-
-Calculating the Hessian of a scalar-valued function:
->>>  import numpy as np
->>>  from derivkit.calculus_kit import CalculusKit
->>>  calc  = CalculusKit(lambda x: x[0] * x[1], np.array([1, 2]))
->>>  hessian = calc.hessian()
+>>> import numpy as np
+>>> from derivkit.calculus_kit import CalculusKit
+>>>
+>>> def sin_function(x):
+...     # scalar-valued function: f(x) = sin(x[0])
+...     return np.sin(x[0])
+>>>
+>>> def identity_function(x):
+...     # vector-valued function: f(x) = x
+...     return np.asarray(x, dtype=float)
+>>>
+>>> calc = CalculusKit(sin_function, x0=np.array([0.5]))
+>>> grad = calc.gradient()
+>>> hess = calc.hessian()
+>>>
+>>> jac = CalculusKit(identity_function, x0=np.array([1.0, 2.0])).jacobian()
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from typing import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.calculus.gradient import build_gradient
-from derivkit.calculus.jacobian import build_jacobian
-from derivkit.calculus.hessian import build_hessian
+from derivkit.calculus import build_gradient, build_hessian, build_jacobian
 
 
-@dataclass
 class CalculusKit:
-    """Provides access to calculus functions.
+    """Provides access to gradient, Jacobian, and Hessian tensors."""
 
-    Attributes:
-      function: The function to be differentiated.
-      x0: The point at which the function must be differentiated.
-    """
+    def __init__(
+        self,
+        function: Callable[[Sequence[float] | np.ndarray], float | NDArray[np.floating]],
+        x0: Sequence[float] | np.ndarray,
+    ):
+        """Initialises class with function and expansion point.
 
-    function: Callable[[NDArray[np.floating]], np.floating | NDArray[np.floating]]
-    x0: NDArray[np.floating]
+        Args:
+            function: The function to be differentiated. Accepts a 1D array-like. Must return
+                      either a scalar (for gradient/Hessian) or a 1D array (for Jacobian).
+            x0: Point at which to evaluate derivatives (shape (P,)).
+        """
+        self.function = function
+        self.x0 = np.asarray(x0, dtype=float)
 
     def gradient(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Wrapper function for build_gradient."""
+        """Returns the gradient of a scalar-valued function."""
         return build_gradient(self.function, self.x0, *args, **kwargs)
 
-
     def jacobian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Wrapper function for build_jacobian."""
+        """Returns the Jacobian of a vector-valued function."""
         return build_jacobian(self.function, self.x0, *args, **kwargs)
 
-
     def hessian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Wrapper function for build_hessian."""
+        """Returns the Hessian of a scalar-valued function."""
         return build_hessian(self.function, self.x0, *args, **kwargs)

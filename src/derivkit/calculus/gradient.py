@@ -5,7 +5,7 @@ from collections.abc import Callable
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils import get_partial_function, _check_scalar_valued
+from derivkit.utils import check_scalar_valued, get_partial_function
 
 
 def build_gradient(function, theta0, n_workers=1):
@@ -28,7 +28,7 @@ def build_gradient(function, theta0, n_workers=1):
         raise ValueError("theta0 must be a non-empty 1D array.")
 
     # One-time scalar check for build_gradient()
-    _check_scalar_valued(function, theta0, 0, n_workers)
+    check_scalar_valued(function, theta0, 0, n_workers)
 
     # n_workers controls inner 1D differentiation (not across parameters).
     grad = np.array(
