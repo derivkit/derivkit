@@ -1,7 +1,13 @@
-derivkit.utils module
-=====================
+derivkit.utils
+==============
+
+This module currently exposes matrix/covariance utilities.
 
 .. automodule:: derivkit.utils
    :members:
-   :show-inheritance:
+   :undoc-members:
+   :noindex:
+
+.. automodule:: derivkit.utils.linalg
+   :members:
    :undoc-members:

@@ -5,8 +5,8 @@ from collections.abc import Callable
 import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils.validate import check_scalar_valued
 from derivkit.utils.sandbox import get_partial_function
+from derivkit.utils.validate import check_scalar_valued
 
 
 def build_gradient(function, theta0, n_workers=1):

@@ -9,6 +9,10 @@ import numpy as np
 
 from .sandbox import get_partial_function
 
+__all__ = [
+    "is_finite_and_differentiable",
+    "check_scalar_valued",
+]
 
 def is_finite_and_differentiable(
     function: Callable[[float], Any],

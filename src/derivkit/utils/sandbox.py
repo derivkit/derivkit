@@ -6,6 +6,11 @@ from collections.abc import Callable
 
 import numpy as np
 
+__all__ = [
+    "get_partial_function",
+    "generate_test_function",
+]
+
 
 def get_partial_function(
     full_function: Callable,

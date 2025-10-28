@@ -7,6 +7,11 @@ import warnings
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+__all__ = [
+    "invert_covariance",
+    "normalize_covariance",
+    "solve_or_pinv",
+]
 
 def invert_covariance(
     cov: np.ndarray,
