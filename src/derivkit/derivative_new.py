@@ -12,7 +12,7 @@ Typical usage example:
 >>> from derivative_new import DerivativeProcedure, DerivativeAPI
 >>> derivative = DerivativeAPI(function=lambda x: np.cos(x), x0=1)
 >>> result = derivative.differentiate(
-...     method=DerivativeMethod.ADAPTIVE,
+...     method=DerivativeProcedure.ADAPTIVE,
 ...     order=1
 ... )
 
@@ -74,9 +74,9 @@ class DerivativeAPI:
             The derivative of the function evaluated at the central value.
         """
         match proc:
-            case DerivativeMethod.ADAPTIVE:
+            case DerivativeProcedure.ADAPTIVE:
                 f = AdaptiveFitDerivative(self.function, self.x0)
-            case DerivativeMethod.FINITE:
+            case DerivativeProcedure.FINITE:
                 f = FiniteDifferenceDerivative(self.function, self.x0)
             case _:
                 raise ValueError(f"Unexpected derivative procedure: {proc}")
