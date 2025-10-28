@@ -8,11 +8,10 @@ __all__ = [
 
 
 def central_difference_error_estimate(step_size, order: int = 1):
-    """Rule-of-thumb truncation error for central differences.
+    """Heuristic size of the first omitted term (sub-leading) in central-difference stencils.
 
-    This estimate comes from the leading term in the Taylor expansion of
-    central-difference formulas. It gives the expected order of magnitude of
-    the truncation error but is not an exact bound—hence “heuristic.”
+    Interpreted as an O(h^2) truncation-error scale for smooth functions on a
+    uniform grid. Constants are rule-of-thumb (not strict bounds).
 
     Args:
       step_size: Grid spacing.
