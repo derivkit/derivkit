@@ -12,7 +12,7 @@ Typical usage examples:
 ...     return np.sin(x[0])
 >>>
 >>> def identity_function(x):
-...     # vector-valued function: f(θ) = θ
+...     # vector-valued function: f(x) = x
 ...     return np.asarray(x, dtype=float)
 >>>
 >>> calc = CalculusKit(sin_function, x0=np.array([0.5]))
