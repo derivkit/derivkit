@@ -26,6 +26,7 @@ __all__ = [
     "solve_or_pinv",
     "invert_covariance",
     "normalize_covariance",
+    "check_scalar_valued",
 ]
 
 
@@ -426,7 +427,7 @@ def normalize_covariance(
     raise ValueError("cov must be scalar, 1D diag vector, or 2D (k,k) matrix.")
 
 
-def _check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
+def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
     """Helper used by ``build_gradient`` and ``build_hessian``.
 
     Args:
