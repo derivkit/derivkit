@@ -49,14 +49,14 @@ class CalculusKit:
         self.function = function
         self.x0 = np.asarray(x0, dtype=float)
 
-    def gradient(self, *, n_workers: int = 1) -> NDArray[np.floating]:
+    def gradient(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the gradient of a scalar-valued function."""
-        return build_gradient(self.function, self.x0, n_workers=n_workers)
+        return build_gradient(self.function, self.x0, *args, **kwargs)
 
-    def jacobian(self, *, n_workers: int = 1) -> NDArray[np.floating]:
+    def jacobian(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the Jacobian of a vector-valued function."""
-        return build_jacobian(self.function, self.x0, n_workers=n_workers)
+        return build_jacobian(self.function, self.x0, *args, **kwargs)
 
-    def hessian(self, *, n_workers: int = 1) -> NDArray[np.floating]:
+    def hessian(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the Hessian of a scalar-valued function."""
-        return build_hessian(self.function, self.x0, n_workers=n_workers)
+        return build_hessian(self.function, self.x0, *args, **kwargs)
