@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from .sandbox import get_partial_function
+from derivkit.utils.sandbox import get_partial_function
 
 __all__ = [
     "is_finite_and_differentiable",
