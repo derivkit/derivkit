@@ -28,7 +28,7 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from .calculus import build_gradient, build_hessian, build_jacobian
+from derivkit.calculus import build_gradient, build_hessian, build_jacobian
 
 
 class CalculusKit:
