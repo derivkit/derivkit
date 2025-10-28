@@ -1,7 +1,6 @@
 """Provides the CalculusKit class.
 
-A light wrapper around the calculus helpers that exposes a simple API
-for gradient, Jacobian, and Hessian computations.
+A wrapper around the calculus helpers that exposes the gradient, Jacobian, and Hessian functions.
 
 Typical usage examples:
 
