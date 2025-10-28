@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.stats import multivariate_normal, poisson
 
-from derivkit.utils import normalize_covariance
+from derivkit.utils.linalg import normalize_covariance
 
 
 def build_gaussian_likelihood(
