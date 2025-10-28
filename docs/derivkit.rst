@@ -10,6 +10,7 @@ Subpackages
    derivkit.adaptive
    derivkit.calculus
    derivkit.forecasting
+   derivkit.utils
 
 Submodules
 ----------
@@ -20,7 +21,6 @@ Submodules
    derivkit.calculus_kit
    derivkit.derivative_kit
    derivkit.forecast_kit
-   derivkit.utils
 
 Module contents
 ---------------

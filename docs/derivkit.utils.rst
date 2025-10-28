@@ -1,13 +1,21 @@
-derivkit.utils
-==============
+derivkit.utils package
+======================
 
-This module currently exposes matrix/covariance utilities.
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   derivkit.utils.linalg
+   derivkit.utils.numerics
+   derivkit.utils.sandbox
+   derivkit.utils.validate
+
+Module contents
+---------------
 
 .. automodule:: derivkit.utils
    :members:
-   :undoc-members:
-   :noindex:
-
-.. automodule:: derivkit.utils.linalg
-   :members:
+   :show-inheritance:
    :undoc-members:
