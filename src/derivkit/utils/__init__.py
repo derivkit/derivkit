@@ -1,6 +1,6 @@
 """Utility functions for DerivKit package."""
 
-from .linalg import (
+from derivkit.utils.linalg import (
     invert_covariance,
     normalize_covariance,
     solve_or_pinv,
