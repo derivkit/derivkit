@@ -8,7 +8,7 @@ from derivkit.derivative_kit import DerivativeKit
 
 
 def quad(x, a=2.0, b=-3.0, c=1.5):
-    """A simple quadratic function: f(x) = a*x^2 + b*x + c."""
+    """A quadratic function: f(x) = a*x^2 + b*x + c."""
     return a * x**2 + b * x + c
 
 
