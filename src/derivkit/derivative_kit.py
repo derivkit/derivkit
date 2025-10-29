@@ -195,7 +195,10 @@ class DerivativeKit:
         self.x0 = x0
         self.default_method = "adaptive"
 
-    def differentiate(self, *, method: str = None, **kwargs: Any) -> Any:
+    def differentiate(self,
+                      *,
+                      method: str = None,
+                      **kwargs: Any) -> Any:
         """Compute derivatives using the chosen method.
 
         Forwards all keyword arguments to the engine’s `.differentiate()`.
