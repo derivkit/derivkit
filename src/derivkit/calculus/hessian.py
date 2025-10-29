@@ -166,18 +166,18 @@ def build_hessian_tensor(function: Callable,
 
     m = f0.size
     n = int(theta.size)
-    hess = np.empty((n, n, m), dtype=float)
+    hess = np.empty((m, n, n), dtype=float)
 
     # Diagonals here (pure second orders)
     for i in range(n):
-        hess[i, i, :] = _hessian_component_tensor(function, theta, i, i, n_workers)
+        hess[:, i, i] = _hessian_component_tensor(function, theta, i, i, n_workers)
 
     # Off-diagonals here (mixed second orders).
     for i in range(n):
         for j in range(i + 1, n):
             hij = _hessian_component_tensor(function, theta, i, j, n_workers)
-            hess[i, j, :] = hij
-            hess[j, i, :] = hij
+            hess[:, i, j] = hij
+            hess[:, j, i] = hij
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in hessian.")

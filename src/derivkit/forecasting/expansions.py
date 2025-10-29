@@ -195,15 +195,20 @@ class LikelihoodExpansion:
             )
 
         elif order == 2:
-            # Build Hessian tensor once (shape expected (n_parameters, n_parameters, n_observables)).
+            # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
+            # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
             h_raw = np.asarray(
                 build_hessian_tensor(self.function, self.theta0, n_workers=inner_workers),
                 dtype=float,
             )
-            return h_raw
+            if h_raw.shape == (self.n_observables, self.n_parameters, self.n_parameters):
+                return np.moveaxis(h_raw,[1,2],[0,1])
+            if h_raw.shape == (self.n_parameters, self.n_parameters, self.n_observables):
+                return h_raw
             raise ValueError(
                 f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
-                f"expected ({self.n_parameters},{self.n_parameters},{self.n_observables})."
+                f"expected ({self.n_observables},{self.n_parameters},{self.n_parameters}) or "
+                f"({self.n_parameters},{self.n_parameters},{self.n_observables})."
             )
 
         raise RuntimeError("Unreachable code reached in get_forecast_tensors.")
