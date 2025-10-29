@@ -18,6 +18,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus.jacobian import build_jacobian
+from derivkit.calculus.hessian import build_hessian_tensor
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
 from derivkit.utils.sandbox import get_partial_function
@@ -194,34 +195,16 @@ class LikelihoodExpansion:
             )
 
         elif order == 2:
-            second_order_derivatives = np.zeros(
-                (self.n_parameters, self.n_parameters, self.n_observables), dtype=float
+            # Build Hessian tensor once (shape expected (n_parameters, n_parameters, n_observables)).
+            h_raw = np.asarray(
+                build_hessian_tensor(self.function, self.theta0, n_workers=inner_workers),
+                dtype=float,
             )
-
-            def compute_row(m1: int) -> tuple[int, np.ndarray]:
-                row = np.zeros((self.n_parameters, self.n_observables), dtype=float)
-                for m2 in range(self.n_parameters):
-                    if m1 == m2:
-                        theta0_x = deepcopy(self.theta0)
-                        f1 = get_partial_function(self.function, m1, theta0_x)
-                        kit1 = DerivativeKit(f1, self.theta0[m1])
-                        row[m2] = kit1.adaptive.differentiate(order=2, n_workers=inner_workers)
-                    else:
-                        def f2(y):
-                            theta0_y = deepcopy(self.theta0)
-                            theta0_y[m2] = y
-                            f1_inner = get_partial_function(self.function, m1, theta0_y)
-                            kit1_inner = DerivativeKit(f1_inner, self.theta0[m1])
-                            return kit1_inner.adaptive.differentiate(order=1)
-
-                        kit2 = DerivativeKit(f2, self.theta0[m2])
-                        row[m2] = kit2.adaptive.differentiate(order=1, n_workers=inner_workers)
-                return m1, row
-
-            rows = self._map_threads(compute_row, range(self.n_parameters), n_workers)
-            for m1, row in rows:
-                second_order_derivatives[m1, :, :] = row
-            return second_order_derivatives
+            return h_raw
+            raise ValueError(
+                f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+                f"expected ({self.n_parameters},{self.n_parameters},{self.n_observables})."
+            )
 
         raise RuntimeError("Unreachable code reached in get_forecast_tensors.")
 
