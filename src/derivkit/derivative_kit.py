@@ -193,7 +193,7 @@ class DerivativeKit:
         """
         self.function = function
         self.x0 = x0
-        self.DEFAULT_METHOD = "adaptive"
+        self.default_method = "adaptive"
 
     def differentiate(self, *, method: str = None, **kwargs: Any) -> Any:
         """Compute derivatives using the chosen method.
@@ -210,7 +210,7 @@ class DerivativeKit:
         Raises:
             ValueError: If `method` is not recognized.
         """
-        chosen = method or self.DEFAULT_METHOD  # use default if None
+        chosen = method or self.default_method  # use default if None
         Engine = _resolve(chosen)
         return Engine(self.function, self.x0).differentiate(**kwargs)
 
