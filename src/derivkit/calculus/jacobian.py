@@ -47,7 +47,6 @@ def build_jacobian(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If ``function`` does not return a vector value.
     """
-    dk_kwargs = {} if dk_kwargs is None else dict(dk_kwargs)
 
     # Validate inputs and evaluate baseline output
     theta = np.asarray(theta0, dtype=float).ravel()
@@ -102,7 +101,7 @@ def _column_derivative(
     theta0: ArrayLike,
     method: str | None,
     inner_workers: int | None,
-    dk_kwargs: dict,
+    dk_kwargs: dict | None,
     expected_m: int,
 ) -> NDArray[np.floating]:
     """Derivative of function with respect to parameter j.
@@ -139,7 +138,7 @@ def _column_derivative(
 
     # Differentiate via new unified API (passes method through)
     kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **dk_kwargs)
+    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **(dk_kwargs or {}))
 
     g = np.atleast_1d(np.asarray(g, dtype=float)).reshape(-1)
     if g.size != expected_m:
