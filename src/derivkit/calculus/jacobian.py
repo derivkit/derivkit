@@ -47,7 +47,6 @@ def build_jacobian(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If ``function`` does not return a vector value.
     """
-
     # Validate inputs and evaluate baseline output
     theta = np.asarray(theta0, dtype=float).ravel()
     if theta.size == 0:
