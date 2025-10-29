@@ -12,7 +12,7 @@ from derivkit.derivative_kit import DerivativeKit
 
 
 def _rel_err(a: float, b: float) -> float:
-    """Computes relative error between a and b safely."""
+    """Computes relative error between a and b."""
     d = max(1.0, abs(a), abs(b))
     return abs(a - b) / d
 
