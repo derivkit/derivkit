@@ -1,4 +1,3 @@
-# src/derivkit/gaussian_process/core.py
 """Gaussian process core ops for RBF kernel (natural names, lowercase keys)."""
 
 from __future__ import annotations

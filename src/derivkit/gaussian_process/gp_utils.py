@@ -1,3 +1,4 @@
+"""Utility functions for Gaussian Process regression."""
 
 import numpy as np
 from numpy.linalg import cholesky, solve

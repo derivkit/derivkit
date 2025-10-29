@@ -1,4 +1,5 @@
-# src/derivkit/gaussian_process/gaussian_process.py
+"""Gaussian Process derivative estimation API."""
+
 from __future__ import annotations
 import numpy as np
 from .core import gp_fit, gp_derivative, gp_choose_hyperparams

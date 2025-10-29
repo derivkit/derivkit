@@ -1,4 +1,4 @@
-"""Squared-Exponential (RBF) kernel and derivative covariances (clean API)."""
+"""Squared-Exponential (RBF) kernel and derivative covariances."""
 
 from __future__ import annotations
 
