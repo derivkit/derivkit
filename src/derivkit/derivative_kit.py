@@ -182,7 +182,6 @@ class DerivativeKit:
         x0: The point at which the derivative is evaluated.
         DEFAULT_METHOD: The default backend used when no method is specified.
     """
-    DEFAULT_METHOD = "adaptive"
 
     def __init__(self, function: Callable[[float], Any], x0: float):
         """Initializes the DerivativeKit with a target function and expansion point.
@@ -194,6 +193,7 @@ class DerivativeKit:
         """
         self.function = function
         self.x0 = x0
+        self.DEFAULT_METHOD = "adaptive"
 
     def differentiate(self, *, method: str = None, **kwargs: Any) -> Any:
         """Compute derivatives using the chosen method.
