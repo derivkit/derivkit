@@ -186,11 +186,14 @@ def _hessian_component(
         n_workers: int | None = 1,
         **dk_kwargs: Any,
 ) -> float:
-    """Return one entry of the Hessian for a scalar-valued function.
+    """Returns one entry of the Hessian for a scalar-valued function.
 
-    Used inside ``build_hessian`` to measure how the function’s change in one
-    parameter depends on changes in another. This can describe both pure
-    second derivatives and mixed ones.
+    This function measures how the rate of change in one parameter depends
+    on another. It handles both the pure and mixed second derivatives:
+      - If i == j, this is the second derivative with respect to a single parameter.
+      - If i != j, this is the mixed derivative, computed by first finding
+        how the function changes with parameter i while holding parameter j fixed,
+        and then differentiating that result with respect to parameter j.
 
     Args:
         function: A function that returns a single value.
@@ -217,7 +220,10 @@ def _hessian_component(
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
         return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
 
-    # Here we make a mixed partial derivative
+    # Mixed derivative path:
+    # Define a helper that computes how the function changes with parameter i
+    # when parameter j is temporarily set to a specific value.
+    # Then we take the derivative of that helper with respect to parameter j.
     path = partial(
         _mixed_partial_value,
         function=function,
@@ -242,7 +248,12 @@ def _mixed_partial_value(
     inner_workers: int | None,
     dk_kwargs: dict,
 ) -> float:
-    """Returns the value of the partial derivative w.r.t. theta_i at theta_j = y.
+    """Returns the first derivative with respect to parameter i while temporarily setting parameter j to a given value.
+
+    This helper does not compute the second derivative itself. It only returns
+    the first derivative of the function with respect to one parameter while
+    holding another fixed. The caller then takes the derivative of this result
+    with respect to that fixed parameter to get the mixed second derivative.
 
     Args:
         y: The value to set for parameter j.
