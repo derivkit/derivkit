@@ -52,8 +52,6 @@ def _serial_by_default(request, monkeypatch):
         return  # allow the test to exercise true parallel behavior
 
     try:
-
-
         if hasattr(conc, "parallel_execute"):
             orig = conc.parallel_execute
             sig = inspect.signature(orig)
