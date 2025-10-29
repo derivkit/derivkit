@@ -354,7 +354,6 @@ class LikelihoodExpansion:
           FloatingPointError: If the difference vector contains NaNs.
         """
         n_workers = self._normalize_workers(n_workers)
-        dk_kwargs = dk_kwargs or {}
 
         fisher_matrix = np.asarray(fisher_matrix, dtype=float)
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
