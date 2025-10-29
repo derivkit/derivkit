@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import contextvars
 import os
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from typing import Any, Callable, Iterator, Sequence, Tuple
 
 __all__ = [
     "set_default_inner_derivative_workers",
     "set_inner_derivative_workers",
     "resolve_inner_from_outer",
+    "parallel_execute",
     "_inner_workers_var",
 ]
+
 
 # Context-var and default
 _inner_workers_var: contextvars.ContextVar[int | None] = contextvars.ContextVar(
@@ -34,18 +38,19 @@ def set_default_inner_derivative_workers(n: int | None) -> None:
 
 
 @contextmanager
-def set_inner_derivative_workers(n: int | None):
-    """Sets the inner derivative workers in a context.
+def set_inner_derivative_workers(n: int | None) -> Iterator[int | None]:
+    """Temporarily set the number of inner derivative workers.
 
     Args:
-        n: Number of inner derivative workers, or None for automatic policy.
+        n: Number of inner derivative workers, or ``None`` for automatic policy.
 
     Yields:
-
+        int | None: The previous worker setting (restored on exit).
     """
+    prev = _inner_workers_var.get()
     token = _inner_workers_var.set(None if n is None else int(n))
     try:
-        yield
+        yield prev
     finally:
         _inner_workers_var.reset(token)
 
@@ -104,3 +109,24 @@ def resolve_inner_from_outer(w_params: int) -> int | None:
     if w_params > 1:
         return min(4, max(1, cores // w_params))
     return min(4, cores)
+
+
+def parallel_execute(
+    worker: Callable[..., Any],
+    arg_tuples: Sequence[Tuple[Any, ...]],
+    *,
+    outer_workers: int = 1,
+    inner_workers: int | None = None,
+) -> list[Any]:
+    """Run ``worker(*args)`` for each tuple in arg_tuples with outer threads.
+
+    Inner worker setting is applied to the context, so calls inside worker
+    will see the resolved inner worker count.
+    """
+    with set_inner_derivative_workers(inner_workers):
+        if outer_workers > 1:
+            with ThreadPoolExecutor(max_workers=outer_workers) as ex:
+                futures = [ex.submit(worker, *args) for args in arg_tuples]
+                return [f.result() for f in futures]
+        else:
+            return [worker(*args) for args in arg_tuples]
