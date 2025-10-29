@@ -187,7 +187,6 @@ class LikelihoodExpansion:
             raise ValueError("Only first- and second-order derivatives are currently supported.")
 
         n_workers = self._normalize_workers(n_workers)
-        dk_kwargs = dk_kwargs or {}
 
         if order == 1:
             # Delegate param-level parallelism to build_jacobian
