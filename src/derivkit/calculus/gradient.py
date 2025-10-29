@@ -88,4 +88,4 @@ def _grad_component(
     """
     partial_vec = get_partial_function(function, i, theta0)
     kit = DerivativeKit(partial_vec, float(theta0[i]))
-    return kit.differentiate(order=1, method=method, n_workers=n_workers, **(dk_kwargs or {}))
+    return kit.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
