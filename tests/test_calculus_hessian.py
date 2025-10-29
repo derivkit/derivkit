@@ -176,6 +176,6 @@ def poly_trig_simple(x):
 def test_build_hessian_parallel_equals_serial():
     """Test that parallel and serial Hessian computations yield the same result."""
     t = np.array([0.1, 0.3])
-    H1 = build_hessian(poly_trig_simple, t, n_workers=1)
-    H4 = build_hessian(poly_trig_simple, t, n_workers=8)
-    np.testing.assert_allclose(H4, H1, rtol=1e-8, atol=1e-10)
+    hess1 = build_hessian(poly_trig_simple, t, n_workers=1)
+    hess4 = build_hessian(poly_trig_simple, t, n_workers=8)
+    np.testing.assert_allclose(hess4, hess1, rtol=1e-8, atol=1e-10)

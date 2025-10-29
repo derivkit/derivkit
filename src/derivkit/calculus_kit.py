@@ -29,6 +29,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.calculus import build_gradient, build_hessian, build_jacobian
+from derivkit.calculus.hessian import build_hessian_diag
 
 
 class CalculusKit:
@@ -60,3 +61,7 @@ class CalculusKit:
     def hessian(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the Hessian of a scalar-valued function."""
         return build_hessian(self.function, self.x0, *args, **kwargs)
+
+    def hessian_diag(self, *args, **kwargs) -> NDArray[np.floating]:
+        """Returns the diagonal of the Hessian of a scalar-valued function."""
+        return build_hessian_diag(self.function, self.x0, *args, **kwargs)

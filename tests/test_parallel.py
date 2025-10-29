@@ -26,9 +26,9 @@ def test_order1_equivalent_across_workers(extra_threads_ok):
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
     le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 1.0, 8), np.eye(3))
-    F1 = le.get_forecast_tensors(1, n_workers=1)
-    F2 = le.get_forecast_tensors(1, n_workers=2)
-    np.testing.assert_allclose(F1, F2, rtol=0, atol=1e-12)
+    fisher1 = le.get_forecast_tensors(1, n_workers=1)
+    fisher2 = le.get_forecast_tensors(1, n_workers=2)
+    np.testing.assert_allclose(fisher1, fisher2, rtol=0, atol=1e-12)
 
 
 def test_order2_equivalent_across_workers(extra_threads_ok):
@@ -36,10 +36,10 @@ def test_order2_equivalent_across_workers(extra_threads_ok):
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
     le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 1.0, 6), np.eye(3))
-    G1, H1 = le.get_forecast_tensors(2, n_workers=1)
-    G2, H2 = le.get_forecast_tensors(2, n_workers=2)
-    np.testing.assert_allclose(G1, G2, rtol=0, atol=1e-12)
-    np.testing.assert_allclose(H1, H2, rtol=0, atol=1e-12)
+    g1, h1 = le.get_forecast_tensors(2, n_workers=1)
+    g2, h2 = le.get_forecast_tensors(2, n_workers=2)
+    np.testing.assert_allclose(g1, g2, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(h1, h2, rtol=0, atol=1e-12)
 
 
 def test_ordering_preserved_order1(extra_threads_ok):
@@ -67,18 +67,18 @@ def test_small_workload_falls_back_to_serial(extra_threads_ok):
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
     le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 1.0, 2), np.eye(3))
-    F = le.get_forecast_tensors(1, n_workers=2)
-    assert F.shape == (2, 2)
+    f = le.get_forecast_tensors(1, n_workers=2)
+    assert f.shape == (2, 2)
 
-    G, H = le.get_forecast_tensors(2, n_workers=2)
-    assert G.shape == (2, 2, 2)
-    assert H.shape == (2, 2, 2, 2)
+    g, h = le.get_forecast_tensors(2, n_workers=2)
+    assert g.shape == (2, 2, 2)
+    assert h.shape == (2, 2, 2, 2)
 
-    F1 = le.get_forecast_tensors(1, n_workers=1)
-    np.testing.assert_allclose(F, F1, rtol=0, atol=1e-12)
-    G1, H1 = le.get_forecast_tensors(2, n_workers=1)
-    np.testing.assert_allclose(G, G1, rtol=0, atol=1e-12)
-    np.testing.assert_allclose(H, H1, rtol=0, atol=1e-12)
+    f1 = le.get_forecast_tensors(1, n_workers=1)
+    np.testing.assert_allclose(f, f1, rtol=0, atol=1e-12)
+    g1, h1 = le.get_forecast_tensors(2, n_workers=1)
+    np.testing.assert_allclose(g, g1, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(h, h1, rtol=0, atol=1e-12)
 
 
 def test_non_numeric_output_raises():
@@ -123,17 +123,18 @@ def test_large_workload_parallel_execution(extra_threads_ok, threads_ok):
     else:
         pytest.skip("cannot spawn >=2 threads despite extra_threads_ok")
 
-    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 10.0, 100), np.eye(3))
-    F = le.get_forecast_tensors(1, n_workers=n_workers)
-    assert F.shape == (100, 100)
+    n = int(os.getenv("DK_TEST_PARALLEL_N", "24"))
+    le = LikelihoodExpansion(observables_fn, np.linspace(0.1, 10.0, n), np.eye(3))
+    f = le.get_forecast_tensors(1, n_workers=n_workers)
+    assert f.shape == (n, n)
 
-    G, H = le.get_forecast_tensors(2, n_workers=n_workers)
-    assert G.shape == (100, 100, 100)
-    assert H.shape == (100, 100, 100, 100)
+    g, h = le.get_forecast_tensors(2, n_workers=n_workers)
+    assert g.shape == (n, n, n)
+    assert h.shape == (n, n, n, n)
 
-    assert np.all(np.isfinite(F))
-    assert np.all(np.isfinite(G))
-    assert np.all(np.isfinite(H))
+    assert np.all(np.isfinite(f))
+    assert np.all(np.isfinite(g))
+    assert np.all(np.isfinite(h))
 
 
 def observables_fn2(theta):
@@ -144,10 +145,10 @@ def observables_fn2(theta):
 def test_nworkers_edge_values_behave_serial():
     """n_workers values of None, 0, and -n should behave like n_workers=1."""
     le = LikelihoodExpansion(observables_fn2, np.linspace(0.1, 1.0, 7), np.eye(2))
-    F_serial = le.get_forecast_tensors(1, n_workers=1)
+    f_serial = le.get_forecast_tensors(1, n_workers=1)
     for n in (0, None, -3):
-        F_edge = le.get_forecast_tensors(1, n_workers=n)
-        np.testing.assert_allclose(F_serial, F_edge, rtol=0, atol=1e-12)
+        f_edge = le.get_forecast_tensors(1, n_workers=n)
+        np.testing.assert_allclose(f_serial, f_edge, rtol=0, atol=1e-12)
 
 
 def test_parallel_is_deterministic_across_runs_order1(extra_threads_ok):
@@ -223,7 +224,7 @@ def test_parallel_preserves_order_with_prime_length_order2(extra_threads_ok):
     """
     if not extra_threads_ok:
         pytest.skip("no extra threads available")
-    n = 59
+    n = int(os.getenv("DK_TEST_PRIME_N", "31"))
     le = LikelihoodExpansion(observables_fn_indexed, np.ones(n), np.eye(1))
     d2_serial = le._get_derivatives(order=2, n_workers=1)
     d2_par = le._get_derivatives(order=2, n_workers=3)

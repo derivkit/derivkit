@@ -10,11 +10,11 @@ def test_forecastkit_delegates(monkeypatch):
     calls = {"ctor": None, "fisher": None, "dali": None}
 
     class FakeLX:
-        def __init__(self, function, theta0, cov):
+        def __init__(self, function, theta0, cov, **kwargs):
             # capture constructor args once
-            calls["ctor"] = (function, np.asarray(theta0), np.asarray(cov))
+            calls["ctor"] = (function, np.asarray(theta0), np.asarray(cov), kwargs)
 
-        def get_forecast_tensors(self, *, forecast_order, n_workers=1):
+        def get_forecast_tensors(self, *, forecast_order, n_workers=1, **kwargs):
             if forecast_order == 1:
                 calls["fisher"] = n_workers
                 return np.full((2, 2), 42.0)  # sentinel Fisher
@@ -39,8 +39,8 @@ def test_forecastkit_delegates(monkeypatch):
 
     fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 
-    # constructor wiring captured
-    ctor_fn, ctor_theta0, ctor_cov = calls["ctor"]
+    assert calls["ctor"] is not None, "ForecastKit did not construct LikelihoodExpansion"
+    ctor_fn, ctor_theta0, ctor_cov = calls["ctor"][:3]
     assert ctor_fn is model
     np.testing.assert_allclose(ctor_theta0, theta0)
     np.testing.assert_allclose(ctor_cov, cov)
@@ -66,7 +66,7 @@ def test_default_n_workers_forwarded(monkeypatch):
         def __init__(self, *a, **k):
             pass
 
-        def get_forecast_tensors(self, *, forecast_order, n_workers=1):
+        def get_forecast_tensors(self, *, forecast_order, n_workers=1, **kwargs):
             if forecast_order == 1:
                 n_workers_seen["fisher"] = n_workers
                 return np.zeros((1, 1))
@@ -92,7 +92,7 @@ def test_return_types_match_lx(monkeypatch):
         def __init__(self, *a, **k):
             pass
 
-        def get_forecast_tensors(self, *, forecast_order, n_workers=1):
+        def get_forecast_tensors(self, *, forecast_order, n_workers=1, **kwargs):
             if forecast_order == 1:
                 return np.array([[123.0]])
             elif forecast_order == 2:

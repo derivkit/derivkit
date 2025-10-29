@@ -1,4 +1,6 @@
-"""This module provides small linear-algebra helpers with two goals:
+"""This module provides small linear-algebra helpers.
+
+The main features are:
 
 1) Diagnostics: warn about non-symmetric inputs, ill-conditioning, and rank issues,
    and choose a safe fallback when a fast path fails.

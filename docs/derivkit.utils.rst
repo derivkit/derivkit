@@ -7,6 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   derivkit.utils.concurrency
    derivkit.utils.linalg
    derivkit.utils.numerics
    derivkit.utils.sandbox

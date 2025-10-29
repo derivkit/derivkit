@@ -283,6 +283,6 @@ def sin_func(x):
 def test_build_jacobian_parallel_equals_serial():
     """Test that parallel and serial jacobian computations yield the same result."""
     t = np.array([0.2, -0.5])
-    J1 = build_jacobian(sin_func, t, n_workers=1)
-    J4 = build_jacobian(sin_func, t, n_workers=4)
-    np.testing.assert_allclose(J4, J1, rtol=1e-8, atol=1e-10)
+    jac1 = build_jacobian(sin_func, t, n_workers=1)
+    jac4 = build_jacobian(sin_func, t, n_workers=4)
+    np.testing.assert_allclose(jac4, jac1, rtol=1e-8, atol=1e-10)

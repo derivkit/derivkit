@@ -5,9 +5,11 @@ API for Fisher and DALI tensors.
 
 Typical usage example:
 
->>> forecaster = ForecastKit(function=model, theta0=theta0, cov=cov)
->>> F = forecaster.fisher()
->>> G, H = forecaster.dali()
+>>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+>>> fisher_matrix = fk.fisher(method="adaptive", n_workers=2)
+>>> dali_g, dali_h = fk.dali(method="adaptive", n_workers=4)
+>>> dn = fk.delta_nu(data_with=data_with_systematics, data_without=data_without_systematics)
+>>> bias, dtheta = fk.fisher_bias(fisher_matrix=fisher_matrix, delta_nu=dn, method="finite")
 """
 
 from collections.abc import Callable
@@ -37,30 +39,57 @@ class ForecastKit:
         """
         self._lx = LikelihoodExpansion(function, theta0, cov)
 
-    def fisher(self, *, n_workers: int = 1):
+    def fisher(
+        self,
+        *,
+        method: str | None = None,
+        n_workers: int = 1,
+        dk_kwargs: dict | None = None,
+    ) -> np.ndarray:
         """Return the Fisher information matrix with shape (P, P) with P being the number of model parameters."""
-        return self._lx.get_forecast_tensors(forecast_order=1, n_workers=n_workers)
+        return self._lx.get_forecast_tensors(
+            forecast_order=1,
+            method=method,
+            n_workers=n_workers,
+            dk_kwargs=dk_kwargs,
+        )
 
-    def dali(self, *, n_workers: int = 1):
+    def dali(
+        self,
+        *,
+        method: str | None = None,
+        n_workers: int = 1,
+        dk_kwargs: dict | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Return the doublet-DALI tensors (G, H).
 
         Shapes are (P,P,P) and (P,P,P,P), where P is the number of model parameters.
         """
-        return self._lx.get_forecast_tensors(forecast_order=2, n_workers=n_workers)
+        return self._lx.get_forecast_tensors(
+            forecast_order=2,
+            method=method,
+            n_workers=n_workers,
+            dk_kwargs=dk_kwargs,
+        )
 
-    def fisher_bias(self,
-                    *,
-                    fisher_matrix: np.ndarray = None,
-                    delta_nu: np.ndarray = None,
-                    n_workers: int = 1,
-                    rcond: float = 1e-12
-                    ):
+    def fisher_bias(
+        self,
+        *,
+        fisher_matrix: np.ndarray,
+        delta_nu: np.ndarray,
+        method: str | None = None,
+        n_workers: int = 1,
+        dk_kwargs: dict | None = None,
+        rcond: float = 1e-12,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
         return self._lx.build_fisher_bias(
             fisher_matrix=fisher_matrix,
             delta_nu=delta_nu,
+            method=method,
             n_workers=n_workers,
-            rcond=rcond
+            dk_kwargs=dk_kwargs,
+            rcond=rcond,
         )
 
     def delta_nu(self,
@@ -72,4 +101,3 @@ class ForecastKit:
             data_with=data_with,
             data_without=data_without
         )
-
