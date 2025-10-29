@@ -50,7 +50,7 @@ def build_gradient(function: Callable,
         _grad_component,
         method=method,
         n_workers=inner,
-        dk_kwargs=dk_kwargs or {},
+        dk_kwargs=dk_kwargs,
     )
     tasks = [(function, theta0, i) for i in range(theta0.size)]
 
