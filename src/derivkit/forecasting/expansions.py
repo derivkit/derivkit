@@ -189,8 +189,8 @@ class LikelihoodExpansion:
         n_workers = self._normalize_workers(n_workers)
         dk_kwargs = dk_kwargs or {}
 
+        # First-order path: compute Jacobian and return immediately
         if order == 1:
-            # Delegate param-level parallelism to build_jacobian
             j_raw = np.asarray(
                 build_jacobian(
                     self.function,
@@ -212,10 +212,10 @@ class LikelihoodExpansion:
                 f"({self.n_parameters},{self.n_observables})."
             )
 
-        # order == 2
+        # Second-order path (order is guaranteed to be 2 here)
         second_order = np.zeros((self.n_parameters, self.n_parameters, self.n_observables), dtype=float)
 
-        # Inner workers called inside the row worker
+        # Inner worker budget for per-row inner calls (kept serial when outer > 1)
         inner_workers = resolve_inner_from_outer(n_workers)
 
         def row_worker(m1: int) -> tuple[int, np.ndarray]:
@@ -223,7 +223,7 @@ class LikelihoodExpansion:
 
             for m2 in range(self.n_parameters):
                 if m1 == m2:
-                    # pure second derivative
+                    # Pure second derivative
                     theta_fix = self.theta0.copy()
                     f1 = get_partial_function(self.function, m1, theta_fix)
                     kit1 = DerivativeKit(f1, self.theta0[m1])
@@ -231,7 +231,7 @@ class LikelihoodExpansion:
                         order=2, method=method, n_workers=inner_workers, **dk_kwargs
                     )
                 else:
-                    # mixed derivative
+                    # Mixed derivative
                     def f2(y):
                         theta_fix2 = self.theta0.copy()
                         theta_fix2[m2] = float(y)
@@ -246,7 +246,7 @@ class LikelihoodExpansion:
 
             return m1, row
 
-        # Parallelize over m1 rows with your helper; propagate an inner worker budget
+        # Parallelize over m1 rows; assemble into the (P, P, N) tensor
         rows = parallel_execute(
             worker=row_worker,
             arg_tuples=[(m1,) for m1 in range(self.n_parameters)],
@@ -256,6 +256,7 @@ class LikelihoodExpansion:
 
         for m1, row in rows:
             second_order[m1, :, :] = row
+
         return second_order
 
 
