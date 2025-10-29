@@ -96,3 +96,19 @@ def test_finite_dispatch(monkeypatch):
 
     assert calls["adaptive"] is None
     assert invoked["adaptive"] is None
+
+
+def test_default_method_is_adaptive():
+    """Tests that method=None defaults to adaptive behavior."""
+    f = partial(quad, a=1.0, b=0.0, c=0.0)
+    dk = DerivativeKit(f, 0.0)
+
+    # method=None should behave exactly like method="adaptive"
+    y_none = dk.differentiate(order=1, method=None)
+    y_adpt = dk.differentiate(order=1, method="adaptive")
+
+    # robust to scalars/arrays
+    if hasattr(y_none, "__array__") or hasattr(y_adpt, "__array__"):
+        np.testing.assert_allclose(y_none, y_adpt)
+    else:
+        assert y_none == y_adpt
