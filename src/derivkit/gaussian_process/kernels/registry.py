@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, Type
 
+import numpy as np
+
 from derivkit.gaussian_process.kernels.base import Kernel
 
 __all__ = ["register_kernel", "get_kernel", "list_kernels", "validate_kernel_params"]
@@ -100,7 +102,6 @@ def validate_kernel_params(kernel: Kernel, params: dict) -> None:
         )
 
     if "length_scale" in params and not kernel.ard_ok:
-        import numpy as np
 
         if np.ndim(params["length_scale"]) > 0:
             raise ValueError(

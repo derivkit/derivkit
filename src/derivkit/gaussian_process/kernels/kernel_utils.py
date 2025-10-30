@@ -152,43 +152,20 @@ def rbf_similarity(xa: np.ndarray, xb: np.ndarray, params: Mapping[str, float | 
         ValueError: If inputs have incompatible shapes or if ``length_scale`` is non-positive
             or has the wrong shape.
     """
-    if "length_scale" not in params:
-        raise KeyError("Missing required parameter 'length_scale'.")
-
     xa = to_2d(xa)
     xb = to_2d(xb)
 
-    if xa.shape[1] != xb.shape[1]:
-        raise ValueError(
-            f"Dimension mismatch: xa has {xa.shape[1]} columns but xb has {xb.shape[1]}."
-        )
-
-    ell_raw = params["length_scale"]
-    if not isinstance(ell_raw, (float, int, np.floating, np.ndarray)):
-        raise TypeError("length_scale must be a scalar float or a 1D numpy ndarray.")
-
-    ell = np.asarray(ell_raw, dtype=float)
-
+    ell = np.asarray(params["length_scale"], dtype=float)
     if ell.ndim == 0:
-        # Isotropic length scale
-        if not np.isfinite(ell) or ell <= 0:
-            raise ValueError("length_scale must be a positive finite number.")
-        ell2 = float(max(ell, _EPS)) ** 2
-        diff = xa[:, None, :] - xb[None, :, :]
-        sqdist = np.einsum("nij,nij->ni", diff, diff, optimize=True)
-        return np.exp(-0.5 * sqdist / ell2)
+        # Isotropic => promote to ARD vector of shape (n_dims,)
+        ell = np.full(xa.shape[1], float(ell), dtype=float)
 
-    if ell.ndim != 1:
-        raise ValueError("length_scale array must be 1D for ARD.")
-    if ell.shape[0] != xa.shape[1]:
-        raise ValueError(
-            f"length_scale has length {ell.shape[0]} but inputs have {xa.shape[1]} dimensions."
-        )
+    if ell.ndim != 1 or ell.shape[0] != xa.shape[1]:
+        raise ValueError("length_scale must be scalar or 1D with length equal to n_dims.")
     if not np.all(np.isfinite(ell)) or np.any(ell <= 0):
-        raise ValueError("All ARD length_scale entries must be positive and finite.")
+        raise ValueError("All length_scale entries must be positive and finite.")
 
-    # ARD: per-dimension scaling
-    ell = np.maximum(ell, _EPS)
-    z = (xa[:, None, :] - xb[None, :, :]) / ell
+    diff = xa[:, None, :] - xb[None, :, :]
+    z = diff / ell.reshape(1, 1, -1)  # per-dimension scaling
     sqdist = np.einsum("nij,nij->ni", z, z, optimize=True)
     return np.exp(-0.5 * sqdist)

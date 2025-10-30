@@ -1,3 +1,4 @@
+"""DerivativeEngine adapter using Gaussian Processes for differentiation."""
 
 from __future__ import annotations
 

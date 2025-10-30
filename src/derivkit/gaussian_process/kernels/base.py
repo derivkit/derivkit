@@ -136,14 +136,14 @@ class Kernel(Protocol):
         """
 
 
-    def var_hessdiag_samepoint(
+    def cov_hessdiag_samepoint(
             self,
             x_hess: NDArray[np.floating],
             params: Mapping[str, float | np.ndarray],
             *,
             axis: int,
     ) -> NDArray[np.floating]:
-        """Variance of the second-derivative diagonal at the same input locations.
+        """Returns a diagonal covariance matrix whose diagonal entries are the variances of the Hessian diagonal along axis.
 
         Returns a diagonal matrix where each diagonal entry is the variance of the
         second derivative (along one input dimension) at the corresponding query point.

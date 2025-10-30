@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Tuple
+from collections.abc import Callable
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 from numpy.linalg import LinAlgError, cholesky, solve
 
+from derivkit.derivative_kit import DerivativeKit
 from derivkit.gaussian_process.kernels.base import Kernel
 
 __all__ = [
@@ -22,7 +24,13 @@ __all__ = [
     "ensure_min_noise",
     "standardize_xy",
     "span_width",
+    "swap_axis_first",
+    "teacher_derivative",
+    "TeacherKind"
 ]
+
+TeacherKind = Literal["fd", "finite-difference", "richardson", "complex", "polyfit",
+                      "adaptive", "adaptive-fit", "af"]
 
 
 def neg_log_marginal_likelihood(
@@ -508,3 +516,155 @@ def ensure_min_noise(noise_var_std: float) -> float:
         raise ValueError("noise_var_std must be finite.")
 
     return float(max(noise_var_std, 1e-6))
+
+
+def swap_axis_first(x: np.ndarray, axis: int) -> tuple[np.ndarray, np.ndarray]:
+    """Moves the specified column axis of an array to the first position.
+
+    This helper is useful when utilities (e.g., windowing or standardization)
+    assume the differentiated dimension is the first column. It returns both
+    the permuted array and the inverse permutation needed to restore the
+    original column order.
+
+    Args:
+      x: Input 2D array of shape ``(n, d)``.
+      axis: Index of the column to move to position 0. Must satisfy
+        ``0 <= axis < d``.
+
+    Returns:
+      tuple[np.ndarray, np.ndarray]:
+        - The permuted array with column ``axis`` moved to index 0.
+        - The inverse permutation array that restores the original order.
+    """
+    d = x.shape[1]
+    order = [axis] + [i for i in range(d) if i != axis]
+    inv = np.argsort(order)
+    return x[:, order], inv
+
+
+def teacher_derivative(
+    func: Callable[..., float],
+    *,
+    x0: float,
+    x_mat: np.ndarray,
+    axis: int,
+    teacher: TeacherKind = "adaptive",
+    h: float,
+    teacher_kwargs: Optional[dict] = None,
+) -> float:
+    """Returns a scalar “teacher” derivative at ``x0`` using a chosen method.
+
+    Supports several interchangeable back-ends so you can sanity-check the GP
+    derivative against a trusted local estimator.
+
+    Methods:
+      - ``"fd"`` / ``"finite-difference"``: DerivKit finite-difference first derivative.
+      - ``"richardson"``: O(h^4) Richardson-extrapolated central difference.
+      - ``"complex"``: Complex-step derivative (requires analytic f and complex support).
+      - ``"polyfit"``: Local quadratic least-squares fit along the chosen axis.
+      - ``"adaptive"`` / ``"adaptive-fit"`` / ``"af"``: DerivKit adaptive method.
+
+    Args:
+      func: Scalar-valued callable. For 1D, signature ``f(x: float) -> float``.
+            For multi-D, signature ``f(theta: array_like) -> float``.
+      x0: Expansion point along the differentiation coordinate (original units).
+      x_mat: Sample locations used to define context and (for multi-D) baseline.
+      axis: Coordinate index to differentiate with respect to (for multi-D).
+      teacher: Method selector (see above). Defaults to ``"adaptive"``.
+      h: Step size used by FD/Richardson (positive, finite). Not used by
+         ``"adaptive"`` or defaulted inside ``"complex"`` unless overridden.
+      teacher_kwargs: Optional method-specific kwargs. Examples:
+         - ``{"h": 1e-20}`` for complex-step,
+         - ``{"k":  nine_points}`` for polyfit,
+         - kwargs forwarded to DerivKit in ``"adaptive"``/``"fd"``.
+
+    Returns:
+      float: Estimated first derivative at ``x0`` along the given axis.
+
+    Raises:
+      ValueError: On invalid method name or inconsistent inputs.
+    """
+    tk = (teacher or "af").lower()
+    kw = teacher_kwargs or {}
+
+    # Baseline for multi-D methods: median of current sample cloud
+    base_vec = None if x_mat.shape[1] == 1 else np.median(x_mat, axis=0).astype(float)
+
+    if tk == "finite-difference" or tk == "fd":
+        # central finite difference
+        if base_vec is None:
+            dk = DerivativeKit(function=func, x0=float(x0))
+            dmean = dk.differentiate(order=1, method="finite", **kw)
+            return float(dmean)
+        else:
+            # wrap func(theta) to 1D along `axis`
+            def f1d(x: float) -> float:
+                theta = base_vec.copy()
+                theta[axis] = float(x)
+                return float(func(theta))
+
+            dk = DerivativeKit(function=f1d, x0=float(x0))
+            dmean = dk.differentiate(order=1, method="finite", **kw)
+            return float(dmean)
+
+    if tk == "richardson":
+        # O(h^4) Richardson-extrapolated central difference
+        if base_vec is None:
+            d1 = (func(x0 + h) - func(x0 - h)) / (2.0 * h)
+            d2 = (func(x0 + 0.5*h) - func(x0 - 0.5*h)) / (1.0 * h)
+        else:
+            p = base_vec.copy()
+            m = base_vec.copy()
+            p[axis] = x0 + h
+            m[axis] = x0 - h
+            d1 = (func(p) - func(m)) / (2.0 * h)
+            p[axis] = x0 + 0.5*h
+            m[axis] = x0 - 0.5*h
+            d2 = (func(p) - func(m)) / (1.0 * h)
+        return float((4.0 * d2 - d1) / 3.0)
+
+    if tk == "complex":
+        # complex-step (analytic functions only)
+        cs_h = kw.get("h", 1e-20)
+        if base_vec is None:
+            return float(np.imag(func(x0 + 1j * cs_h)) / cs_h)
+        z = base_vec.astype(complex).copy()
+        z[axis] = x0 + 1j * cs_h
+        return float(np.imag(func(z)) / cs_h)
+
+    if tk == "polyfit":
+        # local quadratic LS fit along the chosen axis
+        # build a small 1D slice around x0 from x_mat
+        u = x_mat[:, axis].astype(float)
+        idx = np.argsort(np.abs(u - x0))[:kw.get("k", max(7, min(21, len(u))))]
+        u = u[idx]
+        if base_vec is None:
+            y = np.array([float(func(val)) for val in u], float)
+        else:
+            y = []
+            b = base_vec.copy()
+            for val in u:
+                b[axis] = val
+                y.append(float(func(b)))
+            y = np.array(y, float)
+        a = np.vstack([np.ones_like(u), (u - x0), (u - x0) ** 2]).T
+        c0, c1, _c2 = np.linalg.lstsq(a, y, rcond=None)[0]
+        return float(c1)
+
+    if tk == "adaptive" or  tk =="adaptive-fit" or tk == "af":
+        if base_vec is None:
+            dk = DerivativeKit(function=func, x0=float(x0))
+            dmean = dk.differentiate(order=1, method="adaptive", **kw)
+            return float(dmean)
+        else:
+            # wrap func(theta) to 1D along `axis`
+            def f1d(x: float) -> float:
+                theta = base_vec.copy()
+                theta[axis] = float(x)
+                return float(func(theta))
+            dk = DerivativeKit(function=f1d, x0=float(x0))
+            dmean = dk.differentiate(order=1, method="adaptive", **kw)
+            return float(dmean)
+
+    raise ValueError(f"Unknown teacher '{teacher}'. Choose one of "
+                     "['fd','complex','polyfit','richardson','adaptive'].")

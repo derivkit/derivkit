@@ -594,7 +594,16 @@ def gp_derivative(
     var_floor = float(state.get("variance_floor", 1e-18))
     jitter = float(state.get("jitter", 1e-12))
 
-    x_test = np.atleast_2d(test_locations)
+    x_test = np.asarray(test_locations)
+    if x_test.ndim == 1:
+        x_test = x_test.reshape(-1, 1)
+    if x_test.ndim != 2:
+        raise ValueError(f"`test_locations` must be 2D after reshape; got shape {x_test.shape}.")
+    if x_test.shape[1] != x_train.shape[1]:
+        raise ValueError(
+            f"Feature dimension mismatch: train has {x_train.shape[1]} features, "
+            f"but test has {x_test.shape[1]}."
+        )
 
     if order == 1:
         # mean: k_{f, f'_*} K^{-1} y

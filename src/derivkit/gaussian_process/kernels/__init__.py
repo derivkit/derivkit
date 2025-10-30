@@ -45,7 +45,6 @@ Public API re-exports:
 
 from __future__ import annotations
 
-# Ensure the built-in RBF kernel class is importable from this package.
 from derivkit.gaussian_process.kernels.rbf_kernel import (
     RBFKernel,  # noqa: F401
 )

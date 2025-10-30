@@ -1,18 +1,4 @@
-"""Radial Basis Function (squared-exponential) kernel.
-
-This kernel defines smooth correlations between inputs and provides
-closed-form expressions for covariances that involve function values,
-first-order derivatives, and second-order derivative diagonals.
-
-Expected keys in ``params``:
-- ``length_scale``: Positive float or 1D array (per-dimension).
-- ``output_scale``: Positive float amplitude; internally used as a variance.
-
-Attributes:
-    name: Short identifier for this kernel ("rbf").
-    param_names: Tuple of supported parameter names.
-    ard_ok: Whether a per-dimension ``length_scale`` vector is supported.
-"""
+"""Radial Basis Function (RBF) kernel implementation for Gaussian Processes."""
 
 from __future__ import annotations
 
@@ -69,7 +55,12 @@ class RBFKernel:
             ValueError: If input shapes are incompatible or contain invalid values.
             KeyError, TypeError: If required parameters are missing or have wrong types.
         """
-        return output_variance(params) * rbf_similarity(x_train, x_test, params)
+        x_train = to_2d(x_train)
+        x_test = to_2d(x_test)
+        # rbf_similarity returns exp(-0.5 * sum((x-y)^2 / ell^2)) with ARD support
+        sim = rbf_similarity(x_train, x_test, params)  # (n, m)
+        var = output_variance(params)  # sigma^2
+        return var * sim  # (n, m)
 
     def cov_value_grad(
         self,
@@ -94,12 +85,14 @@ class RBFKernel:
             ValueError: If ``axis`` is out of range or inputs are incompatible.
             KeyError, TypeError: If required parameters are missing or have wrong types.
         """
-        base = self.cov_value_value(x_value, x_grad, params)
-        ell2 = axis_length_scale_squared(params, axis)
         x_value = to_2d(x_value)
         x_grad = to_2d(x_grad)
-        delta = x_value[:, None, axis] - x_grad[None, :, axis]
-        return (delta / ell2) * base
+        self._validate_axis(x_value, axis)
+        self._validate_axis(x_grad, axis)
+        base = self.cov_value_value(x_value, x_grad, params)  # (n, m)
+        ell2 = axis_length_scale_squared(params, axis)  # ell^2 (axis-wise; ARD OK)
+        r = x_value[:, [axis]] - x_grad[:, [axis]].T  # (n, m)  r = x - y
+        return (r / ell2) * base  # (n, m)
 
     def cov_grad_grad(
         self,
@@ -124,14 +117,16 @@ class RBFKernel:
             ValueError: If ``axis`` is out of range or inputs are incompatible.
             KeyError, TypeError: If required parameters are missing or have wrong types.
         """
-        base = self.cov_value_value(x_grad_left, x_grad_right, params)
-        ell2 = axis_length_scale_squared(params, axis)
         x_grad_left = to_2d(x_grad_left)
         x_grad_right = to_2d(x_grad_right)
-        delta = x_grad_left[:, None, axis] - x_grad_right[None, :, axis]
-        return (1.0 / ell2 - (delta**2) / (ell2**2)) * base
+        self._validate_axis(x_grad_left, axis)
+        self._validate_axis(x_grad_right, axis)
+        base = self.cov_value_value(x_grad_left, x_grad_right, params) # (n, m)
+        ell2 = axis_length_scale_squared(params, axis)
+        delta = x_grad_left[:, [axis]] - x_grad_right[:, [axis]].T     # (n, m)
+        return (1.0 / ell2 - (delta ** 2) / (ell2 ** 2)) * base        # (n, m)
 
-    def value_hessdiag(
+    def cov_value_hessdiag(
         self,
         x_value: np.ndarray,
         x_hess: np.ndarray,
@@ -157,14 +152,16 @@ class RBFKernel:
             ValueError: If ``axis`` is out of range or inputs are incompatible.
             KeyError, TypeError: If required parameters are missing or have wrong types.
         """
-        base = self.cov_value_value(x_value, x_hess, params)
-        ell2 = axis_length_scale_squared(params, axis)
         x_value = to_2d(x_value)
         x_hess = to_2d(x_hess)
-        delta = x_value[:, None, axis] - x_hess[None, :, axis]
-        return ((delta**2) / (ell2**2) - 1.0 / ell2) * base
+        self._validate_axis(x_value, axis)
+        self._validate_axis(x_hess, axis)
+        base = self.cov_value_value(x_value, x_hess, params)           # (n, m)
+        ell2 = axis_length_scale_squared(params, axis)
+        r = x_value[:, [axis]] - x_hess[:, [axis]].T                   # (n, m)
+        return ((r ** 2) / (ell2 ** 2) - (1.0 / ell2)) * base          # (n, m)
 
-    def hessdiag_samepoint(
+    def cov_hessdiag_samepoint(
         self,
         x_hess: np.ndarray,
         params: Mapping[str, float | np.ndarray],
@@ -190,7 +187,32 @@ class RBFKernel:
             KeyError, TypeError: If required parameters are missing or have wrong types.
         """
         x_hess = to_2d(x_hess)
+        self._validate_axis(x_hess, axis)
         ell2 = axis_length_scale_squared(params, axis)
         var = output_variance(params)
-        val = var * 3.0 / (ell2**2)
-        return np.eye(x_hess.shape[0]) * val
+        val = var * 3.0 / (ell2 ** 2)                                  # Var[f''] at a point
+        return np.eye(x_hess.shape[0]) * val                           # diagonal-only, by design
+
+    def _pairwise_sqdist(self, x: np.ndarray, y: np.ndarray, ell: float) -> np.ndarray:
+        """Returns pairwise squared distances divided by ell^2.
+
+        Args:
+            x: Array of shape (n_x, n_dims).
+            y: Array of shape (n_y, n_dims).
+            ell: Length scale.
+
+        Returns:
+            Array of shape (n_x, n_y) with pairwise squared distances / ell^2.
+        """
+        x = to_2d(x)
+        y = to_2d(y)
+        diff = x[:, None, :] - y[None, :, :]
+        r2 = np.sum(diff * diff, axis=-1)
+        return r2 / (ell ** 2)
+
+    @staticmethod
+    def _validate_axis(x: np.ndarray, axis: int) -> None:
+        x = to_2d(x)
+        n_dims = x.shape[1]
+        if not (0 <= int(axis) < n_dims):
+            raise IndexError(f"axis {axis} out of bounds for n_dims={n_dims}")
