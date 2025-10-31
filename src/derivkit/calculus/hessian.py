@@ -21,7 +21,7 @@ __all__ = [
 
 
 def build_hessian(
-    function: Callable,
+    function: Callable[[ArrayLike], np.float64 | np.ndarray],
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
