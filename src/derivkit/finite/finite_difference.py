@@ -14,6 +14,8 @@ Typical usage example:
 derivative is the second order derivative of function at value 1.
 """
 
+from collections.abc import Callable
+
 import numpy as np
 from multiprocess import Pool
 
@@ -30,15 +32,11 @@ class FiniteDifferenceDerivative:
     NumPy array.
 
     Attributes:
-        function: callable
-            The function to differentiate. Must accept a single float and return either
-            a float or a 1D array-like object.
-        x0 : float
-            The point at which the derivative is evaluated.
-        log_file : str, optional
-            Path to a file where debug information may be logged.
-        debug : bool, optional
-            If True, debug information will be printed or logged.
+        function: The function to differentiate. Must accept a single
+            float and return eithera float or a 1D array-like object.
+        x0: The point at which the derivative is evaluated.
+        log_file: Path to a file where debug information may be logged.
+        debug: If True, debug information will be printed or logged.
 
     Supported Stencil and Derivative Combinations
     ---------------------------------------------
@@ -54,16 +52,21 @@ class FiniteDifferenceDerivative:
     >>> d.differentiate(order=2)
     """
 
-    def __init__(self, function, x0, log_file=None, debug=False):
+    def __init__(self,
+        function: Callable,
+        x0: float,
+        log_file: str = None,
+        debug: bool =False
+    ) -> None:
         """Initialises the class based on function and central value.
 
         Arguments:
-            function (callable): The function to differentiate. Must accept a
-                single float and return either a float or a 1D array-like object.
-            x0 (float): The point at which the derivative is evaluated.
-            log_file (str, optional): Path to a file where debug information may
+            function: The function to differentiate. Must accept a single
+                float and return either a float or a 1D array-like object.
+            x0: The point at which the derivative is evaluated.
+            log_file): Path to a file where debug information may
                 be logged.
-            debug (bool, optional): If True, debug information will be printed or
+            debug: If True, debug information will be printed or
                 logged.
         """
         self.function = function
@@ -71,10 +74,11 @@ class FiniteDifferenceDerivative:
         self.debug = debug
         self.log_file = log_file
 
-    def differentiate(self, order: int =1,
+    def differentiate(self, order: int = 1,
                       stepsize: float = 0.01,
                       num_points: int = 5,
-                      n_workers: int = 1):
+                      n_workers: int = 1
+        ) -> np.ndarray:
         """Computes the derivative using a central finite difference scheme.
 
         Supports 3-, 5-, 7-, or 9-point central difference stencils for
@@ -82,18 +86,18 @@ class FiniteDifferenceDerivative:
         Derivatives are computed for scalar or vector-valued functions.
 
         Args:
-            order (int, optional): The order of the derivative to
+            order: The order of the derivative to
                 compute. Must be supported by the chosen stencil size.
                 Default is 1.
-            stepsize (float, optional): Step size (h) used to evaluate the
+            stepsize: Step size (h) used to evaluate the
                 function around the central value. Default is 0.01.
-            num_points (int, optional): Number of points in the finite
+            num_points: Number of points in the finite
                 difference stencil. Must be one of [3, 5, 7, 9]. Default is 5.
-            n_workers (int, optional): Number of worker to use in
+            n_workers: Number of worker to use in
                 multiprocessing. Default is 1 (no multiprocessing).
 
         Returns:
-            float or np.ndarray: The estimated derivative. Returns a float for
+            The estimated derivative. Returns a float for
                 scalar-valued functions, or a NumPy array for vector-valued
                 functions.
 
@@ -138,14 +142,17 @@ class FiniteDifferenceDerivative:
         # return 1D array for multi-output, Python scalar for single-output
         return derivs.ravel() if derivs.size > 1 else derivs.item()
 
-    def get_finite_difference_tables(self, stepsize):
+    def get_finite_difference_tables(
+            self,
+            stepsize: float
+        ) -> tuple[dict]:
         """Returns offset patterns and coefficient tables.
 
         Args:
-            stepsize (float): Stepsize for finite difference calculation.
+            stepsize: Stepsize for finite difference calculation.
 
         Returns:
-            (dict, dict): A tuple of two dictionaries. The first maps from
+            A tuple of two dictionaries. The first maps from
                 stencil size to symmetric offsets. The second mapps from
                 (stencil_size, order) to coefficient arrays.
         """
