@@ -420,5 +420,4 @@ def _mixed_partial_value(
     theta[j] = float(y)
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
-    # Inherit inner-workers from context via utils.concurrency
     return float(kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs))
