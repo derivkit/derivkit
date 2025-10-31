@@ -169,7 +169,7 @@ def _compute_component_hessian(
 def _component_scalar_eval(
     theta_vec: NDArray[np.floating],
     *,
-    function: Callable,
+    function: Callable[[ArrayLike], np.float64 | np.ndarray],
     idx: int,
 ) -> float:
     """Returns the scalar value of the `idx`-th flattened component of f(theta_vec).
