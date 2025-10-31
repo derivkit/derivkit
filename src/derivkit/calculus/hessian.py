@@ -82,7 +82,7 @@ def build_hessian(
         _compute_component_hessian,
         tasks,
         outer_workers=outer,
-        inner_workers=inner,  # sets context for all nested derivative work
+        inner_workers=inner,
     )
     arr = np.stack(vals, axis=0)                 # (m, p) or (m, p, p)
     arr = arr.reshape(out_shape + arr.shape[1:]) # -> (*out_shape, p) or (*out_shape, p, p)
