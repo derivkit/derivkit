@@ -28,7 +28,7 @@ def build_hessian(
     return_diag: bool = False,
     **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
-    """Returns the hessian of a (possibly tensor-valued) function.
+    """Returns the hessian of a function.
 
     Args:
         function: The function to be differentiated. May return a scalar or any tensor.
