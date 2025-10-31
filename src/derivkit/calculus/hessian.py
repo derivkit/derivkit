@@ -31,7 +31,7 @@ def build_hessian(
     """Returns the hessian of a function.
 
     Args:
-        function: The function to be differentiated. May return a scalar or any tensor.
+        function: The function to be differentiated.
         theta0: The parameter vector at which the hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
