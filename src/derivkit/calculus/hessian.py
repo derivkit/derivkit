@@ -98,7 +98,7 @@ def build_hessian_diag(
     n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
-    """Returns the diagonal of the Hessian of a (possibly tensor-valued) function.
+    """Returns the diagonal of the Hessian of a function.
 
     Args:
         function: The function to be differentiated.
