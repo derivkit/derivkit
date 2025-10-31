@@ -150,9 +150,10 @@ def test_hessian_accepts_list_and_row_vector():
 
 
 def test_hessian_raises_on_vector_output():
-    """Raises on non-scalar output."""
-    with pytest.raises(TypeError):
-        build_hessian(f_vector_out, np.array([0.2, 0.1]))
+    """Accepts vector output."""
+    x = np.array([0.2, 0.1])
+    h = build_hessian(f_vector_out, x)
+    assert h.shape == (2, 2, 2)  # (out_shape, p, p)
 
 
 def test_hessian_raises_on_nonfinite_output():
