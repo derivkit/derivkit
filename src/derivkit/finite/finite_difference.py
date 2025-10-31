@@ -32,15 +32,11 @@ class FiniteDifferenceDerivative:
     NumPy array.
 
     Attributes:
-        function
-            The function to differentiate. Must accept a single float and return either
-            a float or a 1D array-like object.
-        x0
-            The point at which the derivative is evaluated.
-        log_file
-            Path to a file where debug information may be logged.
-        debug
-            If True, debug information will be printed or logged.
+        function: The function to differentiate. Must accept a single
+            float and return eithera float or a 1D array-like object.
+        x0: The point at which the derivative is evaluated.
+        log_file: Path to a file where debug information may be logged.
+        debug: If True, debug information will be printed or logged.
 
     Supported Stencil and Derivative Combinations
     ---------------------------------------------
@@ -90,7 +86,7 @@ class FiniteDifferenceDerivative:
         Derivatives are computed for scalar or vector-valued functions.
 
         Args:
-            order The order of the derivative to
+            order: The order of the derivative to
                 compute. Must be supported by the chosen stencil size.
                 Default is 1.
             stepsize: Step size (h) used to evaluate the
