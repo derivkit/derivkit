@@ -142,7 +142,8 @@ def _compute_component_hessian(
         inner_workers: int | None,
         return_diag: bool,
         dk_kwargs: dict,
-        function: Callable,) -> NDArray[np.floating]:
+        function: Callable[[ArrayLike], np.float64 | np.array]
+    ,) -> NDArray[np.floating]:
     """Computes the Hessian (or its diagonal) for a single flattened output component.
 
     Args:
