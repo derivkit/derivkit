@@ -386,7 +386,7 @@ def _hessian_component(
 def _mixed_partial_value(
     y: float,
     *,
-    function: Callable,
+    function: Callable[[ArrayLike], np.float64],
     theta0: np.ndarray,
     i: int,
     j: int,
