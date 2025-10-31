@@ -176,7 +176,7 @@ def _component_scalar_eval(
 
     Args:
         theta_vec: The parameter vector at which the function is evaluated.
-        function: The original function that may return a tensor.
+        function: The original function to be differentiated.
         idx: The index of the flattened output component to extract.
 
     Returns:
