@@ -162,9 +162,8 @@ def _compute_component_hessian(
     # Adapter to scalar component
     g = partial(_component_scalar_eval, function=function, idx=int(idx))
 
-    if return_diag:
-        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)
-    return _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
+        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)  
+    if return_diag else _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
 
 
 def _component_scalar_eval(
