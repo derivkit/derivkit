@@ -32,6 +32,8 @@ __all__ = [
 TeacherKind = Literal["fd", "finite-difference", "richardson", "complex", "polyfit",
                       "adaptive", "adaptive-fit", "af"]
 
+# TODO: fix the teacher derivative once we have other methods working so it just calls DerivativeKit
+
 
 def neg_log_marginal_likelihood(
     theta_log: np.ndarray,
