@@ -154,7 +154,7 @@ def _compute_component_hessian(
         inner_workers: Number of inner workers (set via context by parallel_execute).
         return_diag: If True, compute and return only the diagonal.
         dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
-        function: The original function that may return a tensor.
+        function: The function to be differentiated.
 
     Returns:
         The Hessian (2D array) or its diagonal (1D array) for the specified component.
