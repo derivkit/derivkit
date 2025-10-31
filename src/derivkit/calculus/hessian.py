@@ -138,7 +138,7 @@ def _compute_component_hessian(
         idx: int,
         theta: NDArray[np.floating],
         method: str | None,
-        _outer_workers: int,
+        outer_workers: int,
         inner_workers: int | None,
         return_diag: bool,
         dk_kwargs: dict,
