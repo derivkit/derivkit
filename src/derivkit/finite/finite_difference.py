@@ -217,9 +217,6 @@ class FiniteDifferenceDerivative:
             num_points: Number of points in the finite difference stencil.
             order: The order of the derivative to compute.
 
-        Returns:
-            None
-
         Raises:
             ValueError: If the combination of num_points and order is not supported.
         """
