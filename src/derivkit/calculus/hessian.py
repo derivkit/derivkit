@@ -25,7 +25,6 @@ def build_hessian(
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
-    return_diag: bool = False,
     **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Returns the hessian of a function.
@@ -36,59 +35,23 @@ def build_hessian(
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Parallel tasks across output components / Hessian entries (outer).
-        return_diag: If True, compute and return only the diagonal as a 1D array per output.
         **dk_kwargs: Extra options forwarded to `DerivativeKit.differentiate`.
             You may optionally pass `inner_workers=<int>` here to override the inner policy.
 
     Returns:
         If ``function(theta0)`` is scalar, returns a 2D array (p, p) representing the Hessian.
-        If ``return_diag`` is True, returns only the diagonal as (p,).
-
         If ``function(theta0)`` is tensor-valued with shape ``out_shape``,
-        the full Hessian has shape ``(*out_shape, p, p)``. If ``return_diag`` is True,
-        returns only the diagonal as ``(*out_shape, p)``.
+        the full Hessian has shape ``(*out_shape, p, p)``.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``theta0`` is an empty array.
         TypeError: If a scalar component path does not return a scalar value.
     """
-    theta = np.asarray(theta0, dtype=float).reshape(-1)
-    if theta.size == 0:
-        raise ValueError("theta0 must be a non-empty 1D array.")
-
-    # Evaluate once to determine output shape
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
-
-    # Worker policy: outer is this call; inner inherited via concurrency utils
-    inner_override = dk_kwargs.pop("inner_workers", None)
-    outer = int(n_workers) if n_workers is not None else 1
-    inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
-
-    # Scalar-output path: identical behavior to your original implementation
-    if y0.ndim == 0:
-        if return_diag:
-            return _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
-        return _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
-
-    # Tensor-output path: flatten outputs; compute one Hessian per component; stack/reshape back
-    m = y0.size
-    tasks = [
-        (i, theta, method, inner, return_diag, dk_kwargs, function)
-        for i in range(m)
-    ]
-    vals = parallel_execute(
-        _compute_component_hessian,
-        tasks,
-        outer_workers=outer,
-        inner_workers=inner,
+    return _build_hessian_internal(
+        function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
     )
-    arr = np.stack(vals, axis=0)                 # (m, p) or (m, p, p)
-    arr = arr.reshape(out_shape + arr.shape[1:]) # -> (*out_shape, p) or (*out_shape, p, p)
-    if not np.isfinite(arr).all():
-        raise FloatingPointError("Non-finite values encountered in Hessian.")
-    return arr
+
 
 
 def build_hessian_diag(
@@ -119,13 +82,8 @@ def build_hessian_diag(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If a scalar component path does not return a scalar value.
     """
-    return build_hessian(
-        function=function,
-        theta0=theta0,
-        method=method,
-        n_workers=n_workers,
-        return_diag=True,
-        **dk_kwargs,
+    return _build_hessian_internal(
+        function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
     )
 
 
@@ -421,3 +379,90 @@ def _mixed_partial_value(
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
     return float(kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs))
+
+
+def _build_hessian_internal(
+    function: Callable[[ArrayLike], float | np.ndarray],
+    theta0: np.ndarray,
+    *,
+    method: str | None,
+    n_workers: int,
+    diag: bool,
+    **dk_kwargs: Any,
+) -> np.ndarray:
+    """Core Hessian builder (internal).
+
+    Computes either the full Hessian or only its diagonal at ``theta0``.
+    Used internally by:
+        - ``build_hessian(...)`` → ``diag=False`` (full)
+        - ``build_hessian_diag(...)`` → ``diag=True`` (diagonal only)
+
+    Args:
+        function:
+            Callable mapping parameters to a scalar or tensor. For tensor outputs,
+            the function is flattened and one scalar Hessian (or diagonal) is
+            computed per component, then reshaped back.
+        theta0:
+            Parameter vector (1D array) at which the Hessian is evaluated.
+        method:
+            Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            If ``None``, uses the DerivativeKit default (``"adaptive"``).
+        n_workers:
+            Number of outer parallel workers (across output components / Hessian entries).
+            You may pass ``inner_workers=<int>`` in ``dk_kwargs`` to override inner parallelism.
+        diag:
+            If ``True``, compute only the diagonal entries.
+            If ``False``, compute the full Hessian.
+        **dk_kwargs:
+            Additional keyword arguments forwarded to ``DerivativeKit.differentiate``.
+
+    Returns:
+        If ``function(theta0)`` is scalar:
+            - ``diag=False`` → array with shape ``(p, p)``  (full Hessian)
+            - ``diag=True``  → array with shape ``(p,)``    (diagonal only)
+
+        If ``function(theta0)`` has shape ``out_shape``:
+            - ``diag=False`` → array with shape ``(*out_shape, p, p)``
+            - ``diag=True``  → array with shape ``(*out_shape, p)``
+
+    Raises:
+        FloatingPointError:
+            If non-finite values are encountered.
+        ValueError:
+            If ``theta0`` is empty.
+        TypeError:
+            If a scalar component path does not return a scalar.
+
+    Notes:
+        - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
+        - The inner worker count defaults to ``resolve_inner_from_outer(n_workers)`` unless
+          explicitly overridden via ``inner_workers`` in ``dk_kwargs``.
+    """
+    theta = np.asarray(theta0, dtype=float).reshape(-1)
+    if theta.size == 0:
+        raise ValueError("theta0 must be a non-empty 1D array.")
+
+    y0 = np.asarray(function(theta))
+    out_shape = y0.shape
+
+    inner_override = dk_kwargs.pop("inner_workers", None)
+    outer = int(n_workers) if n_workers is not None else 1
+    inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
+
+    if y0.ndim == 0:
+        if diag:
+            return _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+        else:
+            return _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
+
+    # tensor output
+    m = y0.size
+    tasks = [(i, theta, method, inner, diag, dk_kwargs, function) for i in range(m)]
+    vals = parallel_execute(
+        _compute_component_hessian, tasks, outer_workers=outer, inner_workers=inner
+    )
+    arr = np.stack(vals, axis=0)  # (m, p) or (m, p, p)
+    arr = arr.reshape(out_shape + arr.shape[1:])  # -> (*out_shape, p) or (*out_shape, p, p)
+    if not np.isfinite(arr).all():
+        raise FloatingPointError("Non-finite values encountered in Hessian.")
+    return arr
