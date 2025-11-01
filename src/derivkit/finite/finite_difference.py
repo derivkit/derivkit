@@ -18,7 +18,11 @@ import sys
 from collections.abc import Callable
 
 import numpy as np
-from multiprocess import Pool
+
+from derivkit.utils.concurrency import (
+    parallel_execute,
+    resolve_inner_from_outer,
+)
 
 _SUPPORTED_BY_STENCIL: dict[int, set[int]] = {
     3: {1},
@@ -124,33 +128,30 @@ class FiniteDifferenceDerivative:
         if stepsize <= 0:
             raise ValueError("stepsize must be positive.")
 
-            # Validate early; prints + raises on unsupported combos
+            # Validate early
         self._validate_supported_combo(num_points, order)
 
         offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
         key = (num_points, order)
         if key not in coeffs_table:
-            # If table is out of sync with the validator, keep behavior consistent.
             msg = (f"[FiniteDifference] Internal table missing coefficients for "
                    f"stencil={num_points}, order={order}. This combo is not yet implemented "
                    "in this build.")
             self._log(msg)
             raise ValueError(msg)
 
-        stencil = np.array([self.x0 + i * stepsize for i in offsets[num_points]])
+        stencil = np.array([self.x0 + i * stepsize for i in offsets[num_points]], dtype=float)
 
-        if n_workers > 1:
-            n_workers = int(min(n_workers, len(stencil)))
-            with Pool(n_workers) as pool:
-                values = np.array(pool.map(self.function, stencil))
-        else:
-            values = np.array([self.function(x) for x in stencil])
+        # Daemon-safe evaluation (threads, not processes)
+        values = self._eval_points(stencil, n_workers=n_workers)
 
+        # If scalar outputs, shape to (n,1) so matmul works the same for vector outputs
         if values.ndim == 1:
             values = values.reshape(-1, 1)
 
+        # Combine with coefficients to form derivative estimate
         derivs = values.T @ coeffs_table[key]
-        return derivs.ravel() if derivs.size > 1 else derivs.item()
+        return derivs.ravel() if derivs.size > 1 else float(derivs.item())
 
     def get_finite_difference_tables(
             self,
@@ -247,3 +248,23 @@ class FiniteDifferenceDerivative:
             )
             self._log(msg)
             raise ValueError(msg)
+
+    @staticmethod
+    def _cap_workers(n_workers: int | None, n_tasks: int) -> int:
+        """Clamp worker count to sensible bounds."""
+        if not n_workers or n_workers <= 1:
+            return 1
+        return max(1, min(int(n_workers), int(n_tasks)))
+
+    def _eval_points(self, xs: np.ndarray, *, n_workers: int | None) -> np.ndarray:
+        """Evaluate function on a batch of points (daemon-safe: threads, not processes)."""
+        # Respect outer/inner policy from DerivKit concurrency utils
+        outer = resolve_inner_from_outer(n_workers)
+        outer = self._cap_workers(outer, len(xs))
+
+        if outer <= 1:
+            vals = [self.function(float(x)) for x in xs]
+        else:
+            args = [(float(x),) for x in xs]  # parallel_execute expects tuples
+            vals = parallel_execute(lambda x: self.function(x), args, outer_workers=outer)
+        return np.asarray(vals, dtype=float)
