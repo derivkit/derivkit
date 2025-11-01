@@ -179,7 +179,9 @@ def _build_hessian_scalar_full(
     """
     p = int(theta.size)
 
-    # Assemble tasks for diagonal and upper triangle; symmetry is enforced in assembly
+    # Here we build a list of tasks for all unique Hessian entries (i, j).
+    # We only compute the upper triangle and diagonal, then mirror the results.
+    # This reduces computation by nearly half.
     tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)]
     tasks += [
         (function, theta, i, j, method, inner_workers, dk_kwargs)
