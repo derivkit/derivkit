@@ -149,10 +149,35 @@ def test_hessian_accepts_list_and_row_vector():
     assert np.allclose(h1, h2)
 
 
-def test_hessian_raises_on_vector_output():
-    """Raises on non-scalar output."""
-    with pytest.raises(TypeError):
-        build_hessian(f_vector_out, np.array([0.2, 0.1]))
+def test_hessian_vector_output_values_correct():
+    """Vector-output Hessian has correct shape and numerical values.
+
+    f_vector_out(theta) = [x0**2, x0 + x1]
+      -> H[0] = [[2, 0],
+                 [0, 0]]
+         H[1] = zeros((2, 2))
+    """
+    x = np.array([0.2, 0.1])
+    h = build_hessian(f_vector_out, x, n_workers=1)
+
+    # ground truth
+    h_true = np.zeros((2, 2, 2), dtype=float)
+    h_true[0] = np.array([[2.0, 0.0],
+                          [0.0, 0.0]], dtype=float)
+    h_true[1] = np.zeros((2, 2), dtype=float)
+
+    # shape must be some permutation of (2, 2, 2)
+    assert h.shape == (2, 2, 2)
+
+    # Accept either (out_dim, p, p) or (p, p, out_dim)
+    candidates = [h, h.transpose(2, 0, 1)]
+    ok = any(np.allclose(c, h_true, rtol=0.0, atol=1e-8) for c in candidates)
+    if not ok:
+        # helpful debug print on failure
+        np.set_printoptions(suppress=True, linewidth=120)
+        raise AssertionError(f"Hessian values mismatch.\nGot:\n{h}\n"
+                             f"as (out,p,p) compare:\n{np.allclose(h, h_true, atol=1e-8)}\n"
+                             f"as (p,p,out) compare:\n{np.allclose(h.transpose(2, 0, 1), h_true, atol=1e-8)}")
 
 
 def test_hessian_raises_on_nonfinite_output():
