@@ -314,8 +314,7 @@ def _hessian_component(
     Raises:
         TypeError: If ``function`` does not return a scalar value.
     """
-    # Mixed derivative path:
-    # Define a helper that computes how the function changes with parameter i
+    # Mixed derivative path: define a helper that computes how the function changes with parameter i
     # when parameter j is temporarily set to a specific value.
     # Then we take the derivative of that helper with respect to parameter j.
     if i == j:
@@ -418,12 +417,12 @@ def _build_hessian_internal(
 
     Returns:
         If ``function(theta0)`` is scalar:
-            - ``diag=False`` → array with shape ``(p, p)``  (full Hessian)
-            - ``diag=True``  → array with shape ``(p,)``    (diagonal only)
+            - ``diag=False``: array with shape ``(p, p)``  (full Hessian)
+            - ``diag=True``: array with shape ``(p,)``    (diagonal only)
 
         If ``function(theta0)`` has shape ``out_shape``:
-            - ``diag=False`` → array with shape ``(*out_shape, p, p)``
-            - ``diag=True``  → array with shape ``(*out_shape, p)``
+            - ``diag=False``: array with shape ``(*out_shape, p, p)``
+            - ``diag=True``: array with shape ``(*out_shape, p)``
 
     Raises:
         FloatingPointError:
@@ -455,14 +454,25 @@ def _build_hessian_internal(
         else:
             return _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
 
-    # tensor output
+    # Tensor output: flatten and compute per-component Hessians.
+    # Treat the function output as a vector of length m = prod(out_shape),
+    # compute one scalar Hessian (or diagonal) per component, then reshape
+    # the stacked results back to the original output shape.
     m = y0.size
     tasks = [(i, theta, method, inner, diag, dk_kwargs, function) for i in range(m)]
     vals = parallel_execute(
         _compute_component_hessian, tasks, outer_workers=outer, inner_workers=inner
     )
-    arr = np.stack(vals, axis=0)  # (m, p) or (m, p, p)
-    arr = arr.reshape(out_shape + arr.shape[1:])  # -> (*out_shape, p) or (*out_shape, p, p)
+
+    # Stack per-component results:
+    # each entry in `vals` is a Hessian of shape (p, p) or a diagonal of shape (p,).
+    arr = np.stack(vals, axis=0)
+
+    # Restore the original output layout and append parameter axes.
+    # Result shape:
+    # - (*out_shape, p, p) for full Hessians.
+    # - (*out_shape, p)    for diagonals.
+    arr = arr.reshape(out_shape + arr.shape[1:])
     if not np.isfinite(arr).all():
         raise FloatingPointError("Non-finite values encountered in Hessian.")
     return arr
