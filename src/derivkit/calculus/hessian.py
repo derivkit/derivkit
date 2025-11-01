@@ -163,7 +163,7 @@ def _build_hessian_scalar_full(
     """Returns the full (p, p) Hessian for a scalar-valued function.
 
     Args:
-        function: The function to be differentiated (must return a scalar).
+        function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for Hessian entries.
@@ -221,7 +221,7 @@ def _build_hessian_scalar_diag(
     """Returns the diagonal (p,) of the Hessian for a scalar-valued function.
 
     Args:
-        function: The function to be differentiated (must return a scalar).
+        function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for diagonal entries.
