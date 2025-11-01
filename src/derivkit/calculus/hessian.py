@@ -27,20 +27,21 @@ def build_hessian(
     n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
-    """Returns the hessian of a function.
+    """Returns the full Hessian of a function.
 
     Args:
         function: The function to be differentiated.
-        theta0: The parameter vector at which the hessian is evaluated.
+        theta0: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Parallel tasks across output components / Hessian entries.
         **dk_kwargs: Extra options forwarded to `DerivativeKit.differentiate`.
 
     Returns:
-        If ``function(theta0)`` is scalar, returns a 2D array (p, p) representing the Hessian.
-        If ``function(theta0)`` is tensor-valued with shape ``out_shape``,
-        the full Hessian has shape ``(*out_shape, p, p)``.
+        Always returns the full Hessian with shape:
+        - (p, p) if ``function(theta0)`` is scalar.
+        - (*out_shape, p, p) if ``function(theta0)`` has shape ``out_shape``.
+        The output shape is fixed; use ``build_hessian_diag()`` if only the diagonal is needed.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
@@ -50,7 +51,6 @@ def build_hessian(
     return _build_hessian_internal(
         function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
     )
-
 
 
 def build_hessian_diag(
@@ -64,7 +64,7 @@ def build_hessian_diag(
 
     Args:
         function: The function to be differentiated.
-        theta0: The parameter vector at which the hessian is evaluated.
+        theta0: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Parallel tasks across output components / Hessian entries (outer).
@@ -72,9 +72,10 @@ def build_hessian_diag(
             You may optionally pass `inner_workers=<int>` here to override the inner policy.
 
     Returns:
-        If ``function(theta0)`` is scalar, returns a 1D array (p,) representing the diagonal.
-        If ``function(theta0)`` is tensor-valued with shape ``out_shape``,
-        returns an array with shape ``(*out_shape, p)``.
+        Returns only the diagonal entries of the Hessian.
+        - (p,) if ``function(theta0)`` is scalar.
+        - (*out_shape, p) if ``function(theta0)`` has shape ``out_shape``.
+        This reduction in rank is intentional to avoid computing or storing off-diagonal terms.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
