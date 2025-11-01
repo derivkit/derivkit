@@ -46,7 +46,7 @@ def build_hessian(
     Raises:
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``theta0`` is an empty array.
-        TypeError: If a scalar component path does not return a scalar value.
+        TypeError: If a single output component (flattened scalar subpath) does not return a scalar.
     """
     return _build_hessian_internal(
         function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
