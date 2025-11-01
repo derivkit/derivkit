@@ -220,7 +220,7 @@ def _build_hessian_scalar_diag(
     inner_workers: int | None,
     **dk_kwargs: Any,
 ) -> np.ndarray:
-    """Returns the diagonal (p,) of the Hessian for a scalar-valued function.
+    """Returns the diagonal of the Hessian for a scalar-valued function.
 
     Args:
         function: The function to be differentiated.
