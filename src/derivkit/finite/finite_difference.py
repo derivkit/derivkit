@@ -133,7 +133,7 @@ class FiniteDifferenceDerivative:
             # If table is out of sync with the validator, keep behavior consistent.
             msg = (f"[FiniteDifference] Internal table missing coefficients for "
                    f"stencil={num_points}, order={order}. This combo is not yet implemented "
-                   "in this build. See issue #202.")
+                   "in this build.")
             self._log(msg)
             raise ValueError(msg)
 
@@ -236,7 +236,7 @@ class FiniteDifferenceDerivative:
 
         allowed = _SUPPORTED_BY_STENCIL[num_points]
         if order not in allowed:
-            # Friendly guidance + pointer to your issue #202
+            # TODO: implement this. See https://github.com/derivkit/derivkit/issues/202
             msg = (
                 "[FiniteDifference] Not implemented yet: "
                 f"{num_points}-point stencil for order {order}.\n"

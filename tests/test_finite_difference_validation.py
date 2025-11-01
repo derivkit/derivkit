@@ -22,7 +22,8 @@ ISSUE_HINT_RE = re.compile(r"issue\s*#?\s*202", flags=re.I)
 @pytest.mark.parametrize(
     "num_points, order",
     [
-        # currently unsupported by this build (tracked in #202)
+        # currently unsupported by this build. See
+        # https://github.com/derivkit/derivkit/issues/202
         (3, 2), (3, 3), (3, 4),
         (7, 3), (7, 4),
         (9, 3), (9, 4),
