@@ -5,7 +5,7 @@ from functools import partial
 from typing import Any, Tuple
 
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
