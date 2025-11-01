@@ -5,7 +5,7 @@ from functools import partial
 from typing import Any, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
@@ -21,7 +21,7 @@ __all__ = [
 
 
 def build_hessian(
-    function: Callable[[ArrayLike], np.float64 | np.ndarray],
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
@@ -75,7 +75,7 @@ def build_hessian(
     # Tensor-output path: flatten outputs; compute one Hessian per component; stack/reshape back
     m = y0.size
     tasks = [
-        (i, theta, method, outer, inner, return_diag, dk_kwargs, function)
+        (i, theta, method, inner, return_diag, dk_kwargs, function)
         for i in range(m)
     ]
     vals = parallel_execute(
@@ -92,7 +92,7 @@ def build_hessian(
 
 
 def build_hessian_diag(
-    function: Callable[[ArrayLike], np.float64 | np.ndarray],
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
@@ -138,11 +138,10 @@ def _compute_component_hessian(
         idx: int,
         theta: NDArray[np.floating],
         method: str | None,
-        outer_workers: int,
         inner_workers: int | None,
         return_diag: bool,
         dk_kwargs: dict,
-        function: Callable[[ArrayLike], np.float64 | np.array]
+        function: Callable[[ArrayLike], float | np.ndarray]
     ,) -> NDArray[np.floating]:
     """Computes the Hessian (or its diagonal) for a single flattened output component.
 
@@ -150,7 +149,6 @@ def _compute_component_hessian(
         idx: The index of the flattened output component.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
-        _outer_workers: Number of outer parallel workers (not used here).
         inner_workers: Number of inner workers (set via context by parallel_execute).
         return_diag: If True, compute and return only the diagonal.
         dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
@@ -162,14 +160,16 @@ def _compute_component_hessian(
     # Adapter to scalar component
     g = partial(_component_scalar_eval, function=function, idx=int(idx))
 
-        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)  
-    if return_diag else _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
+    if return_diag:
+        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)
+    else:
+        return _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
 
 
 def _component_scalar_eval(
     theta_vec: NDArray[np.floating],
     *,
-    function: Callable[[ArrayLike], np.float64 | np.ndarray],
+    function: Callable[[ArrayLike], float | np.ndarray],
     idx: int,
 ) -> float:
     """Returns the scalar value of the `idx`-th flattened component of f(theta_vec).
@@ -187,7 +187,7 @@ def _component_scalar_eval(
 
 
 def _build_hessian_scalar_full(
-    function: Callable,
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
     outer_workers: int,
@@ -245,7 +245,7 @@ def _build_hessian_scalar_full(
 
 
 def _build_hessian_scalar_diag(
-    function: Callable,
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
     outer_workers: int,
@@ -286,7 +286,7 @@ def _build_hessian_scalar_diag(
 
 
 def _hessian_component_worker(
-    function: Callable,
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     i: int,
     j: int,
@@ -316,13 +316,13 @@ def _hessian_component_worker(
         i=i,
         j=j,
         method=method,
-        n_workers=inner_workers,
+        n_workers=inner_workers or 1,
         **dk_kwargs,
     )
 
 
 def _hessian_component(
-    function: Callable,
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     i: int,
     j: int,
@@ -386,7 +386,7 @@ def _hessian_component(
 def _mixed_partial_value(
     y: float,
     *,
-    function: Callable[[ArrayLike], np.float64],
+    function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     i: int,
     j: int,
