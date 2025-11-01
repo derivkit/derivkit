@@ -107,7 +107,7 @@ def _compute_component_hessian(
         idx: The index of the flattened output component.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
-        inner_workers: Number of inner workers (set via context by parallel_execute).
+        inner_workers: Optional inner parallelism for the differentiation engine.
         return_diag: If True, compute and return only the diagonal.
         dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
         function: The function to be differentiated.
@@ -159,7 +159,7 @@ def _build_hessian_scalar_full(
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for Hessian entries.
-        inner_workers: Number of inner workers (set via context by parallel_execute).
+        inner_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
 
     Returns:
@@ -217,7 +217,7 @@ def _build_hessian_scalar_diag(
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for diagonal entries.
-        inner_workers: Number of inner workers (set via context by parallel_execute).
+        inner_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
 
     Returns:
@@ -261,7 +261,7 @@ def _hessian_component_worker(
         j: Index of the second parameter.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        inner_workers: Number of inner workers (set via context by parallel_execute).
+        inner_workers: Optional inner parallelism for the differentiation engine.
         dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
@@ -304,7 +304,7 @@ def _hessian_component(
         j: Index of the second parameter.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        n_workers: Number of inner workers (set via context by parallel_execute).
+        n_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
@@ -366,7 +366,7 @@ def _mixed_partial_value(
         j: Index of the second parameter.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        n_workers: Number of inner workers (set via context by parallel_execute).
+        n_workers: Optional inner parallelism for the differentiation engine.
         dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
