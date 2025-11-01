@@ -128,7 +128,6 @@ class FiniteDifferenceDerivative:
         if stepsize <= 0:
             raise ValueError("stepsize must be positive.")
 
-            # Validate early
         self._validate_supported_combo(num_points, order)
 
         offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
