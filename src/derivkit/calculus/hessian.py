@@ -146,7 +146,7 @@ def _component_scalar_eval(
         idx: The index of the flattened output component to extract.
 
     Returns:
-        The scalar value of the specified component.
+        The value of the specified component.
     """
     val = np.asarray(function(theta_vec))
     return float(val.ravel()[idx])
