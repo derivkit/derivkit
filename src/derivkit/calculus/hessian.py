@@ -134,7 +134,11 @@ def _component_scalar_eval(
     function: Callable[[ArrayLike], float | np.ndarray],
     idx: int,
 ) -> float:
-    """Returns the scalar value of the `idx`-th flattened component of f(theta_vec).
+    """Returns a scalar from a function output.
+
+    The scalar can be the function output itself if the function is scalar-valued,
+    or a single component of the function output if the function is tensor-valued.
+    The function output is flattened before returning the component.
 
     Args:
         theta_vec: The parameter vector at which the function is evaluated.
