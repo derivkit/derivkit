@@ -14,10 +14,22 @@ Typical usage example:
 derivative is the second order derivative of function at value 1.
 """
 
+import sys
 from collections.abc import Callable
 
 import numpy as np
-from multiprocess import Pool
+
+from derivkit.utils.concurrency import (
+    parallel_execute,
+    resolve_inner_from_outer,
+)
+
+_SUPPORTED_BY_STENCIL: dict[int, set[int]] = {
+    3: {1},
+    5: {1, 2, 3, 4},
+    7: {1, 2},
+    9: {1, 2},
+}
 
 
 class FiniteDifferenceDerivative:
@@ -64,7 +76,7 @@ class FiniteDifferenceDerivative:
             function: The function to differentiate. Must accept a single
                 float and return either a float or a 1D array-like object.
             x0: The point at which the derivative is evaluated.
-            log_file): Path to a file where debug information may
+            log_file: Path to a file where debug information may
                 be logged.
             debug: If True, debug information will be printed or
                 logged.
@@ -74,7 +86,8 @@ class FiniteDifferenceDerivative:
         self.debug = debug
         self.log_file = log_file
 
-    def differentiate(self, order: int = 1,
+    def differentiate(self,
+                      order: int = 1,
                       stepsize: float = 0.01,
                       num_points: int = 5,
                       n_workers: int = 1
@@ -93,7 +106,7 @@ class FiniteDifferenceDerivative:
                 function around the central value. Default is 0.01.
             num_points: Number of points in the finite
                 difference stencil. Must be one of [3, 5, 7, 9]. Default is 5.
-            n_workers: Number of worker to use in
+            n_workers: Number of workers to use in
                 multiprocessing. Default is 1 (no multiprocessing).
 
         Returns:
@@ -112,40 +125,38 @@ class FiniteDifferenceDerivative:
                 - 7: orders 1, 2
                 - 9: orders 1, 2
         """
+        if stepsize <= 0:
+            raise ValueError("stepsize must be positive.")
+
+            # Validate early
+        self._validate_supported_combo(num_points, order)
+
         offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
-
-        if num_points not in offsets:
-            raise ValueError(
-                f"Unsupported stencil size: {num_points}. Must be one of [3, 5, 7, 9]."
-            )
-
         key = (num_points, order)
         if key not in coeffs_table:
-            raise ValueError(
-                f"Unsupported combination: stencil={num_points}, order={order}."
-            )
+            msg = (f"[FiniteDifference] Internal table missing coefficients for "
+                   f"stencil={num_points}, order={order}. This combo is not yet implemented "
+                   "in this build. See issue #202.")
+            self._log(msg)
+            raise ValueError(msg)
 
-        stencil = np.array(
-            [self.x0 + i * stepsize for i in offsets[num_points]]
-        )
+        stencil = np.array([self.x0 + i * stepsize for i in offsets[num_points]], dtype=float)
 
-        if n_workers > 1:
-            n_workers = np.min((n_workers, len(stencil)))
-            with Pool(n_workers) as pool:
-                values = np.array(pool.map(self.function, stencil))
-        else:
-            values = np.array([self.function(x) for x in stencil])
+        # Daemon-safe evaluation (threads, not processes)
+        values = self._eval_points(stencil, n_workers=n_workers)
+
+        # If scalar outputs, shape to (n,1) so matmul works the same for vector outputs
         if values.ndim == 1:
             values = values.reshape(-1, 1)
 
-        derivs = np.dot(values.T, coeffs_table[key])
-        # return 1D array for multi-output, Python scalar for single-output
-        return derivs.ravel() if derivs.size > 1 else derivs.item()
+        # Combine with coefficients to form derivative estimate
+        derivs = values.T @ coeffs_table[key]
+        return derivs.ravel() if derivs.size > 1 else float(derivs.item())
 
     def get_finite_difference_tables(
             self,
             stepsize: float
-        ) -> tuple[dict]:
+        ) -> tuple[dict[int, list[int]], dict[tuple[int, int], np.ndarray]]:
         """Returns offset patterns and coefficient tables.
 
         Args:
@@ -153,7 +164,7 @@ class FiniteDifferenceDerivative:
 
         Returns:
             A tuple of two dictionaries. The first maps from
-                stencil size to symmetric offsets. The second mapps from
+                stencil size to symmetric offsets. The second maps from
                 (stencil_size, order) to coefficient arrays.
         """
         offsets = {
@@ -181,3 +192,82 @@ class FiniteDifferenceDerivative:
         }
 
         return offsets, coeffs_table
+
+    def _log(self, msg: str) -> None:
+        """Logs a message to stderr and optionally to a log file.
+
+        Args:
+            msg: The message to log.
+
+        Returns:
+            None
+        """
+        if self.log_file:
+            try:
+                with open(self.log_file, "a", encoding="utf-8") as f:
+                    f.write(msg.rstrip() + "\n")
+            except (OSError, PermissionError) as e:
+                print(f"{msg} [log write failed: {e}]", file=sys.stderr)
+            else:
+                print(msg, file=sys.stderr)
+
+    def _validate_supported_combo(self, num_points: int, order: int) -> None:
+        """Validates that the (stencil size, order) combo is supported.
+
+        Args:
+            num_points: Number of points in the finite difference stencil.
+            order: The order of the derivative to compute.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If the combination of num_points and order is not supported.
+        """
+        if num_points not in (3, 5, 7, 9):
+            msg = (f"[FiniteDifference] Unsupported stencil size: {num_points}. "
+                   f"Must be one of [3, 5, 7, 9].")
+            self._log(msg)
+            raise ValueError(msg)
+        if order not in (1, 2, 3, 4):
+            msg = (f"[FiniteDifference] Unsupported derivative order: {order}. "
+                   f"Must be one of [1, 2, 3, 4].")
+            self._log(msg)
+            raise ValueError(msg)
+
+        allowed = _SUPPORTED_BY_STENCIL[num_points]
+        if order not in allowed:
+            # Friendly guidance + pointer to your issue #202
+            msg = (
+                "[FiniteDifference] Not implemented yet: "
+                f"{num_points}-point stencil for order {order}.\n"
+                "This is tracked in issue #202 "
+                "('Complete finite-difference stencil support: all (3/5/7/9)-point "
+                "central stencils for orders ≤ 4').\n"
+                "Workarounds: choose a supported combo, e.g.\n"
+                "  • 5-point for orders 1–4\n"
+                "  • 7/9-point for orders 1–2\n"
+                "Or switch methods (e.g., 'adaptive') if available."
+            )
+            self._log(msg)
+            raise ValueError(msg)
+
+    @staticmethod
+    def _cap_workers(n_workers: int | None, n_tasks: int) -> int:
+        """Clamp worker count to sensible bounds."""
+        if not n_workers or n_workers <= 1:
+            return 1
+        return max(1, min(int(n_workers), int(n_tasks)))
+
+    def _eval_points(self, xs: np.ndarray, *, n_workers: int | None) -> np.ndarray:
+        """Evaluate function on a batch of points (daemon-safe: threads, not processes)."""
+        # Respect outer/inner policy from DerivKit concurrency utils
+        outer = resolve_inner_from_outer(n_workers)
+        outer = self._cap_workers(outer, len(xs))
+
+        if outer <= 1:
+            vals = [self.function(float(x)) for x in xs]
+        else:
+            args = [(float(x),) for x in xs]  # parallel_execute expects tuples
+            vals = parallel_execute(lambda x: self.function(x), args, outer_workers=outer)
+        return np.asarray(vals, dtype=float)
