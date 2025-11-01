@@ -335,7 +335,6 @@ def _hessian_component(
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
         return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
 
-    # Mixed derivative path:
     path = partial(
         _mixed_partial_value,
         function=function,
