@@ -101,21 +101,25 @@ def _compute_component_hessian(
         dk_kwargs: dict,
         function: Callable[[ArrayLike], float | np.ndarray]
     ,) -> NDArray[np.floating]:
-    """Computes the Hessian (or its diagonal) for a single flattened output component.
+    """Compute the Hessian (or its diagonal) for one output component.
+
+    When ``function(theta)`` is tensor-valued, we ravel the output and take the
+    scalar component at flat index ``idx``. We then differentiate that scalar
+    component with respect to all parameters in ``theta``.
 
     Args:
-        idx: The index of the flattened output component.
-        theta: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., "adaptive", "finite").
-        inner_workers: Optional inner parallelism for the differentiation engine.
-        return_diag: If True, compute and return only the diagonal.
-        dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
-        function: The function to be differentiated.
+        idx: Flat index into ``function(theta)`` after raveling.
+        theta: Parameter vector where derivatives are evaluated.
+        method: Derivative method name or alias (e.g., "adaptive", "finite").
+        inner_workers: Optional parallelism hint for the differentiation engine.
+        return_diag: If True, return only the diagonal entries.
+        dk_kwargs: Extra options forwarded to ``DerivativeKit.differentiate``.
+        function: Original function to differentiate.
 
     Returns:
-        The Hessian (2D array) or its diagonal (1D array) for the specified component.
+        (p, p) array for full Hessian or (p,) array for diagonal only,
+        where ``p = theta.size``.
     """
-    # Adapter to scalar component
     g = partial(_component_scalar_eval, function=function, idx=int(idx))
 
     if return_diag:
