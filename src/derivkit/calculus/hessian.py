@@ -67,7 +67,7 @@ def build_hessian_diag(
         theta0: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        n_workers: Parallel tasks across output components / Hessian entries (outer).
+        n_workers: Parallel tasks across output components / Hessian entries.
         **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
             You may optionally pass `inner_workers=<int>` here to override the inner policy.
 
