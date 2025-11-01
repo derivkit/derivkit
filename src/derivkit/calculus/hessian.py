@@ -80,7 +80,7 @@ def build_hessian_diag(
     Raises:
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``theta0`` is an empty array.
-        TypeError: If a scalar component path does not return a scalar value.
+        TypeError: If evaluating a single output component does not return a scalar.
     """
     return _build_hessian_internal(
         function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
@@ -431,7 +431,7 @@ def _build_hessian_internal(
         ValueError:
             If ``theta0`` is empty.
         TypeError:
-            If a scalar component path does not return a scalar.
+            If evaluating a single output component does not return a scalar.
 
     Notes:
         - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
