@@ -34,9 +34,8 @@ def build_hessian(
         theta0: The parameter vector at which the hessian is evaluated.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        n_workers: Parallel tasks across output components / Hessian entries (outer).
+        n_workers: Parallel tasks across output components / Hessian entries.
         **dk_kwargs: Extra options forwarded to `DerivativeKit.differentiate`.
-            You may optionally pass `inner_workers=<int>` here to override the inner policy.
 
     Returns:
         If ``function(theta0)`` is scalar, returns a 2D array (p, p) representing the Hessian.
