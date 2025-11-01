@@ -39,8 +39,10 @@ def build_hessian(
 
     Returns:
         Always returns the full Hessian with shape:
+
         - (p, p) if ``function(theta0)`` is scalar.
-        - (*out_shape, p, p) if ``function(theta0)`` has shape ``out_shape``.
+        - (``*out_shape``, p, p) if ``function(theta0)`` has shape ``out_shape``.
+
         The output shape is fixed; use ``build_hessian_diag()`` if only the diagonal is needed.
 
     Raises:
@@ -73,8 +75,10 @@ def build_hessian_diag(
 
     Returns:
         Returns only the diagonal entries of the Hessian.
+
         - (p,) if ``function(theta0)`` is scalar.
-        - (*out_shape, p) if ``function(theta0)`` has shape ``out_shape``.
+        - (``*out_shape``, p) if ``function(theta0)`` has shape ``out_shape``.
+
         This reduction in rank is intentional to avoid computing or storing off-diagonal terms.
 
     Raises:
