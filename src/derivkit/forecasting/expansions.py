@@ -232,7 +232,7 @@ class LikelihoodExpansion:
         if h_raw.shape == (self.n_parameters, self.n_parameters, self.n_observables):
             return h_raw
         raise ValueError(
-            f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+            f"build_hessian returned unexpected shape {h_raw.shape}; "
             f"expected ({self.n_observables},{self.n_parameters},{self.n_parameters}) or "
             f"({self.n_parameters},{self.n_parameters},{self.n_observables})."
         )
