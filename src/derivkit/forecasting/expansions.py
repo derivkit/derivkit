@@ -17,6 +17,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus.jacobian import build_jacobian
+from derivkit.calculus.hessian import build_hessian
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
@@ -214,28 +215,27 @@ class LikelihoodExpansion:
             )
 
         # Second-order path (order is guaranteed to be 2 here)
-        second_order = np.zeros((self.n_parameters, self.n_parameters, self.n_observables), dtype=float)
-
-        inner_workers = resolve_inner_from_outer(n_workers)
-
-        worker = partial(
-            self._row_worker,
-            method=method,
-            inner_workers=inner_workers,
-            dk_kwargs=dk_kwargs,
+        # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
+        # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
+        h_raw = np.asarray(
+            build_hessian(
+                self.function,
+                self.theta0,
+                method=method,
+                n_workers=n_workers,  # allow outer parallelism across params
+                dk_kwargs=dk_kwargs,
+            ),
+            dtype=float,
         )
-
-        rows = parallel_execute(
-            worker=worker,
-            arg_tuples=[(m1,) for m1 in range(self.n_parameters)],
-            outer_workers=n_workers,
-            inner_workers=inner_workers,
+        if h_raw.shape == (self.n_observables, self.n_parameters, self.n_parameters):
+            return np.moveaxis(h_raw,[1,2],[0,1])
+        if h_raw.shape == (self.n_parameters, self.n_parameters, self.n_observables):
+            return h_raw
+        raise ValueError(
+            f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+            f"expected ({self.n_observables},{self.n_parameters},{self.n_parameters}) or "
+            f"({self.n_parameters},{self.n_parameters},{self.n_observables})."
         )
-
-        for m1, row in rows:
-            second_order[m1, :, :] = row
-
-        return second_order
 
     def _row_worker(
         self,
