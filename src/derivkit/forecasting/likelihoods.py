@@ -23,8 +23,8 @@ def build_gaussian_likelihood(
         model_parameters: a 1D array representing the theoretical values
             of the model parameters.
         cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
-            or a full 2D covariance matrix. It will be normalized internally
-            to ensure compatibility with the data and model_parameters.
+            or a full 2D covariance matrix. It will be symmetrised and normalized
+            internally to ensure compatibility with the data and model_parameters.
 
     Returns:
         A tuple:
@@ -97,7 +97,10 @@ def build_gaussian_likelihood(
     if not np.isfinite(cov).all():
         raise ValueError("cov contains non-finite values.")
 
-    sigma = normalize_covariance(cov, n_parameters=number_model_parameters)
+    sigma = normalize_covariance(
+        (cov+cov.T)/2,
+        n_parameters=number_model_parameters
+    )
 
     # The data are coordinate vectors, which have to be extended into a
     # coordinate grid (meshgrid). The grids are then combined to give a
