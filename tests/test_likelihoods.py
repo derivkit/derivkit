@@ -210,21 +210,44 @@ def test_gaussian_likelihood_output_types():
   ]
 )
 
-def test_poissonian_likelihood_output(
-    input_data,
-    input_parameters,
-    expected_output_data,
-    expected_output_likelihood
-):
-    """Tests that build_poissonian_likelihood produces the expected output.
+class  TestPoissonOutput:
+    """A container for Poissonian likelihood tests.
 
-    Test cases were originally made for examples in the build_poissonian docstring.
+    All methods in this class have access to the same pytest parameters.
     """
-    test_output, test_likelihood \
-        = dkl.build_poissonian_likelihood(input_data, input_parameters)
 
-    assert_allclose(test_output, expected_output_data)
-    assert_allclose(test_likelihood, expected_output_likelihood)
+    def test_poissonian_likelihood_output(
+        self,
+        input_data,
+        input_parameters,
+        expected_output_data,
+        expected_output_likelihood
+    ):
+        """Tests that build_poissonian_likelihood produces the expected output.
+
+        Test cases were originally made for examples in the build_poissonian docstring.
+        """
+        test_output, test_likelihood \
+            = dkl.build_poissonian_likelihood(input_data, input_parameters)
+
+        assert_allclose(test_output, expected_output_data)
+        assert_allclose(test_likelihood, expected_output_likelihood)
+
+    def test_log_likelihood(
+        self,
+        input_data,
+        input_parameters,
+        expected_output_data,
+        expected_output_likelihood
+    ):
+       """Tests that Poissonian log-likelihoods are computed correctly."""
+       _, test_likelihood = dkl.build_poissonian_likelihood(
+          input_data,
+          input_parameters,
+          return_log=True
+       )
+       assert_allclose(np.log(expected_output_likelihood), test_likelihood)
+
 
 @pytest.mark.parametrize(
   "test_data, test_parameters",

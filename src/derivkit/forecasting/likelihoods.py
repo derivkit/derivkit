@@ -113,6 +113,7 @@ def build_gaussian_likelihood(
 def build_poissonian_likelihood(
     data: float | np.ndarray[float],
     model_parameters: float | np.ndarray[float],
+    return_log: bool = False,
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
     """Constructs the Poissonian likelihood function.
 
@@ -264,7 +265,11 @@ def build_poissonian_likelihood(
             f"model_parameters.shape={parameters.shape}."
         )
 
-    return counts, poisson.pmf(counts, parameters)
+    probabilities = poisson.logpmf(counts, parameters) \
+        if return_log \
+        else poisson.pmf(counts, parameters)
+
+    return counts, probabilities
 
 
 def binomial(*args, **kwargs):
