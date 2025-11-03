@@ -23,6 +23,7 @@ Submodules
    derivkit.calculus_kit
    derivkit.derivative_kit
    derivkit.forecast_kit
+   derivkit.fornberg
 
 Module contents
 ---------------
