@@ -45,8 +45,8 @@ Quick Start
     function=simple_function,
     x0=1.0
   )
-  print("Adaptive:", dk.adaptive.differentiate(order=1))
-  print("Finite Difference:", dk.finite.differentiate(order=1))
+  print("Adaptive:", dk.differentiate(order=1, method="adaptive"))
+  print("Finite Difference:", dk.differentiate(order=1, method="finite"))
 
 
 Adaptive Fit Example
@@ -55,7 +55,7 @@ Adaptive Fit Example
 Below is a visual example of the :py:mod:`derivkit.adaptive_fit` module estimating the first derivative of a nonlinear function in the presence of noise.
 The method selectively discards outlier points before fitting a polynomial, resulting in a robust and smooth estimate.
 
-.. image:: assets/plots/adaptive_fit_with_noise_order1_demo_func.png
+.. image:: assets/plots/adaptive_demo_linear_noisy_order1.png
 
 
 Citation
