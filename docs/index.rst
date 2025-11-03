@@ -45,8 +45,34 @@ Quick Start
     function=simple_function,
     x0=1.0
   )
-  print("Adaptive:", dk.adaptive.differentiate(order=1))
-  print("Finite Difference:", dk.finite.differentiate(order=1))
+  print("Adaptive:", dk.differentiate(order=1, method="adaptive"))
+  print("Finite Difference:", dk.differentiate(order=1, method="finite"))
+
+
+Method Overview
+---------------
+
+The following table summarizes the current and planned derivative engines in **DerivKit**:
+
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+| **Method**          | **Status**                  | **Uses / Philosophy**                       | **Notes**                     |
++=====================+=============================+=============================================+===============================+
+| Finite Difference   | Implemented                 | Local differences — Estimate slope from     | High-order stencils, stable   |
+|                     |                             | nearby points.                              | up to 9-point central schemes.|
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+| Adaptive Fit        | Implemented                 | Local polynomial regression — Fit a small   | Robust against noise; uses    |
+|                     |                             | local model and read off derivative.        | residual-based trimming.      |
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+| Gaussian Process    | In Progress                 | Probabilistic interpolation — Fit a         | Uses RBF kernel; fits mean    |
+|                     |                             | stochastic model, then differentiate the    | and variance jointly.         |
+|                     |                             | posterior mean.                             |                               |
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+| Fornberg (analytic) | In Progress                 | Analytic finite-difference weights from the | Exact stencil construction;   |
+|                     |                             | Fornberg algorithm.                         | used for validation suite.    |
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+| Complex Step        | Planned                     | Perturb in the complex plane to avoid       | For analytic smooth functions |
+|                     |                             | subtraction error.                          | only.                         |
++---------------------+-----------------------------+---------------------------------------------+-------------------------------+
 
 
 Adaptive Fit Example
@@ -55,7 +81,7 @@ Adaptive Fit Example
 Below is a visual example of the :py:mod:`derivkit.adaptive_fit` module estimating the first derivative of a nonlinear function in the presence of noise.
 The method selectively discards outlier points before fitting a polynomial, resulting in a robust and smooth estimate.
 
-.. image:: assets/plots/adaptive_fit_with_noise_order1_demo_func.png
+.. image:: assets/plots/adaptive_demo_linear_noisy_order1.png
 
 
 Citation
