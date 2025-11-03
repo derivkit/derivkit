@@ -49,6 +49,32 @@ Quick Start
   print("Finite Difference:", dk.differentiate(order=1, method="finite"))
 
 
+Method Overview
+---------------
+
+The following table summarizes the current and planned derivative engines in **DerivKit**:
+
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+| **Method**          | **Status**                  | **Uses / Philosophy**                        | **Notes**                    |
++=====================+=============================+==============================================+==============================+
+| Finite Difference   | Implemented              | Local differences — Estimate slope from     | High-order stencils, stable  |
+|                     |                             | nearby points.                              | up to 9-point central schemes.|
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+| Adaptive Fit        | Implemented              | Local polynomial regression — Fit a small   | Robust against noise; uses   |
+|                     |                             | local model and read off derivative.        | residual-based trimming.     |
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+| Gaussian Process    | In Progress              | Probabilistic interpolation — Fit a         | Uses RBF kernel; fits mean   |
+|                     |                             | stochastic model, then differentiate the     | and variance jointly.        |
+|                     |                             | posterior mean.                             |                              |
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+| Fornberg (analytic) | In Progress              | Analytic finite-difference weights from the  | Exact stencil construction;  |
+|                     |                             | Fornberg algorithm.                          | used for validation suite.   |
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+| Complex Step        | Planned                  | Perturb in the complex plane to avoid       | For analytic smooth functions|
+|                     |                             | subtraction error.                          | only.                        |
++---------------------+-----------------------------+----------------------------------------------+------------------------------+
+
+
 Adaptive Fit Example
 --------------------
 
