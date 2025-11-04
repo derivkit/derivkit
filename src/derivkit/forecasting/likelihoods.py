@@ -96,6 +96,18 @@ def build_gaussian_likelihood(
     cov = np.asarray(cov, dtype=float)
     if not np.isfinite(cov).all():
         raise ValueError("cov contains non-finite values.")
+    cov_dim = cov.ndim
+    cov_shape = cov.shape
+    is_scalar = cov_dim == 0
+    is_valid_vector = cov_dim == 1 and cov_shape[0] == number_model_parameters
+    is_valid_matrix = (
+            cov_dim == 2
+            and cov_shape[0] == cov_shape[1] == number_model_parameters
+    )
+    if not (is_scalar or is_valid_vector or is_valid_matrix):
+        raise ValueError(
+            "Input cov is not compatible with input model_parameters."
+        )
 
     sigma = normalize_covariance(
         (cov+cov.T)/2,
