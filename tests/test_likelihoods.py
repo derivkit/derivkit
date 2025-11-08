@@ -51,14 +51,26 @@ def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
     grids, pdf = dkl.build_gaussian_likelihood(data, mu, cov)
     assert np.isfinite(pdf).all()
 
-def test_gaussian_likelihood_cov_nonfinite_raises():
-    """Tests that non-finite covariance inputs raise ValueError."""
+def test_gaussian_likelihood_nonfinite_raises():
+    """Tests that non-finite inputs in Gaussian likelihood raise ValueError."""
     data = np.array([[0.0, 1.0]])
     mu = np.array([0.0])
 
+    # Non-finite tests for data
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(np.append(data, np.inf), mu, np.array([np.nan]))
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(np.append(data, np.nan), mu, np.array([[np.inf]]))
+
+    # Non-finite tests for model_parameters
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(data, np.append(mu, np.nan), np.array([np.nan]))
+    with pytest.raises(ValueError):
+        dkl.build_gaussian_likelihood(data, np.append(mu, np.inf), np.array([[np.inf]]))
+
+    # Non-finite tests for cov
     with pytest.raises(ValueError):
         dkl.build_gaussian_likelihood(data, mu, np.array([np.nan]))
-
     with pytest.raises(ValueError):
         dkl.build_gaussian_likelihood(data, mu, np.array([[np.inf]]))
 
