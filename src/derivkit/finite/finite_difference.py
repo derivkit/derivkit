@@ -19,16 +19,27 @@ from collections.abc import Callable
 
 import numpy as np
 
-from derivkit.utils.concurrency import (
-    parallel_execute,
-    resolve_inner_from_outer,
-)
+from derivkit.utils.numerics import richardson_extrapolate
+
+from .batch_eval import eval_points
 
 _SUPPORTED_BY_STENCIL: dict[int, set[int]] = {
     3: {1},
     5: {1, 2, 3, 4},
     7: {1, 2},
     9: {1, 2},
+}
+
+_TRUNCATION_ORDER: dict[tuple[int, int], int] = {
+    (3, 1): 2,
+    (5, 1): 4,
+    (5, 2): 4,
+    (5, 3): 2,
+    (5, 4): 2,
+    (7, 1): 6,
+    (7, 2): 6,
+    (9, 1): 8,
+    (9, 2): 8,
 }
 
 
@@ -90,8 +101,10 @@ class FiniteDifferenceDerivative:
                       order: int = 1,
                       stepsize: float = 0.01,
                       num_points: int = 5,
-                      n_workers: int = 1
-        ) -> np.ndarray:
+                      n_workers: int = 1,
+                      extrapolation: str | None = None,
+                      levels: int | None = None,
+        ) -> np.ndarray | float:
         """Computes the derivative using a central finite difference scheme.
 
         Supports 3-, 5-, 7-, or 9-point central difference stencils for
@@ -108,6 +121,11 @@ class FiniteDifferenceDerivative:
                 difference stencil. Must be one of [3, 5, 7, 9]. Default is 5.
             n_workers: Number of workers to use in
                 multiprocessing. Default is 1 (no multiprocessing).
+            extrapolation: Extrapolation scheme to use for
+                improving accuracy. Supported: "richardson" or None (no
+                extrapolation). Default is None.
+            levels: Number of levels for Richardson extrapolation.
+                Ignored if `extrapolation` is None. Default is None.
 
         Returns:
             The estimated derivative. Returns a float for
@@ -127,30 +145,38 @@ class FiniteDifferenceDerivative:
         """
         if stepsize <= 0:
             raise ValueError("stepsize must be positive.")
-
         self._validate_supported_combo(num_points, order)
 
-        offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
-        key = (num_points, order)
-        if key not in coeffs_table:
-            msg = (f"[FiniteDifference] Internal table missing coefficients for "
-                   f"stencil={num_points}, order={order}. This combo is not yet implemented "
-                   "in this build.")
-            self._log(msg)
-            raise ValueError(msg)
+        if extrapolation is None:
+            return self._single_finite(order, stepsize, num_points, n_workers)
 
-        stencil = np.array([self.x0 + i * stepsize for i in offsets[num_points]], dtype=float)
+        if extrapolation == "richardson":
+            # if user passed explicit levels, use fixed; otherwise adaptive
+            if levels is not None:
+                base_values = []
+                h = float(stepsize)
+                key = (num_points, order)
+                p = _TRUNCATION_ORDER.get(key)
+                if p is None:
+                    raise ValueError(
+                        f"Richardson extrapolation not configured for stencil {key}."
+                    )
+                for _ in range(levels):
+                    base_values.append(
+                        self._single_finite(order, h, num_points, n_workers)
+                    )
+                    h /= 2.0
+                return richardson_extrapolate(base_values, p=p, r=2.0)
 
-        # Daemon-safe evaluation (threads, not processes)
-        values = self._eval_points(stencil, n_workers=n_workers)
+            # adaptive mode
+            return self._finite_with_richardson(
+                order=order,
+                stepsize=stepsize,
+                num_points=num_points,
+                n_workers=n_workers,
+            )
 
-        # If scalar outputs, shape to (n,1) so matmul works the same for vector outputs
-        if values.ndim == 1:
-            values = values.reshape(-1, 1)
-
-        # Combine with coefficients to form derivative estimate
-        derivs = values.T @ coeffs_table[key]
-        return derivs.ravel() if derivs.size > 1 else float(derivs.item())
+        raise ValueError(f"Unknown extrapolation scheme: {extrapolation!r}")
 
     def get_finite_difference_tables(
             self,
@@ -191,6 +217,129 @@ class FiniteDifferenceDerivative:
         }
 
         return offsets, coeffs_table
+
+    def _single_finite(
+        self,
+        order: int,
+        stepsize: float,
+        num_points: int,
+        n_workers: int,
+    ) -> np.ndarray | float:
+        """Compute one finite-difference derivative estimate for given step size h.
+
+        Args:
+            order: The order of the derivative to compute.
+            stepsize: Step size (h) used to evaluate the function around the central value.
+            num_points: Number of points in the finite difference stencil.
+            n_workers: Number of workers to use in multiprocessing.
+
+        Returns:
+            The estimated derivative. Returns a float for scalar-valued functions,
+            or a NumPy array for vector-valued functions.
+
+
+        """
+        offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
+        key = (num_points, order)
+        if key not in coeffs_table:
+            msg = (f"[FiniteDifference] Internal table missing coefficients for "
+                   f"stencil={num_points}, order={order}.")
+            self._log(msg)
+            raise ValueError(msg)
+
+        stencil = np.array(
+            [self.x0 + i * stepsize for i in offsets[num_points]],
+            dtype=float,
+        )
+
+        values = eval_points(self.function, stencil, n_workers=n_workers)
+
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+
+        derivs = values.T @ coeffs_table[key]
+        return derivs.ravel() if derivs.size > 1 else float(derivs.item())
+
+    def _finite_with_richardson(
+            self,
+            order: int,
+            stepsize: float,
+            num_points: int,
+            n_workers: int,
+            max_levels: int = 6,
+            min_levels: int = 2,
+            r: float = 2.0,
+            rtol: float = 1e-8,
+            atol: float = 1e-12,
+    ):
+        """Finite difference with adaptive Richardson extrapolation.
+
+        This is a helper method that performs finite difference derivative
+        estimation using Richardson extrapolation to improve accuracy. It
+        adaptively refines the step size until convergence criteria are met.
+
+        Args:
+            order: The order of the derivative to compute.
+            stepsize: Initial step size (h) for the finite difference.
+            num_points: Number of points in the finite difference stencil.
+            n_workers: Number of workers to use in multiprocessing.
+            max_levels: Maximum number of refinement levels.
+            min_levels: Minimum number of levels before checking convergence.
+            r: Step size reduction factor between levels.
+            rtol: Relative tolerance for convergence.
+            atol: Absolute tolerance for convergence.
+
+        Returns:
+            The estimated derivative after Richardson extrapolation.
+        """
+        key = (num_points, order)
+        p = _TRUNCATION_ORDER.get(key)
+        if p is None:
+            raise ValueError(
+                f"Richardson extrapolation not configured for stencil {key}."
+            )
+
+        base_values: list[np.ndarray | float] = []
+        h = float(stepsize)
+
+        best = None
+        best_est = None
+
+        for level in range(max_levels):
+            # 1) add new base approximation at current h
+            val = self._single_finite(order, h, num_points, n_workers)
+            base_values.append(val)
+            h /= r
+
+            # 2) need at least min_levels to start extrapolating
+            if level + 1 < min_levels:
+                continue
+
+            # current Richardson estimate using all accumulated levels
+            est = richardson_extrapolate(base_values, p=p, r=r)
+
+            if best_est is None:
+                best_est = est
+                best = est
+                continue
+
+            # 3) check convergence: if new estimate close to previous best, stop
+            diff = np.max(np.abs(np.asarray(est) - np.asarray(best_est)))
+            scale = np.max(
+                [1.0, np.max(np.abs(np.asarray(est))), np.max(np.abs(np.asarray(best_est)))]
+            )
+            if diff <= atol + rtol * scale:
+                return est  # converged
+
+            # 4) optional: if it blows up badly, bail out and return previous best
+            if diff > 10.0 * (atol + rtol * scale):
+                return best  # unstable refinement; trust previous
+
+            best_est = est
+            best = est
+
+        # If we never hit the convergence criteria, return the last/best estimate.
+        return best_est if best_est is not None else base_values[-1]
 
     def _log(self, msg: str) -> None:
         """Logs a message to stderr and optionally to a log file.
@@ -247,23 +396,3 @@ class FiniteDifferenceDerivative:
             )
             self._log(msg)
             raise ValueError(msg)
-
-    @staticmethod
-    def _cap_workers(n_workers: int | None, n_tasks: int) -> int:
-        """Clamp worker count to sensible bounds."""
-        if not n_workers or n_workers <= 1:
-            return 1
-        return max(1, min(int(n_workers), int(n_tasks)))
-
-    def _eval_points(self, xs: np.ndarray, *, n_workers: int | None) -> np.ndarray:
-        """Evaluate function on a batch of points (daemon-safe: threads, not processes)."""
-        # Respect outer/inner policy from DerivKit concurrency utils
-        outer = resolve_inner_from_outer(n_workers)
-        outer = self._cap_workers(outer, len(xs))
-
-        if outer <= 1:
-            vals = [self.function(float(x)) for x in xs]
-        else:
-            args = [(float(x),) for x in xs]  # parallel_execute expects tuples
-            vals = parallel_execute(lambda x: self.function(x), args, outer_workers=outer)
-        return np.asarray(vals, dtype=float)
