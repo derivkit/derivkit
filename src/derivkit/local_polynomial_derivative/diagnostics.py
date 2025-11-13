@@ -6,8 +6,8 @@ from typing import Any, Dict
 
 import numpy as np
 
-from .fit import design_matrix
-from .local_poly_config import LocalPolyConfig
+from derivkit.local_polynomial_derivative.fit import design_matrix
+from derivkit.local_polynomial_derivative.local_poly_config import LocalPolyConfig
 
 __all = ["make_diag"]
 
