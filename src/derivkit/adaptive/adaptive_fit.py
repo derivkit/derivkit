@@ -161,7 +161,12 @@ class AdaptiveFitDerivative:
         )
         bad, msg = fit_is_obviously_bad(metrics)
         if bad:
-            print(msg + " Suggestions: " + " ".join(suggestions))
+            pretty_suggestions = "\n  ".join(suggestions)
+            print(
+                msg
+                + "\nTo improve this derivative, try:\n  "
+                + pretty_suggestions
+            )
 
         # 4) Derivative (mode-aware pullback)
         deriv = pullback_derivative_from_fit(

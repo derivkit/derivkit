@@ -294,20 +294,29 @@ def fit_is_obviously_bad(metrics: dict) -> tuple[bool, str]:
         This is a soft, non-fatal screen for diagnostics/logging. Callers decide how to
         react (warn, rebuild grid, widen spacing, add samples, increase ridge, etc.).
     """
-    th = metrics["thresholds"]
+    th = metrics.get("thresholds", {})
+
+    rrms_rel = float(metrics.get("rrms_rel", 0.0))
+    loo_rel = float(metrics.get("loo_rel", 0.0))
+    cond_vdm = float(metrics.get("cond_vdm", 0.0))
+    deriv_rel = float(metrics.get("deriv_rel", 0.0))
+
+    # Only mark as bad when we're off by orders of magnitude vs nominal.
     is_bad = (
-        metrics["rrms_rel"] > 5 * th["rrms_rel"]
-        or metrics["loo_rel"] > 5 * th["loo_rel"]
-        or metrics["cond_vdm"] > 10 * th["cond_vdm"]
-        or metrics["deriv_rel"] > 5 * th["deriv_rel"]
+            rrms_rel > max(10.0 * th.get("rrms_rel", 1e-3), 1e-2)
+            or loo_rel > max(10.0 * th.get("loo_rel", 1e-3), 1e-2)
+            or cond_vdm > max(10.0 * th.get("cond_vdm", 1e8), 1e12)
+            or deriv_rel > max(10.0 * th.get("deriv_rel", 5e-3), 0.1)
     )
-    msg = ""
-    if is_bad:
-        msg = (
-            "Polynomial fit looks unstable: "
-            f"rrms_rel={metrics['rrms_rel']:.2e}, "
-            f"loo_rel={metrics['loo_rel']:.2e}, "
-            f"cond_vdm={metrics['cond_vdm']:.2e}, "
-            f"deriv_rel={metrics['deriv_rel']:.2e}."
-        )
-    return is_bad, msg
+
+    if not is_bad:
+        return False, ""
+
+    msg = (
+        "Adaptive polynomial fit at this point looks numerically unstable. "
+        f"(rrms_rel={rrms_rel:.2e}, "
+        f"loo_rel={loo_rel:.2e}, "
+        f"cond_vdm={cond_vdm:.2e}, "
+        f"deriv_rel={deriv_rel:.2e})"
+    )
+    return True, msg

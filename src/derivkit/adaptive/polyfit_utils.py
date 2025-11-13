@@ -248,35 +248,75 @@ def assess_polyfit_quality(
     sing_vals = npl.svd(design, compute_uv=False)
     cond_vdm = float((sing_vals[0] / sing_vals[-1]) if sing_vals[-1] > 0 else np.inf)
 
-    # derivative stability vs one-degree-lower refit
+    # derivative stability vs lower-degree refit
     deriv_rel = 0.0
-    if deg >= max(order, 1) + 1:
-        design_m = design[:, :deg]  # degree-1 design
-        gram_m = design_m.T @ design_m + ridge * np.eye(deg)
-        gram_m_inv = npl.pinv(gram_m) if ridge == 0.0 else npl.inv(gram_m)
-        coeffs_m = (gram_m_inv @ design_m.T @ y)  # (deg, m)
+    step_down = 2  # compare deg vs deg-2 for a stronger signal
+    if deg >= max(order, 1) + step_down:
+        deg_low = deg - step_down
+        design_low = design[:, :deg_low + 1]
+        gram_low = design_low.T @ design_low + ridge * np.eye(deg_low + 1)
+        gram_low_inv = npl.pinv(gram_low) if ridge == 0.0 else npl.inv(gram_low)
+        coeffs_low = gram_low_inv @ design_low.T @ y
 
-        deriv_full = extract_derivative(coeffs, order, factor)  # shape (m,)
-        deriv_minus = extract_derivative(coeffs_m, order, factor)  # shape (m,)
-        num = np.max(np.abs(deriv_full - deriv_minus))
+        deriv_full = extract_derivative(coeffs, order, factor)
+        deriv_low = extract_derivative(coeffs_low, order, factor)
+
+        num = np.max(np.abs(deriv_full - deriv_low))
         den = np.max(np.abs(deriv_full)) + 1e-12
         deriv_rel = float(num / den)
 
     # heuristic thresholds
     th = {"rrms_rel": 5e-4, "loo_rel": 1e-3, "cond_vdm": 1e8, "deriv_rel": 5e-3}
 
-    # suggestions
+    # user-facing, concrete suggestions
     suggestions: list[str] = []
+
+    # 1) Residuals too large: polynomial not matching data well.
     if rrms_rel > th["rrms_rel"] or loo_rel > th["loo_rel"]:
-        suggestions.append("Increase sampling half-width via `spacing` to spread nodes.")
-        suggestions.append("Add a few points (n_points) up to the Chebyshev cap, or pass an explicit grid.")
+        suggestions.append(
+            "- Use a wider sampling window: increase `spacing` "
+            "(e.g. from '2%' to '4%' or multiply your numeric spacing by 2)."
+        )
+        suggestions.append(
+            "- Use more sample points: increase `n_points` by ~4–8 "
+            "(up to the documented Chebyshev cap, e.g. 20–30)."
+        )
+        suggestions.append(
+            "- If the function is noisy, add a small `ridge` (e.g. 1e-8–1e-4)."
+        )
+
+    # 2) Vandermonde badly conditioned: grid/degree combo is numerically fragile.
     if cond_vdm > th["cond_vdm"]:
-        suggestions.append("Increase `ridge` (e.g., ×10) to stabilize the fit.")
-        suggestions.append("Widen `spacing` to reduce node crowding near zero.")
+        suggestions.append(
+            "- Add light regularization: try `ridge=1e-8` or `ridge=1e-6`."
+        )
+        suggestions.append(
+            "- Slightly widen `spacing` so nodes are less clustered."
+        )
+        suggestions.append(
+            "- If you passed a custom grid, try fewer extreme points or a "
+            "more symmetric set around `x0`."
+        )
+
+    # 3) Derivative changes a lot when degree changes: overfitting / not enough info.
     if deriv_rel > th["deriv_rel"]:
-        suggestions.append("Use a slightly higher degree (add 2–4 points) or widen `spacing`.")
+        suggestions.append(
+            "- Increase `n_points` to give the fit more information "
+            "(for example from 10 → 16 or 20)."
+        )
+        suggestions.append(
+            "- Slightly widen `spacing` so the polynomial sees a smoother neighborhood."
+        )
+        suggestions.append(
+            "- If this still triggers, consider using `method='polyfit'` for this "
+            "derivative as a safer fallback."
+        )
+
     if not suggestions:
-        suggestions.append("Fit looks numerically healthy.")
+        suggestions.append(
+            "- No obvious numerical issues detected; the adaptive fit looks stable "
+            "for this configuration. Congratulations!"
+        )
 
     metrics: dict[str, float | dict[str, float]] = {
         "rrms_rel": rrms_rel,
@@ -289,7 +329,7 @@ def assess_polyfit_quality(
 
 
 def fit_with_headroom_and_maybe_minimize(
-    u: np.ndarray, y: np.ndarray, *, order: int, mode: str, ridge: float, factor: float
+    u: np.ndarray, y: np.ndarray, *, order: int, mode: str, ridge: float, factor: float, deg_cap: int = 8
 ) -> tuple[np.ndarray, np.ndarray, int]:
     """Perform a polynomial fit with headroom and optionally prefer minimal degree.
 
@@ -306,6 +346,7 @@ def fit_with_headroom_and_maybe_minimize(
         Determines whether additional pullback corrections are applied when comparing fits.
       ridge: Ridge regularization parameter applied in the least-squares fit.
       factor: Scaling factor relating physical offsets to scaled ones (``t = u * factor``).
+      deg_cap: Maximum allowed polynomial degree (default 8).
 
     Returns:
       Tuple[np.ndarray, np.ndarray, int]:
@@ -324,32 +365,66 @@ def fit_with_headroom_and_maybe_minimize(
           (a) the lower-degree fit has negligible residuals (``rrms < 5e-15``), and
           (b) its derivatives match the higher-degree fit within absolute tolerance 1e-9.
     """
+    u = np.asarray(u, dtype=float)
+    y = np.asarray(y, dtype=float)
+
     n_eff = u.size
+    if n_eff < 2:
+        raise ValueError("Need at least 2 samples for polynomial fit.")
+    if y.ndim != 2 or y.shape[0] != n_eff:
+        raise ValueError("y must have shape (n_points, n_components).")
+
+    # Required degree: sqrt-mode needs more for pullback.
     deg_req = (2 * order) if (mode == "sqrt") else order
+
+    # Headroom, matching the original intent.
     extra_need = 4 if (mode == "sqrt" and order == 2) else 2
-    deg_hi = min(deg_req + extra_need, (n_eff - 1) // 2)
+    deg_max_raw = deg_req + extra_need
 
-    c_hi, rrms_hi = fit_multi_power(u, y, deg_hi, ridge=ridge)
-    deg_used = deg_hi
+    # Hard cap + overdetermined constraint: keep design safe.
+    deg_max = min(deg_max_raw, (n_eff - 1) // 2, deg_cap)
 
-    if deg_hi > deg_req and order >= 3:
-        c_min, rrms_min = fit_multi_power(u, y, deg_req, ridge=ridge)
-        if np.all(rrms_min < 5e-15):
-            return c_min, rrms_min, deg_req
+    if deg_max < deg_req:
+        deg_max = deg_req  # should be safe due to min-sample logic upstream
 
-        pull_hi = pullback_derivative_from_fit(
-            mode=mode, order=order, coeffs=c_hi, factor=factor,
-            x0=0.0, sign_used=(+1.0 if mode == "sqrt" else None)
-        )
-        pull_min = pullback_derivative_from_fit(
-            mode=mode, order=order, coeffs=c_min, factor=factor,
-            x0=0.0, sign_used=(+1.0 if mode == "sqrt" else None)
-        )
+    # Choose a numerically stable degree in [deg_req, deg_max].
+    deg_used = _choose_stable_degree(u, deg_req, deg_max, cond_max=1e8)
 
-        if np.allclose(pull_hi, pull_min, rtol=0.0, atol=1e-9):
-            return c_min, rrms_min, deg_req
+    # Fit at the chosen degree.
+    coeffs, rrms = fit_multi_power(u, y, deg_used, ridge=ridge)
 
-    return c_hi, rrms_hi, deg_used
+    # For order 1–2 we KEEP the higher-degree fit for accuracy.
+    # Only for higher-order derivatives do we consider collapsing.
+    if deg_used > deg_req and order >= 3:
+        try:
+            coeffs_min, rrms_min = fit_multi_power(u, y, deg_req, ridge=ridge)
+
+            d_hi = pullback_derivative_from_fit(
+                mode=mode,
+                order=order,
+                coeffs=coeffs,
+                factor=factor,
+                x0=0.0,
+                sign_used=(+1.0 if mode == "sqrt" else None),
+            )
+            d_min = pullback_derivative_from_fit(
+                mode=mode,
+                order=order,
+                coeffs=coeffs_min,
+                factor=factor,
+                x0=0.0,
+                sign_used=(+1.0 if mode == "sqrt" else None),
+            )
+
+            num = np.max(np.abs(d_hi - d_min))
+            den = np.max(np.abs(d_hi)) + 1e-12
+            if num / den < 5e-3:
+                return coeffs_min, rrms_min, deg_req
+        except Exception:
+            # If anything goes odd, keep the original stable fit.
+            pass
+
+    return coeffs, rrms, deg_used
 
 
 def pullback_derivative_from_fit(
@@ -400,3 +475,39 @@ def pullback_derivative_from_fit(
         return sqrt_derivatives_to_x_at_zero(2, s, g4=g4)
 
     return extract_derivative(coeffs, order, factor)
+
+
+def _choose_stable_degree(u: np.ndarray,
+                          deg_min: int,
+                          deg_max: int,
+                          cond_max: float = 1e8) -> int:
+    """Picks the highest degree of a Vandermonde matrix with acceptable condition number.
+
+    This utility inspects the Vandermonde matrix for degrees from deg_max down to
+    deg_min, returning the highest degree whose condition number is below cond_max. If
+    no degree in the range meets the condition number criterion, deg_min (or 0 if
+    deg_min < 0) is returned.
+
+    Args:
+        u: 1D array of scaled independent variable values (offsets).
+        deg_min: Minimum degree to consider (integer, >= 0).
+        deg_max: Maximum degree to consider (integer, >= deg_min).
+        cond_max: Maximum acceptable condition number (default 1e8).
+
+    Returns:
+        int: Chosen polynomial degree.
+    """
+    u = np.asarray(u, dtype=float)
+    if deg_max < deg_min:
+        return max(deg_min, 0)
+
+    best = deg_min
+    for deg in range(deg_max, deg_min - 1, -1):
+        vander = _vandermonde(u, deg)
+        s = np.linalg.svd(vander, compute_uv=False)
+        if s[-1] <= 0.0:
+            continue
+        cond = s[0] / s[-1]
+        if np.isfinite(cond) and cond <= cond_max:
+            return deg  # as soon as we find a stable high degree
+    return best
