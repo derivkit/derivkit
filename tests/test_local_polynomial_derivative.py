@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from functools import partial
 
 import numpy as np
@@ -40,7 +39,7 @@ def poly_function(x: float, coeffs, degree: int) -> float:
 
 def noisy_edge_sine(x: float, x0: float) -> float:
     """A noisy sine function with perturbations at the edges."""
-    val = math.sin(x)
+    val = np.sin(x)
     if abs(x - x0) > 0.1:
         val += 5e-2
     return val
@@ -113,9 +112,9 @@ def test_smooth_functions_orders_1_to_3(name, f, df2, df3, x0):
     )
 
     if name == "sin":
-        d1_true = math.cos(x0)
+        d1_true = np.cos(x0)
     else:
-        d1_true = math.exp(x0)
+        d1_true = np.exp(x0)
 
     d2_true = float(df2(x0))
     d3_true = float(df3(x0))
@@ -132,7 +131,7 @@ def test_smooth_functions_orders_1_to_3(name, f, df2, df3, x0):
         (d3, d3_true, diag3, 3),
     ]:
         est = float(est)
-        assert math.isfinite(est), f"{name} order {order} @ x0={x0}: non-finite est, diag={diag}"
+        assert np.isfinite(est), f"{name} order {order} @ x0={x0}: non-finite est, diag={diag}"
         err = _rel_err(est, truth)
         # Baseline target: comfortably better than 1e-4
         assert err < 1e-4, (
@@ -163,7 +162,7 @@ def test_trimming_shaves_bad_edges():
     lp = LocalPolynomialDerivative(f_noisy, x0, config=config)
     d1, diag = lp.differentiate(order=1, diagnostics=True)
 
-    g_true = math.cos(x0)
+    g_true = np.cos(x0)
     err = _rel_err(float(d1), g_true)
 
     assert diag["ok"], f"Expected ok after trimming or stable fit; diag={diag}"
