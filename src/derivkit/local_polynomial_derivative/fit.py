@@ -72,9 +72,19 @@ def trimmed_polyfit(
             The degree of the polynomial to fit.
 
     Returns:
-        coeffs : (degree+1, n_comp)
-        used_mask : (n_samples,) bool
-        ok : bool (True if residuals within tolerances on final mask)
+        coeffs:
+            The fitted polynomial coefficients. Each column corresponds to
+            one output component of ``ys``, and row ``k`` contains the
+            coefficient of the ``x^k`` term (or ``(x−x0)^k`` if centering is
+            enabled).
+        used_mask:
+            A boolean array indicating which sample points were kept after
+            trimming. ``True`` means the point was used in the final fit.
+        ok:
+            ``True`` if, after trimming, all remaining sample points satisfied
+            the residual tolerances defined in ``config``. ``False`` means the
+            loop stopped due to hitting trimming limits or minimum-sample
+            constraints.
     """
     n_samples, n_comp = ys.shape
     keep = np.ones(n_samples, dtype=bool)
