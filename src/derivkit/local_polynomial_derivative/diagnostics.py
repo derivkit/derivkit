@@ -9,10 +9,10 @@ import numpy as np
 from derivkit.local_polynomial_derivative.fit import design_matrix
 from derivkit.local_polynomial_derivative.local_poly_config import LocalPolyConfig
 
-__all = ["make_diag"]
+__all = ["make_diagnostics"]
 
 
-def make_diag(
+def make_diagnostics(
     x0: float,
     config: LocalPolyConfig,
     xs: np.ndarray,

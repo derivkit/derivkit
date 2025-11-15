@@ -6,7 +6,7 @@ from __future__ import annotations
 import math
 from typing import Any, Callable
 
-from .diagnostics import make_diag
+from .diagnostics import make_diagnostics
 from .fit import trimmed_polyfit
 from .local_poly_config import LocalPolyConfig
 from .sampling import build_samples
@@ -96,7 +96,7 @@ class LocalPolynomialDerivative:
         if not diagnostics:
             return deriv_out
 
-        diag = make_diag(
+        diag = make_diagnostics(
             self.x0,
             self.config,
             xs,
