@@ -26,8 +26,9 @@ class LocalPolynomialDerivative:
 
         Args:
             func:
-                The function for which to estimate derivatives. It should take a float
-                and return a scalar or np.ndarray.
+                Function to differentiate. It should take a float and return either
+                a scalar or a NumPy array (vector or tensor); derivatives are
+                computed componentwise with the same output shape.
             x0:
                 The point at which to estimate the derivative.
             config:
@@ -51,7 +52,7 @@ class LocalPolynomialDerivative:
         and trimming away samples whose residuals are inconsistent with the fit.
         Once a stable local polynomial is obtained, the k-th derivative is read off
         directly from the coefficient of the fitted polynomial (``k! * a_k``). The
-        method works for scalar or vector-valued functions, and can optionally return
+        method works for scalar or vector/tensor-valued functions, and can optionally return
         a diagnostics dictionary showing which samples were used, how trimming
         behaved, and whether the final fit passed all internal checks.
 
