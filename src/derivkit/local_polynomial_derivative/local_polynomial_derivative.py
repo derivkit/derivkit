@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Local polynomial-regression derivative estimator."""
 
 from __future__ import annotations
