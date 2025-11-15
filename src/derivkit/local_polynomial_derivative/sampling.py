@@ -63,6 +63,7 @@ def build_samples(
     else:
         def _eval_one(x):
             return np.atleast_1d(func(float(x)))
+
         with ThreadPoolExecutor(max_workers=n_workers) as ex:
             ys_list = list(ex.map(_eval_one, xs))
 
