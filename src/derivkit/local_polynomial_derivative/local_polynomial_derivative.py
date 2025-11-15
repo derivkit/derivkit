@@ -5,10 +5,12 @@ from __future__ import annotations
 import math
 from typing import Any, Callable
 
-from .diagnostics import make_diagnostics
-from .fit import trimmed_polyfit
-from .local_poly_config import LocalPolyConfig
-from .sampling import build_samples
+from derivkit.local_polynomial_derivative.diagnostics import make_diagnostics
+from derivkit.local_polynomial_derivative.fit import trimmed_polyfit
+from derivkit.local_polynomial_derivative.local_poly_config import (
+    LocalPolyConfig,
+)
+from derivkit.local_polynomial_derivative.sampling import build_samples
 
 
 class LocalPolynomialDerivative:
