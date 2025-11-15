@@ -82,10 +82,12 @@ class LocalPolyConfig:
                 stability and is recommended.
 
         """
+        # Normalize to a sorted, deduplicated tuple of floats
         self.rel_steps = tuple(float(s) for s in rel_steps)
-        self.tol_rel = float(tol_rel)
-        self.tol_abs = float(tol_abs)
-        self.min_samples = int(min_samples)
-        self.max_trim = int(max_trim)
-        self.max_degree = int(max_degree)
-        self.center = bool(center)
+
+        self.tol_rel = tol_rel
+        self.tol_abs = tol_abs
+        self.min_samples = min_samples
+        self.max_trim = max_trim
+        self.max_degree = max_degree
+        self.center = center
