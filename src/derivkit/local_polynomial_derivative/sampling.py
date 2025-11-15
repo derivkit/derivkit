@@ -33,15 +33,12 @@ def build_samples(
             Number of parallel workers for function evaluation.
 
     Returns:
-        xs:
-            an array of sample points (shape (n_samples,)).
-        ys:
-            an array of function evaluations (shape (n_samples, n_components)).
+        xs: An array of sample points (shape (n_samples,)).
+        ys: An array of function evaluations (shape (n_samples, n_components)).
 
     Raises:
         ValueError:
             if rel_steps in config is not a 1D non-empty sequence of floats.
-
     """
     rel_steps = np.asarray(config.rel_steps, float)
     if rel_steps.ndim != 1 or rel_steps.size == 0:
