@@ -48,7 +48,7 @@ def trimmed_polyfit(
     xs: np.ndarray,
     ys: np.ndarray,
     degree: int,
-) -> Tuple[np.ndarray, np.ndarray, bool]:
+) -> tuple[np.ndarray, np.ndarray, bool]:
     """Returns a polynomial fit with trimmed outliers.
 
     This method fits a polynomial of the specified degree to the provided samples
