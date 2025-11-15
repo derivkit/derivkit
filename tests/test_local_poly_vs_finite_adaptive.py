@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import inspect
-import math
 
 import numpy as np
 import pytest
@@ -148,8 +147,8 @@ def test_local_poly_vs_finite_and_adaptive(name, f, df, d2f, grid):
         h_lp, diag2 = lp.differentiate(order=2, diagnostics=True)
 
         # sanity: shouldn't blow up
-        assert math.isfinite(float(g_lp)), f"[local_poly] non-finite g @ {name}, x0={x0}"
-        assert math.isfinite(float(h_lp)), f"[local_poly] non-finite h @ {name}, x0={x0}"
+        assert np.isfinite(g_lp), f"[local_poly] non-finite g @ {name}, x0={x0}"
+        assert np.isfinite(h_lp), f"[local_poly] non-finite h @ {name}, x0={x0}"
 
         # accuracy vs analytic (looser than finite/adaptive but still strong)
         assert _rel_err(g_lp, g_true) < rtol_local or abs(g_lp - g_true) < 1e-8, \
