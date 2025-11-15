@@ -44,10 +44,16 @@ class LocalPolynomialDerivative:
         n_workers: int = 1,
         diagnostics: bool = False,
     ):
-        """Estimates the derivative of specified order at x0 using local polynomial regression.
+        """Local polynomial-regression derivative estimator.
 
-        This method fits a local polynomial to samples of the function around x0,
-        trims outliers based on residuals, and extracts the derivative from the fitted polynomial.
+        This class estimates derivative at ``x0`` by sampling the function in a
+        small neighborhood around that point, fitting a polynomial to those samples,
+        and trimming away samples whose residuals are inconsistent with the fit.
+        Once a stable local polynomial is obtained, the k-th derivative is read off
+        directly from the coefficient of the fitted polynomial (``k! * a_k``). The
+        method works for scalar or vector-valued functions, and can optionally return
+        a diagnostics dictionary showing which samples were used, how trimming
+        behaved, and whether the final fit passed all internal checks.
 
         Args:
             order:
