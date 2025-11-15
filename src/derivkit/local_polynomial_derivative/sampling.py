@@ -18,7 +18,7 @@ def build_samples(
     config: LocalPolyConfig,
     n_workers: int = 1,
 ):
-    """Builds sample points and evaluates the function there.
+    """Builds sample points for a function around a central value.
 
     Args:
         func:
