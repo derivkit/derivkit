@@ -6,7 +6,9 @@ from typing import Tuple
 
 import numpy as np
 
-from derivkit.local_polynomial_derivative.local_poly_config import LocalPolyConfig
+from derivkit.local_polynomial_derivative.local_poly_config import (
+    LocalPolyConfig,
+)
 
 __all__ = ["design_matrix", "trimmed_polyfit"]
 

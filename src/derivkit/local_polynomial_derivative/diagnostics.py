@@ -7,7 +7,9 @@ from typing import Any, Dict
 import numpy as np
 
 from derivkit.local_polynomial_derivative.fit import design_matrix
-from derivkit.local_polynomial_derivative.local_poly_config import LocalPolyConfig
+from derivkit.local_polynomial_derivative.local_poly_config import (
+    LocalPolyConfig,
+)
 
 __all = ["make_diagnostics"]
 
@@ -17,7 +19,7 @@ def make_diagnostics(
     config: LocalPolyConfig,
     xs: np.ndarray,
     ys: np.ndarray,
-    keep: np.ndarray,
+    used: np.ndarray,
     coeffs: np.ndarray,
     degree: int,
     order: int,
@@ -34,7 +36,7 @@ def make_diagnostics(
             An array of sample points (shape (n_samples,)).
         ys:
             An array of function evaluations (shape (n_samples, n_components)).
-        keep:
+        used:
             A boolean array indicating which samples were used (shape (n_samples,)).
         coeffs:
             The polynomial coefficients (shape (degree + 1, n_components)).
@@ -48,8 +50,8 @@ def make_diagnostics(
     Returns:
         A diagnostics dictionary.
     """
-    used_x = xs[keep]
-    used_y = ys[keep]
+    used_x = xs[used]
+    used_y = ys[used]
 
     if used_x.size:
         mat = design_matrix(x0, config, used_x, degree)
@@ -66,7 +68,7 @@ def make_diagnostics(
         "degree": int(degree),
         "order": int(order),
         "n_all": int(xs.size),
-        "n_used": int(keep.sum()),
+        "n_used": int(used.sum()),
         "x_used": used_x.tolist(),
         "max_rel_err_used": max_err,
         "tol_rel": float(config.tol_rel),
