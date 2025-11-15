@@ -93,9 +93,6 @@ class LocalPolynomialDerivative:
         coeffs, used_mask, ok = trimmed_polyfit(self.x0, self.config, xs, ys, degree)
 
         n_comp = coeffs.shape[1]
-        if order > degree:
-            raise ValueError("Internal error: order > degree in derivative extraction.")
-
         factorial = math.factorial(order)
         a_k = coeffs[order]
         deriv = factorial * a_k
