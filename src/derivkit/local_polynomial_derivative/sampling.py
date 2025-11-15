@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .local_poly_config import LocalPolyConfig
+from derivkit.local_polynomial_derivative.local_poly_config import LocalPolyConfig
 
 __all__ = ["build_samples"]
 
