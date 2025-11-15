@@ -22,8 +22,8 @@ def _rel_err(a: float, b: float) -> float:
     return abs(a - b) / d
 
 
-def true_derivative(k: int, x: float, coeffs, degree: int) -> float:
-    """Analytic k-th derivative of p(x) = sum_j coeffs[j] x^j at x."""
+def eval_poly_derivative(k: int, x: float, coeffs, degree: int) -> float:
+    """Analytic-like k-th derivative of p(x) = sum_j coeffs[j] x^j at x."""
     val = 0.0
     for j in range(k, degree + 1):
         factor = 1.0
@@ -72,7 +72,7 @@ def test_polynomial_exact_derivatives(degree, x0):
         lp = LocalPolynomialDerivative(f, float(x0), config=config)
         est, diag = lp.differentiate(order=order, degree=degree, diagnostics=True)
 
-        truth = true_derivative(order, float(x0), coeffs, degree)
+        truth = eval_poly_derivative(order, float(x0), coeffs, degree)
         err = _rel_err(float(est), truth)
 
         # With exact polynomial and sufficient degree, expect near machine precision.
