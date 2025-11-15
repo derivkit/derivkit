@@ -52,6 +52,13 @@ def trimmed_polyfit(
 ) -> Tuple[np.ndarray, np.ndarray, bool]:
     """Returns a polynomial fit with trimmed outliers.
 
+    This method fits a polynomial of the specified degree to the provided samples
+    and iteratively removes sample points whose residuals exceed the configured
+    tolerances. Trimming continues until either all residuals are within tolerance
+    or the maximum number of trims is reached. If trimming can no longer proceed
+    without violating the minimum sample requirement, the last valid fit is
+    returned.
+
     Args:
         x0:
             The center point for polynomial fitting.
