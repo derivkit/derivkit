@@ -47,7 +47,7 @@ def noisy_edge_sine(x: float, x0: float) -> float:
 
 
 def linear_function(x: float, slope: float = 3.5, intercept: float = -2.0) -> float:
-    """Simple linear function."""
+    """Linear function with given slope and intercept."""
     return slope * x + intercept
 
 
