@@ -61,17 +61,15 @@ class LocalPolynomialDerivative:
                 The order of the derivative to estimate (must be >= 1).
             degree:
                 The degree of the polynomial fit. If None, it is set to max(order +
-                2, 3) but capped by config.max_degree.
+                2, 3) but capped by ``config.max_degree``.
             n_workers:
                 The number of parallel workers for function evaluation (must be >= 1).
             diagnostics:
                 If True, returns a diagnostics dictionary along with the derivative estimate.
 
         Returns:
-            If diagnostics is False:
-                The estimated derivative (float or np.ndarray).
-            If diagnostics is True:
-                A tuple (derivative, diagnostics_dict).
+            If diagnostics is False: The estimated derivative (float or np.ndarray).
+            If diagnostics is True: A tuple (derivative, diagnostics_dict).
 
         Raises:
             ValueError:

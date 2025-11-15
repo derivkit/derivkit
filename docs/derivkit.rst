@@ -10,6 +10,7 @@ Subpackages
    derivkit.adaptive
    derivkit.calculus
    derivkit.forecasting
+   derivkit.local_polynomial_derivative
    derivkit.utils
 
 Submodules
