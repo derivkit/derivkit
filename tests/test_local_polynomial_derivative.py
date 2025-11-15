@@ -42,7 +42,7 @@ def noisy_edge_sine(x: float, x0: float) -> float:
     """A noisy sine function with perturbations at the edges."""
     val = math.sin(x)
     if abs(x - x0) > 0.1:
-        val += 5e-2  # strong perturbation at edges
+        val += 5e-2
     return val
 
 
@@ -114,7 +114,7 @@ def test_smooth_functions_orders_1_to_3(name, f, df2, df3, x0):
 
     if name == "sin":
         d1_true = math.cos(x0)
-    else:  # exp
+    else:
         d1_true = math.exp(x0)
 
     d2_true = float(df2(x0))
