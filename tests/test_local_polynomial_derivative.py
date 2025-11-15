@@ -35,8 +35,7 @@ def eval_poly_derivative(k: int, x: float, coeffs, degree: int) -> float:
 
 def poly_function(x: float, coeffs, degree: int) -> float:
     """Polynomial with given coefficients."""
-    xx = float(x)
-    return sum(coeffs[j] * xx**j for j in range(degree + 1))
+    return sum(coeffs[j] * x**j for j in range(degree + 1))
 
 
 def noisy_edge_sine(x: float, x0: float) -> float:
