@@ -78,9 +78,9 @@ class LocalPolynomialDerivative:
                 If order < 1, n_workers < 1, or degree < order.
         """
         if order < 1:
-            raise ValueError("order must be >= 1.")
+            raise ValueError(f"order must be at least 1 but is {order}.")
         if n_workers < 1:
-            raise ValueError("n_workers must be >= 1.")
+            raise ValueError(f"n_workers must be at least 1 but is {n_workers}.")
 
         # Choose polynomial degree with a bit of headroom.
         if degree is None:
