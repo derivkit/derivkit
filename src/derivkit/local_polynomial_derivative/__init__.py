@@ -1,0 +1,1 @@
+"""Local polynomial derivative init."""

@@ -44,6 +44,9 @@ from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
+    LocalPolynomialDerivative,
+)
 
 
 class DerivativeEngine(Protocol):
@@ -69,6 +72,7 @@ class DerivativeEngine(Protocol):
 _METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
     ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad"]),
     ("finite",   FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd"]),
+    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp"]),
 ]
 
 
