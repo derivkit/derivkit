@@ -13,6 +13,7 @@ def build_gaussian_likelihood(
     data: ArrayLike,
     model_parameters: ArrayLike,
     cov: ArrayLike,
+    return_log: bool = False,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
     """Constructs the Gaussian likelihood function.
 
@@ -25,6 +26,8 @@ def build_gaussian_likelihood(
         cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
             or a full 2D covariance matrix. It will be symmetrised and normalized
             internally to ensure compatibility with the data and model_parameters.
+        return_log: when set to ``True``, the function will compute the
+            log-likelihood instead.
 
     Returns:
         A tuple:
@@ -122,7 +125,10 @@ def build_gaussian_likelihood(
     coordinate_grids = np.meshgrid(*_data, indexing="ij")
     coordinate_box = np.dstack(coordinate_grids)
     distribution = multivariate_normal(mean=model_parameters, cov=sigma)
-    return coordinate_grids, distribution.pdf(coordinate_box)
+    probabilities = distribution.logpdf(coordinate_box) \
+        if return_log \
+        else distribution.pdf(coordinate_box)
+    return coordinate_grids, probabilities
 
 
 def build_poissonian_likelihood(
