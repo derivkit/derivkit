@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import partial
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -13,7 +15,7 @@ from derivkit.utils.extrapolation import (
 
 
 def _make_base_values(true_val: float, h0: float, p: int, n: int, r: float = 2.0):
-    """Generate synthetic approximations T + c * h^p."""
+    """Generates synthetic approximations T + c * h^p."""
     c = 2.0
     return [
         true_val + c * (h0 / (r**j)) ** p
@@ -21,13 +23,8 @@ def _make_base_values(true_val: float, h0: float, p: int, n: int, r: float = 2.0
     ]
 
 
-# ---------------------------------------------------------------------------
-# Richardson extrapolation
-# ---------------------------------------------------------------------------
-
-
 def test_richardson_extrapolate_scalar_recovers_true_value():
-    """richardson_extrapolate should cancel the leading error term."""
+    """Tests that richardson_extrapolate should cancel the leading error term."""
     true_val = 3.14
     p = 2
     h0 = 0.1
@@ -41,7 +38,7 @@ def test_richardson_extrapolate_scalar_recovers_true_value():
 
 
 def test_richardson_extrapolate_vector_recovers_true_value_componentwise():
-    """richardson_extrapolate should work on vector inputs."""
+    """Tests that richardson_extrapolate should work on vector inputs."""
     true_vec = np.array([1.0, -2.0, 0.5])
     p = 2
     h0 = 0.05
@@ -60,18 +57,13 @@ def test_richardson_extrapolate_vector_recovers_true_value_componentwise():
 
 
 def test_richardson_extrapolate_raises_on_too_few_values():
-    """richardson_extrapolate should require at least two base values."""
+    """Tests that richardson_extrapolate should require at least two base values."""
     with pytest.raises(ValueError):
         richardson_extrapolate([1.0], p=2, r=2.0)
 
 
-# ---------------------------------------------------------------------------
-# Ridders extrapolation
-# ---------------------------------------------------------------------------
-
-
 def test_ridders_extrapolate_scalar_basic():
-    """ridders_extrapolate returns best value close to true and small error."""
+    """Tests that ridders_extrapolate returns best value close to true and small error."""
     true_val = 0.7
     p = 2
     h0 = 0.1
@@ -83,13 +75,12 @@ def test_ridders_extrapolate_scalar_basic():
     assert isinstance(best, float)
     assert isinstance(err, float)
     assert_allclose(best, true_val, rtol=1e-12, atol=1e-12)
-    # Error should be much smaller than the first-step truncation scale
     first_err_scale = abs(base_values[0] - true_val)
     assert err < first_err_scale
 
 
 def test_ridders_extrapolate_vector_shape_and_type():
-    """ridders_extrapolate should preserve vector shape and return scalar error."""
+    """Tests that ridders_extrapolate should preserve vector shape and return scalar error."""
     true_vec = np.array([1.0, 0.0, -1.0])
     p = 2
     h0 = 0.05
@@ -109,35 +100,34 @@ def test_ridders_extrapolate_vector_shape_and_type():
 
 
 def test_ridders_extrapolate_raises_on_too_few_values():
-    """ridders_extrapolate should require at least two base values."""
+    """Tests that ridders_extrapolate should require at least two base values."""
     with pytest.raises(ValueError):
         ridders_extrapolate([1.0])
+
+
+def _recording_extrapolator(values, *, p, r, calls):
+    """Extrapolator that records how it's being called."""
+    _ = r  # keep argument for API compatibility, avoid "unused" warning
+    calls.append((len(values), p))
+    return values[-1]
 
 
 def test_ridders_extrapolate_uses_custom_extrapolator():
     """Custom extrapolator should be invoked when passed in."""
     calls: list[tuple[int, float]] = []
 
-    def dummy_extrapolator(values, *, p, r):
-        # Record how many values we were given and the p passed in
-        calls.append((len(values), p))
-        # Just return the last value (no actual extrapolation)
-        return values[-1]
-
     base_values = [1.0, 2.0, 3.0, 4.0]
+
+    dummy = partial(_recording_extrapolator, calls=calls)
 
     best, err = ridders_extrapolate(
         base_values,
         r=2.0,
         p=3,
-        extrapolator=dummy_extrapolator,
+        extrapolator=dummy,
     )
 
-    # Ridders should have called the custom extrapolator for j >= 1
-    # so we expect multiple calls with increasing prefix lengths.
     assert len(calls) >= 1
-    # All calls should have received p=3
     assert all(passed_p == 3 for _, passed_p in calls)
-    # With dummy_extrapolator, "best" should be one of the inputs
     assert best in base_values
     assert isinstance(err, float)

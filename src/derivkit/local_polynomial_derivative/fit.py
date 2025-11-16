@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-
 import numpy as np
 
 from derivkit.local_polynomial_derivative.local_poly_config import (
     LocalPolyConfig,
 )
 
-__all__ = ["design_matrix", "trimmed_polyfit"]
+__all__ = [
+    "design_matrix",
+    "trimmed_polyfit",
+    "centered_polyfit_least_squares",
+]
 
 
 def design_matrix(
@@ -143,3 +146,36 @@ def trimmed_polyfit(
         last_ok = False
 
     return last_coeffs, last_keep, last_ok
+
+
+def centered_polyfit_least_squares(
+    x0: float,
+    xs: np.ndarray,
+    ys: np.ndarray,
+    degree: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calculates a plain least-squares polynomial fit in powers of (x - x0).
+
+    Args:
+        x0: Expansion point.
+        xs: Sample locations (1D array-like).
+        ys: Sample values (shape (n_samples,) or (n_samples, n_comp)).
+        degree: Polynomial degree.
+
+    Returns:
+        coeffs: Array of shape (degree+1, n_comp) with coefficients for
+            sum_k a_k (x - x0)^k.
+        used_mask: Boolean mask of length n_samples (all True here).
+    """
+    xs = np.asarray(xs, dtype=float)
+    ys = np.asarray(ys)
+
+    if ys.ndim == 1:
+        ys = ys[:, None]
+
+    t = xs - x0
+    vander = np.vander(t, N=degree + 1, increasing=True)  # (n_samples, degree+1)
+
+    coeffs, *_ = np.linalg.lstsq(vander, ys, rcond=None)
+    used_mask = np.ones(xs.shape[0], dtype=bool)
+    return coeffs, used_mask

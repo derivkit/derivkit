@@ -33,7 +33,7 @@ def make_diagnostics(
         config:
             LocalPolyConfig instance with fitting settings.
         xs:
-            An array of sample points (shape (n_samples,)).
+                An array of sample points (shape (n_samples,)).
         ys:
             An array of function evaluations (shape (n_samples, n_components)).
         used:
