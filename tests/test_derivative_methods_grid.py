@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from functools import partial
+import pytest
 from typing import Any
 
 import numpy as np
-import pytest
 
 from derivkit.derivative_kit import DerivativeKit
 
@@ -33,45 +33,73 @@ def near(a: float, b: float, rtol: float = 1e-8, atol: float = 1e-10) -> bool:
 
 
 # method name + kwargs fed straight into DerivativeKit.differentiate
+# We explicitly cover:
+# - finite (no extrapolation)
+# - finite + Richardson (fixed, adaptive)
+# - finite + Ridders (fixed, adaptive)
+# - local_polynomial
+# - adaptive (global engine)
 METHOD_CONFIGS: list[tuple[str, dict[str, Any]]] = [
     # finite, no extrapolation
-    ("finite",
-        {"stepsize": 1.0e-4,
-         "num_points": 5,
-         "extrapolation": None,},
-    ),
-    # finite + Richardson
     (
         "finite",
         {
-            "stepsize": 1.0e-4,
+            "stepsize": 0.1,
+            "num_points": 5,
+            "extrapolation": None,
+        },
+    ),
+    # finite + Richardson (fixed: uses 'levels')
+    (
+        "finite",
+        {
+            "stepsize": 0.1,
             "num_points": 5,
             "extrapolation": "richardson",
             "levels": 3,
         },
     ),
-    # finite + Ridders
+    # finite + Richardson (adaptive: no 'levels', uses tolerances)
     (
         "finite",
         {
-            "stepsize": 1.0e-4,
+            "stepsize": 0.1,
+            "num_points": 5,
+            "extrapolation": "richardson",
+        },
+    ),
+    # finite + Ridders (fixed: uses 'levels')
+    (
+        "finite",
+        {
+            "stepsize": 0.1,
             "num_points": 5,
             "extrapolation": "ridders",
             "levels": 3,
         },
     ),
-    # local polynomial (tune kwargs to whatever LP expects)
+    # finite + Ridders (adaptive: no 'levels', uses tolerances)
+    (
+        "finite",
+        {
+            "stepsize": 0.1,
+            "num_points": 5,
+            "extrapolation": "ridders",
+            # optional: "max_levels": 6,
+        },
+    ),
+    # local polynomial (baseline)
     (
         "local_polynomial",
         {
             "degree": 5,
         },
     ),
-    # adaptive fit (your default engine)
+    # adaptive fit (global engine)
     (
         "adaptive",
         {
-            # usually it has its own defaults; add kwargs if you want
+            # Add kwargs if your adaptive engine needs them
         },
     ),
 ]
@@ -96,7 +124,6 @@ def test_methods_on_polynomials(
     method_kwargs: dict[str, Any],
 ) -> None:
     """All engines should be accurate on x^p test functions."""
-    # No nested function, no lambda:
     def_fn = partial(poly_function, power=power)
 
     dk = DerivativeKit(def_fn, x0)
@@ -107,6 +134,7 @@ def test_methods_on_polynomials(
     if order == 4:
         atol, rtol = 5e-2, 5e-2
     elif order == 3:
+        # third derivatives are noisier, especially with extrapolation
         atol, rtol = 1e-3, 1e-3
     else:
         atol, rtol = 1e-8, 1e-8
@@ -129,7 +157,7 @@ def test_methods_mutually_consistent(x0: float) -> None:
 
     for method, method_kwargs in METHOD_CONFIGS:
         est = dk.differentiate(method=method, order=order, **method_kwargs)
-        estimates.append((method, est))
+        estimates.append((method, float(est)))
 
     ref_method, ref_value = estimates[0]
     for method, value in estimates[1:]:
