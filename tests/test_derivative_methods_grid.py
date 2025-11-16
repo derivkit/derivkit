@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from functools import partial
-import pytest
 from typing import Any
 
 import numpy as np
+import pytest
 
 from derivkit.derivative_kit import DerivativeKit
 
