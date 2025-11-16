@@ -6,7 +6,7 @@ import multiprocessing as mp
 import numpy as np
 import pytest
 
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative as FD
+from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 
 
 def f_log1p_x2(x: float) -> float:
@@ -55,8 +55,9 @@ def d2f_sin(x: float) -> float:
 @pytest.mark.parametrize("num_points", [5, 7, 9])
 def test_fd_first_derivative_matches_truth(f, df, x0, num_points):
     """Tests that first derivatives computed via FD match analytic first derivatives."""
-    d = FD(f, x0).differentiate(order=1, stepsize=1e-3, num_points=num_points, n_workers=4)
-    assert abs(d - df(x0)) < 1e-6
+    fd = FiniteDifferenceDerivative(f, x0)
+    deriv = fd.differentiate(order=1, stepsize=1e-3, num_points=num_points, n_workers=4)
+    assert abs(deriv - df(x0)) < 1e-6
 
 
 @pytest.mark.parametrize(
@@ -70,14 +71,16 @@ def test_fd_first_derivative_matches_truth(f, df, x0, num_points):
 @pytest.mark.parametrize("num_points", [5, 7, 9])
 def test_fd_second_derivative_matches_truth(f, d2f, x0, num_points):
     """Tests that second derivatives computed via FD match analytic second derivatives."""
-    d2 = FD(f, x0).differentiate(order=2, stepsize=1e-3, num_points=num_points, n_workers=8)
+    fd = FiniteDifferenceDerivative(f, x0)
+    d2 = fd.differentiate(order=2, stepsize=1e-3, num_points=num_points, n_workers=8)
     assert abs(d2 - d2f(x0)) < 1e-5
 
 
 def test_fd_vector_output_componentwise():
     """Tests that FD can handle vector-valued functions."""
     x0 = 0.25
-    got = FD(f_vector, x0).differentiate(order=1, stepsize=1e-3, num_points=5, n_workers=8)
+    fd = FiniteDifferenceDerivative(f_vector, x0)
+    got = fd.differentiate(order=1, stepsize=1e-3, num_points=5, n_workers=8)
     truth = np.array([1.0, 2 * x0, math.cos(x0)], dtype=float)
     assert np.allclose(got, truth, rtol=0, atol=1e-6)
 
@@ -85,7 +88,8 @@ def test_fd_vector_output_componentwise():
 def _daemon_worker(q, x0):
     """Tests that FD works inside a daemon process."""
     try:
-        d = FD(math.sin, x0).differentiate(order=1, stepsize=1e-3, num_points=5, n_workers=8)
+        fd = FiniteDifferenceDerivative(math.sin, x0)
+        d = fd.differentiate(order=1, stepsize=1e-3, num_points=5, n_workers=8)
         q.put(("ok", d))
     except Exception as e:
         q.put(("err", repr(e)))
@@ -108,17 +112,20 @@ def test_fd_parallel_works_inside_daemon_process():
 def test_fd_ordering_stability_linear_function():
     """Tests that FD returns correct derivative on linear function (stability test)."""
     x0 = 0.3
-    d = FD(f_linear, x0).differentiate(order=1, stepsize=1e-3, num_points=9, n_workers=32)
-    assert abs(d - 1.0) < 1e-12
+    fd = FiniteDifferenceDerivative(f_linear, x0)
+    deriv = fd.differentiate(order=1, stepsize=1e-3, num_points=9, n_workers=32)
+    assert abs(deriv - 1.0) < 1e-12
 
 
 def test_fd_rejects_bad_stepsize():
     """Tests that FD rejects non-positive stepsizes."""
     with pytest.raises(ValueError):
-        FD(math.sin, 0.0).differentiate(order=1, stepsize=0.0, num_points=5)
+        fd = FiniteDifferenceDerivative(math.sin, 0.0)
+        fd.differentiate(order=1, stepsize=0.0, num_points=5)
 
 
 def test_fd_rejects_unsupported_combo():
     """Tests that FD rejects unsupported (stencil size, order) combinations."""
     with pytest.raises(ValueError):
-        FD(math.sin, 0.0).differentiate(order=2, stepsize=1e-3, num_points=3)
+        fd = FiniteDifferenceDerivative(math.sin, 0.0)
+        fd.differentiate(order=2, stepsize=1e-3, num_points=3)

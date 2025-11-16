@@ -29,21 +29,17 @@ ISSUE_HINT_RE = re.compile(r"issue\s*#?\s*202", flags=re.I)
         (9, 3), (9, 4),
     ],
 )
-
-
-def test_unsupported_combo_raises_with_issue_hint(num_points, order, tmp_path):
+def test_unsupported_combo_raises_with_issue_hint(num_points, order):
     """Unsupported (num_points, order) combos raise ValueError with hint to issue #202."""
-    d = FiniteDifferenceDerivative(function=f_poly(3), x0=0.1, log_file=str(tmp_path / "fd.log"))
+    d = FiniteDifferenceDerivative(function=f_poly(3), x0=0.1)
+
     with pytest.raises(ValueError) as ei:
         d.differentiate(order=order, stepsize=1e-3, num_points=num_points)
+
     msg = str(ei.value)
-    # Human-friendly hint is present
+    # Human-friendly hint is present in the exception itself
     assert "Not implemented yet" in msg
     assert ISSUE_HINT_RE.search(msg), "Error message should reference issue #202"
-    # Logged to file too
-    log_text = (tmp_path / "fd.log").read_text()
-    assert "Not implemented yet" in log_text
-    assert ISSUE_HINT_RE.search(log_text)
 
 
 def test_invalid_stencil_size_raises():
