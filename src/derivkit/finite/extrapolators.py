@@ -392,7 +392,7 @@ def adaptive_gre_fd(
     This function computes finite-difference estimates at decreasing step sizes,
     builds up sequences of base values and corresponding step sizes, and applies
     Gauss–Richardson extrapolation iteratively until convergence based on the
-    change between successive GRE estimates.
+    change between successive estimates.
 
     Args:
         single_finite: Function that computes a single finite-difference estimate for a given
