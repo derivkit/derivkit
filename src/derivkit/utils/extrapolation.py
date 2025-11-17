@@ -189,7 +189,6 @@ def gauss_richardson_extrapolate(
         raise ValueError("All h_values must be > 0.")
 
     y = np.stack([np.asarray(v, dtype=float) for v in base_values], axis=0)
-    # scalar vs vector handled later; here treat it as (n, ...)
     n = h.size
 
     # Error bound b(h) = h^p
@@ -212,11 +211,10 @@ def gauss_richardson_extrapolate(
     kb = (b[:, None] * b[None, :]) * ke
     kb += jitter * np.eye(n)
 
-    # we thne precompute the matrix-vector product kb^{-1} 1
+    # we then precompute the matrix-vector product kb^{-1} 1
     one = np.ones(n)
     kb_inv_1 = np.linalg.solve(kb, one)
 
-    # Componentwise solve: flatten everything, apply GRE per component
     flat = y.reshape(n, -1)
     means = []
     errs = []
@@ -225,7 +223,7 @@ def gauss_richardson_extrapolate(
     for j in range(flat.shape[1]):
         col = flat[:, j]
 
-        # reuse kb_inv_1 if you like, or recompute:
+        # reuse kb_inv_1 or recompute:
         kb_inv_y = np.linalg.solve(kb, col)
 
         num = float(one @ kb_inv_y)
