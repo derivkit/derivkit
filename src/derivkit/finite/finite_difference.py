@@ -184,7 +184,8 @@ class FiniteDifferenceDerivative:
             return_error: If True, also return an error estimate from the extrapolation
                 (or two-step) routine.
 
-        Returns: The estimated derivative. Returns a float for scalar-valued
+        Returns:
+            The estimated derivative. Returns a float for scalar-valued
             functions, or a NumPy array for vector-valued functions.
 
         Raises: ValueError:
