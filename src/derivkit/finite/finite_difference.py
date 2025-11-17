@@ -193,7 +193,8 @@ class FiniteDifferenceDerivative:
                 If the combination of ``num_points`` and ``order`` is not
                 supported or if an unknown extrapolation scheme is given.
 
-        Notes: The available (num_points, order) combinations are:
+        Notes:
+            The available (num_points, order) combinations are:
                 - 3: order 1
                 - 5: orders 1, 2, 3, 4
                 - 7: orders 1, 2
