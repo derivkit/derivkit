@@ -16,7 +16,7 @@ determined from a set of observables.
 Given:
 
 - parameters
-  ``theta = (θ1, θ2, …)``
+  `` theta = (theta_1, theta_2, …)``
 - a model mapping parameters to observables
   ``m(theta)``
 - a data covariance matrix ``C``
