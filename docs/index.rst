@@ -8,28 +8,98 @@ DerivKit documentation
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User Guide
 
-   modules
+   guide/installation
+   guide/quickstart
+   guide/methods
+   guide/forecasting
+   guide/likelihoods
+   guide/references
    contributing
    team
+   modules
 
-**DerivKit** is a robust Python toolkit for stable numerical derivatives, built for scientific computing, cosmology, and any domain requiring accurate gradients or higher-order expansions.
+What is DerivKit?
+-----------------
 
-It provides:
+**DerivKit** is a modular toolkit for reliable numerical derivatives and the calculations that depend on them.
+It is designed for scientific computing and physics/cosmology, where functions are often noisy, expensive, or non-smooth,
+and standard autodiff cannot be used.
 
-* Adaptive polynomial fitting that excludes noisy points based on residuals,
-* High-order finite differences for accurate stencil-based derivatives,
-* A simple API for comparing both approaches side by side.
 
-Detailed documentation of the toolkit's modules can be found in the sidebar.
+DerivKit is organized into four layers:
+
+.. raw:: html
+
+   <details open>
+   <summary><strong>1. DerivativeKit Layer</strong></summary>
+   <p>Tools for computing stable 1st–Nth derivatives:</p>
+   <ul>
+     <li>Finite differences (3–9 point stencils, Richardson, Ridders, Gauss–Richardson)</li>
+     <li>Simple polynomial fits (local regression)</li>
+     <li>Adaptive local polynomial regression (Chebyshev grid, robust diagnostics)</li>
+     <li>Gaussian Process derivatives (probabilistic fit, in progress)</li>
+     <li>Fornberg analytic weights (in progress)</li>
+     <li>Complex-step derivatives (planned)</li>
+   </ul>
+   </details>
+
+   <details>
+   <summary><strong>2. CalculusKit Layer</strong></summary>
+   <p>Convenience wrappers built on top of the derivative engines:</p>
+   <ul>
+     <li>Gradient</li>
+     <li>Jacobian</li>
+     <li>Hessian</li>
+     <li>Mixed partials</li>
+   </ul>
+   <p>All backends are interchangeable — you can compute a Hessian using adaptive in one call
+   and finite difference in the next.</p>
+   </details>
+
+   <details>
+   <summary><strong>3. ForecastKit Layer</strong></summary>
+   <p>Numerical expansions and likelihood-based inference tools:</p>
+   <ul>
+     <li>Fisher matrices</li>
+     <li>DALI expansions</li>
+     <li>Fisher bias vectors</li>
+     <li>Likelihood wrappers (Gaussian, Poissonian)</li>
+   </ul>
+   <p>The forecasting tools rely on the derivative engines but are fully general — you can use them
+   for any model, not just cosmology.</p>
+   </details>
+
+   <details>
+   <summary><strong>4. LikelihoodKit</strong></summary>
+   <p>Lightweight wrappers for likelihood evaluation:</p>
+   <ul>
+     <li>Gaussian likelihood (with covariance shaping support)</li>
+     <li>Poissonian likelihood (scalar or binned)</li>
+     <li>Sellentin likelihood (planned)</li>
+   </ul>
+   <p>Handles flattening/reshaping data vectors, covariance consistency checks, input validation.</p>
+   </details>
 
 Installation
 ------------
 
-::
+DerivKit is currently distributed from source. To install the latest development
+version:
 
-   pip install derivkit
+.. code-block:: bash
+
+   git clone https://github.com/derivkit-org/derivkit.git
+   cd derivkit
+   pip install -e .
+
+For development (tests, linting, docs build tools), you can install the optional
+extras:
+
+.. code-block:: bash
+
+   pip install -e ".[dev]"
 
 Quick Start
 -----------
@@ -49,39 +119,35 @@ Quick Start
   print("Finite Difference:", dk.differentiate(order=1, method="finite"))
 
 
-Method Overview
----------------
+Derivative Methods
+------------------
 
-The following table summarizes the current and planned derivative engines in **DerivKit**:
+DerivKit provides several interchangeable derivative engines, including finite
+differences, simple polynomial regression, and adaptive Chebyshev polynomial
+fits.
 
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
-| **Method**          | **Status**                  | **Uses / Philosophy**                       | **Notes**                     |
-+=====================+=============================+=============================================+===============================+
-| Finite Difference   | Implemented                 | Local differences — Estimate slope from     | High-order stencils, stable   |
-|                     |                             | nearby points.                              | up to 9-point central schemes.|
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
-| Adaptive Fit        | Implemented                 | Local polynomial regression — Fit a small   | Robust against noise; uses    |
-|                     |                             | local model and read off derivative.        | residual-based trimming.      |
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
-| Gaussian Process    | In Progress                 | Probabilistic interpolation — Fit a         | Uses RBF kernel; fits mean    |
-|                     |                             | stochastic model, then differentiate the    | and variance jointly.         |
-|                     |                             | posterior mean.                             |                               |
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
-| Fornberg (analytic) | In Progress                 | Analytic finite-difference weights from the | Exact stencil construction;   |
-|                     |                             | Fornberg algorithm.                         | used for validation suite.    |
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
-| Complex Step        | Planned                     | Perturb in the complex plane to avoid       | For analytic smooth functions |
-|                     |                             | subtraction error.                          | only.                         |
-+---------------------+-----------------------------+---------------------------------------------+-------------------------------+
+For a detailed comparison, examples, and recommendations on which method to
+use, see :doc:`guide/methods`.
 
 
-Adaptive Fit Example
---------------------
+Cheat Sheet: Choosing the Right Method
+--------------------------------------
 
-Below is a visual example of the :py:mod:`derivkit.adaptive_fit` module estimating the first derivative of a nonlinear function in the presence of noise.
-The method selectively discards outlier points before fitting a polynomial, resulting in a robust and smooth estimate.
-
-.. image:: assets/plots/adaptive_demo_linear_noisy_order1.png
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | **Situation**                | **Recommended Method**       | **Why**                                                |
+   +==============================+==============================+========================================================+
+   | Smooth, cheap function       | Finite Difference            | Fast and accurate for clean functions                  |
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | Slightly noisy function      | Ridders Finite Difference    | Richardson + error control stabilises noise            |
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | Moderate or structured noise | Simple Polynomial Fit        | Local regression smooths noise better than FD          |
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | High noise / messy signal    | Adaptive PolyFit (Chebyshev) | Robust trimming, Chebyshev grid, diagnostics           |
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | Expensive function           | Adaptive PolyFit (Chebyshev) | Fewer evaluations and stable fit around ``x0``         |
+   +------------------------------+------------------------------+--------------------------------------------------------+
+   | Need robustness + diagnostics| Adaptive PolyFit (Chebyshev) | Fit quality metrics, degree adjustment, suggestions    |
+   +------------------------------+------------------------------+--------------------------------------------------------+
 
 
 Citation
