@@ -126,7 +126,11 @@ def parallel_execute(
     with set_inner_derivative_workers(inner_workers):
         if outer_workers > 1:
             with ThreadPoolExecutor(max_workers=outer_workers) as ex:
-                futures = [ex.submit(worker, *args) for args in arg_tuples]
+                futures = []
+                for args in arg_tuples:
+                    # Each task gets its own copy of the current context
+                    ctx = contextvars.copy_context()
+                    futures.append(ex.submit(ctx.run, worker, *args))
                 return [f.result() for f in futures]
         else:
             return [worker(*args) for args in arg_tuples]
