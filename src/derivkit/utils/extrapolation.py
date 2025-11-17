@@ -172,9 +172,11 @@ def gauss_richardson_extrapolate(
         jitter: Small positive value added to the diagonal of the kernel matrix for numerical stability.
             Defaults to 1e-10.
 
-    Returns: A tuple (extrapolated_value, error_estimate) where:
-        - extrapolated_value is the Gauss–Richardson extrapolated estimate at h=0.
-        - error_estimate is a heuristic uncertainty estimate for the extrapolated value.
+    Returns:
+        A tuple (extrapolated_value, error_estimate) where:
+
+          - extrapolated_value is the Gauss–Richardson extrapolated estimate at h=0.
+          - error_estimate is a heuristic uncertainty estimate for the extrapolated value.
 
     Raises:
         ValueError:
