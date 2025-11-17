@@ -56,7 +56,7 @@ class FiniteDifferenceDerivative:
     - 9-point: first and second-order
 
     Examples:
-    --------
+    ---------
     >>> f = lambda x: x**3
     >>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
     >>> d.differentiate(order=2)
@@ -111,6 +111,7 @@ class FiniteDifferenceDerivative:
             extrapolation:
                 Extrapolation scheme to use for improving accuracy. Supported
                 options are:
+
                   * ``None``: no extrapolation (single finite difference).
                   * ``"richardson"``:
                         - fixed-level if ``levels`` is not None

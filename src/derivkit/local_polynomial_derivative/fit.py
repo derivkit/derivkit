@@ -163,9 +163,11 @@ def centered_polyfit_least_squares(
         degree: Polynomial degree.
 
     Returns:
-        coeffs: Array of shape (degree+1, n_comp) with coefficients for
-            sum_k a_k (x - x0)^k.
-        used_mask: Boolean mask of length n_samples (all True here).
+        A tuple containing
+            - An array of shape ``(degree+1, n_comp)`` with coefficients
+                for ``sum_k a_k (x - x0)^k``.
+
+            - A boolean mask of length ``n_samples`` (all `True` here).
     """
     xs = np.asarray(xs, dtype=float)
     ys = np.asarray(ys)
