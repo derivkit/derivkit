@@ -274,6 +274,10 @@ def build_poissonian_likelihood(
     values_to_reshape = np.asarray(data)
     parameters = np.asarray(model_parameters)
 
+    if np.any(values_to_reshape < 0):
+        raise ValueError("values of data must be non-negative.")
+    if np.any(~np.isfinite(values_to_reshape)):
+        raise ValueError("values of data must be finite.")
     if np.any(parameters < 0):
         raise ValueError("values of model_parameters must be non-negative.")
     if np.any(~np.isfinite(parameters)):
