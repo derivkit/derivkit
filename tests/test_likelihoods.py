@@ -188,7 +188,6 @@ class TestGaussOutput:
         expected_output_data,
         expected_output_likelihood
     ):
-
        """Tests that Gaussian log-likelihoods are computed correctly."""
        _, test_likelihood = dkl.build_gaussian_likelihood(
           input_data,

@@ -5,12 +5,18 @@ from __future__ import annotations
 import math
 from typing import Any, Callable
 
+import numpy as np
+
 from derivkit.local_polynomial_derivative.diagnostics import make_diagnostics
-from derivkit.local_polynomial_derivative.fit import trimmed_polyfit
+from derivkit.local_polynomial_derivative.fit import (
+    centered_polyfit_least_squares,
+    trimmed_polyfit,
+)
 from derivkit.local_polynomial_derivative.local_poly_config import (
     LocalPolyConfig,
 )
 from derivkit.local_polynomial_derivative.sampling import build_samples
+from derivkit.utils.numerics import relative_error
 
 
 class LocalPolynomialDerivative:
@@ -88,7 +94,53 @@ class LocalPolynomialDerivative:
             raise ValueError("degree must be >= order.")
 
         xs, ys = build_samples(self.func, self.x0, self.config, n_workers=n_workers)
-        coeffs, used_mask, ok = trimmed_polyfit(self.x0, self.config, xs, ys, degree)
+
+        # First, try the trimmed fit
+        coeffs_trim, used_mask_trim, ok = trimmed_polyfit(
+            self.x0, self.config, xs, ys, degree
+        )
+
+        # Always compute LS fit as a backup / cross-check
+        coeffs_ls, used_mask_ls = centered_polyfit_least_squares(
+            self.x0, xs, ys, degree
+        )
+
+        # Decide which coefficients to trust
+        if not ok:
+            # Trimmed fit failed -> trust LS
+            coeffs = coeffs_ls
+            used_mask = used_mask_ls
+            fit_type = "least_squares"
+        else:
+            # Both fits available -> compare their implied derivatives
+            coeffs_trim = np.asarray(coeffs_trim)
+            coeffs_ls = np.asarray(coeffs_ls)
+            if coeffs_trim.ndim == 1:
+                coeffs_trim = coeffs_trim[:, None]
+            if coeffs_ls.ndim == 1:
+                coeffs_ls = coeffs_ls[:, None]
+
+            # Derivative from trimmed fit
+            deriv_trim = math.factorial(order) * coeffs_trim[order]
+            # Derivative from LS fit
+            deriv_ls = math.factorial(order) * coeffs_ls[order]
+
+            err = relative_error(deriv_trim, deriv_ls)
+            # Tolerance can be tuned; keep it modest so polynomials/sin pass.
+            rel_err_tol = 1e-3
+
+            if err <= rel_err_tol:
+                coeffs = coeffs_trim
+                used_mask = used_mask_trim
+                fit_type = "trimmed"
+            else:
+                coeffs = coeffs_ls
+                used_mask = used_mask_ls
+                fit_type = "least_squares"
+
+        coeffs = np.asarray(coeffs)
+        if coeffs.ndim == 1:
+            coeffs = coeffs[:, None]
 
         n_comp = coeffs.shape[1]
         factorial = math.factorial(order)
@@ -111,4 +163,5 @@ class LocalPolynomialDerivative:
             ok,
         )
         diag["n_workers"] = int(n_workers)
+        diag["fit_type"] = fit_type
         return deriv_out, diag

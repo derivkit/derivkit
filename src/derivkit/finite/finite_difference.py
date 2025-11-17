@@ -4,32 +4,53 @@ The user must specify the function to differentiate and the central value
 at which the derivative should be evaluated. More details about available
 options can be found in the documentation of the methods.
 
-Typical usage example:
+Examples:
+--------
+Basic usage without extrapolation:
 
->>>  derivative = FiniteDifferenceDerivative(
->>>    function,
->>>    1
->>>  ).differentiate(order=2)
+>>> from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+>>> f = lambda x: x**3
+>>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
+>>> d.differentiate(order=2)
+12.0
 
-derivative is the second order derivative of function at value 1.
+First derivative with Ridders extrapolation and an error estimate:
+
+>>> import numpy as np
+>>> g = np.sin
+>>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
+>>> val, err = d.differentiate(
+...     order=1,
+...     stepsize=1e-2,
+...     num_points=5,
+...     n_workers=2,
+...     extrapolation="ridders",
+...     levels=4,
+...     return_error=True,
+... )
+>>> np.allclose(val, np.cos(0.7), rtol=1e-6)
+True
 """
 
-import sys
+
 from collections.abc import Callable
+from functools import partial
 
 import numpy as np
 
-from derivkit.utils.concurrency import (
-    parallel_execute,
-    resolve_inner_from_outer,
+from derivkit.finite.core import single_finite_step
+from derivkit.finite.extrapolators import (
+    adaptive_gre_fd,
+    adaptive_richardson_fd,
+    adaptive_ridders_fd,
+    fixed_gre_fd,
+    fixed_richardson_fd,
+    fixed_ridders_fd,
 )
-
-_SUPPORTED_BY_STENCIL: dict[int, set[int]] = {
-    3: {1},
-    5: {1, 2, 3, 4},
-    7: {1, 2},
-    9: {1, 2},
-}
+from derivkit.finite.stencil import (
+    TRUNCATION_ORDER,
+    validate_supported_combo,
+)
 
 
 class FiniteDifferenceDerivative:
@@ -45,10 +66,8 @@ class FiniteDifferenceDerivative:
 
     Attributes:
         function: The function to differentiate. Must accept a single
-            float and return eithera float or a 1D array-like object.
+            float and return either a float or a 1D array-like object.
         x0: The point at which the derivative is evaluated.
-        log_file: Path to a file where debug information may be logged.
-        debug: If True, debug information will be printed or logged.
 
     Supported Stencil and Derivative Combinations
     ---------------------------------------------
@@ -59,16 +78,49 @@ class FiniteDifferenceDerivative:
 
     Examples:
     ---------
+    Basic second derivative without extrapolation:
+
     >>> f = lambda x: x**3
     >>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
     >>> d.differentiate(order=2)
+    12.0
+
+    First derivative with Ridders extrapolation and an error estimate:
+
+    >>> import numpy as np
+    >>> g = np.sin
+    >>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
+    >>> val, err = d.differentiate(
+    ...     order=1,
+    ...     stepsize=1e-2,
+    ...     num_points=5,
+    ...     extrapolation="ridders",
+    ...     levels=4,
+    ...     return_error=True,
+    ... )
+    >>> np.allclose(val, np.cos(0.7), rtol=1e-6)
+    True
+
+    Vector-valued function with Gauss–Richardson extrapolation:
+
+    >>> def vec_func(x):
+    ...     return np.array([np.sin(x), np.cos(x)])
+    >>> d = FiniteDifferenceDerivative(function=vec_func, x0=0.3)
+    >>> val = d.differentiate(
+    ...     order=1,
+    ...     stepsize=1e-2,
+    ...     num_points=5,
+    ...     extrapolation="gauss-richardson",
+    ...     levels=4,
+    ... )
+    >>> val.shape
+    (2,)
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         function: Callable,
         x0: float,
-        log_file: str = None,
-        debug: bool =False
     ) -> None:
         """Initialises the class based on function and central value.
 
@@ -76,47 +128,70 @@ class FiniteDifferenceDerivative:
             function: The function to differentiate. Must accept a single
                 float and return either a float or a 1D array-like object.
             x0: The point at which the derivative is evaluated.
-            log_file: Path to a file where debug information may
-                be logged.
-            debug: If True, debug information will be printed or
-                logged.
         """
         self.function = function
         self.x0 = x0
-        self.debug = debug
-        self.log_file = log_file
 
-    def differentiate(self,
-                      order: int = 1,
-                      stepsize: float = 0.01,
-                      num_points: int = 5,
-                      n_workers: int = 1
-        ) -> np.ndarray:
+    def differentiate(
+        self,
+        order: int = 1,
+        stepsize: float = 0.01,
+        num_points: int = 5,
+        n_workers: int = 1,
+        extrapolation: str | None = None,
+        levels: int | None = None,
+        return_error: bool = False,
+    ) -> np.ndarray[float] | float:
         """Computes the derivative using a central finite difference scheme.
 
         Supports 3-, 5-, 7-, or 9-point central difference stencils for
         derivative orders 1 through 4 (depending on the stencil size).
         Derivatives are computed for scalar or vector-valued functions.
+        Allows for optional extrapolation (Richardson or Ridders) to improve accuracy.
+        It also returns an error estimate if requested.
 
         Args:
-            order: The order of the derivative to
-                compute. Must be supported by the chosen stencil size.
-                Default is 1.
-            stepsize: Step size (h) used to evaluate the
-                function around the central value. Default is 0.01.
-            num_points: Number of points in the finite
-                difference stencil. Must be one of [3, 5, 7, 9]. Default is 5.
-            n_workers: Number of workers to use in
-                multiprocessing. Default is 1 (no multiprocessing).
+            order: The order of the derivative to compute. Must be supported by
+                the chosen stencil size. Default is 1.
+            stepsize: Step size (h) used to evaluate the function around the central
+                value. Default is 0.01.
+            num_points: Number of points in the finite difference stencil. Must be one
+                of [3, 5, 7, 9]. Default is 5.
+            n_workers: Number of workers to use in multiprocessing. Default is 1
+                (no multiprocessing).
+            extrapolation: Extrapolation scheme to use for improving accuracy.
+                Supported options are:
+
+                * ``None``: no extrapolation (single finite difference).
+                * ``"richardson"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+                * ``"ridders"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+                * ``"gauss-richardson"`` or ``"gre"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+            levels: Number of extrapolation levels for fixed schemes. If None,
+                the chosen extrapolation method runs in adaptive mode where
+                supported.
+            return_error: If True, also return an error estimate from the extrapolation
+                (or two-step) routine.
 
         Returns:
-            The estimated derivative. Returns a float for
-                scalar-valued functions, or a NumPy array for vector-valued
-                functions.
+            The estimated derivative. Returns a float for scalar-valued
+            functions, or a NumPy array for vector-valued functions.
 
         Raises:
-            ValueError: If the combination of num_points and order
-                is not supported.
+            ValueError:
+                If the combination of ``num_points`` and ``order`` is not
+                supported or if an unknown extrapolation scheme is given.
 
         Notes:
             The available (num_points, order) combinations are:
@@ -128,142 +203,71 @@ class FiniteDifferenceDerivative:
         if stepsize <= 0:
             raise ValueError("stepsize must be positive.")
 
-        self._validate_supported_combo(num_points, order)
+        validate_supported_combo(num_points, order)
 
-        offsets, coeffs_table = self.get_finite_difference_tables(stepsize)
-        key = (num_points, order)
-        if key not in coeffs_table:
-            msg = (f"[FiniteDifference] Internal table missing coefficients for "
-                   f"stencil={num_points}, order={order}. This combo is not yet implemented "
-                   "in this build.")
-            self._log(msg)
-            raise ValueError(msg)
+        # We set up a partial function for single finite difference step
+        single = partial(
+            single_finite_step,
+            self.function,
+            self.x0,
+        )
 
-        stencil = np.array([self.x0 + i * stepsize for i in offsets[num_points]], dtype=float)
+        # If we just want bare finite difference (no extrapolation)
+        if extrapolation is None:
+            value = single(order, stepsize, num_points, n_workers)
 
-        # Daemon-safe evaluation (threads, not processes)
-        values = self._eval_points(stencil, n_workers=n_workers)
+            if not return_error:
+                return value
 
-        # If scalar outputs, shape to (n,1) so matmul works the same for vector outputs
-        if values.ndim == 1:
-            values = values.reshape(-1, 1)
+            # Our secret second evaluation at h/2 to get a crude error estimate
+            r = 2.0
+            value_refined = single(order, stepsize / r, num_points, n_workers)
 
-        # Combine with coefficients to form derivative estimate
-        derivs = values.T @ coeffs_table[key]
-        return derivs.ravel() if derivs.size > 1 else float(derivs.item())
+            val_arr = np.asarray(value, dtype=float)
+            ref_arr = np.asarray(value_refined, dtype=float)
+            err_arr = np.abs(val_arr - ref_arr)
 
-    def get_finite_difference_tables(
-            self,
-            stepsize: float
-        ) -> tuple[dict[int, list[int]], dict[tuple[int, int], np.ndarray]]:
-        """Returns offset patterns and coefficient tables.
-
-        Args:
-            stepsize: Stepsize for finite difference calculation.
-
-        Returns:
-            A tuple of two dictionaries. The first maps from
-                stencil size to symmetric offsets. The second maps from
-                (stencil_size, order) to coefficient arrays.
-        """
-        offsets = {
-            3: [-1, 0, 1],
-            5: [-2, -1, 0, 1, 2],
-            7: [-3, -2, -1, 0, 1, 2, 3],
-            9: [-4, -3, -2, -1, 0, 1, 2, 3, 4],
-        }
-
-        coeffs_table = {
-            (3, 1): np.array([-0.5, 0, 0.5]) / stepsize,
-            (5, 1): np.array([1, -8, 0, 8, -1]) / (12 * stepsize),
-            (5, 2): np.array([-1, 16, -30, 16, -1]) / (12 * stepsize**2),
-            (5, 3): np.array([-1, 2, 0, -2, 1]) / (2 * stepsize**3),
-            (5, 4): np.array([1, -4, 6, -4, 1]) / (stepsize**4),
-            (7, 1): np.array([-1, 9, -45, 0, 45, -9, 1]) / (60 * stepsize),
-            (7, 2): np.array([2, -27, 270, -490, 270, -27, 2])
-            / (180 * stepsize**2),
-            (9, 1): np.array([3, -32, 168, -672, 0, 672, -168, 32, -3])
-            / (840 * stepsize),
-            (9, 2): np.array(
-                [-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9]
-            )
-            / (5040 * stepsize**2),
-        }
-
-        return offsets, coeffs_table
-
-    def _log(self, msg: str) -> None:
-        """Logs a message to stderr and optionally to a log file.
-
-        Args:
-            msg: The message to log.
-
-        Returns:
-            None
-        """
-        if self.log_file:
-            try:
-                with open(self.log_file, "a", encoding="utf-8") as f:
-                    f.write(msg.rstrip() + "\n")
-            except (OSError, PermissionError) as e:
-                print(f"{msg} [log write failed: {e}]", file=sys.stderr)
+            if np.isscalar(value) or np.shape(value) == ():
+                err_out: float | np.ndarray = float(err_arr)
             else:
-                print(msg, file=sys.stderr)
+                err_out = err_arr
 
-    def _validate_supported_combo(self, num_points: int, order: int) -> None:
-        """Validates that the (stencil size, order) combo is supported.
+            return value, err_out
 
-        Args:
-            num_points: Number of points in the finite difference stencil.
-            order: The order of the derivative to compute.
-
-        Raises:
-            ValueError: If the combination of num_points and order is not supported.
-        """
-        if num_points not in (3, 5, 7, 9):
-            msg = (f"[FiniteDifference] Unsupported stencil size: {num_points}. "
-                   f"Must be one of [3, 5, 7, 9].")
-            self._log(msg)
-            raise ValueError(msg)
-        if order not in (1, 2, 3, 4):
-            msg = (f"[FiniteDifference] Unsupported derivative order: {order}. "
-                   f"Must be one of [1, 2, 3, 4].")
-            self._log(msg)
-            raise ValueError(msg)
-
-        allowed = _SUPPORTED_BY_STENCIL[num_points]
-        if order not in allowed:
-            # TODO: implement this. See https://github.com/derivkit/derivkit/issues/202
-            msg = (
-                "[FiniteDifference] Not implemented yet: "
-                f"{num_points}-point stencil for order {order}.\n"
-                "This is tracked in issue #202 "
-                "('Complete finite-difference stencil support: all (3/5/7/9)-point "
-                "central stencils for orders ≤ 4').\n"
-                "Workarounds: choose a supported combo, e.g.\n"
-                "  • 5-point for orders 1–4\n"
-                "  • 7/9-point for orders 1–2\n"
-                "Or switch methods (e.g., 'adaptive') if available."
+        # If we wanted extrapolation, get the truncation order first
+        key = (num_points, order)
+        p = TRUNCATION_ORDER.get(key)
+        if p is None:
+            raise ValueError(
+                f"Extrapolation not configured for stencil {key}."
             )
-            self._log(msg)
-            raise ValueError(msg)
 
-    @staticmethod
-    def _cap_workers(n_workers: int | None, n_tasks: int) -> int:
-        """Clamp worker count to sensible bounds."""
-        if not n_workers or n_workers <= 1:
-            return 1
-        return max(1, min(int(n_workers), int(n_tasks)))
-
-    def _eval_points(self, xs: np.ndarray, *, n_workers: int | None) -> np.ndarray:
-        """Evaluate function on a batch of points (daemon-safe: threads, not processes)."""
-        # Respect outer/inner policy from DerivKit concurrency utils
-        outer = resolve_inner_from_outer(n_workers)
-        outer = self._cap_workers(outer, len(xs))
-
-        if outer <= 1:
-            vals = [self.function(float(x)) for x in xs]
+        # Choose extrapolator function based on scheme + levels
+        if extrapolation == "richardson":
+            extrap_fn = (fixed_richardson_fd if levels is not None else adaptive_richardson_fd)
+        elif extrapolation == "ridders":
+            extrap_fn = (fixed_ridders_fd if levels is not None else adaptive_ridders_fd)
+        elif extrapolation in {"gauss-richardson", "gre"}:
+            extrap_fn = fixed_gre_fd if levels is not None else adaptive_gre_fd
         else:
-            args = [(float(x),) for x in xs]  # parallel_execute expects tuples
-            vals = parallel_execute(lambda x: self.function(x), args, outer_workers=outer)
-        return np.asarray(vals, dtype=float)
+            raise ValueError(f"Unknown extrapolation scheme: {extrapolation!r}")
+
+        # Common kwargs for all extrapolators
+        extrap_kwargs: dict = dict(
+            single_finite=single,
+            order=order,
+            stepsize=stepsize,
+            num_points=num_points,
+            n_workers=n_workers,
+            p=p,
+        )
+        if levels is not None:
+            extrap_kwargs["levels"] = levels
+
+        if return_error:
+            extrap_kwargs["return_error"] = True
+            value, err = extrap_fn(**extrap_kwargs)
+            return value, err
+
+        # If no error requested, just return value of the estimated derivative
+        return extrap_fn(**extrap_kwargs)
