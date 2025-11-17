@@ -10,7 +10,7 @@ independently in any context.
 Gaussian Likelihood
 -------------------
 
-The **Gaussian likelihood** is the most commonly used form in forecasting:
+The **Gaussian likelihood** is the most commonly used form in forecasting (see `A. Heavens, 2010. <https://arxiv.org/abs/0906.0664>`_):
 
 .. math::
 
@@ -49,7 +49,7 @@ Poissonian Likelihood
 ---------------------
 
 The **Poisson likelihood** applies when the observables represent
-counts, histograms, or binned number data.
+counts, histograms, or binned number data (see `A. Heavens, 2010. <https://arxiv.org/abs/0906.0664>`_).
 
 Given observed counts ``d`` and model expectation ``λ``:
 
