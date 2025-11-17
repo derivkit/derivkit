@@ -421,6 +421,9 @@ def adaptive_gre_fd(
     best_est: NDArray | float | None = None
     last_err: NDArray | float | None = None
 
+    result_est: NDArray | float | None = None
+    result_err: NDArray | float | None = None
+
     for level in range(max_levels):
         val = single_finite(order, h, num_points, n_workers)
         base_values.append(val)
@@ -450,29 +453,30 @@ def adaptive_gre_fd(
 
         # Converged: accept latest estimate
         if diff <= thresh:
-            if not return_error:
-                return est
-            out_err = err_arr if last_err is None else last_err
-            return est, out_err
+            result_est = est
+            # if we have a previous error, keep it; otherwise use this diff
+            result_err = last_err if last_err is not None else err_arr
+            break
 
         # Diverged badly: fall back to previous best
-        if diff > 10.0 * thresh:
-            if best_est is None:
-                best_est = est
-                err_arr = np.zeros_like(est_arr)
-            if not return_error:
-                return best_est
-            return best_est, err_arr
+        if diff >= 10.0 * thresh:
+            result_est = best_est
+            result_err = err_arr
+            break
 
         # Continue refining
-        last_err = err_arr
         best_est = est
+        last_err = err_arr
 
-    # If we exit the loop without early return, use the last best estimate
-    if best_est is None:
-        best_est = base_values[-1]
-        last_err = np.zeros_like(np.asarray(best_est, dtype=float))
+    if result_est is None:
+        if best_est is None:
+            best_est = base_values[-1]
+            last_err = np.zeros_like(np.asarray(best_est, dtype=float))
+        result_est = best_est
+        if last_err is None:
+            last_err = np.zeros_like(np.asarray(result_est, dtype=float))
+        result_err = last_err
 
     if not return_error:
-        return best_est
-    return best_est, last_err
+        return result_est
+    return result_est, result_err
