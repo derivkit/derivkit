@@ -352,8 +352,8 @@ def fixed_gre_fd(
         The Gauss–Richardson-extrapolated finite difference estimate. If `return_error` is True,
         also returns an error estimate.
 
-    Raises: ValueError:
-        If the combination of ``num_points`` and ``order`` is not
+    Raises:
+        ValueError: If the combination of ``num_points`` and ``order`` is not
         supported or if levels < 2.
     """
     if levels < 2:
