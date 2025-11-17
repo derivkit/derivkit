@@ -9,8 +9,3 @@ DerivKit is currently distributed from source.
    cd derivkit
    pip install -e .
 
-For development:
-
-.. code-block:: bash
-
-   pip install -e ".[dev]"
