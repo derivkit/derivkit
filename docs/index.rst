@@ -76,38 +76,12 @@ DerivKit is organized into four layers:
 Installation
 ------------
 
-DerivKit is currently distributed from source. To install the latest development
-version:
-
-.. code-block:: bash
-
-   git clone https://github.com/derivkit-org/derivkit.git
-   cd derivkit
-   pip install -e .
-
-For development (tests, linting, docs build tools), you can install the optional
-extras:
-
-.. code-block:: bash
-
-   pip install -e ".[dev]"
+To see how to install derivkit, please see :doc:`guide/installation`.
 
 Quick Start
 -----------
 
-::
-
-  from derivkit import DerivativeKit
-
-  def simple_function(x):
-      return x**2 + x
-
-  dk = DerivativeKit(
-    function=simple_function,
-    x0=1.0
-  )
-  print("Adaptive:", dk.differentiate(order=1, method="adaptive"))
-  print("Finite Difference:", dk.differentiate(order=1, method="finite"))
+A quick example on how to run DerivKit go to :doc:`guide/quickstart`.
 
 
 Derivative Methods
