@@ -158,7 +158,7 @@ def gauss_richardson_extrapolate(
     h_values: Sequence[float],
     p: int,
     jitter: float = 1e-10,
-) -> tuple[NDArray[np.float64] | float, float]:
+) -> tuple[NDArray[np.float64] | float, NDArray[np.float64] | float]:
     """Gauss–Richardson extrapolation for a sequence of approximations f(h_i).
 
     This method uses a Gaussian-process model with a radial-basis-function (RBF)
@@ -174,7 +174,7 @@ def gauss_richardson_extrapolate(
 
     Returns: A tuple (extrapolated_value, error_estimate) where:
         - extrapolated_value is the Gauss–Richardson extrapolated estimate at h=0.
-        - error_estimate is a scalar uncertainty estimate for the extrapolated value.
+        - error_estimate is a heuristic uncertainty estimate for the extrapolated value.
 
     Raises:
         ValueError:
@@ -197,38 +197,46 @@ def gauss_richardson_extrapolate(
     h_sorted = np.sort(h)
     # then we compute the differences between consecutive sorted h values
     diffs = np.diff(h_sorted)
-    # then if any diffs > 0 we take the median of those as characteristic spacing
+    # if there are any positive differences, take the median of those
     if np.any(diffs > 0):
         char = np.median(diffs[diffs > 0])
     else:
-        char = max(h.max() - h.min(), 1e-3)
-    ell = max(char, 1e-3)
+        char = max(h.max() - h.min(), 1e-12)
 
-    # we then build the kernel matrix Kb
+    ell = char
+
+    # we then build the kernel matrix kb
     ke = _rbf_kernel_1d(h, h, ell)
-    Kb = (b[:, None] * b[None, :]) * ke
-    Kb += jitter * np.eye(n)
+    kb = (b[:, None] * b[None, :]) * ke
+    kb += jitter * np.eye(n)
 
-    # we thne precompute the matrix-vector product Kb^{-1} 1
+    # we thne precompute the matrix-vector product kb^{-1} 1
     one = np.ones(n)
-    Kb_inv_1 = np.linalg.solve(Kb, one)
+    kb_inv_1 = np.linalg.solve(kb, one)
 
     # Componentwise solve: flatten everything, apply GRE per component
     flat = y.reshape(n, -1)
     means = []
     errs = []
 
+    denom = float(one @ kb_inv_1)
     for j in range(flat.shape[1]):
         col = flat[:, j]
-        Kb_inv_y = np.linalg.solve(Kb, col)
 
-        denom = float(one @ Kb_inv_1)
-        num = float(one @ Kb_inv_y)
-        mean0 = num / denom
+        # reuse kb_inv_1 if you like, or recompute:
+        kb_inv_y = np.linalg.solve(kb, col)
 
-        quad = float(col @ Kb_inv_y)
-        sigma2 = (quad - num**2 / denom) / n
-        sigma2 = max(sigma2, 0.0)
+        num = float(one @ kb_inv_y)
+        mean0 = num / denom  # μ̂
+
+        # Residuals
+        resid = col - mean0 * one
+        kb_inv_resid = np.linalg.solve(kb, resid)
+
+        # Noise variance estimate
+        sigma2 = float(resid @ kb_inv_resid) / max(n - 1, 1)
+
+        # Variance at h=0
         var0 = sigma2 / denom if denom > 0 else 0.0
         var0 = max(var0, 0.0)
         std0 = float(np.sqrt(var0))
@@ -241,4 +249,4 @@ def gauss_richardson_extrapolate(
 
     if means_arr.ndim == 0:
         return float(means_arr), float(errs_arr)
-    return means_arr, float(np.max(np.abs(errs_arr)))
+    return means_arr, errs_arr

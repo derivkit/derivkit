@@ -331,7 +331,7 @@ def fixed_gre_fd(
     levels: int,
     r: float = 2.0,
     return_error: bool = False,
-) -> NDArray | float | tuple[NDArray | float, float]:
+) -> NDArray | float | tuple[NDArray | float, NDArray | float]:
     """Fixed-level Gauss–Richardson extrapolation for finite differences.
 
     Fixed level means we compute m base estimates with step sizes h, h/r, h/r^2, ..., h/r^(m-1)

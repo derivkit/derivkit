@@ -162,7 +162,7 @@ def test_gauss_richardson_extrapolate_scalar_basic():
 
 
 def test_gauss_richardson_extrapolate_vector_shape_and_accuracy():
-    """Tests that Gauss–Richardson should handle vector inputs and return scalar error."""
+    """Tests that Gauss–Richardson should handle vector inputs and return vector errors."""
     true_vec = np.array([1.0, -2.0, 0.5])
     p = 3
     h_values = np.array([0.2, 0.1, 0.05])
@@ -178,15 +178,20 @@ def test_gauss_richardson_extrapolate_vector_shape_and_accuracy():
         p=p,
     )
 
+    # Mean: vector with same shape as true_vec
     assert isinstance(mean, np.ndarray)
     assert mean.shape == true_vec.shape
-    assert isinstance(err, float)
 
-    # Again, allow modest tolerance since this is a GP-based extrapolation
+    # Error: vector with same shape as true_vec
+    assert isinstance(err, np.ndarray)
+    assert err.shape == true_vec.shape
+
+    # Allow modest tolerance since this is a GP-based extrapolation
     assert_allclose(mean, true_vec, rtol=1e-3, atol=1e-5)
 
+    # Error components should be smaller than the leading raw error scale
     raw_scale = np.max(np.abs(base_values[0] - true_vec))
-    assert 0.0 <= err < raw_scale
+    assert 0.0 <= float(np.max(err)) < raw_scale
 
 
 def test_gauss_richardson_extrapolate_raises_on_mismatched_lengths():
