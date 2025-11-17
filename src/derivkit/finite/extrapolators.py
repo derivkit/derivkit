@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.utils.extrapolation import (
+    gauss_richardson_extrapolate,
     richardson_extrapolate,
     ridders_extrapolate,
 )
@@ -17,6 +18,8 @@ __all__ = [
     "fixed_ridders_fd",
     "adaptive_richardson_fd",
     "adaptive_ridders_fd",
+    "fixed_gre_fd",
+    "adaptive_gre_fd",
 ]
 
 
@@ -154,34 +157,21 @@ def adaptive_richardson_fd(
     based on specified tolerances.
 
     Args:
-        single_finite:
-            Function that computes a single finite difference estimate.
-        order:
-            The order of the derivative to compute.
-        stepsize:
-            The initial step size h.
-        num_points:
-            Number of points in the finite difference stencil.
-        n_workers:
-            Number of parallel workers to use.
-        p:
-            The order of the leading error term in the finite difference approximation.
-        max_levels:
-            Maximum number of levels of extrapolation to perform (default is 6).
-        min_levels:
-            Minimum number of levels of extrapolation before checking for convergence.
+        single_finite: Function that computes a single finite difference estimate.
+        order: The order of the derivative to compute.
+        stepsize: The initial step size h.
+        num_points: Number of points in the finite difference stencil.
+        n_workers: Number of parallel workers to use.
+        p: The order of the leading error term in the finite difference approximation.
+        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
+        min_levels: Minimum number of levels of extrapolation before checking for convergence.
             Default is 2.
-        r:
-            The step-size reduction factor between successive levels (default is 2.0).
-        rtol:
-            Relative tolerance for convergence (default is 1e-8).
-        atol:
-            Absolute tolerance for convergence (default is 1e-12).
-        return_error:
-            Whether to return an error estimate along with the value (default is False).
+        r: The step-size reduction factor between successive levels (default is 2.0).
+        rtol: Relative tolerance for convergence (default is 1e-8).
+        atol: Absolute tolerance for convergence (default is 1e-12).
+        return_error: Whether to return an error estimate along with the value (default is False).
 
-    Returns:
-        The Richardson-extrapolated finite difference estimate.
+    Returns: The Richardson-extrapolated finite difference estimate.
     """
     base_values: list[NDArray | float] = []
     h = float(stepsize)
@@ -258,35 +248,19 @@ def adaptive_ridders_fd(
     extrapolation until convergence is achieved based on specified tolerances.
 
     Args:
-        single_finite:
-            Function that computes a single finite difference estimate for a given
-            derivative order and step size:
-            ``single_finite(order, h, num_points, n_workers)``.
-        order:
-            The order of the derivative to compute.
-        stepsize:
-            The initial step size ``h``.
-        num_points:
-            Number of points in the finite difference stencil.
-        n_workers:
-            Number of parallel workers to use.
-        p:
-            The order of the leading error term in the finite difference
-            approximation.
-        max_levels:
-            Maximum number of levels of extrapolation to perform (default is 6).
-        min_levels:
-            Minimum number of levels of extrapolation before checking for
-            convergence (default is 2).
-        r:
-            Step-size reduction factor between successive levels (default is 2.0).
-        rtol:
-            Relative tolerance for convergence (default is 1e-8).
-        atol:
-            Absolute tolerance for convergence (default is 1e-12).
-        return_error:
-            Whether to return an error estimate along with the value
-            (default is False).
+        single_finite: Function that computes a single finite difference estimate for a given
+            derivative order and step size ``single_finite(order, h, num_points, n_workers)``.
+        order: The order of the derivative to compute.
+        stepsize: The initial step size ``h``.
+        num_points: Number of points in the finite difference stencil.
+        n_workers: Number of parallel workers to use.
+        p: The order of the leading error term in the finite difference approximation.
+        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
+        min_levels: Minimum number of levels of extrapolation before checking for convergence (default is 2).
+        r: Step-size reduction factor between successive levels (default is 2.0).
+        rtol: Relative tolerance for convergence (default is 1e-8).
+        atol: Absolute tolerance for convergence (default is 1e-12).
+        return_error: Whether to return an error estimate along with the value (default is False).
 
     Returns:
         The Ridders-extrapolated finite difference estimate.
@@ -344,3 +318,165 @@ def adaptive_ridders_fd(
     if not return_error:
         return best_est
     return best_est, best_err
+
+
+def fixed_gre_fd(
+    single_finite: Callable[[int, float, int, int], NDArray | float],
+    *,
+    order: int,
+    stepsize: float,
+    num_points: int,
+    n_workers: int,
+    p: int,
+    levels: int,
+    r: float = 2.0,
+    return_error: bool = False,
+) -> NDArray | float | tuple[NDArray | float, NDArray | float]:
+    """Returns a fixed-level Gauss–Richardson extrapolation for finite differences.
+
+    Fixed level means we compute m base estimates with step sizes h, h/r, h/r^2, ..., h/r^(m-1)
+    and then apply Gauss–Richardson extrapolation to get the final estimate.
+
+    Args:
+        single_finite: Function that computes a single finite difference estimate.
+        order: The order of the derivative to compute.
+        stepsize: The initial step size h.
+        num_points: Number of points in the finite difference stencil.
+        n_workers: Number of parallel workers to use.
+        p: The order of the leading error term in the finite difference approximation.
+        levels: Number of levels (m) for Gauss–Richardson extrapolation.
+        r: The step-size reduction factor between successive levels (default is 2.0).
+        return_error: Whether to return an error estimate along with the value (default is False).
+
+    Returns:
+        The Gauss–Richardson-extrapolated finite difference estimate. If `return_error` is True,
+        also returns an error estimate.
+
+    Raises:
+        ValueError: If the combination of ``num_points`` and ``order`` is not
+        supported or if levels < 2.
+    """
+    if levels < 2:
+        raise ValueError("fixed_gre_fd requires levels >= 2.")
+
+    base_values: list[NDArray | float] = []
+    h_values: list[float] = []
+    h = float(stepsize)
+
+    for _ in range(levels):
+        base_values.append(single_finite(order, h, num_points, n_workers))
+        h_values.append(h)
+        h /= r
+
+    value, err = gauss_richardson_extrapolate(base_values, h_values=h_values, p=p)
+    return (value, err) if return_error else value
+
+
+def adaptive_gre_fd(
+    single_finite: Callable[[int, float, int, int], NDArray | float],
+    *,
+    order: int,
+    stepsize: float,
+    num_points: int,
+    n_workers: int,
+    p: int,
+    max_levels: int = 6,
+    min_levels: int = 2,
+    r: float = 2.0,
+    rtol: float = 1e-8,
+    atol: float = 1e-12,
+    return_error: bool = False,
+) -> NDArray | float | tuple[NDArray | float, NDArray | float]:
+    """Returns an adaptive Gauss–Richardson extrapolation for finite differences.
+
+    This function computes finite-difference estimates at decreasing step sizes,
+    builds up sequences of base values and corresponding step sizes, and applies
+    Gauss–Richardson extrapolation iteratively until convergence based on the
+    change between successive estimates.
+
+    Args:
+        single_finite: Function that computes a single finite-difference estimate for a given
+            derivative order and step size ``single_finite(order, h, num_points, n_workers)``.
+        order: The order of the derivative to compute.
+        stepsize: The initial step size ``h``.
+        num_points: Number of points in the finite-difference stencil.
+        n_workers: Number of parallel workers to use.
+        p: The order of the leading error term in the finite difference approximation.
+        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
+        min_levels: Minimum number of levels of extrapolation before checking for convergence (default is 2).
+        r: Step-size reduction factor between successive levels (default is 2.0).
+        rtol: Relative tolerance for convergence (default is 1e-8).
+        atol: Absolute tolerance for convergence (default is 1e-12).
+        return_error: Whether to return an error estimate along with the value (default is False).
+
+    Returns:
+        The Gauss–Richardson-extrapolated finite-difference estimate. If
+        ``return_error`` is True, also returns an error estimate with the
+        same shape as the estimate.
+    """
+    base_values: list[NDArray | float] = []
+    h_values: list[float] = []
+    h = float(stepsize)
+
+    best_est: NDArray | float | None = None
+    last_err: NDArray | float | None = None
+
+    result_est: NDArray | float | None = None
+    result_err: NDArray | float | None = None
+
+    for level in range(max_levels):
+        val = single_finite(order, h, num_points, n_workers)
+        base_values.append(val)
+        h_values.append(h)
+        h /= r
+
+        if level + 1 < min_levels:
+            continue
+
+        est, _ = gauss_richardson_extrapolate(
+            base_values,
+            h_values=h_values,
+            p=p,
+        )
+
+        if best_est is None:
+            best_est = est
+            continue
+
+        est_arr = np.asarray(est, dtype=float)
+        best_arr = np.asarray(best_est, dtype=float)
+
+        diff = np.max(np.abs(est_arr - best_arr))
+        scale = np.max([1.0, np.max(np.abs(est_arr)), np.max(np.abs(best_arr))])
+        thresh = atol + rtol * scale
+        err_arr = np.full_like(est_arr, diff)
+
+        # Converged: accept latest estimate
+        if diff <= thresh:
+            result_est = est
+            # if we have a previous error, keep it; otherwise use this diff
+            result_err = last_err if last_err is not None else err_arr
+            break
+
+        # Diverged badly: fall back to previous best
+        if diff >= 10.0 * thresh:
+            result_est = best_est
+            result_err = err_arr
+            break
+
+        # Continue refining
+        best_est = est
+        last_err = err_arr
+
+    if result_est is None:
+        if best_est is None:
+            best_est = base_values[-1]
+            last_err = np.zeros_like(np.asarray(best_est, dtype=float))
+        result_est = best_est
+        if last_err is None:
+            last_err = np.zeros_like(np.asarray(result_est, dtype=float))
+        result_err = last_err
+
+    if not return_error:
+        return result_est
+    return result_est, result_err

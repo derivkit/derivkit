@@ -77,3 +77,170 @@ def test_scalar_returns_python_float():
         order=1, method="finite", num_points=5
     )
     assert isinstance(val, float)
+
+
+def test_finite_richardson_extrapolation_matches_analytic():
+    """Tests that finite + Richardson extrapolation matches analytic derivative for sin(x)."""
+    x0 = np.pi / 4
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="richardson",
+        levels=4,  # fixed-level Richardson
+    )
+
+    assert np.isclose(est, exact, rtol=1e-4, atol=1e-8)
+
+
+def test_finite_ridders_extrapolation_matches_analytic():
+    """Tests that finite + Ridders extrapolation matches analytic derivative for sin(x)."""
+    x0 = np.pi / 4
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="ridders",
+        levels=4,  # fixed-level Ridders
+    )
+
+    assert np.isclose(est, exact, rtol=1e-4, atol=1e-8)
+
+
+def test_finite_gauss_richardson_extrapolation_matches_analytic():
+    """Tests that finite + Gauss–Richardson extrapolation matches analytic derivative for sin(x)."""
+    x0 = np.pi / 4
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="gauss-richardson",
+        levels=4,  # fixed-level GRE
+    )
+
+    assert np.isclose(est, exact, rtol=1e-3, atol=1e-8)
+
+
+def test_finite_gre_alias_matches_analytic():
+    """Tests that the 'gre' alias for Gauss–Richardson extrapolation works."""
+    x0 = 0.3
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="gre",
+        levels=4,
+    )
+
+    assert np.isclose(est, exact, rtol=1e-3, atol=1e-8)
+
+
+def test_finite_richardson_adaptive_matches_analytic():
+    """Tests that finite + Richardson extrapolation (adaptive) matches analytic derivative for sin(x)."""
+    x0 = np.pi / 6
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="richardson",  # adaptive: no levels
+    )
+
+    assert np.isclose(est, exact, rtol=1e-4, atol=1e-8)
+
+
+def test_finite_ridders_adaptive_matches_analytic():
+    """Tests that finite + Ridders extrapolation (adaptive) matches analytic derivative for sin(x)."""
+    x0 = 0.5
+    exact = np.cos(x0)
+
+    est = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="ridders",  # adaptive: no levels
+    )
+
+    assert np.isclose(est, exact, rtol=1e-4, atol=1e-8)
+
+
+def test_finite_gauss_richardson_vector_output():
+    """Tests that finite + Gauss–Richardson extrapolation works for vector-valued functions.
+
+    We compare GRE against the baseline finite-difference estimate to ensure:
+      * vector shapes are preserved, and
+      * GRE stays numerically close to the non-extrapolated finite result.
+    """
+    x0 = 0.3
+    dk = DerivativeKit(vecfunc, x0)
+
+    # Baseline finite-difference derivative (no extrapolation)
+    base = dk.differentiate(
+        order=1,
+        method="finite",
+        num_points=5,
+    )
+
+    # Gauss–Richardson extrapolated derivative
+    gre = dk.differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="gauss-richardson",
+        levels=4,
+    )
+
+    assert isinstance(gre, np.ndarray)
+    assert gre.shape == base.shape
+    # GRE should be close to the baseline finite result
+    assert np.allclose(gre, base, rtol=1e-3, atol=1e-6)
+
+
+def test_finite_extrapolation_returns_error_scalar():
+    """Tests that finite + Ridders extrapolation returns a sensible scalar error estimate."""
+    x0 = 0.7
+    exact = np.cos(x0)
+
+    val, err = DerivativeKit(lambda x: np.sin(x), x0).differentiate(
+        order=1,
+        method="finite",
+        stepsize=1e-2,
+        num_points=5,
+        extrapolation="ridders",
+        levels=4,
+        return_error=True,
+    )
+
+    assert np.isclose(val, exact, rtol=1e-4, atol=1e-8)
+    assert isinstance(err, float)
+    assert err >= 0.0
+    # error should be small compared to the magnitude of the derivative
+    assert err < 1e-2
+
+
+def test_finite_extrapolation_invalid_scheme_raises():
+    """Tests that an unknown extrapolation scheme raises ValueError."""
+    with pytest.raises(ValueError):
+        DerivativeKit(lambda x: x**2, 1.0).differentiate(
+            order=1,
+            method="finite",
+            stepsize=1e-2,
+            num_points=5,
+            extrapolation="not-a-scheme",
+        )

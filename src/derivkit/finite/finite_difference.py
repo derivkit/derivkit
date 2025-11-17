@@ -4,15 +4,34 @@ The user must specify the function to differentiate and the central value
 at which the derivative should be evaluated. More details about available
 options can be found in the documentation of the methods.
 
-Typical usage example:
+Examples:
+--------
+Basic usage without extrapolation:
 
->>> derivative = FiniteDifferenceDerivative(
->>>     function,
->>>     1
->>> ).differentiate(order=2)
+>>> from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+>>> f = lambda x: x**3
+>>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
+>>> d.differentiate(order=2)
+12.0
 
-derivative is the second order derivative of function at value 1.
+First derivative with Ridders extrapolation and an error estimate:
+
+>>> import numpy as np
+>>> g = np.sin
+>>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
+>>> val, err = d.differentiate(
+...     order=1,
+...     stepsize=1e-2,
+...     num_points=5,
+...     n_workers=2,
+...     extrapolation="ridders",
+...     levels=4,
+...     return_error=True,
+... )
+>>> np.allclose(val, np.cos(0.7), rtol=1e-6)
+True
 """
+
 
 from collections.abc import Callable
 from functools import partial
@@ -21,8 +40,10 @@ import numpy as np
 
 from derivkit.finite.core import single_finite_step
 from derivkit.finite.extrapolators import (
+    adaptive_gre_fd,
     adaptive_richardson_fd,
     adaptive_ridders_fd,
+    fixed_gre_fd,
     fixed_richardson_fd,
     fixed_ridders_fd,
 )
@@ -57,9 +78,43 @@ class FiniteDifferenceDerivative:
 
     Examples:
     ---------
+    Basic second derivative without extrapolation:
+
     >>> f = lambda x: x**3
     >>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
     >>> d.differentiate(order=2)
+    12.0
+
+    First derivative with Ridders extrapolation and an error estimate:
+
+    >>> import numpy as np
+    >>> g = np.sin
+    >>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
+    >>> val, err = d.differentiate(
+    ...     order=1,
+    ...     stepsize=1e-2,
+    ...     num_points=5,
+    ...     extrapolation="ridders",
+    ...     levels=4,
+    ...     return_error=True,
+    ... )
+    >>> np.allclose(val, np.cos(0.7), rtol=1e-6)
+    True
+
+    Vector-valued function with Gauss–Richardson extrapolation:
+
+    >>> def vec_func(x):
+    ...     return np.array([np.sin(x), np.cos(x)])
+    >>> d = FiniteDifferenceDerivative(function=vec_func, x0=0.3)
+    >>> val = d.differentiate(
+    ...     order=1,
+    ...     stepsize=1e-2,
+    ...     num_points=5,
+    ...     extrapolation="gauss-richardson",
+    ...     levels=4,
+    ... )
+    >>> val.shape
+    (2,)
     """
 
     def __init__(
@@ -96,35 +151,37 @@ class FiniteDifferenceDerivative:
         It also returns an error estimate if requested.
 
         Args:
-            order:
-                The order of the derivative to compute. Must be supported by
+            order: The order of the derivative to compute. Must be supported by
                 the chosen stencil size. Default is 1.
-            stepsize:
-                Step size (h) used to evaluate the function around the central
+            stepsize: Step size (h) used to evaluate the function around the central
                 value. Default is 0.01.
-            num_points:
-                Number of points in the finite difference stencil. Must be one
+            num_points: Number of points in the finite difference stencil. Must be one
                 of [3, 5, 7, 9]. Default is 5.
-            n_workers:
-                Number of workers to use in multiprocessing. Default is 1
+            n_workers: Number of workers to use in multiprocessing. Default is 1
                 (no multiprocessing).
-            extrapolation:
-                Extrapolation scheme to use for improving accuracy. Supported
-                options are:
+            extrapolation: Extrapolation scheme to use for improving accuracy.
+                Supported options are:
 
-                  * ``None``: no extrapolation (single finite difference).
-                  * ``"richardson"``:
-                        - fixed-level if ``levels`` is not None
-                        - adaptive if ``levels`` is None
-                  * ``"ridders"``:
-                        - fixed-level if ``levels`` is not None
-                        - adaptive if ``levels`` is None
-            levels:
-                Number of extrapolation levels for fixed schemes. If None,
+                * ``None``: no extrapolation (single finite difference).
+                * ``"richardson"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+                * ``"ridders"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+                * ``"gauss-richardson"`` or ``"gre"``:
+
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
+
+            levels: Number of extrapolation levels for fixed schemes. If None,
                 the chosen extrapolation method runs in adaptive mode where
                 supported.
-            return_error:
-                If True, also return an error estimate from the extrapolation
+            return_error: If True, also return an error estimate from the extrapolation
                 (or two-step) routine.
 
         Returns:
@@ -190,6 +247,8 @@ class FiniteDifferenceDerivative:
             extrap_fn = (fixed_richardson_fd if levels is not None else adaptive_richardson_fd)
         elif extrapolation == "ridders":
             extrap_fn = (fixed_ridders_fd if levels is not None else adaptive_ridders_fd)
+        elif extrapolation in {"gauss-richardson", "gre"}:
+            extrap_fn = fixed_gre_fd if levels is not None else adaptive_gre_fd
         else:
             raise ValueError(f"Unknown extrapolation scheme: {extrapolation!r}")
 

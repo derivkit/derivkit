@@ -6,8 +6,10 @@ import numpy as np
 
 import derivkit.finite.extrapolators as fe
 from derivkit.finite.extrapolators import (
+    adaptive_gre_fd,
     adaptive_richardson_fd,
     adaptive_ridders_fd,
+    fixed_gre_fd,
     fixed_richardson_fd,
     fixed_ridders_fd,
 )
@@ -29,6 +31,9 @@ RICHARDSON_INDEX: int = 0
 RIDDERS_VALUES: list[tuple[float, float]] = []
 RIDDERS_INDEX: int = 0
 
+GRE_VALUES: list[tuple[float, float]] = []
+GRE_INDEX: int = 0
+
 
 def richardson_stub(base_values, p: int, r: float):
     """Stub for richardson_extrapolate using a pre-defined value sequence."""
@@ -43,6 +48,14 @@ def ridders_stub(base_values, p: int, r: float):
     global RIDDERS_INDEX
     value, err = RIDDERS_VALUES[RIDDERS_INDEX]
     RIDDERS_INDEX += 1
+    return value, err
+
+
+def gauss_richardson_stub(base_values, h_values, p: int, jitter: float = 1e-10):
+    """Stub for gauss_richardson_extrapolate using a pre-defined (value, err) sequence."""
+    global GRE_INDEX
+    value, err = GRE_VALUES[GRE_INDEX]
+    GRE_INDEX += 1
     return value, err
 
 
@@ -349,3 +362,111 @@ def test_adaptive_ridders_fd_return_error_on_convergence(monkeypatch):
 
     assert np.isclose(est, 4.0)
     assert np.isclose(err, 0.05)
+
+
+def test_fixed_gre_fd_scalar_no_error():
+    """Tests that fixed_gre_fd should return a stable scalar value for constant estimates."""
+    est = fixed_gre_fd(
+        single_finite_constant,
+        order=1,
+        stepsize=0.1,
+        num_points=5,
+        n_workers=1,
+        p=2,
+        levels=3,
+        r=2.0,
+        return_error=False,
+    )
+    assert np.isclose(est, 2.5)
+
+
+def test_fixed_gre_fd_scalar_with_error():
+    """Tests that fixed_gre_fd should return (value, err) with non-negative finite error."""
+    est, err = fixed_gre_fd(
+        single_finite_constant,
+        order=1,
+        stepsize=0.1,
+        num_points=5,
+        n_workers=1,
+        p=2,
+        levels=3,
+        r=2.0,
+        return_error=True,
+    )
+
+    assert np.isclose(est, 2.5)
+    assert np.isfinite(err)
+    assert err >= 0.0
+
+
+def test_fixed_gre_fd_raises_on_levels_lt_2():
+    """Tests that fixed_gre_fd should enforce levels >= 2."""
+    try:
+        fixed_gre_fd(
+            single_finite_constant,
+            order=1,
+            stepsize=0.1,
+            num_points=5,
+            n_workers=1,
+            p=2,
+            levels=1,
+            r=2.0,
+            return_error=False,
+        )
+        raised = False
+    except ValueError:
+        raised = True
+
+    assert raised
+
+
+def test_adaptive_gre_fd_converges_on_constant():
+    """Tests that adaptive_gre_fd should converge quickly on a constant finite-difference estimate."""
+    est = adaptive_gre_fd(
+        single_finite_constant,
+        order=1,
+        stepsize=0.1,
+        num_points=5,
+        n_workers=1,
+        p=2,
+        max_levels=4,
+        min_levels=2,
+        r=2.0,
+        rtol=1e-6,
+        atol=0.0,
+        return_error=False,
+    )
+
+    # For a constant sequence, the extrapolated value should be that constant.
+    assert np.isclose(est, 2.5, rtol=1e-6, atol=1e-8)
+
+
+def test_adaptive_gre_fd_return_error_on_convergence():
+    """Tests that adaptive_gre_fd should return non-negative finite error with same shape as the estimate."""
+    est, err = adaptive_gre_fd(
+        single_finite_constant_vector,
+        order=1,
+        stepsize=0.1,
+        num_points=5,
+        n_workers=1,
+        p=2,
+        max_levels=4,
+        min_levels=2,
+        r=2.0,
+        rtol=1e-6,
+        atol=0.0,
+        return_error=True,
+    )
+
+    est_arr = np.asarray(est, dtype=float)
+    err_arr = np.asarray(err, dtype=float)
+
+    assert est_arr.shape == (3,)
+    assert err_arr.shape == est_arr.shape
+
+    # Constant input → GRE should essentially keep that value
+    assert np.allclose(est_arr, np.array([1.0, -3.0, 4.5]))
+
+    # Error is heuristic, just require finite and non-negative
+    assert np.all(np.isfinite(err_arr))
+    assert np.all(err_arr >= 0.0)

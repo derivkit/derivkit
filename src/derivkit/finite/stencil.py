@@ -96,7 +96,6 @@ def _get_finite_difference_tables_dynamically(
     return offsets, coeffs_table
 
 
-
 def get_finite_difference_tables(
         stepsize: float
     ) -> tuple[dict[int, list[int]], dict[tuple[int, int], np.ndarray]]:
