@@ -22,7 +22,15 @@ def _eval(dk: DerivativeKit, method: str, order: int, **k) -> float:
     m = method.lower()
     # legacy engines available?
     if hasattr(dk, "finite") and m.startswith("fin"):
-        return float(dk.finite.differentiate(order=order, **{k_: v for k_, v in k.items() if k_ in {"num_points", "n_workers"}}))
+        allowed = {
+            "num_points",
+            "n_workers",
+            "extrapolation",
+            "levels",
+            "stepsize",
+        }
+        kw = {k_: v for k_, v in k.items() if k_ in allowed}
+        return float(dk.finite.differentiate(order=order, **kw))
     if hasattr(dk, "adaptive") and m.startswith("ad"):
         # Pass only kwargs that typical adaptive implementations use; omit unknowns
         allowed = {"n_workers", "tol", "rtol"}
@@ -91,7 +99,10 @@ EXCLUDE_POINTS = {
 
 
 @pytest.mark.parametrize("method,kwargs", [
-    ("finite",   {"num_points": 5}),  # robust, accurate
+    ("finite",   {"num_points": 5}),  # plain finite
+    ("finite",   {"num_points": 5, "extrapolation": "richardson", "levels": 3}),
+    ("finite",   {"num_points": 5, "extrapolation": "ridders", "levels": 3}),
+    ("finite",   {"num_points": 5, "extrapolation": "gauss-richardson", "levels": 3}),
     ("adaptive", {}),  # rely on defaults across branches
 ])
 

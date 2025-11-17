@@ -37,6 +37,7 @@ def near(a: float, b: float, rtol: float = 1e-8, atol: float = 1e-10) -> bool:
 # - finite (no extrapolation)
 # - finite + Richardson (fixed, adaptive)
 # - finite + Ridders (fixed, adaptive)
+# - finite + Gauss–Richardson (fixed, adaptive)
 # - local_polynomial
 # - adaptive (global engine)
 METHOD_CONFIGS: list[tuple[str, dict[str, Any]]] = [
@@ -86,6 +87,25 @@ METHOD_CONFIGS: list[tuple[str, dict[str, Any]]] = [
             "num_points": 5,
             "extrapolation": "ridders",
             # optional: "max_levels": 6,
+        },
+    ),
+    # finite + Gauss–Richardson (fixed: uses 'levels')
+    (
+        "finite",
+        {
+            "stepsize": 0.1,
+            "num_points": 5,
+            "extrapolation": "gauss-richardson",
+            "levels": 3,
+        },
+    ),
+    # finite + Gauss–Richardson (adaptive: no 'levels')
+    (
+        "finite",
+        {
+            "stepsize": 0.1,
+            "num_points": 5,
+            "extrapolation": "gauss-richardson",
         },
     ),
     # local polynomial (baseline)

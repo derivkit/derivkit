@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 __all__ = [
     "richardson_extrapolate",
     "ridders_extrapolate",
+    "gauss_richardson_extrapolate",
 ]
 
 
@@ -131,3 +132,113 @@ def ridders_extrapolate(
     if best_val.ndim == 0:
         return float(best_val), float(best_err)
     return best_val, float(best_err)
+
+
+def _rbf_kernel_1d(x: NDArray[np.float64],
+                   y: NDArray[np.float64],
+                   length_scale: float) -> NDArray[np.float64]:
+    """Compute the RBF kernel matrix between 1D inputs x and y.
+
+    Args:
+        x: 1D array of shape (n,).
+        y: 1D array of shape (m,).
+        length_scale: Length scale parameter for the RBF kernel.
+
+    Returns:
+        Kernel matrix of shape (n, m).
+    """
+    x = np.atleast_1d(x).astype(float)
+    y = np.atleast_1d(y).astype(float)
+    diff2 = (x[:, None] - y[None, :]) ** 2
+    return np.exp(-0.5 * diff2 / (length_scale**2))
+
+
+def gauss_richardson_extrapolate(
+    base_values: Sequence[NDArray[np.float64] | float],
+    h_values: Sequence[float],
+    p: int,
+    jitter: float = 1e-10,
+) -> tuple[NDArray[np.float64] | float, float]:
+    """Gauss–Richardson extrapolation for a sequence of approximations f(h_i).
+
+    This method uses a Gaussian-process model with a radial-basis-function (RBF)
+    kernel to perform Richardson extrapolation, providing both an improved estimate
+    of the true value at h=0 and an uncertainty estimate. For more details, see arXiv:2401.07562.
+
+    Args:
+        base_values: Sequence of approximations at different step sizes h_i.
+        h_values: Corresponding step sizes (must be positive and same length as base_values).
+        p: The order of the leading error term in the approximations.
+        jitter: Small positive value added to the diagonal of the kernel matrix for numerical stability.
+            Defaults to 1e-10.
+
+    Returns: A tuple (extrapolated_value, error_estimate) where:
+        - extrapolated_value is the Gauss–Richardson extrapolated estimate at h=0.
+        - error_estimate is a scalar uncertainty estimate for the extrapolated value.
+
+    Raises:
+        ValueError:
+            If h_values and base_values have different lengths or if any h_value is non-positive.
+    """
+    h = np.asarray(h_values, dtype=float).ravel()
+    if len(base_values) != h.size:
+        raise ValueError("base_values and h_values must have the same length.")
+    if np.any(h <= 0):
+        raise ValueError("All h_values must be > 0.")
+
+    y = np.stack([np.asarray(v, dtype=float) for v in base_values], axis=0)
+    # scalar vs vector handled later; here treat it as (n, ...)
+    n = h.size
+
+    # Error bound b(h) = h^p
+    b = h**p
+
+    # crude length scale from spacing
+    h_sorted = np.sort(h)
+    # then we compute the differences between consecutive sorted h values
+    diffs = np.diff(h_sorted)
+    # then if any diffs > 0 we take the median of those as characteristic spacing
+    if np.any(diffs > 0):
+        char = np.median(diffs[diffs > 0])
+    else:
+        char = max(h.max() - h.min(), 1e-3)
+    ell = max(char, 1e-3)
+
+    # we then build the kernel matrix Kb
+    ke = _rbf_kernel_1d(h, h, ell)
+    Kb = (b[:, None] * b[None, :]) * ke
+    Kb += jitter * np.eye(n)
+
+    # we thne precompute the matrix-vector product Kb^{-1} 1
+    one = np.ones(n)
+    Kb_inv_1 = np.linalg.solve(Kb, one)
+
+    # Componentwise solve: flatten everything, apply GRE per component
+    flat = y.reshape(n, -1)
+    means = []
+    errs = []
+
+    for j in range(flat.shape[1]):
+        col = flat[:, j]
+        Kb_inv_y = np.linalg.solve(Kb, col)
+
+        denom = float(one @ Kb_inv_1)
+        num = float(one @ Kb_inv_y)
+        mean0 = num / denom
+
+        quad = float(col @ Kb_inv_y)
+        sigma2 = (quad - num**2 / denom) / n
+        sigma2 = max(sigma2, 0.0)
+        var0 = sigma2 / denom if denom > 0 else 0.0
+        var0 = max(var0, 0.0)
+        std0 = float(np.sqrt(var0))
+
+        means.append(mean0)
+        errs.append(std0)
+
+    means_arr = np.array(means).reshape(y.shape[1:])
+    errs_arr = np.array(errs).reshape(y.shape[1:])
+
+    if means_arr.ndim == 0:
+        return float(means_arr), float(errs_arr)
+    return means_arr, float(np.max(np.abs(errs_arr)))
