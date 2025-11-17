@@ -3,7 +3,6 @@ Forecasting Tools
 
 ForecastKit provides three core forecasting capabilities:
 the *Fisher information matrix*, *Fisher bias*, and *DALI* (higher-order) expansions.
-expansions.
 These tools all rely on DerivativeKit for stable numerical derivatives and work with any user-provided model.
 
 
