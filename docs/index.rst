@@ -25,7 +25,7 @@ What is DerivKit?
 
 **DerivKit** is a modular toolkit for reliable numerical derivatives and the calculations that depend on them.
 It is designed for scientific computing and physics/cosmology, where functions are often noisy, expensive, or non-smooth,
-and standard autodiff cannot be used.
+and standard automatic differentiation is inappropriate.
 
 
 DerivKit is organized into four layers:
