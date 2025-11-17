@@ -188,9 +188,10 @@ class FiniteDifferenceDerivative:
             The estimated derivative. Returns a float for scalar-valued
             functions, or a NumPy array for vector-valued functions.
 
-        Raises: ValueError:
-            If the combination of ``num_points`` and ``order`` is not
-            supported or if an unknown extrapolation scheme is given.
+        Raises:
+            ValueError:
+                If the combination of ``num_points`` and ``order`` is not
+                supported or if an unknown extrapolation scheme is given.
 
         Notes: The available (num_points, order) combinations are:
                 - 3: order 1
