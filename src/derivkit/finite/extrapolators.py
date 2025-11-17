@@ -387,7 +387,7 @@ def adaptive_gre_fd(
     atol: float = 1e-12,
     return_error: bool = False,
 ) -> NDArray | float | tuple[NDArray | float, NDArray | float]:
-    """Adaptive Gauss–Richardson extrapolation for finite differences.
+    """Returns an adaptive Gauss–Richardson extrapolation for finite differences.
 
     This function computes finite-difference estimates at decreasing step sizes,
     builds up sequences of base values and corresponding step sizes, and applies
