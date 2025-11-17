@@ -159,24 +159,24 @@ class FiniteDifferenceDerivative:
                 of [3, 5, 7, 9]. Default is 5.
             n_workers: Number of workers to use in multiprocessing. Default is 1
                 (no multiprocessing).
-            extrapolation: Extrapolation scheme to use for improving accuracy. Supported
-                options are:
+            extrapolation: Extrapolation scheme to use for improving accuracy.
+                Supported options are:
 
-                  * ``None``: no extrapolation (single finite difference).
-                  * ``"richardson"``:
+                * ``None``: no extrapolation (single finite difference).
+                * ``"richardson"``:
 
-                        - fixed-level if ``levels`` is not None
-                        - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
 
-                  * ``"ridders"``:
+                * ``"ridders"``:
 
-                        - fixed-level if ``levels`` is not None
-                        - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
 
-                 * ``"gauss-richardson"`` or ``"gre"``:
+                * ``"gauss-richardson"`` or ``"gre"``:
 
-                        - fixed-level if ``levels`` is not None
-                        - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not None
+                  - adaptive if ``levels`` is None
 
             levels: Number of extrapolation levels for fixed schemes. If None,
                 the chosen extrapolation method runs in adaptive mode where
