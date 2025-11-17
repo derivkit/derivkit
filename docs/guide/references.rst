@@ -1,3 +1,5 @@
+.. _forecastkit-references:
+
 References
 ----------
 
