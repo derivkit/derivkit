@@ -99,7 +99,7 @@ EXCLUDE_POINTS = {
 
 
 @pytest.mark.parametrize("method,kwargs", [
-    ("finite",   {"num_points": 5}),  # plain finite
+    ("finite",   {"num_points": 5}),  # five-point stencil
     ("finite",   {"num_points": 5, "extrapolation": "richardson", "levels": 3}),
     ("finite",   {"num_points": 5, "extrapolation": "ridders", "levels": 3}),
     ("finite",   {"num_points": 5, "extrapolation": "gauss-richardson", "levels": 3}),
