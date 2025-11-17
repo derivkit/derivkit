@@ -85,7 +85,7 @@ estimate the covariance from simulations, bootstrap resampling, or
 jackknife procedures.
 
 The **Sellentin–Heavens likelihood**
-(`Sellentin & Heavens 2015 <https://arxiv.org/pdf/1506.04866>`_)
+(`Sellentin 2015 <https://arxiv.org/pdf/1506.04866>`_)
 corrects the Gaussian likelihood to account for finite-sample covariance
 uncertainty. It replaces the Gaussian form with a multivariate *Student-t*
 structure:
