@@ -30,57 +30,48 @@ and standard automatic differentiation is inappropriate.
 
 DerivKit is organized into four layers:
 
-.. raw:: html
+.. dropdown:: **1. DerivativeKit Layer**
+   :open:
 
-   <details open>
-   <summary><strong>1. DerivativeKit Layer</strong></summary>
-   <p>Tools for computing stable 1st–Nth derivatives:</p>
-   <ul>
-     <li>Finite differences (3–9 point stencils, Richardson, Ridders, Gauss–Richardson)</li>
-     <li>Simple polynomial fits (local regression)</li>
-     <li>Adaptive local polynomial regression (Chebyshev grid, robust diagnostics)</li>
-     <li>Gaussian Process derivatives (probabilistic fit, in progress)</li>
-     <li>Fornberg analytic weights (in progress)</li>
-     <li>Complex-step derivatives (planned)</li>
-   </ul>
-   </details>
+   Tools for computing stable 1st–Nth derivatives:
 
-   <details>
-   <summary><strong>2. CalculusKit Layer</strong></summary>
-   <p>Convenience wrappers built on top of the derivative engines:</p>
-   <ul>
-     <li>Gradient</li>
-     <li>Jacobian</li>
-     <li>Hessian</li>
-     <li>Mixed partials</li>
-   </ul>
-   <p>All backends are interchangeable — you can compute a Hessian using adaptive in one call
-   and finite difference in the next.</p>
-   </details>
+   * Finite differences (3–9 point stencils, Richardson, Ridders, Gauss–Richardson)
+   * Simple polynomial fits (local regression)
+   * Adaptive local polynomial regression (Chebyshev grid, robust diagnostics)
+   * Gaussian Process derivatives (probabilistic fit)
+   * Fornberg analytic weights (in progress)
+   * Complex-step derivatives (planned)
 
-   <details>
-   <summary><strong>3. ForecastKit Layer</strong></summary>
-   <p>Numerical expansions and likelihood-based inference tools:</p>
-   <ul>
-     <li>Fisher matrices</li>
-     <li>DALI expansions</li>
-     <li>Fisher bias vectors</li>
-     <li>Likelihood wrappers (Gaussian, Poissonian)</li>
-   </ul>
-   <p>The forecasting tools rely on the derivative engines but are fully general — you can use them
-   for any model, not just cosmology.</p>
-   </details>
+.. dropdown:: **2. CalculusKit Layer**
 
-   <details>
-   <summary><strong>4. LikelihoodKit</strong></summary>
-   <p>Lightweight wrappers for likelihood evaluation:</p>
-   <ul>
-     <li>Gaussian likelihood (with covariance shaping support)</li>
-     <li>Poissonian likelihood (scalar or binned)</li>
-     <li>Sellentin likelihood (planned)</li>
-   </ul>
-   <p>Handles flattening/reshaping data vectors, covariance consistency checks, input validation.</p>
-   </details>
+   Convenience wrappers built on the derivative engines:
+
+   * Gradient
+   * Jacobian
+   * Hessian
+   * Mixed partials
+
+   All backends are interchangeable.
+
+.. dropdown:: **3. ForecastKit Layer**
+
+   Numerical expansions & forecasting tools:
+
+   * Fisher matrices
+   * DALI expansions
+   * Fisher bias vectors
+   * Gaussian & Poisson likelihood wrappers
+
+.. dropdown:: **4. LikelihoodKit**
+
+   Lightweight, safe likelihood evaluation:
+
+   * Gaussian likelihood (covariance shaping)
+   * Poisson likelihood (scalar or binned)
+   * Sellentin likelihood (planned)
+
+   Handles flattening, reshaping, and validation.
+
 
 Installation
 ------------
