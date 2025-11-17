@@ -83,7 +83,7 @@ systematic errors in the observables.
 DALI (Higher-Order Forecasting)
 -------------------------------
 
-The **DALI** expansion (`Sellentin et al. 2014 <https://arxiv.org/abs/1401.6892>`_)
+The **DALI** expansion (Derivative Approximation for LIkelihoods; `Sellentin et al. 2014 <https://arxiv.org/abs/1401.6892>`_)
 extends the Fisher matrix by including *second* and *third* derivative
 information, capturing non-Gaussian structure in the likelihood.
 
