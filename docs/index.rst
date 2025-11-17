@@ -15,7 +15,6 @@ DerivKit documentation
    guide/methods
    guide/forecasting
    guide/likelihoods
-   guide/references
    contributing
    team
    modules
