@@ -37,6 +37,7 @@ license-files = ["LICENSE*"]
 ]
 "docs" = [
     "sphinx",
+    "sphinx-design",
     "furo",
 ]
 "lint" = [
