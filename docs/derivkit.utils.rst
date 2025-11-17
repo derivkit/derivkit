@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 4
 
    derivkit.utils.concurrency
+   derivkit.utils.extrapolation
    derivkit.utils.linalg
    derivkit.utils.numerics
    derivkit.utils.sandbox
