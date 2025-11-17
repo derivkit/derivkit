@@ -86,7 +86,7 @@ class FiniteDifferenceDerivative:
         extrapolation: str | None = None,
         levels: int | None = None,
         return_error: bool = False,
-    ) -> np.ndarray | float:
+    ) -> np.ndarray[float] | float:
         """Computes the derivative using a central finite difference scheme.
 
         Supports 3-, 5-, 7-, or 9-point central difference stencils for
