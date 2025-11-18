@@ -57,9 +57,8 @@ DerivKit is organized into four layers:
    Numerical expansions & forecasting tools:
 
    * Fisher matrices
-   * DALI expansions
    * Fisher bias vectors
-   * Gaussian & Poisson likelihood wrappers
+   * DALI expansions
 
 .. dropdown:: **4. LikelihoodKit**
 
