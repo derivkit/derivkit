@@ -11,7 +11,7 @@ the methods.
 """
 
 from functools import partial
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -89,7 +89,7 @@ class LikelihoodExpansion:
             forecast_order: int = 1,
             method: str | None = None,
             n_workers: int = 1,
-            dk_kwargs: dict | None = None,
+            **dk_kwargs: Any,
     ) -> Union[NDArray[np.float64], Tuple[NDArray[np.float64], NDArray[np.float64]]]:
         """Returns a set of tensors according to the requested order of the forecast.
 
@@ -107,7 +107,7 @@ class LikelihoodExpansion:
             n_workers: Number of workers for per-parameter parallelization/threads.
                 Default 1 (serial). Inner batch evaluation is kept serial to avoid
                 nested pools.
-            dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+            **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
         Returns:
             If ``D = 1``: Fisher matrix of shape ``(P, P)``.
@@ -137,20 +137,20 @@ class LikelihoodExpansion:
         # Compute inverse covariance matrix
         invcov = invert_covariance(self.cov, warn_prefix=self.__class__.__name__)
         # Compute first-order derivatives
-        d1 = self._get_derivatives(order=1, n_workers=n_workers, method=method, dk_kwargs=dk_kwargs)
+        d1 = self._get_derivatives(order=1, n_workers=n_workers, method=method, **dk_kwargs)
 
         if forecast_order == 1:
             return self._build_fisher(d1, invcov)  # Fisher
 
         # Compute second-order derivatives
-        d2 = self._get_derivatives(order=2, n_workers=n_workers, method=method, dk_kwargs=dk_kwargs)
+        d2 = self._get_derivatives(order=2, n_workers=n_workers, method=method, **dk_kwargs)
         return self._build_dali(d1, d2, invcov)  # doublet-DALI (G, H)
 
     def _get_derivatives(self,
                          order: int,
                          method: str | None = None,
                          n_workers: int = 1,
-                         dk_kwargs: dict | None = None,
+                         **dk_kwargs: Any,
                          ) -> NDArray[np.float64]:
         """Returns derivatives of the observables of the requested order.
 
@@ -166,7 +166,7 @@ class LikelihoodExpansion:
                 the DerivativeKit default ("adaptive") is used.
             n_workers (int, optional): Number of workers for per-parameter parallelization
              (threads). Default 1 (serial).
-            dk_kwargs (dict, optional): Additional keyword arguments passed to DerivativeKit.differentiate.
+            **dk_kwargs (dict, optional): Additional keyword arguments passed to DerivativeKit.differentiate.
 
         Returns:
             :class:`np.ndarray`: An array of derivative values:
@@ -188,7 +188,7 @@ class LikelihoodExpansion:
             raise ValueError("Only first- and second-order derivatives are currently supported.")
 
         n_workers = self._normalize_workers(n_workers)
-        dk_kwargs = dk_kwargs or {}
+        #dk_kwargs = dk_kwargs or {}
 
         # First-order path: compute Jacobian and return immediately
         if order == 1:
@@ -198,7 +198,7 @@ class LikelihoodExpansion:
                     self.theta0,
                     method=method,
                     n_workers=n_workers,  # allow outer parallelism across params
-                    dk_kwargs=dk_kwargs,
+                    **dk_kwargs,
                 ),
                 dtype=float,
             )
@@ -222,7 +222,7 @@ class LikelihoodExpansion:
             self._row_worker,
             method=method,
             inner_workers=inner_workers,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
 
         rows = parallel_execute(
@@ -243,7 +243,7 @@ class LikelihoodExpansion:
         *,
         method: str | None,
         inner_workers: int,
-        dk_kwargs: dict,
+        **dk_kwargs: Any,
     ) -> tuple[int, np.ndarray]:
         """Build one row of the second-order derivative tensor.
 
@@ -257,7 +257,7 @@ class LikelihoodExpansion:
             method: Derivative method to use (for example, "adaptive" or "finite").
                 If None, the DerivativeKit default is used.
             inner_workers: Number of workers used by the internal derivative calls.
-            dk_kwargs: Additional keyword arguments forwarded to
+            **dk_kwargs: Additional keyword arguments forwarded to
                 `DerivativeKit.differentiate`.
 
         Returns:
@@ -273,7 +273,7 @@ class LikelihoodExpansion:
                     m=m1,
                     method=method,
                     inner_workers=inner_workers,
-                    dk_kwargs=dk_kwargs,
+                    **dk_kwargs,
                 )
             else:
                 row[m2] = self._mixed_second_column(
@@ -281,7 +281,7 @@ class LikelihoodExpansion:
                     m2=m2,
                     method=method,
                     inner_workers=inner_workers,
-                    dk_kwargs=dk_kwargs,
+                    **dk_kwargs,
                 )
 
         return m1, row
@@ -292,7 +292,7 @@ class LikelihoodExpansion:
         *,
         method: str | None,
         inner_workers: int,
-        dk_kwargs: dict,
+        **dk_kwargs: Any,
     ) -> np.ndarray:
         """Compute the second derivative with respect to one parameter.
 
@@ -306,7 +306,7 @@ class LikelihoodExpansion:
             method: Derivative method to use (for example, "adaptive" or "finite").
                 If None, the DerivativeKit default is used.
             inner_workers: Number of workers for the internal derivative step.
-            dk_kwargs: Additional keyword arguments forwarded to
+            **dk_kwargs: Additional keyword arguments forwarded to
                 `DerivativeKit.differentiate`.
 
         Returns:
@@ -325,7 +325,7 @@ class LikelihoodExpansion:
             *,
             method: str | None,
             inner_workers: int,
-            dk_kwargs: dict,
+            **dk_kwargs: Any,
     ) -> np.ndarray:
         """Compute the mixed second derivative for two parameters.
 
@@ -341,7 +341,7 @@ class LikelihoodExpansion:
             method: Derivative method to use (for example, "adaptive" or "finite").
                 If None, the DerivativeKit default is used.
             inner_workers: Number of workers for the internal derivative step.
-            dk_kwargs: Additional keyword arguments forwarded to
+            **dk_kwargs: Additional keyword arguments forwarded to
                 `DerivativeKit.differentiate`.
 
         Returns:
@@ -355,7 +355,7 @@ class LikelihoodExpansion:
             i=m1,
             j=m2,
             method=method,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
         kit2 = DerivativeKit(path, float(self.theta0[m2]))
         return kit2.differentiate(order=1, method=method, n_workers=inner_workers, **dk_kwargs)
@@ -416,8 +416,8 @@ class LikelihoodExpansion:
             delta_nu: NDArray[np.floating],
             n_workers: int = 1,
             method: str | None = None,
-            dk_kwargs: dict | None = None,
             rcond: float = 1e-12,
+            **dk_kwargs: Any,
     ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
         """Estimate parameter bias using the stored model, expansion point, and covariance.
 
@@ -441,7 +441,7 @@ class LikelihoodExpansion:
             forming the Jacobian.
           method: Method name or alias (e.g., "adaptive", "finite").
             If None, the DerivativeKit default ("adaptive") is used.
-          dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+          **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
           rcond: Regularization cutoff for pseudoinverse. Default is 1e-12.
 
         Returns:
@@ -467,7 +467,7 @@ class LikelihoodExpansion:
                 self.theta0,
                 method=method,
                 n_workers=n_workers,
-                dk_kwargs=dk_kwargs,
+                **dk_kwargs,
             ),
             dtype=float,
         )
@@ -616,7 +616,7 @@ def mixed_partial_path(
     i: int,
     j: int,
     method: str | None,
-    dk_kwargs: dict | None = None,
+    **dk_kwargs: Any,
 ) -> np.ndarray:
     """Compute a first derivative while temporarily fixing another parameter.
 
@@ -635,7 +635,7 @@ def mixed_partial_path(
       j: Index of the parameter that is temporarily set to ``y``.
       method: Derivative method to use, such as "adaptive" or "finite". If
         None, the DerivativeKit default is used.
-      dk_kwargs: Extra keyword arguments forwarded to
+      **dk_kwargs: Extra keyword arguments forwarded to
         DerivativeKit.differentiate.
 
     Returns:
@@ -647,4 +647,4 @@ def mixed_partial_path(
     theta_fix[j] = float(y)
     f1 = get_partial_function(function, i, theta_fix)
     kit = DerivativeKit(f1, float(theta_fix[i]))
-    return kit.differentiate(order=1, method=method, **(dk_kwargs or {}))
+    return kit.differentiate(order=1, method=method, **dk_kwargs)

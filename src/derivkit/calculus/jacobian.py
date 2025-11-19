@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from functools import partial
+from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -19,7 +20,7 @@ def build_jacobian(
     theta0: ArrayLike,
     method: str | None = None,
     n_workers: int | None = 1,
-    dk_kwargs: dict | None = None,
+    **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Computes the Jacobian of a vector-valued function.
 
@@ -36,7 +37,7 @@ def build_jacobian(
             parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
             derivatives with respect to different parameters in parallel.
-        dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
         A 2D array representing the jacobian. Each column corresponds to
@@ -77,8 +78,8 @@ def build_jacobian(
         theta0=theta,
         method=method,
         inner_workers=inner_workers,
-        dk_kwargs=dk_kwargs,
         expected_m=m,
+        **dk_kwargs,
     )
 
     # Parallelize across parameters
@@ -100,8 +101,8 @@ def _column_derivative(
     theta0: ArrayLike,
     method: str | None,
     inner_workers: int | None,
-    dk_kwargs: dict | None,
     expected_m: int,
+    **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Derivative of function with respect to parameter j.
 
@@ -112,7 +113,7 @@ def _column_derivative(
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         inner_workers: Number of workers used by DerivativeKit.adaptive.differentiate.
-        dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
         expected_m: Expected length of the derivative vector.
 
     Returns:
@@ -137,7 +138,7 @@ def _column_derivative(
 
     # Differentiate via new unified API (passes method through)
     kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **(dk_kwargs or {}))
+    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **dk_kwargs)
 
     g = np.atleast_1d(np.asarray(g, dtype=float)).reshape(-1)
     if g.size != expected_m:
