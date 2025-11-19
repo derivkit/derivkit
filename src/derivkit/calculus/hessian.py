@@ -25,7 +25,7 @@ def build_hessian(
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
+    dk_kwargs: dict | None = None,
 ) -> NDArray[np.floating]:
     """Returns the full Hessian of a function.
 
@@ -35,7 +35,7 @@ def build_hessian(
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Parallel tasks across output components / Hessian entries.
-        **dk_kwargs: Extra options forwarded to `DerivativeKit.differentiate`.
+        dk_kwargs: Extra options forwarded to `DerivativeKit.differentiate`.
 
     Returns:
         Always returns the full Hessian with shape:
@@ -51,16 +51,16 @@ def build_hessian(
         TypeError: If a single output component (flattened scalar subpath) does not return a scalar.
     """
     return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
+        function, theta0, method=method, n_workers=n_workers, diag=False, dk_kwargs=dk_kwargs
     )
 
 
 def build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
+    dk_kwargs: dict | None,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian of a function.
 
@@ -70,7 +70,7 @@ def build_hessian_diag(
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Parallel tasks across output components / Hessian entries.
-        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
             You may optionally pass `inner_workers=<int>` here to override the inner policy.
 
     Returns:
@@ -87,7 +87,7 @@ def build_hessian_diag(
         TypeError: If evaluating a single output component does not return a scalar.
     """
     return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
+        function, theta0, method=method, n_workers=n_workers, diag=True, dk_kwargs=dk_kwargs
     )
 
 
@@ -102,7 +102,7 @@ def _compute_component_hessian(
         method: str | None,
         inner_workers: int | None,
         return_diag: bool,
-        dk_kwargs: dict,
+        dk_kwargs: dict | None,
         function: Callable[[ArrayLike], float | np.ndarray]
     ,) -> NDArray[np.floating]:
     """Compute the Hessian (or its diagonal) for one output component.
@@ -127,9 +127,9 @@ def _compute_component_hessian(
     g = partial(_component_scalar_eval, function=function, idx=int(idx))
 
     if return_diag:
-        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)
+        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, dk_kwargs=dk_kwargs)
     else:
-        return _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
+        return _build_hessian_scalar_full(g, theta, method, 1, inner_workers, dk_kwargs=dk_kwargs)
 
 
 def _component_scalar_eval(
@@ -162,7 +162,7 @@ def _build_hessian_scalar_full(
     method: str | None,
     outer_workers: int,
     inner_workers: int | None,
-    **dk_kwargs: Any,
+    dk_kwargs: dict | None,
 ) -> np.ndarray:
     """Returns the full (p, p) Hessian for a scalar-valued function.
 
@@ -172,7 +172,7 @@ def _build_hessian_scalar_full(
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for Hessian entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
+        dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
 
     Returns:
         A 2D array representing the Hessian.
@@ -222,7 +222,7 @@ def _build_hessian_scalar_diag(
     method: str | None,
     outer_workers: int,
     inner_workers: int | None,
-    **dk_kwargs: Any,
+    dk_kwargs: dict | None,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian for a scalar-valued function.
 
@@ -232,7 +232,7 @@ def _build_hessian_scalar_diag(
         method: Method name or alias (e.g., "adaptive", "finite").
         outer_workers: Number of outer parallel workers for diagonal entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
+        dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
 
     Returns:
         A 1D array representing the diagonal of the Hessian.
@@ -264,7 +264,7 @@ def _hessian_component_worker(
     j: int,
     method: str | None,
     inner_workers: int | None,
-    dk_kwargs: dict,
+    dk_kwargs: dict | None,
 ) -> float:
     """Returns one entry of the Hessian for a scalar-valued function.
 
@@ -289,7 +289,7 @@ def _hessian_component_worker(
         j=j,
         method=method,
         n_workers=inner_workers or 1,
-        **dk_kwargs,
+        dk_kwargs=dk_kwargs,
     )
 
 
@@ -298,9 +298,9 @@ def _hessian_component(
     theta0: np.ndarray,
     i: int,
     j: int,
+    dk_kwargs: dict | None,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
 ) -> float:
     """Returns one entry of the Hessian for a scalar-valued function.
 
@@ -319,7 +319,7 @@ def _hessian_component(
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
         A single number showing how the rate of change in one parameter
@@ -337,7 +337,7 @@ def _hessian_component(
         if probe.size != 1:
             raise TypeError("build_hessian() expects a scalar-valued function.")
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
-        return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
+        return kit1.differentiate(order=2, method=method, n_workers=n_workers, **(dk_kwargs or {}))
 
     path = partial(
         _mixed_partial_value,
@@ -350,7 +350,7 @@ def _hessian_component(
         dk_kwargs=dk_kwargs,
     )
     kit2 = DerivativeKit(path, float(theta0[j]))
-    return kit2.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+    return kit2.differentiate(order=1, method=method, n_workers=n_workers, **(dk_kwargs or {}))
 
 
 def _mixed_partial_value(
@@ -362,7 +362,7 @@ def _mixed_partial_value(
     j: int,
     method: str | None,
     n_workers: int | None,
-    dk_kwargs: dict,
+    dk_kwargs: dict | None,
 ) -> float:
     """Returns the first derivative with respect to parameter i while temporarily setting parameter j to a given value.
 
@@ -390,7 +390,7 @@ def _mixed_partial_value(
     theta[j] = float(y)
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
-    return float(kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs))
+    return float(kit1.differentiate(order=1, method=method, n_workers=n_workers, **(dk_kwargs or {})))
 
 
 def _build_hessian_internal(
@@ -400,7 +400,7 @@ def _build_hessian_internal(
     method: str | None,
     n_workers: int,
     diag: bool,
-    **dk_kwargs: Any,
+    dk_kwargs: dict | None,
 ) -> np.ndarray:
     """Core Hessian builder (internal).
 
@@ -425,7 +425,7 @@ def _build_hessian_internal(
         diag:
             If ``True``, compute only the diagonal entries.
             If ``False``, compute the full Hessian.
-        **dk_kwargs:
+        dk_kwargs:
             Additional keyword arguments forwarded to ``DerivativeKit.differentiate``.
 
     Returns:
@@ -457,15 +457,18 @@ def _build_hessian_internal(
     y0 = np.asarray(function(theta))
     out_shape = y0.shape
 
-    inner_override = dk_kwargs.pop("inner_workers", None)
+    if dk_kwargs is not None and "inner_workers" in dk_kwargs.keys():
+        inner_override = dk_kwargs.pop("inner_workers", None)
+    else:
+        inner_override = None
     outer = int(n_workers) if n_workers is not None else 1
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
     if y0.ndim == 0:
         if diag:
-            return _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+            return _build_hessian_scalar_diag(function, theta, method, outer, inner, dk_kwargs=dk_kwargs)
         else:
-            return _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
+            return _build_hessian_scalar_full(function, theta, method, outer, inner, dk_kwargs=dk_kwargs)
 
     # Tensor output: flatten and compute per-component Hessians.
     # Treat the function output as a vector of length m = prod(out_shape),
