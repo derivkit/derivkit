@@ -11,7 +11,7 @@ the methods.
 """
 
 from functools import partial
-from typing import Callable, Tuple, Union, Any
+from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
