@@ -10,21 +10,14 @@ More details about available options can be found in the documentation of
 the methods.
 """
 
-from functools import partial
 from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.calculus.jacobian import build_jacobian
-from derivkit.calculus.hessian import build_hessian
+from derivkit.calculus_kit import CalculusKit
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils.concurrency import (
-    parallel_execute,
-    resolve_inner_from_outer,
-)
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
-from derivkit.utils.sandbox import get_partial_function
 
 
 class LikelihoodExpansion:
@@ -190,12 +183,12 @@ class LikelihoodExpansion:
 
         n_workers = self._normalize_workers(n_workers)
 
+        ckit = CalculusKit(self.function, self.theta0)
+
         # First-order path: compute Jacobian and return immediately
         if order == 1:
             j_raw = np.asarray(
-                build_jacobian(
-                    self.function,
-                    self.theta0,
+                ckit.jacobian(
                     method=method,
                     n_workers=n_workers,  # allow outer parallelism across params
                     **dk_kwargs,
@@ -205,21 +198,20 @@ class LikelihoodExpansion:
             # Accept (N, P) or (P, N); return (P, N)
             if j_raw.shape == (self.n_observables, self.n_parameters):
                 return j_raw.T
-            if j_raw.shape == (self.n_parameters, self.n_observables):
+            elif j_raw.shape == (self.n_parameters, self.n_observables):
                 return j_raw
-            raise ValueError(
-                f"build_jacobian returned unexpected shape {j_raw.shape}; "
-                f"expected ({self.n_observables},{self.n_parameters}) or "
-                f"({self.n_parameters},{self.n_observables})."
-            )
+            else:
+                raise ValueError(
+                    f"build_jacobian returned unexpected shape {j_raw.shape}; "
+                    f"expected ({self.n_observables},{self.n_parameters}) or "
+                    f"({self.n_parameters},{self.n_observables})."
+                )
 
         # Second-order path (order is guaranteed to be 2 here)
         # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
         # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
         h_raw = np.asarray(
-            build_hessian(
-                self.function,
-                self.theta0,
+            ckit.hessian(
                 method=method,
                 n_workers=n_workers,  # allow outer parallelism across params
                 **dk_kwargs,
@@ -237,128 +229,6 @@ class LikelihoodExpansion:
                 f"({self.n_parameters},{self.n_parameters},{self.n_observables})."
             )
 
-    def _row_worker(
-        self,
-        m1: int,
-        *,
-        method: str | None,
-        inner_workers: int,
-        **dk_kwargs: Any,
-    ) -> tuple[int, np.ndarray]:
-        """Build one row of the second-order derivative tensor.
-
-        For a fixed primary parameter index, this computes the second derivative
-        columns against all parameters. Pure second derivatives are computed on
-        the diagonal, and mixed second derivatives are computed off the diagonal.
-        Work is organized so that it can be executed in parallel across rows.
-
-        Args:
-            m1: Index of the primary parameter for this row.
-            method: Derivative method to use (for example, "adaptive" or "finite").
-                If None, the DerivativeKit default is used.
-            inner_workers: Number of workers used by the internal derivative calls.
-            **dk_kwargs: Additional keyword arguments forwarded to
-                `DerivativeKit.differentiate`.
-
-        Returns:
-            A tuple of the row index and a two-dimensional array with shape
-            (number of parameters, number of observables) containing the second
-            derivatives for parameter `m1` against every parameter.
-        """
-        row = np.zeros((self.n_parameters, self.n_observables), dtype=float)
-
-        for m2 in range(self.n_parameters):
-            if m1 == m2:
-                row[m2] = self._pure_second_column(
-                    m=m1,
-                    method=method,
-                    inner_workers=inner_workers,
-                    **dk_kwargs,
-                )
-            else:
-                row[m2] = self._mixed_second_column(
-                    m1=m1,
-                    m2=m2,
-                    method=method,
-                    inner_workers=inner_workers,
-                    **dk_kwargs,
-                )
-
-        return m1, row
-
-    def _pure_second_column(
-        self,
-        m: int,
-        *,
-        method: str | None,
-        inner_workers: int,
-        **dk_kwargs: Any,
-    ) -> np.ndarray:
-        """Compute the second derivative with respect to one parameter.
-
-        Builds a single-variable view of the model where only parameter `m` varies
-        and all other parameters are fixed at the expansion point. It then uses
-        DerivativeKit to evaluate the second derivative of each observable with
-        respect to that parameter.
-
-        Args:
-            m: Index of the parameter to differentiate with respect to.
-            method: Derivative method to use (for example, "adaptive" or "finite").
-                If None, the DerivativeKit default is used.
-            inner_workers: Number of workers for the internal derivative step.
-            **dk_kwargs: Additional keyword arguments forwarded to
-                `DerivativeKit.differentiate`.
-
-        Returns:
-            A one-dimensional array containing the second derivative of each
-            observable with respect to parameter `m` at the expansion point.
-        """
-        theta_fix = self.theta0.copy()
-        f1 = get_partial_function(self.function, m, theta_fix)
-        kit1 = DerivativeKit(f1, float(self.theta0[m]))
-        return kit1.differentiate(order=2, method=method, n_workers=inner_workers, **dk_kwargs)
-
-    def _mixed_second_column(
-            self,
-            m1: int,
-            m2: int,
-            *,
-            method: str | None,
-            inner_workers: int,
-            **dk_kwargs: Any,
-    ) -> np.ndarray:
-        """Compute the mixed second derivative for two parameters.
-
-        Creates a single-argument path function that, for each trial value of the
-        second parameter, evaluates the first derivative of the model with respect
-        to the first parameter while holding all other parameters fixed at the
-        expansion point. It then differentiates that path with respect to the
-        second parameter to obtain the mixed second derivative.
-
-        Args:
-            m1: Index of the first parameter in the mixed derivative.
-            m2: Index of the second parameter in the mixed derivative.
-            method: Derivative method to use (for example, "adaptive" or "finite").
-                If None, the DerivativeKit default is used.
-            inner_workers: Number of workers for the internal derivative step.
-            **dk_kwargs: Additional keyword arguments forwarded to
-                `DerivativeKit.differentiate`.
-
-        Returns:
-            A one-dimensional array containing the mixed second derivative of each
-            observable with respect to parameters `m1` and `m2` at the expansion point.
-        """
-        path = partial(
-            mixed_partial_path,  # <-- remove leading underscore
-            function=self.function,
-            theta0=self.theta0,
-            i=m1,
-            j=m2,
-            method=method,
-            **dk_kwargs,
-        )
-        kit2 = DerivativeKit(path, float(self.theta0[m2]))
-        return kit2.differentiate(order=1, method=method, n_workers=inner_workers, **dk_kwargs)
 
     def _build_fisher(self, d1, invcov):
         """Assemble the Fisher information matrix F from first derivatives.
@@ -461,10 +331,9 @@ class LikelihoodExpansion:
             raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
         # Jacobian — we are enforcing (n_obs, n_params) throughout the package
+        ckit = CalculusKit(self.function, self.theta0)
         j_matrix = np.asarray(
-            build_jacobian(
-                self.function,
-                self.theta0,
+            ckit.jacobian(
                 method=method,
                 n_workers=n_workers,
                 **dk_kwargs,
@@ -607,44 +476,3 @@ class LikelihoodExpansion:
             n = 1
         return 1 if n < 1 else n
 
-
-def mixed_partial_path(
-    y: float,
-    *,
-    function: Callable,
-    theta0: np.ndarray,
-    i: int,
-    j: int,
-    method: str | None,
-    **dk_kwargs: Any,
-) -> np.ndarray:
-    """Compute a first derivative while temporarily fixing another parameter.
-
-    This helper builds a single-argument path where parameter ``j`` is set to
-    the provided value and all other parameters are held at the expansion
-    point. Along that path it evaluates the first derivative of the model with
-    respect to parameter ``i``. It is used to construct mixed second
-    derivatives without nested function definitions.
-
-    Args:
-      y: Value to assign to parameter ``j`` along the evaluation path.
-      function: Model function that returns a vector of observables given a
-        parameter vector.
-      theta0: Parameter vector at the expansion point.
-      i: Index of the parameter to differentiate with respect to.
-      j: Index of the parameter that is temporarily set to ``y``.
-      method: Derivative method to use, such as "adaptive" or "finite". If
-        None, the DerivativeKit default is used.
-      **dk_kwargs: Extra keyword arguments forwarded to
-        DerivativeKit.differentiate.
-
-    Returns:
-      A one-dimensional array with the first derivative of each observable
-      with respect to parameter ``i`` evaluated at the path where parameter
-      ``j`` equals ``y``.
-    """
-    theta_fix = theta0.copy()
-    theta_fix[j] = float(y)
-    f1 = get_partial_function(function, i, theta_fix)
-    kit = DerivativeKit(f1, float(theta_fix[i]))
-    return kit.differentiate(order=1, method=method, **dk_kwargs)
