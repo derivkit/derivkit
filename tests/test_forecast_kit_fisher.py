@@ -218,9 +218,16 @@ def test_normalize_workers_various_inputs():
     assert lx._normalize_workers(2.7) == 2
 
 
+@pytest.mark.parametrize("method", ["adaptive", "finite"])
 @pytest.mark.parametrize("extrapolation", ["richardson", "ridders", "gauss_richardson"])
-def test_get_forecast_tensors_order1_forwards_all_extrapolations(monkeypatch, extrapolation):
-    """Tests that all extrapolation options are forwarded to _get_derivatives."""
+@pytest.mark.parametrize("stencil", [3, 5, 7, 9])
+def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
+    monkeypatch,
+    method,
+    extrapolation,
+    stencil,
+):
+    """Tests that derivative method and its kwargs are forwarded to _get_derivatives."""
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
@@ -245,21 +252,21 @@ def test_get_forecast_tensors_order1_forwards_all_extrapolations(monkeypatch, ex
 
     fisher = lx.get_forecast_tensors(
         forecast_order=1,
-        method="finite",
+        method=method,
         n_workers=2,
         extrapolation=extrapolation,
-        stencil="7-point",
+        stencil=stencil,
     )
 
     expected = lx._build_fisher(D1_GLOBAL, INVCOV_GLOBAL)
     np.testing.assert_allclose(fisher, expected)
 
-    # Check forwarding
-    assert DERIV_CALL_INFO["kwargs"]["order"] == 1
-    assert DERIV_CALL_INFO["kwargs"]["method"] == "finite"
-    assert DERIV_CALL_INFO["kwargs"]["n_workers"] == 2
-    assert DERIV_CALL_INFO["kwargs"]["extrapolation"] == extrapolation
-    assert DERIV_CALL_INFO["kwargs"]["stencil"] == "7-point"
+    kwargs = DERIV_CALL_INFO["kwargs"]
+    assert kwargs["order"] == 1
+    assert kwargs["method"] == method
+    assert kwargs["n_workers"] == 2
+    assert kwargs["extrapolation"] == extrapolation
+    assert kwargs["stencil"] == stencil
 
 
 def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(monkeypatch):
