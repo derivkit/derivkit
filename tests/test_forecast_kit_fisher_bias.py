@@ -346,17 +346,18 @@ def test_build_fisher_bias_accepts_2d_delta_nu_and_flattens(monkeypatch):
 
 @pytest.mark.parametrize("method", ["adaptive", "finite", "local_polyfit"])
 @pytest.mark.parametrize("extrapolation", ["richardson", "ridders", "gauss_richardson"])
-def test_build_fisher_bias_forwards_method_and_n_workers(
+@pytest.mark.parametrize("stencil", [3, 5, 7, 9])
+def test_build_fisher_bias_forwards_derivative_kwargs(
     monkeypatch,
     method,
     extrapolation,
+    stencil,
 ):
-    """Tests that method, n_workers, extrapolation, stencil are forwarded to build_jacobian."""
+    """Tests that derivative kwargs are forwarded correctly."""
     theta0 = np.array([0.0, 0.0])
     cov = np.eye(3)
 
-    global J_GLOBAL, J_CALL_INFO
-    # Simple non-trivial Jacobian
+    global J_GLOBAL, J_CALL_INFO, SOLVE_CALLS
     J_GLOBAL = np.array(
         [
             [1.0, 0.0],
@@ -365,10 +366,16 @@ def test_build_fisher_bias_forwards_method_and_n_workers(
         ]
     )
     J_CALL_INFO = {}
+    SOLVE_CALLS = []
 
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.build_jacobian",
         fake_build_jacobian,
+        raising=True,
+    )
+    monkeypatch.setattr(
+        "derivkit.forecasting.expansions.solve_or_pinv",
+        fake_solve_or_pinv,
         raising=True,
     )
 
@@ -377,14 +384,27 @@ def test_build_fisher_bias_forwards_method_and_n_workers(
     fisher = np.eye(2)
     delta_nu = np.array([1.0, 2.0, 3.0])
 
-    bias_vec, delta_theta = lx.build_fisher_bias(
-        fisher_matrix=fisher,
-        delta_nu=delta_nu,
-        n_workers=5,
-        method=method,
-        extrapolation=extrapolation,
-        stencil="7-point",
-    )
+    if method == "local_polyfit":
+        # polyfit path: no extrapolation/stencil, but degree/window/trim_fraction
+        bias_vec, delta_theta = lx.build_fisher_bias(
+            fisher_matrix=fisher,
+            delta_nu=delta_nu,
+            n_workers=5,
+            method="local_polyfit",
+            degree=5,
+            window=4,
+            trim_fraction=0.2,
+        )
+    else:
+        # finite / adaptive path: use extrapolation + stencil
+        bias_vec, delta_theta = lx.build_fisher_bias(
+            fisher_matrix=fisher,
+            delta_nu=delta_nu,
+            n_workers=5,
+            method=method,
+            extrapolation=extrapolation,
+            stencil=stencil,
+        )
 
     # Numeric expectations (cov = I, so cinv_delta = delta_nu)
     cinv_delta = delta_nu
@@ -395,10 +415,21 @@ def test_build_fisher_bias_forwards_method_and_n_workers(
     np.testing.assert_allclose(delta_theta, expected_delta_theta)
 
     # Delegation checks
-    assert J_CALL_INFO["kwargs"]["method"] == method
-    assert J_CALL_INFO["kwargs"]["n_workers"] == 5
-    assert J_CALL_INFO["kwargs"]["extrapolation"] == extrapolation
-    assert J_CALL_INFO["kwargs"]["stencil"] == "7-point"
+    kwargs = J_CALL_INFO["kwargs"]
+    assert kwargs["n_workers"] == 5
+
+    if method == "local_polyfit":
+        assert kwargs["method"] == "local_polyfit"
+        assert kwargs["degree"] == 5
+        assert kwargs["window"] == 4
+        assert kwargs["trim_fraction"] == 0.2
+        # optional: make sure FD-only kwargs are *not* present
+        assert "extrapolation" not in kwargs
+        assert "stencil" not in kwargs
+    else:
+        assert kwargs["method"] == method
+        assert kwargs["extrapolation"] == extrapolation
+        assert kwargs["stencil"] == stencil
 
 
 def test_build_delta_nu_1d_ok():
@@ -466,13 +497,13 @@ def test_build_delta_nu_rejects_ndim_greater_than_two():
 
 
 def test_build_delta_nu_wrong_length_vs_n_observables_raises():
-    """FTests that inputs with wrong length vs n_observables raise ValueError."""
+    """Tests that inputs with wrong length vs n_observables raise ValueError."""
     theta0 = np.array([0.0])
     cov = np.eye(5)  # n_observables = 5
 
     lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
 
-    # 2x2 -> length 4, but n_observables = 5
+    # 2x2 so length 4, but n_observables = 5
     a = np.zeros((2, 2))
     b = np.zeros((2, 2))
 
