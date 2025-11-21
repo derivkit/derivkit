@@ -196,3 +196,52 @@ def test_center_false_matches_center_true_for_linear():
     assert _rel_err(float(d_nc), 3.5) < 1e-9, f"center=False wrong: {d_nc}, diag={diag_nc}"
     assert diag_c["ok"]
     assert diag_nc["ok"]
+
+
+def test_return_error_on_polynomial_small():
+    """Tests that error estimate is small on exact polynomial."""
+    degree = 4
+    x0 = 0.3
+    rng = np.random.default_rng(123)
+    coeffs = rng.normal(size=degree + 1)
+
+    f = partial(poly_function, coeffs=coeffs, degree=degree)
+    config = LocalPolyConfig(
+        rel_steps=(0.01, 0.02, 0.04),
+        max_degree=degree,
+        min_samples=degree + 3,
+        center=True,
+    )
+
+    lp = LocalPolynomialDerivative(f, float(x0), config=config)
+
+    est, err = lp.differentiate(order=1, degree=degree, return_error=True)
+
+    truth = eval_poly_derivative(1, float(x0), coeffs, degree)
+    rel_est = _rel_err(float(est), truth)
+
+    # Derivative itself is still accurate
+    assert rel_est < 1e-8
+
+    # Internal “error” should also be tiny for an exact polynomial
+    assert float(err) < 1e-6
+
+
+def test_return_error_with_diagnostics_triplet():
+    """Tests that return_error=True with diagnostics=True returns a triplet."""
+    x0 = 0.5
+    lp = LocalPolynomialDerivative(linear_function, float(x0))
+
+    out = lp.differentiate(order=1, return_error=True, diagnostics=True)
+
+    # Expect (deriv, err, diag)
+    assert isinstance(out, tuple)
+    assert len(out) == 3
+
+    deriv, err, diag = out
+
+    assert np.isfinite(float(deriv))
+    assert np.isfinite(float(err))
+    assert isinstance(diag, dict)
+    assert "fit_type" in diag
+    assert "n_workers" in diag
