@@ -1,6 +1,7 @@
 """Tests for DerivativeKit method-dispatch API."""
 
 from functools import partial
+import pytest
 
 import numpy as np
 
@@ -148,14 +149,25 @@ def test_array_x0_loops_and_stacks(monkeypatch):
     np.testing.assert_allclose(out, expected)
 
 
-def test_array_x0_with_real_engine_finite():
-    """Tests that array x0 values work with the real FiniteDifferenceDerivative engine."""
+@pytest.mark.parametrize(
+    "method, extra_kwargs",
+    [
+        # finite: all extrapolation schemes
+        ("finite", {}),
+        ("finite", {"extrapolation": "richardson"}),
+        ("finite", {"extrapolation": "ridders"}),
+        ("finite", {"extrapolation": "gauss-richardson"}),
+        ("adaptive", {}),
+        ("local_polynomial", {}),
+    ],
+)
+def test_array_x0_with_real_engines_and_configs(method, extra_kwargs):
+    """Tests that array x0 values work with real engines and configs."""
     f = np.sin
     x0 = np.array([-0.3, 0.0, 0.7])
     dk = DerivativeKit(f, x0)
 
-    # first derivative of sin is cos
-    out = dk.differentiate(order=1, method="finite")
+    out = dk.differentiate(order=1, method=method, **extra_kwargs)
     expected = np.cos(x0)
 
     np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
