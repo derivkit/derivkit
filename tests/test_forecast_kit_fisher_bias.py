@@ -1,8 +1,7 @@
 """Tests for Fisher-bias estimation in LikelihoodExpansion."""
 
-import pytest
-
 import numpy as np
+import pytest
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
 
