@@ -112,3 +112,78 @@ def test_default_method_is_adaptive():
         np.testing.assert_allclose(y_none, y_adpt)
     else:
         assert y_none == y_adpt
+
+
+def test_array_x0_loops_and_stacks(monkeypatch):
+    """Tests that array x0 values are handled correctly by looping and stacking results."""
+    x0_vals = np.array([-0.5, 0.0, 0.5])
+    seen_x0 = []
+
+    class FakeEngine:
+        def __init__(self, function, x0, **kwargs):
+            # record scalar x0 passed to each engine instance
+            seen_x0.append(x0)
+            self.function = function
+            self.x0 = x0
+
+        def differentiate(self, **kwargs):
+            # return a simple vector that depends only on x0
+            return np.array([self.x0, 2 * self.x0])
+
+    def fake_resolve(name: str):
+        # ignore method name; always use FakeEngine
+        return FakeEngine
+
+    monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
+
+    dk = DerivativeKit(quad, x0=x0_vals)
+    out = dk.differentiate(order=1)  # method=None → default
+
+    # Engine must have been called once per x0, with scalar x0 each time
+    np.testing.assert_allclose(np.array(seen_x0), x0_vals)
+
+    # Output should be stacked with a leading axis over x0
+    assert out.shape == (len(x0_vals), 2)
+    expected = np.stack([np.array([x, 2 * x]) for x in x0_vals], axis=0)
+    np.testing.assert_allclose(out, expected)
+
+
+def test_array_x0_with_real_engine_finite():
+    """Tests that array x0 values work with the real FiniteDifferenceDerivative engine."""
+    f = np.sin
+    x0 = np.array([-0.3, 0.0, 0.7])
+    dk = DerivativeKit(f, x0)
+
+    # first derivative of sin is cos
+    out = dk.differentiate(order=1, method="finite")
+    expected = np.cos(x0)
+
+    np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
+
+
+def test_array_x0_preserves_shape_for_2d_grid(monkeypatch):
+    """Tests that 2D array x0 values preserve shape in output."""
+    x0_grid = np.array([[0.0, 0.5], [1.0, 1.5]])
+
+    class FakeEngine:
+        def __init__(self, function, x0, **kwargs):
+            self.x0 = x0
+
+        def differentiate(self, **kwargs):
+            # pretend output is a length-3 vector per point
+            return np.array([self.x0, self.x0 + 1.0, self.x0 + 2.0])
+
+    def fake_resolve(name: str):
+        return FakeEngine
+
+    monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
+
+    dk = DerivativeKit(quad, x0=x0_grid)
+    out = dk.differentiate(order=1)
+
+    # shape: x0.shape + (3,)
+    assert out.shape == (2, 2, 3)
+
+    # spot-check a couple of entries
+    np.testing.assert_allclose(out[0, 0], np.array([0.0, 1.0, 2.0]))
+    np.testing.assert_allclose(out[1, 1], np.array([1.5, 2.5, 3.5]))
