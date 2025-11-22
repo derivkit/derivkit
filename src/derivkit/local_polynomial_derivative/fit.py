@@ -153,7 +153,7 @@ def centered_polyfit_least_squares(
     xs: np.ndarray,
     ys: np.ndarray,
     degree: int,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculates a plain least-squares polynomial fit in powers of (x - x0).
 
     Args:
@@ -164,10 +164,10 @@ def centered_polyfit_least_squares(
 
     Returns:
         A tuple containing
-            - An array of shape ``(degree+1, n_comp)`` with coefficients
-                for ``sum_k a_k (x - x0)^k``.
 
-            - A boolean mask of length ``n_samples`` (all `True` here).
+            - An array of shape (degree+1, n_comp) with coefficients for sum_k a_k (x - x0)^k.
+            - A boolean mask of length n_samples (all True here).
+            - An array of shape (degree+1, n).
     """
     xs = np.asarray(xs, dtype=float)
     ys = np.asarray(ys)
@@ -180,4 +180,18 @@ def centered_polyfit_least_squares(
 
     coeffs, *_ = np.linalg.lstsq(vander, ys, rcond=None)
     used_mask = np.ones(xs.shape[0], dtype=bool)
-    return coeffs, used_mask
+
+    y_fit = vander @ coeffs
+    residuals = y_fit - ys  # (n_samples, n_comp)
+    n_samples = vander.shape[0]
+    n_params = degree + 1
+    dof = max(n_samples - n_params, 1)
+
+    sigma2 = np.sum(residuals ** 2, axis=0) / dof  # shape (n_comp,)
+
+    xtx_inv = np.linalg.inv(vander.T @ vander)  # (p, p)
+    diag_xtx_inv = np.diag(xtx_inv)[:, None]  # (p, 1)
+
+    coeff_std = np.sqrt(diag_xtx_inv * sigma2[None, :])
+
+    return coeffs, used_mask, coeff_std
