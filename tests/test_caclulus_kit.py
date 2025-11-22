@@ -26,12 +26,11 @@ class RecordingGradient:
         self.kwargs = None
 
     def __call__(self, func, x0, *args, **kwargs):
-        """Records inputs and returns sentinel gradient."""
+        """Records inputs and returns a fixed dummy gradient."""
         self.func = func
         self.x0 = np.asarray(x0, dtype=float)
         self.args = args
         self.kwargs = kwargs
-        # sentinel gradient
         return np.array([1.23, 4.56])
 
 
@@ -45,12 +44,11 @@ class RecordingJacobian:
         self.kwargs = None
 
     def __call__(self, func, x0, *args, **kwargs):
-        """Records inputs and returns sentinel Jacobian."""
+        """Records inputs and returns dummy Jacobian."""
         self.func = func
         self.x0 = np.asarray(x0, dtype=float)
         self.args = args
         self.kwargs = kwargs
-        # sentinel Jacobian
         return np.full((2, 2), 7.0)
 
 
@@ -64,12 +62,11 @@ class RecordingHessian:
         self.kwargs = None
 
     def __call__(self, func, x0, *args, **kwargs):
-        """Records inputs and returns sentinel Hessian."""
+        """Records inputs and returns dummy Hessian."""
         self.func = func
         self.x0 = np.asarray(x0, dtype=float)
         self.args = args
         self.kwargs = kwargs
-        # sentinel Hessian
         return np.ones((3, 3))
 
 
@@ -83,12 +80,11 @@ class RecordingHessianDiag:
         self.kwargs = None
 
     def __call__(self, func, x0, *args, **kwargs):
-        """Records inputs and returns sentinel Hessian diagonal."""
+        """Records inputs and returns dummy Hessian diagonal."""
         self.func = func
         self.x0 = np.asarray(x0, dtype=float)
         self.args = args
         self.kwargs = kwargs
-        # sentinel Hessian diagonal
         return np.array([9.0, 8.0])
 
 
