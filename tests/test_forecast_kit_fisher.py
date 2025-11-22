@@ -5,11 +5,20 @@ import pytest
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
 
-# Globals used by fake helpers
+# Shared state used by fake helpers; reset inside each test
 D1_GLOBAL = None
-DERIV_CALL_INFO: dict = {}
 INVCOV_GLOBAL = None
+DERIV_CALL_INFO: dict = {}
 INVCOV_CALL_INFO: dict = {}
+
+
+def _set_fake_state(d1, invcov):
+    """Sets globals for fake derivative + covariance helpers."""
+    global D1_GLOBAL, INVCOV_GLOBAL, DERIV_CALL_INFO, INVCOV_CALL_INFO
+    D1_GLOBAL = d1
+    INVCOV_GLOBAL = invcov
+    DERIV_CALL_INFO = {}
+    INVCOV_CALL_INFO = {}
 
 
 def fake_get_derivatives(*args, **kwargs):
@@ -77,17 +86,10 @@ def test_get_forecast_tensors_order1_builds_fisher(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     cov = np.array([[1.0, 0.2], [0.2, 2.0]])
 
-    # Set globals used by the fakes
-    global D1_GLOBAL, INVCOV_GLOBAL, DERIV_CALL_INFO, INVCOV_CALL_INFO
-    D1_GLOBAL = np.array(
-        [
-            [1.0, 0.5],
-            [-0.3, 2.0],
-        ]
-    )
-    INVCOV_GLOBAL = np.array([[10.0, 0.0], [0.0, 0.5]])
-    DERIV_CALL_INFO = {}
-    INVCOV_CALL_INFO = {}
+    _set_fake_state(
+               np.array([[1.0, 0.5], [-0.3, 2.0]]),
+               np.array([[10.0, 0.0], [0.0, 0.5]]),
+        )
 
     # Patch internals: invert_covariance and _get_derivatives
     monkeypatch.setattr(
@@ -175,11 +177,7 @@ def test_get_forecast_tensors_order1_default_n_workers(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
-    global D1_GLOBAL, INVCOV_GLOBAL, DERIV_CALL_INFO, INVCOV_CALL_INFO
-    D1_GLOBAL = np.array([[1.0, 0.0], [0.0, 1.0]])
-    INVCOV_GLOBAL = np.eye(2)
-    DERIV_CALL_INFO = {}
-    INVCOV_CALL_INFO = {}
+    _set_fake_state(np.array([[1.0, 0.0], [0.0, 1.0]]), np.eye(2))
 
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.invert_covariance",
@@ -228,11 +226,7 @@ def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
-    global D1_GLOBAL, INVCOV_GLOBAL, DERIV_CALL_INFO, INVCOV_CALL_INFO
-    D1_GLOBAL = np.array([[1.0, 0.0], [0.0, 1.0]])
-    INVCOV_GLOBAL = np.eye(2)
-    DERIV_CALL_INFO = {}
-    INVCOV_CALL_INFO = {}
+    _set_fake_state(np.array([[1.0, 0.0], [0.0, 1.0]]), np.eye(2))
 
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.invert_covariance",
@@ -271,11 +265,7 @@ def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
-    global D1_GLOBAL, INVCOV_GLOBAL, DERIV_CALL_INFO, INVCOV_CALL_INFO
-    D1_GLOBAL = np.array([[1.0, 0.0], [0.0, 1.0]])
-    INVCOV_GLOBAL = np.eye(2)
-    DERIV_CALL_INFO = {}
-    INVCOV_CALL_INFO = {}
+    _set_fake_state(np.array([[1.0, 0.0], [0.0, 1.0]]), np.eye(2))
 
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.invert_covariance",
