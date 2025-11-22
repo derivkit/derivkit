@@ -299,3 +299,13 @@ def test_array_valued_function_with_array_x0_all_methods(method, extra_kwargs):
 
     assert out.shape == expected.shape == (len(x0), 2)
     np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
+
+
+def test_array_valued_function_with_scalar_x0():
+    """Tests that an array-valued function works for scalar x0."""
+    x0 = 0.3
+    dk = DerivativeKit(vec_fun_2d, x0)
+    out = dk.differentiate(order=1, method="finite")
+
+    expected = np.array([np.cos(x0), -np.sin(x0)])
+    np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
