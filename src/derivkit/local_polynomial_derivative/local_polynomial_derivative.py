@@ -49,6 +49,7 @@ class LocalPolynomialDerivative:
         order: int = 1,
         degree: int | None = None,
         n_workers: int = 1,
+        return_error: bool = False,
         diagnostics: bool = False,
     ):
         """Local polynomial-regression derivative estimator.
@@ -63,15 +64,13 @@ class LocalPolynomialDerivative:
         behaved, and whether the final fit passed all internal checks.
 
         Args:
-            order:
-                The order of the derivative to estimate (must be >= 1).
-            degree:
-                The degree of the polynomial fit. If None, it is set to max(order +
+            order: The order of the derivative to estimate (must be >= 1).
+            degree: The degree of the polynomial fit. If None, it is set to max(order +
                 2, 3) but capped by ``config.max_degree``.
-            n_workers:
-                The number of parallel workers for function evaluation (must be >= 1).
-            diagnostics:
-                If True, returns a diagnostics dictionary along with the derivative estimate.
+            n_workers: The number of parallel workers for function evaluation (must be >= 1).
+            return_error: If True, also returns a relative error estimate based on the disagreement
+                between trimmed and least-squares fits.
+            diagnostics: If True, returns a diagnostics dictionary along with the derivative estimate.
 
         Returns:
             If diagnostics is False: The estimated derivative (float or np.ndarray).
@@ -101,16 +100,26 @@ class LocalPolynomialDerivative:
         )
 
         # Always compute LS fit as a backup / cross-check
-        coeffs_ls, used_mask_ls = centered_polyfit_least_squares(
+        coeffs_ls, used_mask_ls, coeff_std_ls = centered_polyfit_least_squares(
             self.x0, xs, ys, degree
         )
 
         # Decide which coefficients to trust
         if not ok:
-            # Trimmed fit failed -> trust LS
+            # Trimmed fit failed -> trust LS and estimate error from LS statistics.
             coeffs = coeffs_ls
             used_mask = used_mask_ls
             fit_type = "least_squares"
+
+            factorial = math.factorial(order)
+            a_k_ls = coeffs_ls[order]  # shape (n_comp,)
+            sigma_ak = coeff_std_ls[order]  # shape (n_comp,)
+
+            deriv_ls = factorial * a_k_ls
+            sigma_deriv = factorial * sigma_ak
+
+            tiny = np.finfo(float).tiny  # this avoids division by zero
+            err = np.abs(sigma_deriv) / np.maximum(np.abs(deriv_ls), tiny)
         else:
             # Both fits available -> compare their implied derivatives
             coeffs_trim = np.asarray(coeffs_trim)
@@ -148,20 +157,34 @@ class LocalPolynomialDerivative:
         deriv = factorial * a_k
         deriv_out = float(deriv[0]) if n_comp == 1 else deriv
 
-        if not diagnostics:
-            return deriv_out
+        # Make error output shape match the derivative shape
+        err_arr = np.asarray(err)
+        if n_comp == 1 and err_arr.ndim > 0:
+            err_out = float(err_arr[0])
+        else:
+            err_out = err_arr
 
-        diag = make_diagnostics(
-            self.x0,
-            self.config,
-            xs,
-            ys,
-            used_mask,
-            coeffs,
-            degree,
-            order,
-            ok,
-        )
-        diag["n_workers"] = int(n_workers)
-        diag["fit_type"] = fit_type
-        return deriv_out, diag
+        if diagnostics:
+            diag = make_diagnostics(
+                self.x0,
+                self.config,
+                xs,
+                ys,
+                used_mask,
+                coeffs,
+                degree,
+                order,
+                ok,
+            )
+            diag["n_workers"] = int(n_workers)
+            diag["fit_type"] = fit_type
+
+            if return_error:
+                return deriv_out, err_out, diag
+            return deriv_out, diag
+
+        # diagnostics is False
+        if return_error:
+            return deriv_out, err_out
+
+        return deriv_out

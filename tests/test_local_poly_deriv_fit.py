@@ -70,11 +70,11 @@ def test_centered_polyfit_least_squares_recovers_scalar_polynomial():
     coeff_true = np.array([2.0, 3.0, -1.0])
     ys = coeff_true[0] + coeff_true[1] * t + coeff_true[2] * t**2
 
-    coeffs, used_mask = centered_polyfit_least_squares(x0, xs, ys, degree=2)
+    coeffs, used_mask, coeff_std = centered_polyfit_least_squares(x0, xs, ys, degree=2)
 
-    # All samples should be used
-    assert used_mask.shape == xs.shape
-    assert used_mask.all()
+    # Basic checks on coeff_std (shape + non-negative)
+    assert coeff_std.shape == coeffs.shape
+    assert np.all(coeff_std >= 0.0)
 
     # One output component -> coeffs[:, 0] should match coeff_true
     assert_allclose(coeffs[:, 0], coeff_true, rtol=1e-12, atol=1e-12)
@@ -88,10 +88,10 @@ def test_centered_polyfit_least_squares_handles_vector_valued_output():
     xs = np.linspace(-1.0, 1.0, 9)
     ys = np.column_stack([xs, xs**2])
 
-    coeffs, used_mask = centered_polyfit_least_squares(x0, xs, ys, degree=2)
+    coeffs, used_mask, coeff_std = centered_polyfit_least_squares(x0, xs, ys, degree=2)
 
-    assert used_mask.all()
-    assert coeffs.shape == (3, 2)
+    assert coeff_std.shape == coeffs.shape
+    assert np.all(coeff_std >= 0.0)
 
     # In powers of (x - x0) with x0 = 0:
     # y = x         -> [0, 1, 0]
@@ -213,3 +213,53 @@ def test_trimmed_polyfit_returns_zero_coeffs_if_never_fits():
     # Mask should still reflect “all points considered”
     assert used_mask.shape == xs.shape
     assert used_mask.all()
+
+
+def test_centered_polyfit_least_squares_std_small_for_exact_poly():
+    """Tests that coeff_std is small when fitting exact polynomial data."""
+    x0 = 0.5
+    xs = np.linspace(0.0, 1.0, 10)
+    t = xs - x0
+
+    coeff_true = np.array([2.0, -1.0, 0.5])
+    ys = coeff_true[0] + coeff_true[1] * t + coeff_true[2] * t**2
+
+    coeffs, used_mask, coeff_std = centered_polyfit_least_squares(x0, xs, ys, degree=2)
+
+    assert used_mask.all()
+    assert coeffs.shape == coeff_std.shape
+    # All stds should be ~0 for exact data
+    assert_allclose(coeff_std, 0.0, atol=1e-10, rtol=0.0)
+
+
+def test_centered_polyfit_least_squares_std_responds_to_noise():
+    """Tests that coeff_std increases when noise is added to data."""
+    x0 = 0.0
+    xs = np.linspace(-1.0, 1.0, 50)
+    rng = np.random.default_rng(123)
+
+    # True model: y = 1 + 2 x + 0.5 x^2
+    t = xs - x0
+    coeff_true = np.array([1.0, 2.0, 0.5])
+    y_clean = coeff_true[0] + coeff_true[1] * t + coeff_true[2] * t**2
+
+    # Noiseless fit
+    coeffs_clean, used_clean, std_clean = centered_polyfit_least_squares(
+        x0, xs, y_clean, degree=2
+    )
+
+    # Noisy fit
+    noise = 0.1 * rng.normal(size=xs.size)
+    y_noisy = y_clean + noise
+    coeffs_noisy, used_noisy, std_noisy = centered_polyfit_least_squares(
+        x0, xs, y_noisy, degree=2
+    )
+
+    assert used_clean.all()
+    assert used_noisy.all()
+    assert std_clean.shape == std_noisy.shape
+
+    # Noisy standard deviations should be larger than (or at least not smaller than) clean ones
+    assert np.all(std_noisy >= std_clean)
+    # And at least one coefficient should have noticeably non-zero std
+    assert np.any(std_noisy > 1e-4)
