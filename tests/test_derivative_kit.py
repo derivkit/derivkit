@@ -138,7 +138,7 @@ def test_array_x0_loops_and_stacks(monkeypatch):
     monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
 
     dk = DerivativeKit(quad, x0=x0_vals)
-    out = dk.differentiate(order=1)  # method=None → default
+    out = dk.differentiate(order=1)
 
     # Engine must have been called once per x0, with scalar x0 each time
     np.testing.assert_allclose(np.array(seen_x0), x0_vals)
