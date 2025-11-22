@@ -263,9 +263,39 @@ def test_array_x0_preserves_shape_for_2d_grid(monkeypatch):
     dk = DerivativeKit(quad, x0=x0_grid)
     out = dk.differentiate(order=1)
 
-    # shape: x0.shape + (3,)
     assert out.shape == (2, 2, 3)
 
-    # spot-check a couple of entries
     np.testing.assert_allclose(out[0, 0], np.array([0.0, 1.0, 2.0]))
     np.testing.assert_allclose(out[1, 1], np.array([1.5, 2.5, 3.5]))
+
+
+def vec_fun_2d(x):
+    """Array-valued function: f(x) = [sin(x), cos(x)]."""
+    return np.array([np.sin(x), np.cos(x)])
+
+
+@pytest.mark.parametrize(
+    "method, extra_kwargs",
+    [
+        ("finite", {}),
+        ("finite", {"extrapolation": "richardson"}),
+        ("finite", {"extrapolation": "ridders"}),
+        ("finite", {"extrapolation": "gauss-richardson"}),
+        ("adaptive", {}),
+        ("local_polynomial", {}),
+    ],
+)
+def test_array_valued_function_with_array_x0_all_methods(method, extra_kwargs):
+    """Tests that an array-valued function is differentiated correctly for array x0 across methods."""
+    x0 = np.array([-0.3, 0.0, 0.7])
+
+    dk = DerivativeKit(vec_fun_2d, x0)
+    out = dk.differentiate(order=1, method=method, **extra_kwargs)
+
+    expected = np.stack(
+        [np.array([np.cos(x), -np.sin(x)]) for x in x0],
+        axis=0,
+    )
+
+    assert out.shape == expected.shape == (len(x0), 2)
+    np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
