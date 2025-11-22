@@ -46,6 +46,7 @@ class AdaptiveFitDerivative:
             grid: tuple[str, np.ndarray] | None = None,  # ('offsets'|'absolute', array)
             domain: "tuple[float | None, float | None] | None" = None,
             ridge: float = 0.0,
+            return_error: bool = False,
             diagnostics: bool = False,
             meta: dict | None = None,
     ):
@@ -90,11 +91,24 @@ class AdaptiveFitDerivative:
                 Increasing ``ridge`` makes the fit more stable but slightly smoother;
                 setting it to 0 disables the regularization. Default is 0.0.
 
+            return_error: If True, also returns an error proxy based on the RMS residual
+                of the polynomial fit (same shape as the derivative for multi-component outputs).
+
             diagnostics: If True, return (derivative, diagnostics_dict).
             meta: Extra metadata to carry in diagnostics.
 
         Returns:
-            Derivative at x0 (scalar or 1D array). If diagnostics=True, also returns a dict.
+            The derivative estimate at x0, optionally accompanied by an error proxy and/or
+            a diagnostics dictionary depending on the flags:
+
+            - If ``return_error`` is False and ``diagnostics`` is False:
+              returns ``deriv``.
+            - If ``return_error`` is True and ``diagnostics`` is False:
+              returns ``(deriv, err)``.
+            - If ``return_error`` is False and ``diagnostics`` is True:
+              returns ``(deriv, diag)``.
+            - If both ``return_error`` and ``diagnostics`` are True:
+              returns ``(deriv, err, diag)``.
 
         Raises:
             ValueError: If inputs are invalid or not enough samples are provided.
@@ -170,11 +184,23 @@ class AdaptiveFitDerivative:
 
         # 4) Derivative (mode-aware pullback)
         deriv = pullback_derivative_from_fit(
-            mode=mode, order=order, coeffs=coeffs, factor=factor, x0=self.x0, sign_used=sign_used
+            mode=mode,
+            order=order,
+            coeffs=coeffs,
+            factor=factor,
+            x0=self.x0,
+            sign_used=sign_used,
         )
         out = deriv.item() if n_components == 1 else deriv
+
+        # error proxy: rrms is just a rough uncertainty indicator from the fit residual.
+        if np.isscalar(rrms) or np.ndim(rrms) == 0:
+            err = float(rrms)
+        else:
+            err = rrms
+
         if not diagnostics:
-            return out
+            return (out, err) if return_error else out
 
         # 5) Diagnostics (optional)
         degree_out = int(deg) if n_components == 1 else [int(deg)] * n_components
@@ -204,4 +230,8 @@ class AdaptiveFitDerivative:
             **(meta or {}),
         }
         print_derivative_diagnostics(diag, meta=meta_payload)
-        return out, {**diag, "x0": self.x0, "meta": meta_payload}
+        diag_out = {**diag, "x0": self.x0, "meta": meta_payload}
+
+        if return_error:
+            return out, err, diag_out
+        return out, diag_out

@@ -186,3 +186,58 @@ def test_default_grid_chebyshev_cap_raises():
     d = AdaptiveFitDerivative(f_sin, 0.0)
     with pytest.raises(ValueError):
         d.differentiate(order=1, n_points=31, spacing="auto", ridge=0.0)
+
+
+def test_return_error_scalar_linear():
+    """Tests that error estimate is small and well-behaved for linear function."""
+    x0 = 0.3
+    d = AdaptiveFitDerivative(f_lin, x0)
+
+    deriv, err = d.differentiate(order=1, return_error=True, **KW)
+
+    assert np.isclose(deriv, 2.0, rtol=0, atol=1e-10)
+
+    # Error proxy may be scalar or length-1 array; just make sure it's tiny.
+    err_arr = np.asarray(err)
+    assert err_arr.ndim <= 1
+    assert np.all(np.isfinite(err_arr))
+    assert float(np.max(np.abs(err_arr))) < 1e-6
+
+
+def test_return_error_vector_output():
+    """Tests that error estimates are well-behaved for vector-valued function."""
+    x0 = 0.4
+    d = AdaptiveFitDerivative(f_vec, x0)
+
+    deriv, err = d.differentiate(order=2, return_error=True, **KW)
+
+    want = np.array([2.0, -np.sin(x0), np.exp(x0)], dtype=float)
+    assert deriv.shape == (3,)
+    np.testing.assert_allclose(deriv, want, rtol=5e-8, atol=1e-8)
+
+    assert np.all(np.isfinite(err))
+
+
+def test_return_error_with_diagnostics_triplet():
+    """Tests that when both return_error and diagnostics are True, a triplet is returned."""
+    x0 = 0.2
+    d = AdaptiveFitDerivative(f_quad, x0)
+
+    out = d.differentiate(
+        order=2,
+        return_error=True,
+        diagnostics=True,
+        **KW,
+    )
+
+    assert isinstance(out, tuple)
+    assert len(out) == 3
+
+    deriv, err, diag = out
+
+    # sanity checks
+    assert np.isfinite(float(deriv))
+    assert np.isfinite(float(err))
+    assert isinstance(diag, dict)
+    assert "rrms" in diag
+    assert "degree" in diag
