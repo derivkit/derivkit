@@ -41,7 +41,6 @@ def two_obs_model(theta):
 
 def three_obs_model(theta):
     """Model that always returns a 3-element observable vector."""
-    _ = np.atleast_1d(theta)
     return np.zeros(3, dtype=float)
 
 
