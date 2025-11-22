@@ -13,7 +13,7 @@ Typical usage example:
 """
 
 from collections.abc import Callable
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -44,14 +44,14 @@ class ForecastKit:
         *,
         method: str | None = None,
         n_workers: int = 1,
-        dk_kwargs: dict | None = None,
+        **dk_kwargs: Any,
     ) -> np.ndarray:
         """Return the Fisher information matrix with shape (P, P) with P being the number of model parameters."""
         return self._lx.get_forecast_tensors(
             forecast_order=1,
             method=method,
             n_workers=n_workers,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
 
     def dali(
@@ -59,7 +59,7 @@ class ForecastKit:
         *,
         method: str | None = None,
         n_workers: int = 1,
-        dk_kwargs: dict | None = None,
+        **dk_kwargs: Any,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Return the doublet-DALI tensors (G, H).
 
@@ -69,7 +69,7 @@ class ForecastKit:
             forecast_order=2,
             method=method,
             n_workers=n_workers,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
 
     def fisher_bias(
@@ -79,8 +79,8 @@ class ForecastKit:
         delta_nu: np.ndarray,
         method: str | None = None,
         n_workers: int = 1,
-        dk_kwargs: dict | None = None,
         rcond: float = 1e-12,
+        **dk_kwargs: Any,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
         return self._lx.build_fisher_bias(
@@ -88,8 +88,8 @@ class ForecastKit:
             delta_nu=delta_nu,
             method=method,
             n_workers=n_workers,
-            dk_kwargs=dk_kwargs,
             rcond=rcond,
+            **dk_kwargs,
         )
 
     def delta_nu(self,
