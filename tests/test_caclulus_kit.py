@@ -89,7 +89,7 @@ class RecordingHessianDiag:
 
 
 def test_calculuskit_stores_function_and_x0():
-    """Tests that CalculusKit stores function and x0 correctly."""
+    """Tests that CalculusKit stores the input function and x0 correctly."""
     x0 = [0.1, 0.2]
     ck = CalculusKit(scalar_function, x0)
 
