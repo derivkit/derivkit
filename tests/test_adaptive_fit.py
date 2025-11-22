@@ -195,7 +195,6 @@ def test_return_error_scalar_linear():
 
     deriv, err = d.differentiate(order=1, return_error=True, **KW)
 
-    # Derivative itself is still correct
     assert np.isclose(deriv, 2.0, rtol=0, atol=1e-10)
 
     # Error proxy may be scalar or length-1 array; just make sure it's tiny.
