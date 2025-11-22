@@ -26,7 +26,7 @@ def _reset_dispatch_state() -> None:
 
 
 class _FakeAdaptiveEngine:
-    """Fake adaptive engine that records ctor args and differentiate kwargs."""
+    """Fake adaptive engine that records constructor args and differentiate kwargs."""
 
     def __init__(self, function, x0, **kwargs):
         """Records ctor arguments."""
@@ -43,7 +43,7 @@ class _FakeAdaptiveEngine:
 
 
 class _FakeFiniteEngine:
-    """Fake finite-difference engine that records ctor args and differentiate kwargs."""
+    """Fake finite-difference engine that records constructor args and differentiate kwargs."""
 
     def __init__(self, function, x0, **kwargs):
         """Records ctor arguments."""
@@ -128,7 +128,7 @@ def test_adaptive_dispatch(monkeypatch):
 
     assert out == 0.0
 
-    # ctor was called for adaptive, not for finite
+    # constructor was called for adaptive, not for finite
     assert calls["adaptive"]  # non-empty dict
     adaptive_call = calls["adaptive"]
     f_called = adaptive_call["function"]
@@ -162,7 +162,7 @@ def test_finite_dispatch(monkeypatch):
 
     assert out == 0.0
 
-    # ctor was called for finite, not for adaptive
+    # constructor was called for finite, not for adaptive
     assert calls["finite"]
     finite_call = calls["finite"]
     f_called = finite_call["function"]
