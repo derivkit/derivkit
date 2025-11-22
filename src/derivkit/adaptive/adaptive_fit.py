@@ -199,7 +199,6 @@ class AdaptiveFitDerivative:
         else:
             err = rrms
 
-        # If no diagnostics requested, just handle (deriv, error) here
         if not diagnostics:
             return (out, err) if return_error else out
 
