@@ -189,7 +189,7 @@ class DerivativeKit:
         default_method: The backend used when no method is specified.
     """
 
-    def __init__(self, function: Callable[[float], Any], x0: float | np.ndarray):
+    def __init__(self, function: Callable[[float | np.ndarray], Any], x0: float | np.ndarray):
         """Initializes the DerivativeKit with a target function and expansion point.
 
         Args:
