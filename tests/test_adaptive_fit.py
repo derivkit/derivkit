@@ -211,7 +211,6 @@ def test_return_error_vector_output():
 
     deriv, err = d.differentiate(order=2, return_error=True, **KW)
 
-    # Derivative shape is unchanged
     want = np.array([2.0, -np.sin(x0), np.exp(x0)], dtype=float)
     assert deriv.shape == (3,)
     np.testing.assert_allclose(deriv, want, rtol=5e-8, atol=1e-8)
