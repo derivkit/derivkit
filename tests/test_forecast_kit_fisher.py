@@ -47,7 +47,6 @@ def three_obs_model(theta):
 
 def wrong_length_model(theta):
     """Model that returns a wrong-length observable vector (for shape check)."""
-    _ = np.atleast_1d(theta)
     return np.zeros(3, dtype=float)
 
 
