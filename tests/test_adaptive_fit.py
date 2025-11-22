@@ -215,7 +215,6 @@ def test_return_error_vector_output():
     assert deriv.shape == (3,)
     np.testing.assert_allclose(deriv, want, rtol=5e-8, atol=1e-8)
 
-    # Error proxy should be finite (scalar or per-component)
     assert np.all(np.isfinite(err))
 
 
