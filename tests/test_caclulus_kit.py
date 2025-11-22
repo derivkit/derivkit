@@ -112,13 +112,11 @@ def test_gradient_delegates_to_build_gradient(monkeypatch):
 
     out = ck.gradient("extra", method="adaptive", n_workers=3)
 
-    # Delegation checks
     assert recorder.func is scalar_function
     np.testing.assert_allclose(recorder.x0, np.asarray(x0, dtype=float))
     assert recorder.args == ("extra",)
     assert recorder.kwargs == {"method": "adaptive", "n_workers": 3}
 
-    # Return passthrough
     np.testing.assert_allclose(out, np.array([1.23, 4.56]))
 
 
