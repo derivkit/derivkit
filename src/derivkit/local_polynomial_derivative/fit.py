@@ -181,7 +181,6 @@ def centered_polyfit_least_squares(
     coeffs, *_ = np.linalg.lstsq(vander, ys, rcond=None)
     used_mask = np.ones(xs.shape[0], dtype=bool)
 
-    # we also wanna get the uncertainty estimates for the coefficients from the residuals
     y_fit = vander @ coeffs
     residuals = y_fit - ys  # (n_samples, n_comp)
     n_samples = vander.shape[0]
