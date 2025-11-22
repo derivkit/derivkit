@@ -193,7 +193,7 @@ class AdaptiveFitDerivative:
         )
         out = deriv.item() if n_components == 1 else deriv
 
-        # Error proxy from RMS residual(s) of the fit
+        # error proxy: rrms is just a rough uncertainty indicator from the fit residual.
         if np.isscalar(rrms) or np.ndim(rrms) == 0:
             err = float(rrms)
         else:
