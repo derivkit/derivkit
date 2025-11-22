@@ -111,7 +111,6 @@ class LocalPolynomialDerivative:
             used_mask = used_mask_ls
             fit_type = "least_squares"
 
-            # derivative = k! * a_k, so σ_deriv = k! * σ(a_k)
             factorial = math.factorial(order)
             a_k_ls = coeffs_ls[order]  # shape (n_comp,)
             sigma_ak = coeff_std_ls[order]  # shape (n_comp,)
