@@ -5,7 +5,7 @@ DerivKit is currently distributed from source.
 
 .. code-block:: bash
 
-   git clone https://github.com/derivkit-org/derivkit.git
+   git clone https://github.com/derivkit/derivkit.git
    cd derivkit
    pip install -e .
 
