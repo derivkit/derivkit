@@ -1,9 +1,9 @@
-"""Tests for DerivativeKit method-dispatch API."""
+"""Unit tests for DerivativeKit method-dispatch API."""
 
 from functools import partial
-import pytest
 
 import numpy as np
+import pytest
 
 from derivkit.derivative_kit import DerivativeKit
 
@@ -13,39 +13,108 @@ def quad(x, a=2.0, b=-3.0, c=1.5):
     return a * x**2 + b * x + c
 
 
+_calls_dispatch = {"adaptive": {}, "finite": {}}
+_invoked_dispatch = {"adaptive": {}, "finite": {}}
+
+
+def _reset_dispatch_state() -> None:
+    """Resets global dispatch tracking dicts."""
+    _calls_dispatch["adaptive"] = {}
+    _calls_dispatch["finite"] = {}
+    _invoked_dispatch["adaptive"] = {}
+    _invoked_dispatch["finite"] = {}
+
+
+class _FakeAdaptiveEngine:
+    """Fake adaptive engine that records ctor args and differentiate kwargs."""
+
+    def __init__(self, function, x0, **kwargs):
+        """Records ctor arguments."""
+        _calls_dispatch["adaptive"] = {
+            "function": function,
+            "x0": x0,
+            "kwargs": dict(kwargs),
+        }
+
+    def differentiate(self, **kwargs):
+        """Records differentiate kwargs."""
+        _invoked_dispatch["adaptive"] = dict(kwargs)
+        return 0.0
+
+
+class _FakeFiniteEngine:
+    """Fake finite-difference engine that records ctor args and differentiate kwargs."""
+
+    def __init__(self, function, x0, **kwargs):
+        """Records ctor arguments."""
+        _calls_dispatch["finite"] = {
+            "function": function,
+            "x0": x0,
+            "kwargs": dict(kwargs),
+        }
+
+    def differentiate(self, **kwargs):
+        """Records differentiate kwargs."""
+        _invoked_dispatch["finite"] = dict(kwargs)
+        return 0.0
+
+
+def _fake_resolve_dispatch(name: str):
+    """Resolver for dispatch tests: returns the appropriate fake engine class."""
+    key = (name or "").lower()
+    if key in {"adaptive", "ad"}:
+        return _FakeAdaptiveEngine
+    if key in {"finite", "fd"}:
+        return _FakeFiniteEngine
+    raise ValueError(f"Unknown method: {name}")
+
+
 def _setup_fakes(monkeypatch):
-    """Sets up fake derivative classes and patches DerivativeKit to use them."""
-    calls = {"adaptive": None, "finite": None}
-    invoked = {"adaptive": None, "finite": None}
+    """Patches DerivativeKit resolver to use dispatch fakes and reset their state."""
+    _reset_dispatch_state()
+    monkeypatch.setattr(
+        "derivkit.derivative_kit._resolve",
+        _fake_resolve_dispatch,
+        raising=True,
+    )
+    return _calls_dispatch, _invoked_dispatch
 
-    class FakeAdaptive:
-        def __init__(self, function, x0, **kwargs):
-            calls["adaptive"] = (function, x0, kwargs)
 
-        def differentiate(self, **kwargs):
-            invoked["adaptive"] = kwargs
-            return 0.0
+class _FakeArrayX0Engine:
+    """Fake engine that records scalar x0 values for array-x0 tests."""
+    instances = []
 
-    class FakeFinite:
-        def __init__(self, function, x0, **kwargs):
-            calls["finite"] = (function, x0, kwargs)
+    def __init__(self, function, x0, **kwargs):
+        """Records the scalar x0 value."""
+        self.function = function
+        self.x0 = x0
+        type(self).instances.append(self)
 
-        def differentiate(self, **kwargs):
-            invoked["finite"] = kwargs
-            return 0.0
+    def differentiate(self, **kwargs):
+        """Returns a fixed 2-vector based on x0."""
+        return np.array([self.x0, 2 * self.x0])
 
-    # Patch the resolver used by DerivativeKit so it returns our fakes,
-    # regardless of how the internal mapping/dict is implemented.
-    def fake_resolve(name: str):
-        key = (name or "").lower()
-        if key in {"adaptive", "ad"}:
-            return FakeAdaptive
-        if key in {"finite", "fd"}:
-            return FakeFinite
-        raise ValueError(f"Unknown method: {name}")
 
-    monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
-    return calls, invoked
+def _fake_resolve_array_x0(name: str):
+    """Resolver that always returns the array-x0 fake engine."""
+    return _FakeArrayX0Engine
+
+
+class _FakeGridEngine:
+    """Fake engine for 2D x0 grids that returns a fixed 3-vector per point."""
+
+    def __init__(self, function, x0, **kwargs):
+        """Records the x0 grid."""
+        self.x0 = x0
+
+    def differentiate(self, **kwargs):
+        """Returns a fixed 3-vector based on x0."""
+        return np.array([self.x0, self.x0 + 1.0, self.x0 + 2.0])
+
+
+def _fake_resolve_grid(name: str):
+    """Resolver that always returns the grid fake engine."""
+    return _FakeGridEngine
 
 
 def test_adaptive_dispatch(monkeypatch):
@@ -59,19 +128,27 @@ def test_adaptive_dispatch(monkeypatch):
 
     assert out == 0.0
 
-    assert calls["adaptive"] is not None
-    f_called, x_called, ctor_kwargs = calls["adaptive"]
-    assert f_called is f and np.isclose(x_called, x0)
+    # ctor was called for adaptive, not for finite
+    assert calls["adaptive"]  # non-empty dict
+    adaptive_call = calls["adaptive"]
+    f_called = adaptive_call["function"]
+    x_called = adaptive_call["x0"]
+    ctor_kwargs = adaptive_call["kwargs"]
+
+    assert f_called is f
+    assert np.isclose(x_called, x0)
     assert isinstance(ctor_kwargs, dict)
 
-    assert invoked["adaptive"] is not None
+    # differentiate was called for adaptive with the right kwargs
+    assert invoked["adaptive"]
     kwargs_ad = invoked["adaptive"]
-    assert kwargs_ad.get("order") == 1
-    assert kwargs_ad.get("n_workers") == 3
-    assert kwargs_ad.get("tol") == 1e-6
+    assert kwargs_ad["order"] == 1
+    assert kwargs_ad["n_workers"] == 3
+    assert kwargs_ad["tol"] == 1e-6
 
-    assert calls["finite"] is None
-    assert invoked["finite"] is None
+    # finite should not have been used at all
+    assert calls["finite"] == {}
+    assert invoked["finite"] == {}
 
 
 def test_finite_dispatch(monkeypatch):
@@ -85,18 +162,26 @@ def test_finite_dispatch(monkeypatch):
 
     assert out == 0.0
 
-    assert calls["finite"] is not None
-    f_called, x_called, ctor_kwargs = calls["finite"]
-    assert f_called is f and np.isclose(x_called, x0)
+    # ctor was called for finite, not for adaptive
+    assert calls["finite"]
+    finite_call = calls["finite"]
+    f_called = finite_call["function"]
+    x_called = finite_call["x0"]
+    ctor_kwargs = finite_call["kwargs"]
+
+    assert f_called is f
+    assert np.isclose(x_called, x0)
     assert isinstance(ctor_kwargs, dict)
 
-    assert invoked["finite"] is not None
+    # differentiate was called for finite with the right kwargs
+    assert invoked["finite"]
     kwargs_fd = invoked["finite"]
-    assert kwargs_fd.get("order") == 2
-    assert kwargs_fd.get("step") == 1e-3
+    assert kwargs_fd["order"] == 2
+    assert kwargs_fd["step"] == 1e-3
 
-    assert calls["adaptive"] is None
-    assert invoked["adaptive"] is None
+    # adaptive should not have been used at all
+    assert calls["adaptive"] == {}
+    assert invoked["adaptive"] == {}
 
 
 def test_default_method_is_adaptive():
@@ -118,30 +203,22 @@ def test_default_method_is_adaptive():
 def test_array_x0_loops_and_stacks(monkeypatch):
     """Tests that array x0 values are handled correctly by looping and stacking results."""
     x0_vals = np.array([-0.5, 0.0, 0.5])
-    seen_x0 = []
 
-    class FakeEngine:
-        def __init__(self, function, x0, **kwargs):
-            # record scalar x0 passed to each engine instance
-            seen_x0.append(x0)
-            self.function = function
-            self.x0 = x0
+    # reset class-local state so tests stay isolated
+    _FakeArrayX0Engine.instances = []
 
-        def differentiate(self, **kwargs):
-            # return a simple vector that depends only on x0
-            return np.array([self.x0, 2 * self.x0])
-
-    def fake_resolve(name: str):
-        # ignore method name; always use FakeEngine
-        return FakeEngine
-
-    monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
+    monkeypatch.setattr(
+        "derivkit.derivative_kit._resolve",
+        _fake_resolve_array_x0,
+        raising=True,
+    )
 
     dk = DerivativeKit(quad, x0=x0_vals)
     out = dk.differentiate(order=1)
 
     # Engine must have been called once per x0, with scalar x0 each time
-    np.testing.assert_allclose(np.array(seen_x0), x0_vals)
+    seen_x0 = np.array([engine.x0 for engine in _FakeArrayX0Engine.instances])
+    np.testing.assert_allclose(seen_x0, x0_vals)
 
     # Output should be stacked with a leading axis over x0
     assert out.shape == (len(x0_vals), 2)
@@ -177,18 +254,11 @@ def test_array_x0_preserves_shape_for_2d_grid(monkeypatch):
     """Tests that 2D array x0 values preserve shape in output."""
     x0_grid = np.array([[0.0, 0.5], [1.0, 1.5]])
 
-    class FakeEngine:
-        def __init__(self, function, x0, **kwargs):
-            self.x0 = x0
-
-        def differentiate(self, **kwargs):
-            # pretend output is a length-3 vector per point
-            return np.array([self.x0, self.x0 + 1.0, self.x0 + 2.0])
-
-    def fake_resolve(name: str):
-        return FakeEngine
-
-    monkeypatch.setattr("derivkit.derivative_kit._resolve", fake_resolve, raising=True)
+    monkeypatch.setattr(
+        "derivkit.derivative_kit._resolve",
+        _fake_resolve_grid,
+        raising=True,
+    )
 
     dk = DerivativeKit(quad, x0=x0_grid)
     out = dk.differentiate(order=1)
