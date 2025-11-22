@@ -42,6 +42,8 @@ import re
 from functools import lru_cache
 from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 
+import numpy as np
+
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
@@ -183,26 +185,28 @@ class DerivativeKit:
 
     Attributes:
         function: The callable to differentiate.
-        x0: The point at which the derivative is evaluated.
-        DEFAULT_METHOD: The default backend used when no method is specified.
+        x0: The point or points at which the derivative is evaluated.
+        default_method: The backend used when no method is specified.
     """
 
-    def __init__(self, function: Callable[[float], Any], x0: float):
+    def __init__(self, function: Callable[[float | np.ndarray], Any], x0: float | np.ndarray):
         """Initializes the DerivativeKit with a target function and expansion point.
 
         Args:
             function: The function to be differentiated. Must accept a single float
                       and return a scalar or array-like output.
-            x0: Point at which to evaluate the derivative.
+            x0: Point or array of points at which to evaluate the derivative.
         """
         self.function = function
         self.x0 = x0
         self.default_method = "adaptive"
 
-    def differentiate(self,
-                      *,
-                      method: str = None,
-                      **kwargs: Any) -> Any:
+    def differentiate(
+            self,
+            *,
+            method: str | None = None,
+            **kwargs: Any,
+    ) -> Any:
         """Compute derivatives using the chosen method.
 
         Forwards all keyword arguments to the engine’s `.differentiate()`.
@@ -214,12 +218,34 @@ class DerivativeKit:
         Returns:
             The derivative result from the underlying engine.
 
+            If ``x0`` is a single value, returns the usual derivative output.
+
+            If ``x0`` is an array of points, returns an array where the first
+            dimension indexes the points in ``x0``. For example, if you pass
+            5 points and each derivative has shape ``(2, 3)``, the result has
+            shape ``(5, 2, 3)``.
+
         Raises:
             ValueError: If `method` is not recognized.
         """
         chosen = method or self.default_method  # use default if None
         Engine = _resolve(chosen)
-        return Engine(self.function, self.x0).differentiate(**kwargs)
+
+        x0_arr = np.asarray(self.x0)
+
+        # scalar x0
+        if x0_arr.ndim == 0:
+            return Engine(self.function, float(x0_arr)).differentiate(**kwargs)
+
+        # array of x0 values
+        results = []
+        for xi in x0_arr.ravel():
+            res = Engine(self.function, float(xi)).differentiate(**kwargs)
+            results.append(res)
+
+        return np.stack(results, axis=0).reshape(
+            x0_arr.shape + np.shape(results[0])
+        )
 
 
 def available_methods() -> list[str]:
