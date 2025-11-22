@@ -35,7 +35,6 @@ def fake_invert_covariance(cov, warn_prefix=None):
 
 def two_obs_model(theta):
     """Model that always returns a 2-element observable vector."""
-    _ = np.atleast_1d(theta)
     return np.zeros(2, dtype=float)
 
 
