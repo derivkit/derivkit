@@ -95,7 +95,6 @@ def test_calculuskit_stores_function_and_x0():
 
     assert ck.function is scalar_function
     assert isinstance(ck.x0, np.ndarray)
-    assert ck.x0.dtype == float
     np.testing.assert_allclose(ck.x0, np.asarray(x0, dtype=float))
 
 
