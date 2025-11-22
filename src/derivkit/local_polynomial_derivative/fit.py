@@ -187,7 +187,6 @@ def centered_polyfit_least_squares(
     n_params = degree + 1
     dof = max(n_samples - n_params, 1)
 
-    # variance per output component
     sigma2 = np.sum(residuals ** 2, axis=0) / dof  # shape (n_comp,)
 
     xtx_inv = np.linalg.inv(vander.T @ vander)  # (p, p)
