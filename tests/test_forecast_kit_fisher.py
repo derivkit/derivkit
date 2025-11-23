@@ -77,6 +77,7 @@ def test_get_forecast_tensors_order1_matches_matrix_product(forecasting_mocks):
             [0.5, -1.0],
         ]
     )
+    # these are dummy values; only invcov matters for the test
     cov = np.diag([2.0, 0.5])
     invcov = np.linalg.inv(cov)
 
