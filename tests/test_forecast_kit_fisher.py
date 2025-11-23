@@ -1,8 +1,7 @@
 """Tests for Fisher matrix construction in LikelihoodExpansion."""
 
-import pytest
-
 import numpy as np
+import pytest
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
 
@@ -70,43 +69,54 @@ def forecasting_mocks(monkeypatch):
     return mocks
 
 
-def test_build_fisher_matches_matrix_product():
-    """Tests that _build_fisher computes Fisher matrix as expected."""
+def test_get_forecast_tensors_order1_matches_matrix_product(forecasting_mocks):
+    """Tests that the Fisher from order=1 equals D1 @ invcov @ D1.T."""
     d1 = np.array(
         [
-            [1.0, 2.0, 3.0],
-            [0.5, -1.0, 4.0],
+            [1.0, 2.0],
+            [0.5, -1.0],
         ]
     )
-    cov = np.diag([2.0, 1.0, 0.5])
+    cov = np.diag([2.0, 0.5])
     invcov = np.linalg.inv(cov)
 
-    theta0 = np.array([0.0, 0.0])
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=np.eye(3))
+    forecasting_mocks.set_state(d1=d1, invcov=invcov)
 
-    fisher = lx._build_fisher(d1, invcov)
+    theta0 = np.array([0.0, 0.0])
+    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
+
+    fisher = lx.get_forecast_tensors(
+        forecast_order=1,
+        method="adaptive",
+        n_workers=1,
+    )
+
     expected = d1 @ invcov @ d1.T
 
-    assert fisher.shape == (2, 2)
+    assert fisher.shape == expected.shape == (2, 2)
     np.testing.assert_allclose(fisher, expected)
 
 
-def test_build_fisher_is_symmetric():
-    """Tests that _build_fisher returns a symmetric Fisher matrix."""
+def test_get_forecast_tensors_order1_returns_symmetric_fisher(forecasting_mocks):
+    """Tests that the Fisher matrix returned for order=1 is symmetric."""
     rng = np.random.default_rng(123)
-    d1 = rng.normal(size=(3, 4))
-    a = rng.normal(size=(4, 4))
-    cov = a @ a.T + np.eye(4)
+
+    d1 = rng.normal(size=(3, 3))
+    a = rng.normal(size=(3, 3))
+    cov = a @ a.T + np.eye(3)
     invcov = np.linalg.inv(cov)
+
+    forecasting_mocks.set_state(d1=d1, invcov=invcov)
 
     lx = LikelihoodExpansion(
         function=three_obs_model,
         theta0=np.zeros(3),
-        cov=np.eye(4),
+        cov=cov,
     )
 
-    fisher = lx._build_fisher(d1, invcov)
+    fisher = lx.get_forecast_tensors(forecast_order=1)
 
+    assert fisher.shape == (3, 3)
     np.testing.assert_allclose(fisher, fisher.T)
 
 
