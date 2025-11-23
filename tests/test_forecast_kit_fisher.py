@@ -17,11 +17,6 @@ def three_obs_model(theta):
     return np.zeros(3, dtype=float)
 
 
-def wrong_length_model(theta):
-    """Model that returns a wrong-length observable vector (for shape check)."""
-    return np.zeros(3, dtype=float)
-
-
 @pytest.fixture
 def forecasting_mocks(monkeypatch):
     """Provides fake derivative + covariance inversion with per-test state."""
@@ -163,8 +158,7 @@ def test_get_forecast_tensors_checks_model_output_length():
     cov = np.eye(2)
     theta0 = np.array([0.0])
 
-    # wrong_length_model returns 3 observables, so this should fail
-    lx = LikelihoodExpansion(function=wrong_length_model, theta0=theta0, cov=cov)
+    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
 
     with pytest.raises(ValueError):
         lx.get_forecast_tensors(forecast_order=1)
