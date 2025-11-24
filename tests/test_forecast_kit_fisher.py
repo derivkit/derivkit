@@ -33,8 +33,6 @@ def forecasting_mocks(monkeypatch):
             """Sets the derivative and inverse covariance matrices for this test."""
             self.d1 = np.asarray(d1, dtype=float)
             self.invcov = np.asarray(invcov, dtype=float)
-            self.deriv_call_info = None
-            self.invcov_call_info = None
 
         def fake_get_derivatives(self, *args, **kwargs):
             """Takes the place of _get_derivatives, returns pre-set matrix and records call."""
