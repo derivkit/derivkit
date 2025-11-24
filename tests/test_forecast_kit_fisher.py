@@ -241,7 +241,9 @@ def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
         stencil=stencil,
     )
 
-    expected = lx._build_fisher(forecasting_mocks.d1, forecasting_mocks.invcov)
+    d1 = forecasting_mocks.d1
+    invcov = forecasting_mocks.invcov
+    expected = d1 @ invcov @ d1.T
     np.testing.assert_allclose(fisher, expected)
 
     kwargs = forecasting_mocks.deriv_call_info["kwargs"]
@@ -273,7 +275,9 @@ def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(forecasting_m
         trim_fraction=0.2,
     )
 
-    expected = lx._build_fisher(forecasting_mocks.d1, forecasting_mocks.invcov)
+    d1 = forecasting_mocks.d1
+    invcov = forecasting_mocks.invcov
+    expected = d1 @ invcov @ d1.T
     np.testing.assert_allclose(fisher, expected)
 
     kwargs = forecasting_mocks.deriv_call_info["kwargs"]
