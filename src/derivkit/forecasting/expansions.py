@@ -16,7 +16,6 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus_kit import CalculusKit
-from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
 
 
@@ -289,22 +288,23 @@ class LikelihoodExpansion:
             rcond: float = 1e-12,
             **dk_kwargs: Any,
     ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-        """Estimate parameter bias using the stored model, expansion point, and covariance.
+        r"""Estimate parameter bias using the stored model, expansion point, and covariance.
 
-        This method quantifies how differences between two data sets (for example,
-        a fiducial prediction and one affected by a systematic) propagate into
-        parameter biases when interpreted through a Fisher forecast. It evaluates
-        the model response internally and uses it, together with the stored
-        covariance and provided Fisher matrix, to estimate both the bias vector
-        and the resulting shift in parameter values.
+        This method quantifies how differences between two data sets—typically an
+        "unbiased" or reference data vector and a "biased" one including a given
+        systematic—propagate into parameter biases when interpreted through a Fisher
+        forecast. It evaluates the model response internally and uses it, together
+        with the stored covariance and provided Fisher matrix, to estimate both the
+        bias vector and the resulting shift in parameter values.
         For more information, see https://arxiv.org/abs/0710.5171.
 
         Args:
           fisher_matrix: Square matrix describing information about the parameters.
             Its shape must be (p, p), where p is the number of parameters.
-          delta_nu: Difference between two data vectors (for example, with and without
-            a systematic). Accepts a 1D array of length n or a 2D array that will be
-            flattened in row-major order (“C”) to length n, where n is the number of observables.
+          delta_nu: Difference between a "biased" and an "unbiased" data vector,
+            for example :math:`\Delta\nu = \nu_{\mathrm{with\,sys}} - \nu_{\mathrm{without\,sys}}`.
+            Accepts a 1D array of length n or a 2D array that will be flattened in
+            row-major order (“C”) to length n, where n is the number of observables.
             If supplied as a 1D array, it must already follow the same row-major (“C”)
             flattening convention used throughout the package.
           n_workers: Number of workers used by the internal derivative routine when

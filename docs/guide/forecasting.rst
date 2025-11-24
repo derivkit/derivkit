@@ -14,14 +14,19 @@ determined from a set of observables.
 
 Given:
 
-- parameters
-  `` theta = (theta_1, theta_2, …)``
-- a model mapping parameters to observables
-  ``m(theta)``
-- a data covariance matrix ``C``
+- parameters :math:`\theta = (\theta_1, \theta_2, \ldots)`
+- a model mapping parameters to observables :math:`\nu(\theta)`
+- a data covariance matrix :math:`C_{ij}`
+
 
 ForecastKit computes the Jacobian
-``J[i, a] = d m[i] / d theta[a]`` using DerivativeKit.
+
+.. math::
+
+   J_{i a} = \frac{\partial \nu_i}{\partial \theta_a},
+
+using DerivativeKit.
+
 
 The Fisher matrix is:
 
@@ -31,11 +36,11 @@ The Fisher matrix is:
 
 From the Fisher matrix and its inverse ``F^{-1}``, ForecastKit returns:
 
-- parameter variances
-- marginalized errors
-- correlation coefficients
-- confidence ellipses (1σ, 2σ)
-- any sub-block for parameter subsets
+- parameter variances :math:`\mathrm{Var}(\theta_a)`
+- marginalized errors :math:`\sigma(\theta_a)`
+- correlation coefficients :math:`\rho_{a b}`
+- confidence ellipses (:math:`1\sigma`, :math:`2\sigma`)
+- any sub-block :math:`F_{a b}` for chosen parameter subsets
 
 **Interpretation:**
 The Fisher matrix predicts how tightly your parameters can be constrained,
@@ -45,36 +50,37 @@ without running a full MCMC or sampling-based inference.
 Fisher Bias
 -----------
 
-Real measurements often contain small systematic deviations:
+Real measurements often contain small systematic deviations,
+which we represent as a *difference data vector*:
 
 .. math::
 
-   \delta m = m_{\rm true} - m_{\rm model}.
+   \Delta \nu_i = \nu^{\mathrm{with}}_i - \nu^{\mathrm{without}}_i,
+
+for example, a data vector with a systematic (biased) included minus one without it (unbiased).
 
 These systematics induce *biases* in the inferred parameters.
 ForecastKit computes the first-order Fisher bias vector:
 
 .. math::
 
-   b_\alpha = \sum_{i,j}
-   (F^{-1})_{\alpha\beta}\,
-   J_{j\beta}^\top C^{-1}_{ji}\, \delta m_i.
+   b_a = \sum_{i,j} J_{i a}\, C^{-1}_{i j}\, \Delta \nu_j.
 
 The corresponding parameter shift is:
 
 .. math::
 
-   \Delta\theta = -F^{-1} b.
+   \Delta \theta_a = \sum_b (F^{-1})_{a b}\, b_b.
 
 ForecastKit returns:
 
-- the Fisher bias vector ``b``
-- the parameter shift ``Δθ``
-- optional visualization: Fisher ellipses + bias arrow
+- the Fisher bias vector :math:`b_a`
+- the parameter shift :math:`\Delta\theta_a`
+- optional visualization: Fisher ellipses and the bias arrow :math:`\Delta\theta_a`
 
 **Interpretation:**
-Fisher bias tells you how far the best-fit parameters move due to small
-systematic errors in the observables.
+Fisher bias tells you how far the best-fit parameters move due to small systematic errors in the observables, encoded by the difference vector ``Δν``.
+
 
 .. image:: ../assets/plots/fisher_bias_demo_1and2sigma.png
 
