@@ -66,7 +66,8 @@ def forecasting_mocks(monkeypatch):
 
 
 def test_get_forecast_tensors_order1_matches_matrix_product(forecasting_mocks):
-    """Tests that the Fisher from order=1 equals D1 @ invcov @ D1.T."""
+    """Tests that the Fisher matrix equals the derivative matrix @ invcov."""
+    # derivative order 1
     d1 = np.array(
         [
             [1.0, 2.0],
