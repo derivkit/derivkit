@@ -45,11 +45,14 @@ without running a full MCMC or sampling-based inference.
 Fisher Bias
 -----------
 
-Real measurements often contain small systematic deviations:
+Real measurements often contain small systematic deviations, which we
+represent as a *difference data vector*:
 
 .. math::
 
-   \delta m = m_{\rm true} - m_{\rm model}.
+   \Delta \nu = \nu_{\rm with} - \nu_{\rm without},
+
+for example, a data vector with a systematic included minus one without it.
 
 These systematics induce *biases* in the inferred parameters.
 ForecastKit computes the first-order Fisher bias vector:
@@ -58,7 +61,7 @@ ForecastKit computes the first-order Fisher bias vector:
 
    b_\alpha = \sum_{i,j}
    (F^{-1})_{\alpha\beta}\,
-   J_{j\beta}^\top C^{-1}_{ji}\, \delta m_i.
+   J_{j\beta}^\top C^{-1}_{ji}\, \Delta \nu_i.
 
 The corresponding parameter shift is:
 
@@ -74,7 +77,8 @@ ForecastKit returns:
 
 **Interpretation:**
 Fisher bias tells you how far the best-fit parameters move due to small
-systematic errors in the observables.
+systematic errors in the observables, encoded by the difference vector ``Δν``.
+
 
 .. image:: ../assets/plots/fisher_bias_demo_1and2sigma.png
 
