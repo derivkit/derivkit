@@ -45,8 +45,8 @@ without running a full MCMC or sampling-based inference.
 Fisher Bias
 -----------
 
-Real measurements often contain small systematic deviations, which we
-represent as a *difference data vector*:
+Real measurements often contain small systematic deviations,
+which we represent as a *difference data vector*:
 
 .. math::
 
