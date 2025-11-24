@@ -17,11 +17,11 @@ Given:
 - parameters
   `` theta = (theta_1, theta_2, …)``
 - a model mapping parameters to observables
-  ``m(theta)``
+  ``ν(θ)``
 - a data covariance matrix ``C``
 
 ForecastKit computes the Jacobian
-``J[i, a] = d m[i] / d theta[a]`` using DerivativeKit.
+``J[i, a] = ∂ν[i] / ∂θ[a]`` using DerivativeKit.
 
 The Fisher matrix is:
 
@@ -50,7 +50,7 @@ represent as a *difference data vector*:
 
 .. math::
 
-   \Delta \nu = \nu_{\rm with} - \nu_{\rm without},
+   \Delta \nu_i = \nu^{\mathrm{with}}_i - \nu^{\mathrm{without}}_i,
 
 for example, a data vector with a systematic included minus one without it.
 
@@ -59,15 +59,13 @@ ForecastKit computes the first-order Fisher bias vector:
 
 .. math::
 
-   b_\alpha = \sum_{i,j}
-   (F^{-1})_{\alpha\beta}\,
-   J_{j\beta}^\top C^{-1}_{ji}\, \Delta \nu_i.
+   b_a = \sum_{i,j} J_{i a}\, C^{-1}_{i j}\, \Delta \nu_j.
 
 The corresponding parameter shift is:
 
 .. math::
 
-   \Delta\theta = -F^{-1} b.
+   \Delta \theta_a = \sum_b (F^{-1})_{a b}\, b_b.
 
 ForecastKit returns:
 
