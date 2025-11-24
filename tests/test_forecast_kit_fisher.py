@@ -125,10 +125,11 @@ def test_get_forecast_tensors_order1_builds_fisher(forecasting_mocks):
     """Tests that get_forecast_tensors order=1 builds Fisher matrix correctly."""
     theta0 = np.array([0.1, -0.2])
     cov = np.array([[1.0, 0.2], [0.2, 2.0]])
+    invcov = np.linalg.inv(cov)
 
     forecasting_mocks.set_state(
         d1=np.array([[1.0, 0.5], [-0.3, 2.0]]),
-        invcov=np.array([[10.0, 0.0], [0.0, 0.5]]),
+        invcov=invcov,
     )
 
     lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
@@ -140,7 +141,8 @@ def test_get_forecast_tensors_order1_builds_fisher(forecasting_mocks):
         step_size=1e-3,
     )
 
-    expected = lx._build_fisher(forecasting_mocks.d1, forecasting_mocks.invcov)
+    d1 = forecasting_mocks.d1
+    expected = d1 @ invcov @ d1.T
     assert fisher.shape == expected.shape == (2, 2)
     np.testing.assert_allclose(fisher, expected)
 
