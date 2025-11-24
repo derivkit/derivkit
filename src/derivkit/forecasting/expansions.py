@@ -291,12 +291,12 @@ class LikelihoodExpansion:
     ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
         """Estimate parameter bias using the stored model, expansion point, and covariance.
 
-        This method quantifies how differences between two data sets (for example,
-        a fiducial prediction and one affected by a systematic) propagate into
-        parameter biases when interpreted through a Fisher forecast. It evaluates
-        the model response internally and uses it, together with the stored
-        covariance and provided Fisher matrix, to estimate both the bias vector
-        and the resulting shift in parameter values.
+        This method quantifies how differences between two data sets—typically an
+        "unbiased" or reference data vector and a "biased" one including a given
+        systematic—propagate into parameter biases when interpreted through a Fisher
+        forecast. It evaluates the model response internally and uses it, together
+        with the stored covariance and provided Fisher matrix, to estimate both the
+        bias vector and the resulting shift in parameter values.
         For more information, see https://arxiv.org/abs/0710.5171.
 
         Args:
