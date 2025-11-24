@@ -19,11 +19,9 @@ def three_obs_model(theta):
 @pytest.fixture
 def forecasting_mocks(monkeypatch):
     """Provides fake derivative + covariance inversion with per-test state."""
-
-    class ForecastingMocks:
-        """Holds state and fakes for monkeypatching."""
+    class Mocks:
         def __init__(self):
-            """Initializes with empty state."""
+            """Initializes empty state for the mocks."""
             self.d1 = None
             self.invcov = None
             self.deriv_call_info = None
@@ -33,34 +31,36 @@ def forecasting_mocks(monkeypatch):
             """Sets the derivative and inverse covariance matrices for this test."""
             self.d1 = np.asarray(d1, dtype=float)
             self.invcov = np.asarray(invcov, dtype=float)
+            self.deriv_call_info = None
+            self.invcov_call_info = None
 
-        def fake_get_derivatives(self, *args, **kwargs):
-            """Takes the place of _get_derivatives, returns pre-set matrix and records call."""
-            self.deriv_call_info = {
-                "args": args,
-                "kwargs": kwargs,
-            }
-            return self.d1
+    mocks = Mocks()
 
-        def fake_invert_covariance(self, cov, warn_prefix=None):
-            """Mimics invert_covariance, returns pre-set matrix and records call."""
-            cov_arr = np.asarray(cov, dtype=float)
-            self.invcov_call_info = {
-                "cov": cov_arr,
-                "warn_prefix": warn_prefix,
-            }
-            return self.invcov
+    def fake_get_derivatives(*args, **kwargs):
+        """Takes the place of _get_derivatives, returns pre-set matrix and records call."""
+        mocks.deriv_call_info = {
+            "args": args,
+            "kwargs": kwargs,
+        }
+        return mocks.d1
 
-    mocks = ForecastingMocks()
+    def fake_invert_covariance(cov, warn_prefix=None):
+        """Mimics invert_covariance, returns pre-set matrix and records call."""
+        cov_arr = np.asarray(cov, dtype=float)
+        mocks.invcov_call_info = {
+            "cov": cov_arr,
+            "warn_prefix": warn_prefix,
+        }
+        return mocks.invcov
 
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.invert_covariance",
-        mocks.fake_invert_covariance,
+        fake_invert_covariance,
         raising=True,
     )
     monkeypatch.setattr(
         "derivkit.forecasting.expansions.LikelihoodExpansion._get_derivatives",
-        mocks.fake_get_derivatives,
+        fake_get_derivatives,
         raising=True,
     )
 
