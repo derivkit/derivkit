@@ -226,7 +226,7 @@ def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
     extrapolation,
     stencil,
 ):
-    """Tests that derivative method and its kwargs are forwarded to he internal derivative routine."""
+    """Tests that derivative method and its kwargs are forwarded to the internal derivative routine."""
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
