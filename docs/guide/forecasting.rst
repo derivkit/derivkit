@@ -76,7 +76,7 @@ ForecastKit returns:
 
 - the Fisher bias vector :math:`b_a`
 - the parameter shift :math:`\Delta\theta_a`
-- optional visualization: Fisher ellipses and the bias arrow
+- optional visualization: Fisher ellipses and the bias arrow :math:`\Delta\theta_a`
 
 **Interpretation:**
 Fisher bias tells you how far the best-fit parameters move due to small systematic errors in the observables, encoded by the difference vector ``Δν``.
