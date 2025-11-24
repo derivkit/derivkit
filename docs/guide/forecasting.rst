@@ -57,7 +57,7 @@ which we represent as a *difference data vector*:
 
    \Delta \nu_i = \nu^{\mathrm{with}}_i - \nu^{\mathrm{without}}_i,
 
-for example, a data vector with a systematic included minus one without it.
+for example, a data vector with a systematic (biased) included minus one without it (unbiased).
 
 These systematics induce *biases* in the inferred parameters.
 ForecastKit computes the first-order Fisher bias vector:
@@ -74,9 +74,9 @@ The corresponding parameter shift is:
 
 ForecastKit returns:
 
-- the Fisher bias vector ``b``
-- the parameter shift ``Δθ``
-- optional visualization: Fisher ellipses + bias arrow
+- the Fisher bias vector :math:`b_a`
+- the parameter shift :math:`\Delta\theta_a`
+- optional visualization: Fisher ellipses and the bias arrow
 
 **Interpretation:**
 Fisher bias tells you how far the best-fit parameters move due to small systematic errors in the observables, encoded by the difference vector ``Δν``.
