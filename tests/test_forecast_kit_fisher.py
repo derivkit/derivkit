@@ -171,6 +171,8 @@ def test_get_forecast_tensors_checks_model_output_length():
     cov = np.eye(2)
     theta0 = np.array([0.0])
 
+    # three_obs_model returns 3 observables but cov is 2x2 (n_observables=2),
+    # so get_forecast_tensors should complain about the inconsistency.
     lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
 
     with pytest.raises(ValueError):
