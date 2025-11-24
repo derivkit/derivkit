@@ -21,7 +21,13 @@ Given:
 - a data covariance matrix ``C``
 
 ForecastKit computes the Jacobian
-``J[i, a] = ∂ν[i] / ∂θ[a]`` using DerivativeKit.
+
+.. math::
+
+   J_{i a} = \frac{\partial \nu_i}{\partial \theta_a},
+
+using DerivativeKit.
+
 
 The Fisher matrix is:
 
