@@ -123,7 +123,13 @@ def test_get_forecast_tensors_order1_builds_fisher(forecasting_mocks):
     """Tests that get_forecast_tensors order=1 builds Fisher matrix correctly."""
     theta0 = np.array([0.1, -0.2])
     cov = np.array([[1.0, 0.2], [0.2, 2.0]])
-    invcov = np.linalg.inv(cov)
+
+    invcov = np.array(
+        [
+            [50.0 / 49.0, -5.0 / 49.0],
+            [-5.0 / 49.0, 25.0 / 49.0],
+        ]
+    )
 
     forecasting_mocks.set_state(
         d1=np.array([[1.0, 0.5], [-0.3, 2.0]]),
