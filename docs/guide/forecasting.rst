@@ -74,8 +74,7 @@ ForecastKit returns:
 - optional visualization: Fisher ellipses + bias arrow
 
 **Interpretation:**
-Fisher bias tells you how far the best-fit parameters move due to small
-systematic errors in the observables, encoded by the difference vector ``Δν``.
+Fisher bias tells you how far the best-fit parameters move due to small systematic errors in the observables, encoded by the difference vector ``Δν``.
 
 
 .. image:: ../assets/plots/fisher_bias_demo_1and2sigma.png
