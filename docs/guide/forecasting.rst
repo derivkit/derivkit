@@ -36,11 +36,11 @@ The Fisher matrix is:
 
 From the Fisher matrix and its inverse ``F^{-1}``, ForecastKit returns:
 
-- parameter variances
-- marginalized errors
-- correlation coefficients
-- confidence ellipses (1σ, 2σ)
-- any sub-block for parameter subsets
+- parameter variances :math:`\mathrm{Var}(\theta_a)`
+- marginalized errors :math:`\sigma(\theta_a)`
+- correlation coefficients :math:`\rho_{a b}`
+- confidence ellipses (:math:`1\sigma`, :math:`2\sigma`)
+- any sub-block :math:`F_{a b}` for chosen parameter subsets
 
 **Interpretation:**
 The Fisher matrix predicts how tightly your parameters can be constrained,
