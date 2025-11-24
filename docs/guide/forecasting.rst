@@ -14,11 +14,10 @@ determined from a set of observables.
 
 Given:
 
-- parameters
-  `` theta = (theta_1, theta_2, …)``
-- a model mapping parameters to observables
-  ``ν(θ)``
-- a data covariance matrix ``C``
+- parameters :math:`\theta = (\theta_1, \theta_2, \ldots)`
+- a model mapping parameters to observables :math:`\nu(\theta)`
+- a data covariance matrix :math:`C_{ij}`
+
 
 ForecastKit computes the Jacobian
 
