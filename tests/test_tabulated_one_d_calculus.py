@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 import numpy as np
+import pytest
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel

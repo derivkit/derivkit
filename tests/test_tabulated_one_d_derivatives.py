@@ -1,8 +1,7 @@
 """Unit tests for derivatives on 1D tabulated models."""
 
-import pytest
-
 import numpy as np
+import pytest
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel
