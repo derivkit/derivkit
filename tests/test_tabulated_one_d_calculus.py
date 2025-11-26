@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
+
+import numpy as np
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel
@@ -84,12 +85,12 @@ def test_gradient_tabulated_scalar(method: str):
     theta0 = np.array([0.3, -0.7])
 
     calc = CalculusKit(scalar_observable, theta0)
-    g = calc.gradient(method=method)
+    grad = calc.gradient(method=method)
 
-    g = np.asarray(g, dtype=float).ravel()
+    grad = np.asarray(grad, dtype=float).ravel(order="C")
 
-    assert g.shape == (2,)
-    np.testing.assert_allclose(g, [3.0, 0.0], rtol=1e-6, atol=1e-8)
+    assert grad.shape == (2,)
+    np.testing.assert_allclose(grad, [3.0, 0.0], rtol=1e-6, atol=1e-8)
 
 
 @pytest.mark.parametrize("method", ["adaptive", "finite", "lp"])
