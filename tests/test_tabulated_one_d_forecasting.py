@@ -150,11 +150,9 @@ def test_dali_from_tabulated_quadratic_model(method: str):
     assert g.shape == (1, 1, 1)
     assert h.shape == (1, 1, 1, 1)
 
-    # Finite values
     assert np.all(np.isfinite(g))
     assert np.all(np.isfinite(h))
 
-    # Non-trivial DALI: at least one tensor should have a non-zero component
     assert np.any(np.abs(g) > 0.0) or np.any(np.abs(h) > 0.0)
 
 
@@ -169,6 +167,5 @@ def test_dali_nontrivial_symmetry_from_cubic_model(method: str):
     assert g.shape == (1, 1, 1)
     assert h.shape == (1, 1, 1, 1)
 
-    # Non-trivial cubic → DALI tensors should not be exactly zero
     assert not np.allclose(g, 0.0)
     assert not np.allclose(h, 0.0)
