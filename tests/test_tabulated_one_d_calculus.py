@@ -75,7 +75,7 @@ def _make_tabulated_linear_tensor():
 def tensor_observable(theta: np.ndarray) -> np.ndarray:
     """A tabulated tensor observable: observable = tabulated_tensor(theta[0])."""
     model = _make_tabulated_linear_tensor()
-    mat = model(theta[0])              # shape (2, 2)
+    mat = model(theta[0])
     return np.asarray(mat, dtype=float).ravel(order="C")
 
 

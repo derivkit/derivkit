@@ -1,7 +1,8 @@
 """Unit tests for derivatives on 1D tabulated models."""
 
-import numpy as np
 import pytest
+
+import numpy as np
 
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel
@@ -30,7 +31,6 @@ def _make_linear_tensor_model():
     y12 = -1.0 * x_tab + 0.0
     y21 = 0.5 * x_tab + 2.0
     y22 = -3.0 * x_tab + 4.0
-    # y_tab[k, i, j] = y_ij(x_tab[k])
     y_tab = np.array([[y11, y12], [y21, y22]]).transpose(2, 0, 1)
     return Tabulated1DModel(x_tab, y_tab)
 
