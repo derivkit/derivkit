@@ -41,7 +41,6 @@ def dummy_function(x: float) -> float:
     return x  # placeholder; fake_eval_points overrides evaluation
 
 
-
 def test_single_finite_step_scalar_uses_offsets_and_coeffs(monkeypatch):
     """Tests that single_finite_step should build the stencil and apply coeffs correctly."""
     global OFFSETS, COEFFS_TABLE, EVAL_VALUES, LAST_H, LAST_STENCIL
@@ -154,3 +153,32 @@ def test_single_finite_step_raises_on_missing_coefficients(monkeypatch):
 
     msg = str(excinfo.value)
     assert "stencil=3, order=2" in msg
+
+
+def test_single_finite_step_tensor_layout():
+    """Tests that tensor-valued outputs are flattened correctly in C order."""
+
+    def tensor_func(x: float) -> np.ndarray:
+        return np.array([[x, 2.0 * x], [3.0 * x, 4.0 * x]])
+
+    x0 = 0.3
+    order = 1
+    stepsize = 1e-2
+    num_points = 5
+    n_workers = 1
+
+    deriv = single_finite_step(
+        tensor_func,
+        x0=x0,
+        order=order,
+        stepsize=stepsize,
+        num_points=num_points,
+        n_workers=n_workers,
+    )
+
+    expected = np.array([[1.0, 2.0], [3.0, 4.0]])
+    expected_flat = expected.ravel(order="C")
+
+    assert isinstance(deriv, np.ndarray)
+    assert deriv.shape == expected_flat.shape
+    np.testing.assert_allclose(deriv, expected_flat, rtol=1e-6, atol=1e-8)
