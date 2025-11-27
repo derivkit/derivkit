@@ -53,6 +53,7 @@ def check_linear_bias(theta0, cov, fisher, delta_nu, method="finite", **dk_kwarg
     np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-8, atol=1e-10)
     np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-8, atol=1e-10)
 
+
 @pytest.mark.parametrize(
     "theta0,cov,fisher,delta_nu",
     [
@@ -164,60 +165,26 @@ def test_build_delta_nu_2d_flattens_row_major():
     np.testing.assert_allclose(delta, expected_flat)
 
 
-def test_build_delta_nu_shape_mismatch_raises():
-    """Tests that shape mismatch raises ValueError."""
+@pytest.mark.parametrize(
+    "data_with, data_without, model, cov, expected_exception",
+    [
+        # shape mismatch between with/without
+        (np.zeros(3), np.zeros(4), three_obs_model, np.eye(3), ValueError),
+        # ndim > 2
+        (np.zeros((2, 2, 1)), np.zeros((2, 2, 1)), two_obs_model, np.eye(4), ValueError),
+        # wrong length vs number of observables
+        (np.zeros((2, 2)), np.zeros((2, 2)), three_obs_model, np.eye(5), ValueError),
+        # non-finite values
+        (np.array([0.0, np.nan, 1.0]), np.zeros(3), three_obs_model, np.eye(3), FloatingPointError),
+    ],
+)
+def test_build_delta_nu_exceptions(data_with, data_without, model, cov, expected_exception):
+    """Tests that invalid inputs to build_delta_nu raise appropriate errors."""
     theta0 = np.array([0.0])
-    cov = np.eye(3)
+    lx = LikelihoodExpansion(function=model, theta0=theta0, cov=cov)
 
-    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
-
-    a = np.zeros(3)
-    b = np.zeros(4)
-
-    with pytest.raises(ValueError):
-        lx.build_delta_nu(data_with=a, data_without=b)
-
-
-def test_build_delta_nu_rejects_ndim_greater_than_two():
-    """Tests that inputs with ndim > 2 raise ValueError."""
-    theta0 = np.array([0.0])
-    cov = np.eye(4)
-
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    a = np.zeros((2, 2, 1))
-    b = np.zeros((2, 2, 1))
-
-    with pytest.raises(ValueError):
-        lx.build_delta_nu(data_with=a, data_without=b)
-
-
-def test_build_delta_nu_wrong_length_vs_n_observables_raises():
-    """Tests that wrong-length inputs vs number of observables raise ValueError."""
-    theta0 = np.array([0.0])
-    cov = np.eye(5)
-
-    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
-
-    a = np.zeros((2, 2))  # length 4
-    b = np.zeros((2, 2))
-
-    with pytest.raises(ValueError):
-        lx.build_delta_nu(data_with=a, data_without=b)
-
-
-def test_build_delta_nu_rejects_nonfinite_values():
-    """Tests that non-finite values in inputs raise FloatingPointError."""
-    theta0 = np.array([0.0])
-    cov = np.eye(3)
-
-    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
-
-    a = np.array([0.0, np.nan, 1.0])
-    b = np.zeros(3)
-
-    with pytest.raises(FloatingPointError):
-        lx.build_delta_nu(data_with=a, data_without=b)
+    with pytest.raises(expected_exception):
+        lx.build_delta_nu(data_with=data_with, data_without=data_without)
 
 
 @pytest.mark.parametrize("method", ["adaptive", "finite", "local_polynomial"])
