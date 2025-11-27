@@ -38,51 +38,15 @@ def linear_model_matrix(theta, mat):
     return mat @ theta
 
 
-def test_build_fisher_bias_diagonal_covariance():
-    """Tests that with diagonal covariance, the bias is correct."""
-    theta0 = np.array([0.1, -0.2])
-    cov = np.diag([2.0, 1.0, 0.5])
-    fisher = np.array([[2.0, 0.1], [0.1, 1.5]])
-    delta_nu = np.array([1.0, 2.0, 3.0])
-
+def check_linear_bias(theta0, cov, fisher, delta_nu, method="finite", **dk_kwargs):
+    """Checks that the bias computed for a linear model matches the analytic result."""
     lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
 
     bias_vec, delta_theta = lx.build_fisher_bias(
         fisher_matrix=fisher,
         delta_nu=delta_nu,
-        method="finite",
-        n_workers=2,
-    )
-
-    diag = np.diag(cov)
-    cinv_delta = delta_nu / diag
-    expected_bias = A_LINEAR.T @ cinv_delta
-    expected_delta_theta = np.linalg.solve(fisher, expected_bias)
-
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-8, atol=1e-10)
-    np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-8, atol=1e-10)
-
-
-def test_build_fisher_bias_nondiagonal_covariance():
-    """Tests that with non-diagonal covariance, the bias is correct."""
-    theta0 = np.array([0.0, 0.5])
-    cov = np.array(
-        [
-            [2.0, 0.3, 0.0],
-            [0.3, 1.5, 0.1],
-            [0.0, 0.1, 0.8],
-        ]
-    )
-    fisher = np.array([[1.0, 0.2], [0.2, 1.3]])
-    delta_nu = np.array([0.5, -1.0, 2.0])
-
-    lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
-
-    bias_vec, delta_theta = lx.build_fisher_bias(
-        fisher_matrix=fisher,
-        delta_nu=delta_nu,
-        method="finite",
-        n_workers=1,
+        method=method,
+        **dk_kwargs,
     )
 
     cinv_delta = np.linalg.solve(cov, delta_nu)
@@ -91,6 +55,29 @@ def test_build_fisher_bias_nondiagonal_covariance():
 
     np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-8, atol=1e-10)
     np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-8, atol=1e-10)
+
+@pytest.mark.parametrize(
+    "theta0,cov,fisher,delta_nu",
+    [
+        (
+            np.array([0.1, -0.2]),
+            np.diag([2.0, 1.0, 0.5]),
+            np.array([[2.0, 0.1], [0.1, 1.5]]),
+            np.array([1.0, 2.0, 3.0]),
+        ),
+        (
+            np.array([0.0, 0.5]),
+            np.array([[2.0, 0.3, 0.0],
+                      [0.3, 1.5, 0.1],
+                      [0.0, 0.1, 0.8]]),
+            np.array([[1.0, 0.2], [0.2, 1.3]]),
+            np.array([0.5, -1.0, 2.0]),
+        ),
+    ],
+)
+def test_build_fisher_bias_linear_cases(theta0, cov, fisher, delta_nu):
+    """Tests build_fisher_bias on linear model with various inputs."""
+    check_linear_bias(theta0, cov, fisher, delta_nu, method="finite")
 
 
 def test_build_fisher_bias_rejects_non_square_fisher():
