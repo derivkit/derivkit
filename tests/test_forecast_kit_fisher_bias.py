@@ -187,69 +187,38 @@ def test_build_delta_nu_exceptions(data_with, data_without, model, cov, expected
         lx.build_delta_nu(data_with=data_with, data_without=data_without)
 
 
-@pytest.mark.parametrize("method", ["adaptive", "finite", "local_polynomial"])
-def test_build_fisher_bias_supports_all_methods(method):
-    """Tests that all supported differentiation methods work without error."""
-    theta0 = np.array([0.1, -0.2])
-    cov = np.diag([2.0, 1.0, 0.5])
-    fisher = np.array([[2.0, 0.1], [0.1, 1.5]])
-    delta_nu = np.array([1.0, 2.0, 3.0])
-
-    lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
-
-    bias_vec, delta_theta = lx.build_fisher_bias(
-        fisher_matrix=fisher,
-        delta_nu=delta_nu,
-        method=method,
-        n_workers=2,
-    )
-
-    diag = np.diag(cov)
-    cinv_delta = delta_nu / diag
-    expected_bias = A_LINEAR.T @ cinv_delta
-    expected_delta_theta = np.linalg.solve(fisher, expected_bias)
-
-    assert bias_vec.shape == expected_bias.shape
-    assert delta_theta.shape == expected_delta_theta.shape
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-6, atol=1e-9)
-    np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-6, atol=1e-9)
-
-
 @pytest.mark.parametrize(
-    "extrapolation", ["richardson", "ridders", "gauss-richardson", "gre"],
+    "method, dk_kwargs",
+    [
+        # Default methods with their default settings
+        ("adaptive", {}),
+        ("finite", {}),
+        ("local_polynomial", {}),
+
+        # Finite-difference with various extrapolations (no levels)
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "richardson"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "ridders"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "gauss-richardson"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "gre"}),
+
+        # Finite-difference with various extrapolations, stencil 7 (no levels)
+        ("finite", {"stepsize": 1e-2, "num_points": 7, "extrapolation": "richardson"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 7, "extrapolation": "ridders"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 7, "extrapolation": "gauss-richardson"}),
+        ("finite", {"stepsize": 1e-2, "num_points": 7, "extrapolation": "gre"}),
+
+        # Finite-difference with extrapolations + explicit levels
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "richardson", "levels": 3}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "ridders", "levels": 3}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "gauss-richardson", "levels": 3}),
+        ("finite", {"stepsize": 1e-2, "num_points": 5, "extrapolation": "gre", "levels": 3}),
+    ],
 )
-@pytest.mark.parametrize("levels", [None, 3])
-def test_build_fisher_bias_finite_supports_extrapolations(extrapolation, levels):
-    """Tests that finite-difference method supports various extrapolations."""
+def test_build_fisher_bias_methods_and_extrapolations(method, dk_kwargs):
+    """Tests that all supported methods + finite-diff extrapolations work and match the analytic bias."""
     theta0 = np.array([0.1, -0.2])
     cov = np.diag([2.0, 1.0, 0.5])
     fisher = np.array([[2.0, 0.1], [0.1, 1.5]])
     delta_nu = np.array([1.0, 2.0, 3.0])
 
-    lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
-
-    fd_kwargs = dict(
-        stepsize=1e-2,
-        num_points=5,
-        extrapolation=extrapolation,
-    )
-    if levels is not None:
-        fd_kwargs["levels"] = levels
-
-    bias_vec, delta_theta = lx.build_fisher_bias(
-        fisher_matrix=fisher,
-        delta_nu=delta_nu,
-        method="finite",
-        n_workers=2,
-        **fd_kwargs,
-    )
-
-    diag = np.diag(cov)
-    cinv_delta = delta_nu / diag
-    expected_bias = A_LINEAR.T @ cinv_delta
-    expected_delta_theta = np.linalg.solve(fisher, expected_bias)
-
-    assert bias_vec.shape == expected_bias.shape
-    assert delta_theta.shape == expected_delta_theta.shape
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-6, atol=1e-9)
-    np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-6, atol=1e-9)
+    check_linear_bias(theta0, cov, fisher, delta_nu, method=method, **dk_kwargs)
