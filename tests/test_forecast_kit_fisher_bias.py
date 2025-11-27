@@ -18,13 +18,11 @@ A_LINEAR = np.array(
 
 def three_obs_model(theta):
     """Model that always returns a 3-element observable vector."""
-    _ = np.atleast_1d(theta)
     return np.zeros(3, dtype=float)
 
 
 def two_obs_model(theta):
     """Model that always returns a 2-element observable vector."""
-    _ = np.atleast_1d(theta)
     return np.zeros(2, dtype=float)
 
 
