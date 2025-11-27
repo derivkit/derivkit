@@ -26,16 +26,13 @@ def two_obs_model(theta):
     return np.zeros(2, dtype=float)
 
 
-def linear_model(theta):
-    """Simple linear model with known Jacobian A_LINEAR."""
-    theta = np.atleast_1d(theta)
-    return A_LINEAR @ theta
-
-
 def linear_model_matrix(theta, mat):
     """Linear model y = M @ theta for a given matrix M."""
     theta = np.atleast_1d(theta)
     return mat @ theta
+
+
+linear_model = partial(linear_model_matrix, mat=A_LINEAR)
 
 
 def check_linear_bias(theta0, cov, fisher, delta_nu, method="finite", **dk_kwargs):
