@@ -77,42 +77,21 @@ def test_build_fisher_bias_linear_cases(theta0, cov, fisher, delta_nu):
     check_linear_bias(theta0, cov, fisher, delta_nu, method="finite")
 
 
-def test_build_fisher_bias_rejects_non_square_fisher():
-    """Tests that non-square fisher matrix raises ValueError."""
+@pytest.mark.parametrize(
+    "fisher, delta_nu, expected_exception",
+    [
+        (np.ones((2, 3)), np.zeros(3), ValueError),
+        (np.eye(2), np.zeros(2), ValueError),
+        (np.eye(2), np.array([0.0, np.nan, 1.0]), FloatingPointError),
+    ],
+)
+def test_build_fisher_bias_exceptions(fisher, delta_nu, expected_exception):
+    """Tests that invalid Fisher / delta_nu inputs raise appropriate errors."""
     theta0 = np.array([0.0, 0.0])
     cov = np.eye(3)
     lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
 
-    fisher = np.ones((2, 3))
-    delta_nu = np.zeros(3)
-
-    with pytest.raises(ValueError):
-        lx.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_nu)
-
-
-def test_build_fisher_bias_rejects_wrong_delta_nu_length():
-    """Tests that fisher matrix with wrong shape raises ValueError."""
-    theta0 = np.array([0.0, 0.0])
-    cov = np.eye(3)
-    lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
-
-    fisher = np.eye(2)
-    delta_nu = np.zeros(2)
-
-    with pytest.raises(ValueError):
-        lx.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_nu)
-
-
-def test_build_fisher_bias_rejects_nonfinite_delta_nu():
-    """Tests that non-finite delta_nu raises FloatingPointError."""
-    theta0 = np.array([0.0, 0.0])
-    cov = np.eye(3)
-    lx = LikelihoodExpansion(function=linear_model, theta0=theta0, cov=cov)
-
-    fisher = np.eye(2)
-    delta_nu = np.array([0.0, np.nan, 1.0])
-
-    with pytest.raises(FloatingPointError):
+    with pytest.raises(expected_exception):
         lx.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_nu)
 
 
