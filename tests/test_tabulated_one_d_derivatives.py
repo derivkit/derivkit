@@ -7,14 +7,14 @@ from derivkit.derivative_kit import DerivativeKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel
 
 
-def _make_linear_scalar_model():
+def make_linear_scalar_model():
     """Creates a Tabulated1DModel for a scalar linear function."""
     x_tab = np.linspace(-2.0, 2.0, 41)
     y_tab = 3.0 * x_tab + 1.0
     return Tabulated1DModel(x_tab, y_tab)
 
 
-def _make_linear_vector_model():
+def make_linear_vector_model():
     """Creates a Tabulated1DModel for a 2D vector function."""
     x_tab = np.linspace(-2.0, 2.0, 41)
     y1 = 3.0 * x_tab + 1.0
@@ -23,7 +23,7 @@ def _make_linear_vector_model():
     return Tabulated1DModel(x_tab, y_tab)
 
 
-def _make_linear_tensor_model():
+def make_linear_tensor_model():
     """Creates a Tabulated1DModel for a 2x2 tensor-valued linear function."""
     x_tab = np.linspace(-2.0, 2.0, 41)
     y11 = 2.0 * x_tab + 1.0
@@ -40,19 +40,19 @@ _EXPECTED_TENSOR_MATRIX = np.array([[2.0, -1.0], [0.5, -3.0]])
 _MODEL_CASES = [
     (
         "scalar",
-        _make_linear_scalar_model,
+        make_linear_scalar_model,
         True,
         3.0,
     ),
     (
         "vector",
-        _make_linear_vector_model,
+        make_linear_vector_model,
         False,
         np.array([3.0, -2.0]),
     ),
     (
         "tensor",
-        _make_linear_tensor_model,
+        make_linear_tensor_model,
         False,
         _EXPECTED_TENSOR_MATRIX.ravel(order="C"),
     ),
