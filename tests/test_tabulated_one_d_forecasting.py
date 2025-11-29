@@ -9,7 +9,7 @@ from derivkit.forecast_kit import ForecastKit
 from derivkit.tabulated_model.one_d import Tabulated1DModel
 
 
-def _make_tabulated_linear_obs(a_vec: np.ndarray) -> Tabulated1DModel:
+def make_tabulated_linear_obs(a_vec: np.ndarray) -> Tabulated1DModel:
     """Creates a tabulated linear observable model: f_i(x) = a_i * x."""
     x_tab = np.linspace(-1.0, 1.0, 51)
     y_tab = np.outer(x_tab, a_vec)
@@ -20,7 +20,7 @@ def _make_tabulated_linear_obs(a_vec: np.ndarray) -> Tabulated1DModel:
 _LINEAR_A_VEC = np.array([1.0, 2.0, -1.5])
 _LINEAR_B_VEC = np.array([0.5, -0.3, 1.1])
 _LINEAR_C_VEC = np.array([0.1, 0.2, -0.4])
-_LINEAR_TAB = _make_tabulated_linear_obs(_LINEAR_A_VEC)
+_LINEAR_TAB = make_tabulated_linear_obs(_LINEAR_A_VEC)
 
 
 def linear_tabulated_model(theta: np.ndarray) -> np.ndarray:
@@ -37,7 +37,7 @@ def make_linear_tabulated_model():
     return linear_tabulated_model, theta0, _LINEAR_A_VEC, _LINEAR_B_VEC, _LINEAR_C_VEC
 
 
-def _make_tabulated_identity() -> Tabulated1DModel:
+def make_tabulated_identity() -> Tabulated1DModel:
     """A tabulated identity model: f(x) = x."""
     x_tab = np.linspace(-1.0, 1.0, 101)
     y_tab = x_tab.copy()
@@ -45,7 +45,7 @@ def _make_tabulated_identity() -> Tabulated1DModel:
 
 
 _QUAD_A = 2.0
-_QUAD_TAB_ID = _make_tabulated_identity()
+_QUAD_TAB_ID = make_tabulated_identity()
 
 
 def quadratic_tabulated_model(theta: np.ndarray) -> np.ndarray:
@@ -65,7 +65,7 @@ def make_quadratic_tabulated_setup():
     return quadratic_tabulated_model, theta0, cov
 
 
-def _make_tabulated_cubic() -> Tabulated1DModel:
+def make_tabulated_cubic() -> Tabulated1DModel:
     """Returns a cubic mononomial of unit weight.
 
     Specifically it returns the value of :math: f(x) = x^3.
@@ -75,7 +75,7 @@ def _make_tabulated_cubic() -> Tabulated1DModel:
     return Tabulated1DModel(x_tab, y_tab)
 
 
-_CUBIC_TAB = _make_tabulated_cubic()
+_CUBIC_TAB = make_tabulated_cubic()
 
 
 def cubic_tabulated_model(theta: np.ndarray) -> np.ndarray:
