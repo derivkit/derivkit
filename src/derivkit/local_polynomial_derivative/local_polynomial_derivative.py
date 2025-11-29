@@ -73,10 +73,16 @@ class LocalPolynomialDerivative:
             diagnostics: If True, returns a diagnostics dictionary along with the derivative estimate.
 
         Returns:
-            If return_error is True and diagnostics is False: A tuple (derivative, error).
-            If return_error and diagnostics are both True: A tuple (derivative, error, diagnostics_dict).
-            If diagnostics is False: The estimated derivative (float or np.ndarray).
-            If diagnostics is True: A tuple (derivative, diagnostics_dict).
+            The return type depends on ``return_error`` and ``diagnostics``:
+
+            - If ``return_error`` is False and ``diagnostics`` is False:
+              the estimated derivative (float or np.ndarray).
+            - If ``return_error`` is True and ``diagnostics`` is False:
+              ``(derivative, error)``.
+            - If ``return_error`` is False and ``diagnostics`` is True:
+              ``(derivative, diagnostics_dict)``.
+            - If both ``return_error`` and ``diagnostics`` are True:
+              ``(derivative, error, diagnostics_dict)``.
 
         Raises:
             ValueError:
