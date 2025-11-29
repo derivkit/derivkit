@@ -195,8 +195,8 @@ def parse_xy_table(
     * ``(2, N)``:
         Row 0 = x, row 1 = scalar y.
 
-    In all cases x is returned as a 1D array of length ``N``. For
-    multi-component tables, y is returned as a 2D array of shape ``(N, M)``.
+    In all cases ``x`` is returned as a 1D array of length ``N``. For
+    multi-component tables, ``y`` is returned as a 2D array of shape ``(N, M)``.
 
     This function does not handle tensor-valued outputs directly.
     When each x corresponds to a matrix or higher-rank object, the data
