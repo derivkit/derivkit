@@ -291,8 +291,7 @@ def _hessian_component_worker(
         n_workers=inner_workers or 1,
         **dk_kwargs,
     )
-    val_arr = np.asarray(val, dtype=float)
-    return float(val_arr.ravel(order="C")[0])
+    return float(np.asarray(val, dtype=float).item())
 
 
 def _hessian_component(
