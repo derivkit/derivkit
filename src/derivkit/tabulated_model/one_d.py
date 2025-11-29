@@ -25,21 +25,20 @@ __all__ = ["Tabulated1DModel", "tabulated1d_from_table"]
 class Tabulated1DModel:
     """1D interpolator for tabulated data.
 
-    Interpolates a tabulated function ``y(x)`` using :func:`numpy.interp`.
-    The first axis of ``y`` is always interpreted as the x grid, and any
-    remaining axes are treated as output components.
+    Interpolates a tabulated function ``y(x)`` using ``numpy.interp``.
 
-    If ``x`` has shape ``(N,)`` and ``y`` has shape ``(N,)``, ``(N, M)``,
-    or ``(N, d1, d2, ...)``, then this class represents a function::
+    Here ``x`` is a one-dimensional grid of length ``N``, and the first
+    dimension of ``y`` must also have length ``N``. All remaining
+    dimensions of ``y`` are treated as the output shape.
 
-        f : x -> y(x)
+    For example:
+        * ``x`` has shape ``(N,)`` and ``y`` has shape ``(N,)``        -> scalar output
+        * ``x`` has shape ``(N,)`` and ``y`` has shape ``(N, M)``      -> vector output of length ``M``
+        * ``x`` has shape ``(N,)`` and ``y`` has shape ``(N, d1, d2)`` -> tensor output with shape ``(d1, d2)``
 
-    with output shape ``()``, ``(M,)`` or ``(d1, d2, ...)`` respectively.
-
-    Internally, all trailing dimensions of ``y`` are flattened into a
-    2D array of shape ``(N, n_out_flat)`` and restored on each call.
-    Here ``N`` is the number of tabulated points and ``n_out_flat`` is
-    the product of all trailing dimensions of the original ``y``.
+    This class handles interpolation for functions of a single scalar input ``x``.
+    Support for tabulated functions with multi-dimensional inputs would require
+    a different interface and can be added in a future extension.
 
     Attributes:
         x: Tabulated x grid, strictly increasing.
