@@ -169,7 +169,11 @@ def tabulated1d_from_table(
 
     Args:
         table: 2D array containing x and y columns.
-        extrapolate: Whether to allow evaluation outside the x range.
+        extrapolate: Whether to allow evaluation outside the tabulated x range.
+            If False (default), any x outside [x.min(), x.max()] either raises
+            a ValueError (when fill_value is None) or is set to fill_value.
+            If True, out-of-range x are handled using numpy.interp’s standard
+            edge behaviour.
         fill_value: Value for out-of-range evaluation when extrapolation is
             disabled.
 
