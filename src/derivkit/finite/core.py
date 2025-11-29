@@ -60,8 +60,7 @@ def single_finite_step(
         dtype=float,
     )
 
-    # values shape: (n_stencil,) for scalar outputs,
-    # (n_stencil, ...) for vector/tensor outputs.
+    # values shape: (n_stencil,) for scalar outputs, (n_stencil, *out_shape) otherwise
     values = eval_points(function, stencil, n_workers=n_workers)
     values = np.asarray(values, dtype=float)
 
