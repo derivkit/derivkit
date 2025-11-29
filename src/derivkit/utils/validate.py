@@ -73,9 +73,9 @@ def validate_tabulated_xy(
     """Validate and convert tabulated (x, y) data into NumPy arrays.
 
     Requirements:
-      - x is 1D and strictly increasing.
-      - y has at least 1 dimension.
-      - y.shape[0] == x.shape[0], but y may have arbitrary trailing
+      - ``x`` is 1D and strictly increasing.
+      - ``y`` has at least 1 dimension.
+      - ``y.shape[0] == x.shape[0]``, but ``y`` may have arbitrary trailing
         dimensions (scalar, vector, or ND output).
 
     Args:
