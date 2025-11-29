@@ -10,17 +10,17 @@ from derivkit.finite.core import single_finite_step
 
 
 def scalar_func(x: float) -> float:
-    """A scalar linear function: f(x) = 3x + 1  → f'(x) = 3."""
+    """Returns a scalar linear function: f(x) = 3x + 1  → f'(x) = 3."""
     return 3.0 * x + 1.0
 
 
 def vector_func(x: float) -> np.ndarray:
-    """A 2D vector-valued linear function: f'(x) = [1, 2]."""
+    """Returns a 2D vector-valued linear function: f'(x) = [1, 2]."""
     return np.array([x, 2.0 * x])
 
 
 def tensor_func(x: float) -> np.ndarray:
-    """A tensor-valued linear function (2x2 matrix)."""
+    """Returns a tensor-valued linear function (2x2 matrix)."""
     return np.array([[x, 2.0 * x], [3.0 * x, 4.0 * x]])
 
 
