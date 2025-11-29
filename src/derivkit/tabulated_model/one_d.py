@@ -221,19 +221,18 @@ def parse_xy_table(
 
     n_rows, n_cols = arr.shape
 
-    if n_rows == 2 and n_cols >= 2:
-        x = arr[0, :]
-        y = arr[1, :]
-        return x, y
+    match (n_rows, n_cols):
+        case (2, n) if n >= 2:
+            # row 0 = x, row 1 = y
+            x = arr[0, :]
+            y = arr[1, :]
+        case (n, m) if n >= 2 and m >= 2:
+            # column 0 = x, remaining columns = y components
+            x = arr[:, 0]
+            y = arr[:, 1] if m == 2 else arr[:, 1:]
+        case _:
+            raise ValueError(
+                f"Unexpected table shape {arr.shape}; expected (N, 2), (N, M+1) or (2, N)."
+            )
 
-    if n_rows >= 2 and n_cols >= 2:
-        x = arr[:, 0]
-        if n_cols == 2:
-            y = arr[:, 1]
-        else:
-            y = arr[:, 1:]
-        return x, y
-
-    raise ValueError(
-        f"Unexpected table shape {arr.shape}; expected (N, 2), (N, M+1) or (2, N)."
-    )
+    return x, y
