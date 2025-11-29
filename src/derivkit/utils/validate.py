@@ -80,7 +80,7 @@ def validate_tabulated_xy(
 
     Args:
         x: 1D array-like of x values (must be strictly increasing).
-        y: Array-like of y values with y.shape[0] == len(x).
+        y: Array-like of y values with ``y.shape[0] == len(x)``.
 
     Returns:
         Tuple of (x_array, y_array) as NumPy arrays.
