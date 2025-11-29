@@ -207,7 +207,10 @@ def parse_xy_table(
     :class:`Tabulated1DModel`.
 
     Args:
-        table: 2D array-like with one of the supported shapes.
+        table: 2D array containing x and y columns (e.g. data loaded from a text
+            file with shape (N, 2) or (N, M+1)). For higher-rank outputs,
+            reshape your data into (N, ...) and call ``Tabulated1DModel(x, y)``
+            directly.
 
     Returns:
         A tuple ``(x, y)`` as NumPy arrays.
