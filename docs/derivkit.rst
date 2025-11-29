@@ -11,6 +11,7 @@ Subpackages
    derivkit.calculus
    derivkit.forecasting
    derivkit.local_polynomial_derivative
+   derivkit.tabulated_model
    derivkit.utils
 
 Submodules
