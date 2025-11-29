@@ -70,7 +70,7 @@ def validate_tabulated_xy(
     x: ArrayLike,
     y: ArrayLike,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    """Validate and convert tabulated (x, y) data into NumPy arrays.
+    """Validates and converts tabulated ``x`` and ``y`` arrays into NumPy arrays.
 
     Requirements:
       - ``x`` is 1D and strictly increasing.
