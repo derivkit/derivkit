@@ -66,7 +66,10 @@ def make_quadratic_tabulated_setup():
 
 
 def _make_tabulated_cubic() -> Tabulated1DModel:
-    """Returns a tabulated cubic model: f(x) = x^3."""
+    """Returns a cubic mononomial of unit weight.
+
+    Specifically it returns the value of :math: f(x) = x^3.
+    """
     x_tab = np.linspace(-1.0, 1.0, 101)
     y_tab = x_tab**3
     return Tabulated1DModel(x_tab, y_tab)
