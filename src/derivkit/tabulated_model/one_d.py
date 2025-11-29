@@ -94,7 +94,7 @@ class Tabulated1DModel:
 
         if y_arr.ndim == 1:
             self._out_shape: tuple[int, ...] = ()
-            y_flat = y_arr[:, None]
+            y_flat = y_arr[:, np.newaxis]
         else:
             self._out_shape = tuple(y_arr.shape[1:])
             y_flat = y_arr.reshape(y_arr.shape[0], -1)
