@@ -397,7 +397,7 @@ def _mixed_partial_value(
         n_workers=n_workers,
         **dk_kwargs,
     )
-    return float(np.asarray(val, dtype=float).item())
+    return float(val)
 
 
 def _build_hessian_internal(
