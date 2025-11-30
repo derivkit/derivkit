@@ -11,7 +11,7 @@ from derivkit.tabulated_model.one_d import (
 
 
 def test_scalar_interpolation_basic():
-    """Tests that basic scalar interpolation works as expected."""
+    """Checks that scalar y(x) is linearly interpolated to the expected values."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0, 20.0])
 
@@ -25,7 +25,7 @@ def test_scalar_interpolation_basic():
 
 
 def test_vector_output_shape_and_values():
-    """Tests that vector-valued outputs are handled correctly."""
+    """Checks that vector-valued y(x) is interpolated elementwise with the right shape and values."""
     x = np.array([0.0, 1.0, 2.0, 3.0])
     y = np.array(
         [
@@ -54,7 +54,7 @@ def test_vector_output_shape_and_values():
 
 
 def test_tensor_output_shape_preserved():
-    """Tests that tensor-valued outputs are handled correctly."""
+    """Checks that tensor-valued y(x) keeps its trailing tensor shape after interpolation."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.stack(
         [
@@ -77,7 +77,7 @@ def test_tensor_output_shape_preserved():
 
 
 def test_scalar_input_scalar_output():
-    """Tests that scalar input yields scalar output."""
+    """Checks that a scalar x input returns a scalar y output for scalar tables."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0, 20.0])
 
@@ -90,7 +90,7 @@ def test_scalar_input_scalar_output():
 
 
 def test_scalar_input_tensor_output():
-    """Tests that scalar input yields tensor output when y is tensor-valued."""
+    """Checks that a scalar x input returns a tensor y output for tensor-valued tables."""
     x = np.array([0.0, 1.0])
     y = np.stack(
         [np.zeros((2, 2)), np.ones((2, 2))],
@@ -105,7 +105,7 @@ def test_scalar_input_tensor_output():
 
 
 def test_extrapolation_allowed_uses_numpy_interp():
-    """Tests that extrapolation=True uses numpy.interp behaviour."""
+    """Checks that extrapolate=True matches numpy.interp outside the tabulated x range."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0, 20.0])
 
@@ -119,7 +119,7 @@ def test_extrapolation_allowed_uses_numpy_interp():
 
 
 def test_extrapolation_disabled_with_fill_value():
-    """Tests that extrapolation=False with fill_value works as expected."""
+    """Checks that extrapolate=False fills out-of-range values with the given fill_value."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.column_stack([x, 2 * x])
 
@@ -156,7 +156,7 @@ def test_extrapolation_disabled_raises_without_fill_value():
 
 @pytest.mark.parametrize("dtype", [float, int])
 def test_parse_xy_table_layout_n_2(dtype):
-    """Tests that parse_xy_table works with (N, 2) layout for different dtypes."""
+    """Checks that parse_xy_table handles a (N, 2) table and casts to float."""
     x = np.array([0.0, 1.0, 2.0], dtype=dtype)
     y = np.array([10.0, 20.0, 30.0], dtype=dtype)
     table = np.column_stack([x, y])
@@ -168,7 +168,7 @@ def test_parse_xy_table_layout_n_2(dtype):
 
 
 def test_parse_xy_table_layout_n_m_plus_1():
-    """Tests that parse_xy_table works with (N, M+1) layout."""
+    """Checks that parse_xy_table handles a (N, M+1) table with multiple y columns."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array(
         [
@@ -188,7 +188,7 @@ def test_parse_xy_table_layout_n_m_plus_1():
 
 
 def test_parse_xy_table_layout_2_n():
-    """Tests that parse_xy_table works with (2, N) layout."""
+    """Checks that parse_xy_table handles a (2, N) table with x and y rows."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([10.0, 20.0, 30.0])
     table = np.vstack([x, y])
@@ -200,7 +200,7 @@ def test_parse_xy_table_layout_2_n():
 
 
 def test_parse_xy_table_invalid_shape_raises():
-    """Tests that parse_xy_table raises ValueError on invalid shapes."""
+    """Checks that parse_xy_table rejects 1D arrays and tables with a single column."""
     with pytest.raises(ValueError):
         parse_xy_table(np.array([1.0, 2.0, 3.0]))
 
@@ -209,7 +209,7 @@ def test_parse_xy_table_invalid_shape_raises():
 
 
 def test_tabulated1d_from_table_n_2_basic():
-    """Tests that tabulated1d_from_table works with (N, 2) table."""
+    """Checks that tabulated1d_from_table builds a working model from a (N, 2) table."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0, 20.0])
     table = np.column_stack([x, y])
@@ -223,7 +223,7 @@ def test_tabulated1d_from_table_n_2_basic():
 
 
 def test_tabulated1d_from_table_multi_component():
-    """Tests that tabulated1d_from_table works with multi-component outputs."""
+    """Checks that tabulated1d_from_table supports multi-component y with fill_value handling."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array(
         [
@@ -253,7 +253,7 @@ def test_tabulated1d_from_table_multi_component():
 
 
 def test_higher_dim_x_new_shape_preserved():
-    """Tests that higher-dimensional x_new preserves shape in output."""
+    """Checks that a higher-dimensional x_new yields the same shape in the interpolated output."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0, 20.0])
 
@@ -268,7 +268,7 @@ def test_higher_dim_x_new_shape_preserved():
 
 
 def test_non_monotonic_x_raises_value_error():
-    """Tests that non-monotonic x raises ValueError."""
+    """Checks that Tabulated1DModel rejects non-monotonic x grids."""
     x = np.array([0.0, 1.0, 0.5])
     y = np.array([0.0, 10.0, 5.0])
 
@@ -277,7 +277,7 @@ def test_non_monotonic_x_raises_value_error():
 
 
 def test_mismatched_x_y_length_raises_value_error():
-    """Tests that mismatched lengths of x and y raise ValueError."""
+    """Checks that Tabulated1DModel rejects x and y arrays with different lengths."""
     x = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 10.0])
 
