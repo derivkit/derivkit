@@ -60,10 +60,25 @@ def single_finite_step(
         dtype=float,
     )
 
+    # values shape: (n_stencil,) for scalar outputs, (n_stencil, *out_shape) otherwise
     values = eval_points(function, stencil, n_workers=n_workers)
+    values = np.asarray(values, dtype=float)
 
-    if values.ndim == 1:
-        values = values.reshape(-1, 1)
+    coeff = np.asarray(coeffs_table[key], dtype=float)  # shape (n_stencil,)
 
-    derivs = values.T @ coeffs_table[key]
-    return derivs.ravel() if derivs.size > 1 else float(derivs.item())
+    if values.ndim == 1:  # this is the scalar-valued case
+        deriv = float(np.dot(coeff, values))
+        return deriv
+
+    # In the case of vector and tensor outputs, use tensordot to contract
+    # the leading stencil dimension with the coeffs.
+    # coeff shape: (n_stencil,)
+    # values shape: (n_stencil, ... )
+    # deriv shape: (...) after contraction.
+    deriv = np.tensordot(coeff, values, axes=(0, 0))
+
+    if np.ndim(deriv) == 0:
+        return float(deriv)
+
+    # Otherwise flatten trailing dims in C order to match the rest of DerivKit.
+    return np.ravel(deriv, order="C")

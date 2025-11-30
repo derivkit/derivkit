@@ -6,12 +6,14 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from derivkit.utils.sandbox import get_partial_function
 
 __all__ = [
     "is_finite_and_differentiable",
     "check_scalar_valued",
+    "validate_tabulated_xy"
 ]
 
 def is_finite_and_differentiable(
@@ -62,3 +64,40 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
             "build_gradient() expects a scalar-valued function; "
             f"got shape {probe.shape} from full_function(params)."
         )
+
+
+def validate_tabulated_xy(
+    x: ArrayLike,
+    y: ArrayLike,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Validates and converts tabulated ``x`` and ``y`` arrays into NumPy arrays.
+
+    Requirements:
+      - ``x`` is 1D and strictly increasing.
+      - ``y`` has at least 1 dimension.
+      - ``y.shape[0] == x.shape[0]``, but ``y`` may have arbitrary trailing
+        dimensions (scalar, vector, or ND output).
+
+    Args:
+        x: 1D array-like of x values (must be strictly increasing).
+        y: Array-like of y values with ``y.shape[0] == len(x)``.
+
+    Returns:
+        Tuple of (x_array, y_array) as NumPy arrays.
+
+    Raises:
+        ValueError: If input arrays do not meet the required conditions.
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+
+    if x_arr.ndim != 1:
+        raise ValueError("x must be 1D.")
+    if x_arr.shape[0] != y_arr.shape[0]:
+        raise ValueError("x and y must have the same length along axis 0.")
+    if not np.all(np.diff(x_arr) > 0):
+        raise ValueError("x must be strictly increasing.")
+    if y_arr.ndim < 1:
+        raise ValueError("y must be at least 1D.")
+
+    return x_arr, y_arr

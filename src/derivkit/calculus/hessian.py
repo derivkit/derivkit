@@ -282,7 +282,7 @@ def _hessian_component_worker(
         A single number showing how the rate of change in one parameter
         depends on another.
     """
-    return _hessian_component(
+    val = _hessian_component(
         function=function,
         theta0=theta0,
         i=i,
@@ -291,6 +291,7 @@ def _hessian_component_worker(
         n_workers=inner_workers or 1,
         **dk_kwargs,
     )
+    return float(val)
 
 
 def _hessian_component(
@@ -390,7 +391,13 @@ def _mixed_partial_value(
     theta[j] = float(y)
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
-    return float(kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs))
+    val = kit1.differentiate(
+        order=1,
+        method=method,
+        n_workers=n_workers,
+        **dk_kwargs,
+    )
+    return float(val)
 
 
 def _build_hessian_internal(
