@@ -1,22 +1,19 @@
-"""Provides tools for facilitating experimental forecasts.
+"""Provides tools for computing the Fisher bias for an experimental forecast.
 
-The user must specify the observables, fiducial values and covariance matrix
-at which the derivative should be evaluated. Derivatives of the first order
-are Fisher derivatives. Derivatives of second order are evaluated using the
-derivative approximation for likelihoods (DALI) technique as described in
-https://doi.org/10.1103/PhysRevD.107.103506.
+The user must specify the observables, fiducial values, covariance matrix, and
+"biased" data vector at which the forecast should be evaluated.
 
 More details about available options can be found in the documentation of
 the methods.
 """
 
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Tuple
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
-from derivkit.utils.linalg import invert_covariance, solve_or_pinv
+from derivkit.utils.linalg import solve_or_pinv
 
 
 def build_fisher_bias(
