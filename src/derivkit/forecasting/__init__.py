@@ -1,3 +1,3 @@
-"""Forecasting utilities (expansions, calculus, likelihoods)."""
+"""Forecasting utilities (expansions, likelihoods, fisher_bias)."""
 
-__all__ = ["expansions", "likelihoods"]
+__all__ = ["expansions", "likelihoods", "fisher_bias"]
