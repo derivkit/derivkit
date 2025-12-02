@@ -18,8 +18,6 @@ from numpy.typing import ArrayLike, NDArray
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
 
-from .fisher_bias import build_fisher_bias
-
 
 class LikelihoodExpansion:
     """Provides tools for facilitating experimental forecasts.
