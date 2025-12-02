@@ -70,6 +70,14 @@ DerivKit is organized into four layers:
 
    Handles flattening, reshaping, and validation.
 
+.. dropdown:: **5. Tabulate layer**
+
+   Formats and interpolates between discrete data points:
+
+   * Tabulated 1D interpolator
+   * Tabulated 1D from table
+
+   Data can be read from memory or from a text file.
 
 Installation
 ------------
