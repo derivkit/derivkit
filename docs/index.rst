@@ -77,6 +77,7 @@ DerivKit is organized into four layers:
    * Tabulated 1D interpolator
    * Tabulated 1D from table
 
+   Supports scalar, vector or tensor outputs for all derivatives.
    Data can be read from memory or from a text file.
 
 Installation
