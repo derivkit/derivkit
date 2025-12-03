@@ -17,6 +17,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
+from derivkit.forecasting import fisher_bias
 
 
 class LikelihoodExpansion:
@@ -277,6 +278,41 @@ class LikelihoodExpansion:
         # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
         h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
         return g_tensor, h_tensor
+
+
+    def build_fisher_bias(
+            self,
+            fisher_matrix: NDArray[np.floating],
+            delta_nu: NDArray[np.floating],
+            n_workers: int = 1,
+            method: str | None = None,
+            rcond: float = 1e-12,
+            **dk_kwargs: Any,
+    ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+        """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
+        return fisher_bias.build_fisher_bias(
+            self,
+            fisher_matrix=fisher_matrix,
+            delta_nu=delta_nu,
+            method=method,
+            n_workers=n_workers,
+            rcond=rcond,
+            **dk_kwargs,
+        )
+
+    def build_delta_nu(
+            self,
+            data_with: NDArray[np.floating],
+            data_without: NDArray[np.floating],
+            *,
+            dtype: type | np.dtype = float,
+    ) -> NDArray[np.floating]:
+        """Return the delta_nu vector with shape (N,) with N being the number of observables."""
+        return fisher_bias.build_delta_nu(
+            self,
+            data_with=data_with,
+            data_without=data_without
+        )
 
 
     def _normalize_workers(self, n_workers):

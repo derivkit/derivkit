@@ -18,7 +18,6 @@ from typing import Any, Sequence
 import numpy as np
 
 from derivkit.forecasting.expansions import LikelihoodExpansion
-from derivkit.forecasting import fisher_bias
 
 
 class ForecastKit:
@@ -84,8 +83,7 @@ class ForecastKit:
         **dk_kwargs: Any,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
-        return fisher_bias.build_fisher_bias(
-            self._lx,
+        return self._lx.build_fisher_bias(
             fisher_matrix=fisher_matrix,
             delta_nu=delta_nu,
             method=method,
@@ -99,8 +97,7 @@ class ForecastKit:
                  data_without: np.ndarray,
                  ):
         """Return the delta_nu vector with shape (N,) with N being the number of observables."""
-        return fisher_bias.build_delta_nu(
-            self._lx,
+        return self._lx.build_delta_nu(
             data_with=data_with,
             data_without=data_without
         )
