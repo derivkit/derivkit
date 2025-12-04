@@ -1,4 +1,4 @@
-"""Provides tools for computing the Fisher bias for an experimental forecast.
+"""Provides tools for computing the Fisher matrix and Fisher bias.
 
 The user must specify the observables, fiducial values, covariance matrix, and
 "biased" data vector at which the forecast should be evaluated.
@@ -14,6 +14,25 @@ from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.linalg import solve_or_pinv
+
+
+def _build_fisher(expansion, d1, invcov):
+    """Assemble the Fisher information matrix F from first derivatives.
+
+    Args:
+        d1 (np.ndarray): First-order derivatives of observables w.r.t. parameters,
+            shape (n_parameters, n_observables).
+        invcov (np.ndarray): Inverse covariance of observables,
+            shape (n_observables, n_observables).
+
+    Returns:
+        np.ndarray: Fisher matrix, shape (n_parameters, n_parameters).
+
+    Notes:
+        Uses `np.einsum("ai,ij,bj->ab", d1, invcov, d1)`.
+    """
+    # F_ab = Σ_ij d1[a,i] invcov[i,j] d1[b,j]
+    return np.einsum("ai,ij,bj->ab", d1, invcov, d1)
 
 
 def build_fisher_bias(

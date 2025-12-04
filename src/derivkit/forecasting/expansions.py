@@ -17,7 +17,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
-from derivkit.forecasting import fisher_bias
+from derivkit.forecasting import fisher, dali
 
 
 class LikelihoodExpansion:
@@ -231,22 +231,8 @@ class LikelihoodExpansion:
 
 
     def _build_fisher(self, d1, invcov):
-        """Assemble the Fisher information matrix F from first derivatives.
-
-        Args:
-            d1 (np.ndarray): First-order derivatives of observables w.r.t. parameters,
-                shape (n_parameters, n_observables).
-            invcov (np.ndarray): Inverse covariance of observables,
-                shape (n_observables, n_observables).
-
-        Returns:
-            np.ndarray: Fisher matrix, shape (n_parameters, n_parameters).
-
-        Notes:
-            Uses `np.einsum("ai,ij,bj->ab", d1, invcov, d1)`.
-        """
-        # F_ab = Σ_ij d1[a,i] invcov[i,j] d1[b,j]
-        return np.einsum("ai,ij,bj->ab", d1, invcov, d1)
+        """Return the Fisher information matrix with shape (P, P) with P being the number of model parameters."""
+        return fisher._build_fisher(self, d1, invcov)
 
 
     def _build_dali(
@@ -255,29 +241,11 @@ class LikelihoodExpansion:
             d2: NDArray[np.float64],
             invcov: NDArray[np.float64],
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        """Assemble the doublet-DALI tensors (G, H) from first- and second-order derivatives.
+        """Return the doublet-DALI tensors (G, H).
 
-        Computes:
-            G_abc = Σ_{i,j} d2[a,b,i] · invcov[i,j] · d1[c,j]
-            H_abcd = Σ_{i,j} d2[a,b,i] · invcov[i,j] · d2[c,d,j]
-
-        Args:
-            d1: First-order derivatives of the observables with respect to parameters,
-                shape (P, N).
-            d2: Second-order derivatives of the observables with respect to parameters,
-                shape (P, P, N).
-            invcov: Inverse covariance matrix of the observables, shape (N, N).
-
-        Returns:
-            A tuple ``(G, H)`` where:
-                - G has shape (P, P, P)
-                - H has shape (P, P, P, P)
+        Shapes are (P,P,P) and (P,P,P,P), where P is the number of model parameters.
         """
-        # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-        g_tensor = np.einsum("abi,ij,cj->abc", d2, invcov, d1)
-        # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-        h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
-        return g_tensor, h_tensor
+        return dali._build_dali(self, d1, d2, invcov)
 
 
     def build_fisher_bias(
@@ -290,7 +258,7 @@ class LikelihoodExpansion:
             **dk_kwargs: Any,
     ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
         """Return the Fisher bias vector with shape (P,) with P being the number of model parameters."""
-        return fisher_bias.build_fisher_bias(
+        return fisher.build_fisher_bias(
             self,
             fisher_matrix=fisher_matrix,
             delta_nu=delta_nu,
@@ -308,7 +276,7 @@ class LikelihoodExpansion:
             dtype: type | np.dtype = float,
     ) -> NDArray[np.floating]:
         """Return the delta_nu vector with shape (N,) with N being the number of observables."""
-        return fisher_bias.build_delta_nu(
+        return fisher.build_delta_nu(
             self,
             data_with=data_with,
             data_without=data_without
