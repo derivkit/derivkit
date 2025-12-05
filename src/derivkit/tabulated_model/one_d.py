@@ -106,17 +106,15 @@ class Tabulated1DModel:
         self.fill_value = fill_value
 
     def differentiate(
-        self,
-        x0: float | np.ndarray,
-        *,
-        method: str | None = None,
-        **dk_kwargs: Any,
+            self,
+            x0: float | np.ndarray,
+            **dk_kwargs: Any,
     ) -> Any:
         """Differentiates the tabulated model at x0 using DerivativeKit.
 
         This runs DerivKit's derivative engines on the interpolated function
         defined by this model. All additional keyword arguments are forwarded
-        to the chosen derivative backend.
+        to `DerivativeKit.differentiate`.
 
         Examples:
         --------
@@ -125,19 +123,17 @@ class Tabulated1DModel:
         >>>
         >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
         >>> y_tab = np.array([0.0, 1.0, 4.0, 9.0])
-        >>>
         >>> model = Tabulated1DModel(x_tab, y_tab)
         >>>
-        >>> # First derivative at a single point:
+        >>> # First derivative at a single point (default method)
         >>> d1 = model.differentiate(x0=0.5, order=1)
         >>>
-        >>> # Second derivative on a grid using finite differences:
+        >>> # Second derivative on a grid using finite differences
         >>> xs = np.linspace(0.0, 1.0, 5)
         >>> d2 = model.differentiate(x0=xs, method="finite", order=2)
         """
         dk = DerivativeKit(function=lambda x: self(x), x0=x0)
-        return dk.differentiate(method=method, **dk_kwargs)
-
+        return dk.differentiate(**dk_kwargs)
 
     def __call__(self, x_new: ArrayLike) -> NDArray[np.floating]:
         """Evaluates the interpolated function at the given x values.
