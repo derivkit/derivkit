@@ -126,7 +126,8 @@ class Tabulated1DModel:
         >>>
         >>> model = Tabulated1DModel(x_tab, y_tab)
         >>>
-        >>> # First derivative at a single point (dy/dx = 2x, so here 1.0):
+        >>> # First derivative at a single point.
+        >>> # For y = x**2 we have dy/dx = 2*x, so at x=0.5 this is 1.0:
         >>> d1 = model.differentiate(x0=0.5, order=1)
         >>> float(d1)
         1.0
