@@ -46,10 +46,10 @@ import numpy as np
 
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+from derivkit.fornberg import FornbergDerivative
 from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
-from derivkit.fornberg import FornbergDerivative
 
 
 class DerivativeEngine(Protocol):
