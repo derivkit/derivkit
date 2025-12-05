@@ -16,9 +16,11 @@ np.float64(2.0022106298738143)
 """
 
 from __future__ import annotations
+
 from collections.abc import Callable
 
 import numpy as np
+
 
 class FornbergDerivative:
     """Supplies the Fornberg derivative.
