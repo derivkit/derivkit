@@ -22,7 +22,7 @@ import numpy as np
 
 class FornbergDerivative:
     """Supplies the Fornberg derivative.
-    
+
     Attributes:
       function: the function to be differentiated.
       x0: the evaluation point for the derivative.
@@ -50,7 +50,7 @@ class FornbergDerivative:
         order: int = 1,
     ) -> np.float64:
         """Constructs the derivative of a given order of a function at a point.
-        
+
         Currently only the derivative of order `order` is returned.
         An array of orders of 0 to `order` can be constructed through
         `get_weights`. See section 3 of (Fornberg 1998) for more details.
