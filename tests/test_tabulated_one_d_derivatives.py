@@ -109,3 +109,20 @@ def test_finite_derivative_extrapolation_linear(
         assert isinstance(d1, np.ndarray)
         assert d1.shape == np.shape(expected)
         np.testing.assert_allclose(d1, expected, rtol=1e-6, atol=1e-8)
+
+
+@pytest.mark.parametrize("method", ["finite", "adaptive", "lp"])
+@pytest.mark.parametrize("label, model_factory, is_scalar, expected", _MODEL_CASES)
+def test_tabulated_model_differentiate_matches_derivative_kit(label, model_factory, is_scalar, expected, method):
+    """Tests that Tabulated1DModel.differentiate matches DerivativeKit results."""
+    model = model_factory()
+    x0 = 0.3
+
+    # via DerivativeKit
+    kit = DerivativeKit(model, x0)
+    d1_kit = kit.differentiate(method=method, order=1)
+
+    # via Tabulated1DModel.differentiate
+    d1_model = model.differentiate(x0=x0, method=method, order=1)
+
+    np.testing.assert_allclose(d1_model, d1_kit, rtol=1e-12, atol=0.0)
