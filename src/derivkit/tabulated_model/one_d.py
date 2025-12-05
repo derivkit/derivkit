@@ -117,7 +117,7 @@ class Tabulated1DModel:
         to `DerivativeKit.differentiate`.
 
         Examples:
-        --------
+        ---------
         >>> import numpy as np
         >>> from derivkit.tabulated_model import Tabulated1DModel
         >>>
