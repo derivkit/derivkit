@@ -1,3 +1,3 @@
-"""Forecasting utilities (expansions, likelihoods, fisher, dali)."""
+"""Forecasting utilities (expansions, calculus, likelihoods)."""
 
-__all__ = ["expansions", "likelihoods", "fisher", "dali"]
+__all__ = ["expansions", "likelihoods"]
