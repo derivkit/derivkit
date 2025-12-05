@@ -116,21 +116,25 @@ class Tabulated1DModel:
         defined by this model. All additional keyword arguments are forwarded
         to `DerivativeKit.differentiate`.
 
-        Examples:
+        Examples
         --------
         >>> import numpy as np
         >>> from derivkit.tabulated_model import Tabulated1DModel
         >>>
         >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
-        >>> y_tab = np.array([0.0, 1.0, 4.0, 9.0])
+        >>> y_tab = np.array([0.0, 1.0, 4.0, 9.0])  # y = x^2
+        >>>
         >>> model = Tabulated1DModel(x_tab, y_tab)
         >>>
-        >>> # First derivative at a single point (default method)
+        >>> # First derivative at a single point (dy/dx = 2x, so here 1.0):
         >>> d1 = model.differentiate(x0=0.5, order=1)
+        >>> float(d1)
+        1.0
         >>>
-        >>> # Second derivative on a grid using finite differences
         >>> xs = np.linspace(0.0, 1.0, 5)
         >>> d2 = model.differentiate(x0=xs, method="finite", order=2)
+        >>> np.allclose(d2, 2.0)
+        True
         """
         dk = DerivativeKit(function=lambda x: self(x), x0=x0)
         return dk.differentiate(**dk_kwargs)
