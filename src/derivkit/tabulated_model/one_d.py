@@ -116,7 +116,7 @@ class Tabulated1DModel:
         defined by this model. All additional keyword arguments are forwarded
         to `DerivativeKit.differentiate`.
 
-        Examples
+        Examples:
         --------
         >>> import numpy as np
         >>> from derivkit.tabulated_model import Tabulated1DModel
