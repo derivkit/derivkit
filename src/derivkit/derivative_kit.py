@@ -49,6 +49,7 @@ from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
+from derivkit.fornberg import FornbergDerivative
 
 
 class DerivativeEngine(Protocol):
@@ -75,6 +76,7 @@ _METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
     ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad"]),
     ("finite",   FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd"]),
     ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp"]),
+    ("fornberg", FornbergDerivative, []),
 ]
 
 
