@@ -9,10 +9,10 @@ This module provides functional helpers to
 
 These functions are the low-level building blocks used by higher-level
 forecasting interfaces in DerivKit. For details on the DALI expansion,
-see e.g. https://doi.org/10.1103/PhysRevD.107.103506.
+see https://doi.org/10.1103/PhysRevD.107.103506.
 """
 
-from typing import Any, Callable, Union
+from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -21,10 +21,6 @@ from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
 from derivkit.utils.validate import validate_covariance_matrix
-
-__all__ = [
-    "get_forecast_tensors",
-]
 
 
 def get_forecast_tensors(
@@ -36,7 +32,7 @@ def get_forecast_tensors(
         method: str | None = None,
         n_workers: int = 1,
         **dk_kwargs: Any,
-) -> Union[NDArray[np.float64], tuple[NDArray[np.float64], NDArray[np.float64]]]:
+) -> Union[NDArray[np.float64], Tuple[NDArray[np.float64], NDArray[np.float64]]]:
     """Returns a set of tensors according to the requested order of the forecast.
 
     Args:
@@ -48,12 +44,12 @@ def get_forecast_tensors(
             derivative is evaluated. A 1D array or list of parameter values
             matching the expected input of the function.
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
+            matrix with shape (n_observables, n_observables), where n_observables
             is the number of observables returned by the function.
         forecast_order: The requested order D of the forecast:
 
                 - D = 1 returns a Fisher matrix.
-                - D = 2 returns the 3D and 4D tensors required for the
+                - D = 2 returns the 3-d and 4-d tensors required for the
                   doublet-DALI approximation.
                 - D = 3 would be the triplet-DALI approximation.
 
@@ -86,6 +82,7 @@ def get_forecast_tensors(
     cov_arr = validate_covariance_matrix(cov)
     n_observables = cov_arr.shape[0]
 
+    # Check model output dimension
     y0 = np.atleast_1d(function(theta0_arr))
     if y0.shape[0] != n_observables:
         raise ValueError(
@@ -93,9 +90,11 @@ def get_forecast_tensors(
             f"but got {y0.shape[0]} (output shape {y0.shape})."
         )
 
+    # Compute inverse covariance matrix
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
-    deriv_order1 = _get_derivatives(
+    # Compute first-order derivatives
+    d1 = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
@@ -106,12 +105,10 @@ def get_forecast_tensors(
     )
 
     if forecast_order == 1:
-        return np.einsum("ai,ij,bj->ab",
-                         deriv_order1,
-                         invcov,
-                         deriv_order1)  # Fisher
+        return np.einsum("ai,ij,bj->ab", d1, invcov, d1)  # Fisher
 
-    deriv_order2 = _get_derivatives(
+    # Compute second-order derivatives
+    d2 = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
@@ -121,9 +118,9 @@ def get_forecast_tensors(
         **dk_kwargs,
     )
     # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-    g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
+    g_tensor = np.einsum("abi,ij,cj->abc", d2, invcov, d1)
     # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-    h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
+    h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
     return g_tensor, h_tensor
 
 
@@ -148,26 +145,30 @@ def _get_derivatives(
             derivative is evaluated. A 1D array or list of parameter values
             matching the expected input of the function.
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
+            matrix with shape (n_observables, n_observables), where n_observables
             is the number of observables returned by the function.
-        order: The requested order of the derivatives:
+        order (int): The requested order d of the derivatives:
 
-            - A value of `1` returns first-order derivatives.
-            - A value of `2` returns second-order derivatives.
+            - d = 1 returns first-order derivatives.
+            - d = 2 returns second-order derivatives.
 
-            Currently supported values are `1` and `2`.
+            Currently only d = 1, 2 are supported.
 
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
+        method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
-        n_workers: Number of workers for per-parameter parallelization
-         (threads). Default `1` (serial).
-        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
+        n_workers (int, optional): Number of workers for per-parameter parallelization
+         (threads). Default 1 (serial).
+        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
 
     Returns:
-        Array of derivative values. For ``order == 1``, the
-        shape is ``(n_parameters, n_observables)`` (first-order derivatives).
-        For ``order == 2``, the shape is
-        ``(n_parameters, n_parameters, n_observables)`` (second-order derivatives).
+        :class:`np.ndarray`: An array of derivative values:
+
+            - d = 1 returns an array with shape
+              (`n_parameters`, `n_observables`) containing
+              first-order derivatives.
+            - d = 2 returns an array with shape
+              `n_parameters`, `n_parameters`, `n_observables`)
+              containing second-order derivatives.
 
     Raises:
         ValueError: An error occurred if a derivative was requested of
@@ -187,6 +188,7 @@ def _get_derivatives(
     n_workers = normalize_workers(n_workers)
     ckit = CalculusKit(function, theta0_arr)
 
+    # First-order path: compute Jacobian and return immediately
     if order == 1:
         j_raw = np.asarray(
             ckit.jacobian(
