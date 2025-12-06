@@ -88,7 +88,14 @@ The test suite can be run locally by simply running tox on the command line::
 
 Note that this will attempt to run the test suite for all supported Python version.
 It will automatically skip versions which aren't locally available.
+
 If the test suite must be run for a specific version of Python that specific environment must be called.
 For example, to test against Python 3.13::
 
   tox -e py313
+
+For development it is sometimes useful to run a single test, as this is much faster than running the entire test suite.
+To do so, add it as a command-line argument separated from the `tox` invocation by a `--`.
+For example, to run only the tests in ``tests/test_derivative_kit.py`` for all supported Python versions::
+
+  tox -m test -- tests/test_derivative_kit.py

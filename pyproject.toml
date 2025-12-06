@@ -90,7 +90,10 @@ description = "Run tests under {base_python}"
 extras = ["test"]
 allowlist_externals = ["pytest"]
 commands = [
-    ["pytest"],
+    [
+        "pytest",
+        {replace = "posargs", extend = true},
+    ],
 ]
 
 [tool.tox.env_run_base.setenv]
