@@ -106,7 +106,7 @@ def validate_tabulated_xy(
 
 def validate_covariance_matrix(cov: ArrayLike) -> NDArray[np.floating]:
     """Validates and converts a covariance matrix into a NumPy array."""
-    cov_arr = np.asarray(cov, dtype=float)
+    cov_arr = np.asarray(cov)
 
     if cov_arr.ndim > 2:
         raise ValueError(

@@ -137,9 +137,7 @@ def parallel_execute(
             return [worker(*args) for args in arg_tuples]
 
 
-def normalize_workers(
-        n_workers: Any
-) -> int:
+def normalize_workers(n_workers):
     """Ensure n_workers is a positive integer, defaulting to 1.
 
     Args:
