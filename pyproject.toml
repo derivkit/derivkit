@@ -41,6 +41,7 @@ license-files = ["LICENSE*"]
 "docs" = [
     "sphinx",
     "sphinx-design",
+    "sphinx-multiversion",
     "furo",
 ]
 "lint" = [
@@ -107,7 +108,7 @@ commands = [
     "-f",
   ],
   [
-    "sphinx-build",
+    "sphinx-multiversion",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/html",
     "--fail-on-warning",
