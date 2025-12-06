@@ -109,7 +109,7 @@ class LikelihoodExpansion:
                 is ill-conditioned (large condition number), or inversion
                 falls back to the pseudoinverse.
         """
-        if forecast_order not in [1, 2]:
+        if forecast_order not in (1, 2):
             raise ValueError(
                 "Only Fisher (order 1) and doublet-DALI (order 2) forecasts are currently supported."
             )
