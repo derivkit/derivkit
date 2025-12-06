@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextvars
 
 from derivkit.utils import concurrency as conc
+from derivkit.utils.concurrency import normalize_workers
 
 
 def _reset_inner_var() -> None:
@@ -113,3 +114,13 @@ def test_parallel_execute_threaded_propagates_inner_workers():
     # Order is preserved because we collect futures in submission order
     assert results == [(10, 4), (20, 4)]
     assert conc._inner_workers_var.get() is None
+
+
+def test_normalize_workers_various_inputs():
+    """Tests that normalize_workers handles various inputs correctly."""
+    assert normalize_workers(1) == 1
+    assert normalize_workers(4) == 4
+    assert normalize_workers(0) == 1
+    assert normalize_workers(-3) == 1
+    assert normalize_workers(None) == 1
+    assert normalize_workers(2.7) == 2
