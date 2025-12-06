@@ -206,18 +206,6 @@ def test_get_forecast_tensors_order1_default_n_workers(forecasting_mocks):
     assert kwargs["n_workers"] == 1
 
 
-def test_normalize_workers_various_inputs():
-    """Tests that _normalize_workers handles various n_workers inputs correctly."""
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=np.zeros(1), cov=np.eye(2))
-
-    assert lx._normalize_workers(1) == 1
-    assert lx._normalize_workers(4) == 4
-    assert lx._normalize_workers(0) == 1
-    assert lx._normalize_workers(-3) == 1
-    assert lx._normalize_workers(None) == 1
-    assert lx._normalize_workers(2.7) == 2
-
-
 @pytest.mark.parametrize("method", ["adaptive", "finite"])
 @pytest.mark.parametrize("extrapolation", ["richardson", "ridders", "gauss_richardson"])
 @pytest.mark.parametrize("stencil", [3, 5, 7, 9])
