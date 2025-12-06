@@ -16,7 +16,9 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.calculus_kit import CalculusKit
+from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance, solve_or_pinv
+from derivkit.utils.validate import validate_covariance_matrix
 
 
 class LikelihoodExpansion:
@@ -65,14 +67,7 @@ class LikelihoodExpansion:
         self.function = function
         self.theta0 = np.atleast_1d(theta0)
 
-        cov = np.asarray(cov)
-        if cov.ndim > 2:
-            raise ValueError(
-                f"cov must be at most two-dimensional; got ndim={cov.ndim}."
-            )
-        if cov.ndim == 2 and cov.shape[0] != cov.shape[1]:
-            raise ValueError(f"cov must be square; got shape={cov.shape}.")
-
+        cov = validate_covariance_matrix(cov)
         self.cov = cov
         self.n_parameters = self.theta0.shape[0]
         self.n_observables = self.cov.shape[0]
@@ -180,7 +175,7 @@ class LikelihoodExpansion:
         if order not in (1, 2):
             raise ValueError("Only first- and second-order derivatives are currently supported.")
 
-        n_workers = self._normalize_workers(n_workers)
+        n_workers = normalize_workers(n_workers)
 
         ckit = CalculusKit(self.function, self.theta0)
 
@@ -324,7 +319,7 @@ class LikelihoodExpansion:
             or the Fisher matrix dimensions.
           FloatingPointError: If the difference vector contains NaNs.
         """
-        n_workers = self._normalize_workers(n_workers)
+        n_workers = normalize_workers(n_workers)
 
         fisher_matrix = np.asarray(fisher_matrix, dtype=float)
         if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
@@ -456,23 +451,3 @@ class LikelihoodExpansion:
             raise FloatingPointError("Non-finite values found in delta vector.")
 
         return delta_nu
-
-
-    def _normalize_workers(self, n_workers):
-        """Ensure n_workers is a positive integer, defaulting to 1.
-
-        Args:
-            n_workers: Input number of workers (can be None, float, negative, etc.)
-
-        Returns:
-            int: A positive integer number of workers (at least 1).
-
-        Raises:
-            None: Invalid inputs are coerced to 1.
-        """
-        try:
-            n = int(n_workers)
-        except (TypeError, ValueError):
-            n = 1
-        return 1 if n < 1 else n
-
