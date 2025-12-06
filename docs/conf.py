@@ -32,9 +32,9 @@ html_sidebar = {
     "**": [
         "sidebar/brand.html",
         "sidebar/search.html",
+        "sidebar/variant-selector.html",
         "sidebar/scroll-start.html",
         "sidebar/navigation.html",
-        "sidebar/versions.html",
         "sidebar/scroll-end.html",
     ],
 }
