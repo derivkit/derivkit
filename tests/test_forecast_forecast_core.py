@@ -1,4 +1,4 @@
-"""Tests for LikelihoodExpansion."""
+"""Tests for forecast_core methods."""
 
 from contextlib import nullcontext
 from functools import partial
