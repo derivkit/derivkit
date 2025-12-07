@@ -1,17 +1,12 @@
-"""Fisher-forecast convenience helpers.
-
-This module provides a thin wrapper around
-:func:`derivkit.forecasting.forecast_core.get_forecast_tensors`
-for the common case of Fisher forecasts (first-order likelihood expansion).
-"""
+"""Fisher forecasting utilities."""
 
 from typing import Any, Callable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.forecasting.forecast_core import get_forecast_tensors
 from derivkit.calculus_kit import CalculusKit
+from derivkit.forecasting.forecast_core import get_forecast_tensors
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import solve_or_pinv
 from derivkit.utils.validate import validate_covariance_matrix
@@ -214,16 +209,16 @@ def build_delta_nu(
     are constructed with the same convention for consistent results.
 
     Args:
-            cov: The covariance matrix of the observables. Should be a square
-                matrix with shape (n_observables, n_observables), where n_observables
-                is the number of observables returned by the function.
-          data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
+        cov: The covariance matrix of the observables. Should be a square
+            matrix with shape (n_observables, n_observables), where n_observables
+            is the number of observables returned by the function.
+        data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
             If 1D, it must follow the NumPy's row-major (“C”) flattening convention used
             throughout the package.
-          data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
+        data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
             it must follow the NumPy's row-major (“C”) flattening convention used throughout
             the package.
-          dtype: Data type of the output array (defaults to float).
+        dtype: Data type of the output array (defaults to float).
 
     Returns:
         A 1D NumPy array of length ``self.n_observables`` representing the data
