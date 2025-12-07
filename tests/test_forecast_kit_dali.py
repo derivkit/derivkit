@@ -76,7 +76,6 @@ def dali_mocks(monkeypatch):
 
 def test_build_dali_matches_reference_values():
     """Tests that _build_dali matches precomputed reference tensors."""
-
     d1 = np.array(
         [
             [1.0, 2.0, 3.0],
