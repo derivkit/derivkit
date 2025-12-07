@@ -3,62 +3,63 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.expansions import LikelihoodExpansion
+from derivkit.forecasting.fisher import build_fisher_matrix
 
 
 def two_obs_model(theta):
     """Model that always returns a 2-element observable vector."""
+    _ = theta
     return np.zeros(2, dtype=float)
 
 
 def three_obs_model(theta):
     """Model that always returns a 3-element observable vector."""
+    _ = theta
     return np.zeros(3, dtype=float)
 
 
 @pytest.fixture
 def forecasting_mocks(monkeypatch):
-    """Provides fake derivative + covariance inversion with per-test state."""
+    """Provides fake get_forecast_tensors with per-test state."""
     class Mocks:
         def __init__(self):
-            """Initializes empty state for the mocks."""
             self.d1 = None
             self.invcov = None
-            self.deriv_call_info = None
-            self.invcov_call_info = None
+            self.call_info = None
 
         def set_state(self, d1, invcov):
-            """Sets the derivative and inverse covariance matrices for this test."""
             self.d1 = np.asarray(d1, dtype=float)
             self.invcov = np.asarray(invcov, dtype=float)
 
     mocks = Mocks()
 
-    def fake_get_derivatives(*args, **kwargs):
-        """Takes the place of _get_derivatives, returns pre-set matrix and records call."""
-        mocks.deriv_call_info = {
-            "args": args,
-            "kwargs": kwargs,
+    def fake_get_forecast_tensors(
+        *,
+        function,
+        theta0,
+        cov,
+        forecast_order,
+        method,
+        n_workers,
+        **dk_kwargs,
+    ):
+        """Takes the place of get_forecast_tensors, returns d1 @ invcov @ d1.T and records call."""
+        mocks.call_info = {
+            "function": function,
+            "theta0": np.asarray(theta0, dtype=float),
+            "cov": np.asarray(cov, dtype=float),
+            "forecast_order": forecast_order,
+            "method": method,
+            "n_workers": n_workers,
+            "dk_kwargs": dk_kwargs,
         }
-        return mocks.d1
-
-    def fake_invert_covariance(cov, warn_prefix=None):
-        """Mimics invert_covariance, returns pre-set matrix and records call."""
-        cov_arr = np.asarray(cov, dtype=float)
-        mocks.invcov_call_info = {
-            "cov": cov_arr,
-            "warn_prefix": warn_prefix,
-        }
-        return mocks.invcov
+        d1 = mocks.d1
+        invcov = mocks.invcov
+        return d1 @ invcov @ d1.T
 
     monkeypatch.setattr(
-        "derivkit.forecasting.expansions.invert_covariance",
-        fake_invert_covariance,
-        raising=True,
-    )
-    monkeypatch.setattr(
-        "derivkit.forecasting.expansions.LikelihoodExpansion._get_derivatives",
-        fake_get_derivatives,
+        "derivkit.forecasting.fisher.get_forecast_tensors",
+        fake_get_forecast_tensors,
         raising=True,
     )
 
@@ -77,14 +78,14 @@ def test_get_forecast_tensors_order1_matches_matrix_product(forecasting_mocks):
     # these are dummy values; only invcov matters for the test
     cov = np.diag([2.0, 0.5])
     invcov = np.linalg.inv(cov)
+    theta0 = np.array([0.0, 0.0])
 
     forecasting_mocks.set_state(d1=d1, invcov=invcov)
 
-    theta0 = np.array([0.0, 0.0])
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    fisher = lx.get_forecast_tensors(
-        forecast_order=1,
+    fisher = build_fisher_matrix(
+        function=two_obs_model,
+        theta0=theta0,
+        cov=cov,
         method="adaptive",
         n_workers=1,
     )
@@ -106,13 +107,11 @@ def test_get_forecast_tensors_order1_returns_symmetric_fisher(forecasting_mocks)
 
     forecasting_mocks.set_state(d1=d1, invcov=invcov)
 
-    lx = LikelihoodExpansion(
+    fisher = build_fisher_matrix(
         function=three_obs_model,
         theta0=np.zeros(3),
         cov=cov,
     )
-
-    fisher = lx.get_forecast_tensors(forecast_order=1)
 
     assert fisher.shape == (3, 3)
     np.testing.assert_allclose(fisher, fisher.T)
@@ -135,10 +134,10 @@ def test_get_forecast_tensors_order1_builds_fisher(forecasting_mocks):
         invcov=invcov,
     )
 
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    fisher = lx.get_forecast_tensors(
-        forecast_order=1,
+    fisher = build_fisher_matrix(
+        function=two_obs_model,
+        theta0=theta0,
+        cov=cov,
         method="adaptive",
         n_workers=4,
         step_size=1e-3,
@@ -149,24 +148,13 @@ def test_get_forecast_tensors_order1_builds_fisher(forecasting_mocks):
     assert fisher.shape == expected.shape == (2, 2)
     np.testing.assert_allclose(fisher, expected)
 
-    kwargs = forecasting_mocks.deriv_call_info["kwargs"]
-    assert kwargs["order"] == 1
-    assert kwargs["method"] == "adaptive"
-    assert kwargs["n_workers"] == 4
-    assert kwargs["step_size"] == 1e-3
+    info = forecasting_mocks.call_info
+    dk_kwargs = info["dk_kwargs"]
 
-    np.testing.assert_allclose(forecasting_mocks.invcov_call_info["cov"], cov)
-    assert forecasting_mocks.invcov_call_info["warn_prefix"] == "LikelihoodExpansion"
-
-
-def test_get_forecast_tensors_invalid_order_raises():
-    """Tests that invalid forecast_order raises ValueError."""
-    theta0 = np.array([0.0, 0.0])
-    cov = np.eye(2)
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    with pytest.raises(ValueError):
-        lx.get_forecast_tensors(forecast_order=3)
+    assert info["forecast_order"] == 1
+    assert info["method"] == "adaptive"
+    assert info["n_workers"] == 4
+    assert dk_kwargs["step_size"] == 1e-3
 
 
 def test_get_forecast_tensors_checks_model_output_length():
@@ -176,10 +164,8 @@ def test_get_forecast_tensors_checks_model_output_length():
 
     # three_obs_model returns 3 observables but cov is 2x2 (n_observables=2),
     # so get_forecast_tensors should complain about the inconsistency.
-    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=cov)
-
     with pytest.raises(ValueError):
-        lx.get_forecast_tensors(forecast_order=1)
+        build_fisher_matrix(function=three_obs_model, theta0=theta0, cov=cov)
 
 
 def test_get_forecast_tensors_order1_default_n_workers(forecasting_mocks):
@@ -192,18 +178,23 @@ def test_get_forecast_tensors_order1_default_n_workers(forecasting_mocks):
         invcov=np.eye(2),
     )
 
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-    fisher = lx.get_forecast_tensors(forecast_order=1)
+    fisher = build_fisher_matrix(
+        function=two_obs_model,
+        theta0=theta0,
+        cov=cov,
+    )
 
     d1 = forecasting_mocks.d1
     invcov = forecasting_mocks.invcov
     expected = d1 @ invcov @ d1.T
     np.testing.assert_allclose(fisher, expected)
 
-    # n_workers should default to 1 inside _get_derivatives
-    kwargs = forecasting_mocks.deriv_call_info["kwargs"]
-    assert kwargs["order"] == 1
-    assert kwargs["n_workers"] == 1
+    info = forecasting_mocks.call_info
+    dk_kwargs = info["dk_kwargs"]
+
+    assert info["forecast_order"] == 1
+    assert info["n_workers"] == 1
+    assert dk_kwargs == {}
 
 
 @pytest.mark.parametrize("method", ["adaptive", "finite"])
@@ -224,10 +215,10 @@ def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
         invcov=np.eye(2),
     )
 
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    fisher = lx.get_forecast_tensors(
-        forecast_order=1,
+    fisher = build_fisher_matrix(
+        function=two_obs_model,
+        theta0=theta0,
+        cov=cov,
         method=method,
         n_workers=2,
         extrapolation=extrapolation,
@@ -239,12 +230,14 @@ def test_get_forecast_tensors_order1_forwards_derivative_kwargs(
     expected = d1 @ invcov @ d1.T
     np.testing.assert_allclose(fisher, expected)
 
-    kwargs = forecasting_mocks.deriv_call_info["kwargs"]
-    assert kwargs["order"] == 1
-    assert kwargs["method"] == method
-    assert kwargs["n_workers"] == 2
-    assert kwargs["extrapolation"] == extrapolation
-    assert kwargs["stencil"] == stencil
+    info = forecasting_mocks.call_info
+    dk_kwargs = info["dk_kwargs"]
+
+    assert info["forecast_order"] == 1
+    assert info["method"] == method
+    assert info["n_workers"] == 2
+    assert dk_kwargs["extrapolation"] == extrapolation
+    assert dk_kwargs["stencil"] == stencil
 
 
 def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(forecasting_mocks):
@@ -257,10 +250,10 @@ def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(forecasting_m
         invcov=np.eye(2),
     )
 
-    lx = LikelihoodExpansion(function=two_obs_model, theta0=theta0, cov=cov)
-
-    fisher = lx.get_forecast_tensors(
-        forecast_order=1,
+    fisher = build_fisher_matrix(
+        function=two_obs_model,
+        theta0=theta0,
+        cov=cov,
         method="local_polyfit",
         n_workers=3,
         degree=5,
@@ -273,10 +266,12 @@ def test_get_forecast_tensors_order1_forwards_local_polyfit_kwargs(forecasting_m
     expected = d1 @ invcov @ d1.T
     np.testing.assert_allclose(fisher, expected)
 
-    kwargs = forecasting_mocks.deriv_call_info["kwargs"]
-    assert kwargs["order"] == 1
-    assert kwargs["method"] == "local_polyfit"
-    assert kwargs["n_workers"] == 3
-    assert kwargs["degree"] == 5
-    assert kwargs["window"] == 4
-    assert kwargs["trim_fraction"] == 0.2
+    info = forecasting_mocks.call_info
+    dk_kwargs = info["dk_kwargs"]
+
+    assert info["forecast_order"] == 1
+    assert info["method"] == "local_polyfit"
+    assert info["n_workers"] == 3
+    assert dk_kwargs["degree"] == 5
+    assert dk_kwargs["window"] == 4
+    assert dk_kwargs["trim_fraction"] == 0.2
