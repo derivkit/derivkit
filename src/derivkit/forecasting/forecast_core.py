@@ -162,7 +162,7 @@ def _get_derivatives(
             the DerivativeKit default ("adaptive") is used.
         n_workers (int, optional): Number of workers for per-parameter parallelization
          (threads). Default 1 (serial).
-        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
     Returns:
         :class:`np.ndarray`: An array of derivative values:
