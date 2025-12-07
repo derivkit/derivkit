@@ -70,7 +70,7 @@ def build_fisher_bias(
         rcond: float = 1e-12,
         **dk_kwargs: Any,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    r"""Estimates parameter bias using the stored model, expansion point, and covariance.
+    """Estimates parameter bias using the stored model, expansion point, and covariance.
 
     This method quantifies how differences between two data sets—typically an
     "unbiased" or reference data vector and a "biased" one including a given
