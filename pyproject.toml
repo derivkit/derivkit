@@ -102,6 +102,7 @@ PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 [tool.tox.env.docs]
 description = "Build the HTML files using Sphinx"
 extras = ["docs"]
+allowlist_externals = ["cp"]
 commands = [
   [
     "sphinx-apidoc",
@@ -115,6 +116,11 @@ commands = [
     "{tox_root}/docs",
     "{tox_root}/docs/_build/html",
     "--fail-on-warning",
+  ],
+  [
+    "cp",
+    "{tox_root}/docs/_templates/pages_redirect.html",
+    "{tox_root}/docs/_build/html",
   ],
 ]
 
