@@ -1,6 +1,6 @@
 """Provides all derivkit methods."""
 
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.calculus_kit import CalculusKit
