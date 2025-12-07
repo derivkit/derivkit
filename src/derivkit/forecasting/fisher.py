@@ -11,6 +11,12 @@ from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import solve_or_pinv
 from derivkit.utils.validate import validate_covariance_matrix
 
+__all__ = [
+    "build_fisher_matrix",
+    "build_fisher_bias",
+    "build_delta_nu",
+]
+
 
 def build_fisher_matrix(
     function: Callable[[ArrayLike], float | NDArray[np.floating]],
