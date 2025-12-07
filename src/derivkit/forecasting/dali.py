@@ -9,6 +9,10 @@ from numpy.typing import ArrayLike, NDArray
 
 from derivkit.forecasting.forecast_core import get_forecast_tensors
 
+__all__ = [
+    "build_dali",
+]
+
 
 def build_dali(
     function: Callable[[ArrayLike], float | NDArray[np.floating]],
