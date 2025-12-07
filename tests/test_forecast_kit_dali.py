@@ -8,7 +8,7 @@ from derivkit.forecasting.expansions import LikelihoodExpansion
 
 def three_obs_model(theta):
     """Model that always returns a 3-element observable vector."""
-    _ = np.atleast_1d(theta)
+    _ = np.atleast_1d(theta)  # this is a phantom use of theta
     return np.zeros(3, dtype=float)
 
 
@@ -74,8 +74,9 @@ def dali_mocks(monkeypatch):
     return mocks
 
 
-def test_build_dali_matches_einsum():
-    """Tests that _build_dali produces the expected results via einsum."""
+def test_build_dali_matches_reference_values():
+    """Tests that _build_dali matches precomputed reference tensors."""
+
     d1 = np.array(
         [
             [1.0, 2.0, 3.0],
@@ -99,19 +100,43 @@ def test_build_dali_matches_einsum():
     cov = np.diag([2.0, 1.0, 0.5])
     invcov = np.linalg.inv(cov)
 
-    theta0 = np.array([0.0, 0.0])
-    lx = LikelihoodExpansion(function=three_obs_model, theta0=theta0, cov=np.eye(3))
+    lx = LikelihoodExpansion(function=three_obs_model,
+                             theta0=np.array([0.0, 0.0]),
+                             cov=np.eye(3))
 
     g, h = lx._build_dali(d1, d2, invcov)
 
-    g_manual = np.einsum("abi,ij,cj->abc", d2, invcov, d1)
-    h_manual = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
+    g_expected = np.array(
+        [
+            [[12.5, 16.25],
+             [0.25, -5.375]],
+            [[-0.1, 0.15],
+             [3.3, 2.15]],
+        ]
+    )
+
+    h_expected = np.array(
+        [
+            [
+                [[8.5, -1.75],
+                 [0.1, 1.7]],
+                [[-1.75, 2.875],
+                 [-0.1, 0.7]],
+            ],
+            [
+                [[0.1, -0.1],
+                 [0.03, 0.05]],
+                [[1.7, 0.7],
+                 [0.05, 0.93]],
+            ],
+        ]
+    )
 
     assert g.shape == (2, 2, 2)
     assert h.shape == (2, 2, 2, 2)
 
-    np.testing.assert_allclose(g, g_manual)
-    np.testing.assert_allclose(h, h_manual)
+    np.testing.assert_allclose(g, g_expected)
+    np.testing.assert_allclose(h, h_expected)
 
 
 def test_build_dali_symmetry_with_symmetric_inputs():
