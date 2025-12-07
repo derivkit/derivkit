@@ -6,59 +6,69 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.forecasting.expansions import LikelihoodExpansion
+from derivkit.forecasting.fisher import build_delta_nu, build_fisher_bias
+from derivkit.forecasting.forecast_core import (
+    _get_derivatives,
+    get_forecast_tensors,
+)
 from derivkit.utils.linalg import invert_covariance
 
 
+def _identity(x):
+    """A test function that returns its input unchanged."""
+    return x
+
+
 def test_derivative_order():
-    """High derivative orders (>2) should raise ValueError."""
-    like = LikelihoodExpansion(lambda x: x, np.array([1]), np.array([1]))
+    """Tests that unsupported derivative orders raise ValueError."""
+    func = _identity
+    theta0 = np.array([1.0])
+    cov = np.array([[1.0]])
+
     with pytest.raises(ValueError):
-        like._get_derivatives(order=3)
+        _get_derivatives(func, theta0, cov, order=3)
     with pytest.raises(ValueError):
-        like._get_derivatives(order=np.random.randint(low=4, high=30))
+        _get_derivatives(func, theta0, cov, order=np.random.randint(low=4, high=30))
 
 
 def test_forecast_order():
-    """High forecast orders (>2) should raise ValueError."""
-    like = LikelihoodExpansion(lambda x: x, np.array([1]), np.array([1]))
+    """Tests that unsupported forecast orders raise ValueError."""
+    func = _identity
+    theta0 = np.array([1.0])
+    cov = np.array([[1.0]])
 
     with pytest.raises(ValueError):
-        like.get_forecast_tensors(forecast_order=3)
+        get_forecast_tensors(func, theta0, cov, forecast_order=3)
 
     with pytest.raises(ValueError):
-        like.get_forecast_tensors(
-            forecast_order=np.random.randint(low=4, high=30)
+        get_forecast_tensors(
+            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30)
         )
 
 
 def test_pseudoinverse_path_no_nan():
-    """If inversion fails, pseudoinverse path should still return finite numbers."""
+    """Test that pseudoinverse path yields finite tensors."""
     # singular covariance -> forces pinv path
-    forecaster = LikelihoodExpansion(
-        lambda x: x,
-        np.array([1.0]),
-        np.array([[0.0]]),
-    )
+    func = _identity
+    theta0 = np.array([1.0])
+    cov = np.array([[0.0]])  # singular → pinv path
 
-    # Fisher (order=1) triggers: ill-conditioned + inversion failed → pinv
+    # Fisher (order=1)
     with pytest.warns(RuntimeWarning, match=r"`cov` is ill-conditioned"):
         with pytest.warns(
-            RuntimeWarning,
-            match=r"`cov` inversion failed; using pseudoinverse",
+                RuntimeWarning,
+                match=r"`cov` inversion failed; using pseudoinverse",
         ):
-            fisher = forecaster.get_forecast_tensors(forecast_order=1)
+            fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
     assert np.isfinite(fisher).all()
 
-    # DALI (order=2) should raise the same two warnings again
+    # DALI (order=2)
     with pytest.warns(RuntimeWarning, match=r"`cov` is ill-conditioned"):
         with pytest.warns(
-            RuntimeWarning,
-            match=r"`cov` inversion failed; using pseudoinverse",
+                RuntimeWarning,
+                match=r"`cov` inversion failed; using pseudoinverse",
         ):
-            tensor_g, tensor_h = forecaster.get_forecast_tensors(
-                forecast_order=2
-            )
+            tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
     assert np.isfinite(tensor_g).all()
     assert np.isfinite(tensor_h).all()
 
@@ -183,7 +193,7 @@ def test_forecast(
     expected_dali_g,
     expected_dali_h,
 ):
-    """Validate Fisher and DALI tensors against reference values.
+    """Validates Fisher and DALI tensors against reference values.
 
     This test is parametrized over simple scalar/vector models and covariance
     matrices.
@@ -212,7 +222,8 @@ def test_forecast(
     fiducial_values = fiducials
     covmat = covariance_matrix
 
-    le = LikelihoodExpansion(observables, fiducial_values, covmat)
+    func = observables
+    theta0 = fiducial_values
 
     # Helper: warn only if cov is non-symmetric
     want_sym_warn = not np.allclose(covmat, covmat.T)
@@ -229,7 +240,7 @@ def test_forecast(
         else nullcontext()
     )
     with fisher_ctx:
-        fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+        fisher_matrix = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
 
     assert np.allclose(
         np.asarray(fisher_matrix, float),
@@ -247,7 +258,7 @@ def test_forecast(
         else nullcontext()
     )
     with dali_ctx:
-        dali_g, dali_h = le.get_forecast_tensors(forecast_order=2)
+        dali_g, dali_h = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
 
     is_multi_param = fiducials.size > 1
     rtol_g = 3e-3 if is_multi_param else 5e-4
@@ -266,7 +277,7 @@ def test_forecast(
 def _assert_close_mixed(
     actual, expected, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=""
 ):
-    """Assert numerical closeness with a near-zero absolute floor.
+    """Asserts numerical closeness with a near-zero absolute floor.
 
     Compares arrays using `np.isclose`, but applies a small absolute
     tolerance only where the reference values are already near zero. This
@@ -306,120 +317,74 @@ def _assert_close_mixed(
 
 
 def test_raises_on_mismatched_obs_cov_dims_runtime():
-    """If model and covariance dimensions mismatch, raise ValueError."""
+    """Tests that get_forecast_tensors raises on mismatched observable/cov dims."""
 
     def model(theta):  # returns length 3
         t = np.asarray(theta)
         return np.array([t[0], t[0] + 1.0, t[0] ** 2])
 
-    le = LikelihoodExpansion(model, np.array([0.1]), np.eye(2))  # construct ok
-    with pytest.raises(ValueError):
-        le.get_forecast_tensors(forecast_order=1)  # shape check triggers here
+    theta0 = np.array([0.1])
+    cov = np.eye(2)  # expects 2 observables
 
+    # Now the shape check happens immediately, for any forecast_order
+    with pytest.raises(ValueError, match=r"Expected 2 observables"):
+        get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
-def test_le_init_public_attrs_contract():
-    """Required public attrs exist, counts match, and no unexpected public instance fields."""
-    theta0 = np.array([1.0, -2.0])
-    cov = np.eye(2)
-    like = LikelihoodExpansion(lambda x: x, theta0, cov)
-    assert like.n_parameters == theta0.size
-    assert like.n_observables == cov.shape[0]
-
-    # Required public attributes
-    expected_attributes = {
-        "function",
-        "theta0",
-        "cov",
-        "n_parameters",
-        "n_observables",
-    }
-    actual_attributes = {k for k in like.__dict__ if not k.startswith("_")}
-    assert expected_attributes == set(actual_attributes)
+    with pytest.raises(ValueError, match=r"Expected 2 observables"):
+        get_forecast_tensors(model, theta0, cov, forecast_order=2)
 
 
 def test_inv_cov_behaves_like_inverse():
-    """Test that _inv_cov() returns a matrix behaving like the inverse."""
+    """Tests that _inv_cov() returns a matrix behaving like the inverse."""
     cov = np.array([[2.0, 0.0], [0.0, 0.5]])
     inv = invert_covariance(cov, rcond=1e-12)
     np.testing.assert_allclose(inv @ cov, np.eye(2), atol=1e-12)
     np.testing.assert_allclose(cov @ inv, np.eye(2), atol=1e-12)
 
 
-def test_raises_on_mismatched_obs_cov_dims():
-    """If model output length != cov size, computing tensors should raise."""
-
-    def model(theta):  # returns length 3
-        t = np.asarray(theta)
-        return np.array([t[0], t[0] + 1.0, t[0] ** 2])
-
-    le = LikelihoodExpansion(
-        model, np.array([0.1]), np.eye(2)
-    )  # constructs fine
-
-    # Fisher path
-    with pytest.raises(ValueError):
-        le.get_forecast_tensors(forecast_order=1)
-
-    # DALI path (optional, but good to check both)
-    with pytest.raises(ValueError):
-        le.get_forecast_tensors(forecast_order=2)
-
-
 def test_build_delta_nu_validation_errors():
-    """Test build_delta_nu raises on bad inputs."""
+    """Tests that build_delta_nu raises on bad inputs."""
     cov = np.eye(2)
-    def linear_model(theta):
-        return np.asarray([theta[0], theta[1]], dtype=float)
-
-    le = LikelihoodExpansion(linear_model, theta0=np.zeros(2), cov=cov)
 
     with pytest.raises(ValueError):
-        # This should raise an exception because the two data vectors are of incompatible length
-        le.build_delta_nu(np.array([1.0, 2.0]), np.array([1.0]))
+        # incompatible lengths
+        build_delta_nu(cov=cov, data_with=np.array([1.0, 2.0]), data_without=np.array([1.0]))
 
     with pytest.raises(FloatingPointError):
-        # This should raise an exception because one of the data vectors contains a NaN.
-        le.build_delta_nu(np.array([np.nan, 1.0]), np.array([0.0, 0.0]))
+        # NaN in data_with
+        build_delta_nu(cov=cov, data_with=np.array([np.nan, 1.0]), data_without=np.array([0.0, 0.0]))
 
 
 def _linear_model(design_matrix, theta):
-    """Return design_matrix @ theta for linear-model tests."""
+    """Returns design_matrix @ theta for linear-model tests."""
     theta = np.asarray(theta, dtype=float)
     return design_matrix @ theta
 
 
 def test_build_delta_nu_1d_and_2d_row_major():
-    """Test that build_delta_nu returns correct shapes and values."""
-    # Test the case where theta0 is a 1D array
+    """Tests that build_delta_nu returns correct shapes and values."""
+    # 1D case
     cov_2 = np.eye(2)
-    theta0 = np.zeros(2)
-    model_2 = partial(_linear_model, np.eye(2))
-
-    le2 = LikelihoodExpansion(model_2, theta0=theta0, cov=cov_2)
-
     data_with = np.array([3.0, -1.0], dtype=float)
     data_without = np.array([2.5, -2.0], dtype=float)
-    delta_1d = le2.build_delta_nu(data_with, data_without)
+
+    delta_1d = build_delta_nu(cov=cov_2, data_with=data_with, data_without=data_without)
     np.testing.assert_allclose(delta_1d, np.array([0.5, 1.0], dtype=float))
-    assert delta_1d.shape == (le2.n_observables,)
+    assert delta_1d.shape == (cov_2.shape[0],)
 
-    # Test the case where theta0 is a 2D array
+    # 2D case
     cov_6 = np.eye(6)
-
-    model_6 = partial(_linear_model, np.zeros((6,6)))
-
-    le6 = LikelihoodExpansion(model_6, theta0=np.zeros(1), cov=cov_6)
-
     a2 = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
     b2 = np.array([[0, 1, 1], [1, 1, 1]], dtype=float)
-    delta_2d = le6.build_delta_nu(a2, b2)
+
+    delta_2d = build_delta_nu(cov=cov_6, data_with=a2, data_without=b2)
     np.testing.assert_allclose(delta_2d, (a2 - b2).ravel(order="C"))
     assert delta_2d.ndim == 1
     assert delta_2d.size == 6
 
 
 def test_fisher_bias_matches_lstsq_identity_cov():
-    """Fisher bias should match an ordinary least-squares solution when covariance is identity."""
+    """Tests that Fisher bias matches ordinary least squares when covariance is identity."""
     design_matrix = np.array(
         [[1.0, 2.0],
          [0.5, -1.0]],
@@ -429,17 +394,23 @@ def test_fisher_bias_matches_lstsq_identity_cov():
     linear_model = partial(_linear_model, design_matrix)
 
     covariance = np.eye(2)
-    le = LikelihoodExpansion(linear_model, theta0=np.zeros(2), cov=covariance)
+    theta0 = np.zeros(2)
 
-    # Fisher matrix computed by the class.
-    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
-
-    delta_nu = np.array([1.0, -0.5], dtype=float)
-    bias_vec, delta_theta = le.build_fisher_bias(
-        fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
+    fisher_matrix = get_forecast_tensors(
+        linear_model, theta0, covariance, forecast_order=1
     )
 
-    # Reference values for identity covariance would be ordinary least squares:
+    delta_nu = np.array([1.0, -0.5], dtype=float)
+    bias_vec, delta_theta = build_fisher_bias(
+        function=linear_model,
+        theta0=theta0,
+        cov=covariance,
+        fisher_matrix=fisher_matrix,
+        delta_nu=delta_nu,
+        n_workers=1,
+    )
+
+    # Reference values for identity covariance: ordinary least squares
     expected_bias = design_matrix.T @ delta_nu
     theta_lstsq, *_ = np.linalg.lstsq(design_matrix, delta_nu, rcond=None)
 
@@ -465,18 +436,22 @@ def test_fisher_bias_matches_gls_weighted_cov():
         dtype=float,
     )
     inv_covariance = np.linalg.inv(covariance)
+    theta0 = np.zeros(3)
 
-    le = LikelihoodExpansion(linear_model, theta0=np.zeros(3), cov=covariance)
-
-    # Fisher matrix computed by the class with the stored covariance.
-    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
-
-    delta_nu = np.array([0.7, -1.2], dtype=float)
-    bias_vec, delta_theta = le.build_fisher_bias(
-        fisher_matrix=fisher_matrix, delta_nu=delta_nu, n_workers=1
+    fisher_matrix = get_forecast_tensors(
+        linear_model, theta0, covariance, forecast_order=1
     )
 
-    # Reference values via GLS:
+    delta_nu = np.array([0.7, -1.2], dtype=float)
+    bias_vec, delta_theta = build_fisher_bias(
+        function=linear_model,
+        theta0=theta0,
+        cov=covariance,
+        fisher_matrix=fisher_matrix,
+        delta_nu=delta_nu,
+        n_workers=1,
+    )
+
     expected_bias = design_matrix.T @ (inv_covariance @ delta_nu)
     expected_delta_theta = np.linalg.pinv(fisher_matrix) @ expected_bias
 
@@ -489,15 +464,32 @@ def test_fisher_bias_accepts_2d_delta_row_major_consistency():
     design_matrix = np.array([[1.0, 2.0],
                               [0.5, -1.0]], float)
     model = partial(_linear_model, design_matrix)
+    cov = np.eye(2)
+    theta0 = np.zeros(2)
 
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
-    fisher = le.get_forecast_tensors(forecast_order=1)
+    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     delta_2d = np.array([[1.0, -0.5]], float)
-    bias_a, dtheta_a = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_2d)
+    bias_a, dtheta_a = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=delta_2d,
+    )
 
-    delta_1d = le.build_delta_nu(delta_2d, np.zeros_like(delta_2d)).ravel(order="C")
-    bias_b, dtheta_b = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta_1d)
+    delta_1d = build_delta_nu(
+        cov=cov,
+        data_with=delta_2d,
+        data_without=np.zeros_like(delta_2d),
+    ).ravel(order="C")
+    bias_b, dtheta_b = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=delta_1d,
+    )
 
     np.testing.assert_allclose(bias_a, bias_b)
     np.testing.assert_allclose(dtheta_a, dtheta_b)
@@ -508,12 +500,19 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
     design_matrix = np.array([[1.0, 1.0],
                               [1.0, 1.0]], float)  # rank-1
     model = partial(_linear_model, design_matrix)
+    cov = np.eye(2)
+    theta0 = np.zeros(2)
 
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
-    fisher = le.get_forecast_tensors(forecast_order=1)
+    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
     delta = np.array([1.0, -0.5], float)
 
-    bias_vec, delta_theta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+    bias_vec, delta_theta = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=delta,
+    )
 
     expected_bias = design_matrix.T @ delta
 
@@ -522,20 +521,27 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
 
 
 def test_fisher_bias_singular_covariance_matches_pinv_baseline():
-    """Test that build_fisher_bias with singular covariance matches pinv baseline."""
+    """Tests that build_fisher_bias with singular covariance matches pinv baseline."""
     design_matrix = np.array([[1.0, 0.0],
                               [1.0, 0.0]], float)
     model = partial(_linear_model, design_matrix)
 
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], float)  # rank-1
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
-    fisher = le.get_forecast_tensors(forecast_order=1)
+    theta0 = np.zeros(2)
+
+    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     delta = np.array([2.0, -1.0], float)
 
     with pytest.warns(RuntimeWarning, match="covariance solve"):
-        bias_vec, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
+        bias_vec, dtheta = build_fisher_bias(
+            function=model,
+            theta0=theta0,
+            cov=cov,
+            fisher_matrix=fisher,
+            delta_nu=delta,
+        )
 
     c_pinv = np.linalg.pinv(cov)
     expected_bias = design_matrix.T @ (c_pinv @ delta)
@@ -548,17 +554,30 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
 def test_fisher_bias_raises_on_wrong_shapes():
     """Test that build_fisher_bias raises on mismatched shapes."""
     model = partial(_linear_model, np.eye(2))
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=np.eye(2))
+    theta0 = np.zeros(2)
+    cov = np.eye(2)
+
     # Wrong Fisher shape (3x3 vs 2 params); should raise an exception.
     fisher_bad = np.eye(3)
     with pytest.raises(ValueError, match=r"fisher_matrix must be square;|shape.*\(3, 3\).*"):
-        le.build_fisher_bias(fisher_matrix=fisher_bad, delta_nu=np.zeros(2))
+        build_fisher_bias(
+            function=model,
+            theta0=theta0,
+            cov=cov,
+            fisher_matrix=fisher_bad,
+            delta_nu=np.zeros(2),
+        )
 
-    # Fisher shape OK (2x2), but delta_nu length wrong (3 vs n_obs=2);
-    # should raise an exception
+    # Fisher shape OK (2x2), but delta_nu length wrong (3 vs n_obs=2)
     fisher_ok = np.eye(2)
     with pytest.raises(ValueError, match=r"delta_nu must have length n=2"):
-        le.build_fisher_bias(fisher_matrix=fisher_ok, delta_nu=np.zeros(3))
+        build_fisher_bias(
+            function=model,
+            theta0=theta0,
+            cov=cov,
+            fisher_matrix=fisher_ok,
+            delta_nu=np.zeros(3),
+        )
 
 
 def test_fisher_bias_linear_ground_truth_end_to_end():
@@ -574,19 +593,23 @@ def test_fisher_bias_linear_ground_truth_end_to_end():
     cov_inv = np.diag(1.0 / np.diag(cov))
 
     theta0 = np.zeros(3)
-    le = LikelihoodExpansion(model, theta0, cov)
 
     # Two data vectors: "with systematics" = y + s, "without" = y
     y = model(theta0)
-    s = np.array([0.3, -0.1, 0.05, 0.2], float)  # arbitrary systematic
+    s = np.array([0.3, -0.1, 0.05, 0.2], float)
     d_with, d_without = y + s, y
 
-    delta = le.build_delta_nu(d_with, d_without)  # should equal s (row-major flatten)
-    fisher_matrix = le.get_forecast_tensors(forecast_order=1)
+    delta = build_delta_nu(cov=cov, data_with=d_with, data_without=d_without)
+    fisher_matrix = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
-    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher_matrix, delta_nu=delta)
+    bias, dtheta = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher_matrix,
+        delta_nu=delta,
+    )
 
-    # analytic solution: b = A^T C^{-1} s ; Δθ = F^{+} b with F = A^T C^{-1} A
     expected_bias = matrix.T @ (cov_inv @ s)
     expected_fisher = matrix.T @ cov_inv @ matrix
     expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
@@ -608,11 +631,17 @@ def test_fisher_bias_linear_full_cov_gls_formula():
                   [-0.1,  0.3,  1.5]], float)
     cov_inv = np.linalg.inv(cov)
 
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
-    fisher = le.get_forecast_tensors(forecast_order=1)
+    theta0 = np.zeros(2)
+    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     s = np.array([0.4, -0.2, 0.1], float)  # “with” – “without”
-    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=s)
+    bias, dtheta = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=s,
+    )
 
     expected_bias = matrix.T @ (cov_inv @ s)
     expected_fisher = matrix.T @ cov_inv @ matrix
@@ -634,19 +663,22 @@ def test_fisher_bias_quadratic_small_systematic():
     cov = np.diag([0.8, 1.1])
     cov_inv = np.diag(1.0 / np.diag(cov))
 
-    le = LikelihoodExpansion(model_quadratic, theta0, cov)
-
-    jac = np.array([[2.0 * theta0[0], 0.0],
-                  [2.0 * theta0[1], 2.0 * theta0[0]]], float)
-
     delta = np.array([0.03, -0.02], float)
 
+    fisher = get_forecast_tensors(model_quadratic, theta0, cov, forecast_order=1)
+    bias, dtheta = build_fisher_bias(
+        function=model_quadratic,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=delta,
+    )
+
+    jac = np.array([[2.0 * theta0[0], 0.0],
+                    [2.0 * theta0[1], 2.0 * theta0[0]]], float)
     expected_fisher = jac.T @ cov_inv @ jac
     expected_bias = jac.T @ (cov_inv @ delta)
     expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
-
-    fisher = le.get_forecast_tensors(forecast_order=1)
-    bias, dtheta = le.build_fisher_bias(fisher_matrix=fisher, delta_nu=delta)
 
     np.testing.assert_allclose(fisher, expected_fisher, rtol=0.0, atol=1e-6)
     np.testing.assert_allclose(bias, expected_bias, rtol=0.0, atol=1e-9)
@@ -658,9 +690,15 @@ def test_build_fisher_bias_raises_on_nans_in_delta():
     matrix = np.eye(2, dtype=float)
     model = partial(_linear_model, matrix)
     cov = np.eye(2, dtype=float)
+    theta0 = np.zeros(2)
 
-    le = LikelihoodExpansion(model, theta0=np.zeros(2), cov=cov)
-    fisher = le.get_forecast_tensors(forecast_order=1)
+    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     with pytest.raises(FloatingPointError, match="Non-finite values"):
-        le.build_fisher_bias(fisher_matrix=fisher, delta_nu=np.array([np.nan, 0.0]))
+        build_fisher_bias(
+            function=model,
+            theta0=theta0,
+            cov=cov,
+            fisher_matrix=fisher,
+            delta_nu=np.array([np.nan, 0.0]),
+        )
