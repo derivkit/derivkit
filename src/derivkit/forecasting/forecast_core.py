@@ -97,7 +97,7 @@ def get_forecast_tensors(
     # Compute inverse covariance matrix
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
-    first_order_derivative = _get_derivatives(
+    deriv_order1 = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
@@ -108,9 +108,12 @@ def get_forecast_tensors(
     )
 
     if forecast_order == 1:
-        return np.einsum("ai,ij,bj->ab", d1, invcov, d1)  # Fisher
+        return np.einsum("ai,ij,bj->ab",
+                         deriv_order1,
+                         invcov,
+                         deriv_order1)  # Fisher
 
-    second_order_derivative = _get_derivatives(
+    deriv_order2 = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
@@ -120,9 +123,9 @@ def get_forecast_tensors(
         **dk_kwargs,
     )
     # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-    g_tensor = np.einsum("abi,ij,cj->abc", d2, invcov, d1)
+    g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order2)
     # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-    h_tensor = np.einsum("abi,ij,cdj->abcd", d2, invcov, d2)
+    h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
     return g_tensor, h_tensor
 
 
