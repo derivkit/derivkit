@@ -134,7 +134,10 @@ def build_fisher_bias(
     if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
         raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
-    # Jacobian — we are enforcing (n_obs, n_params) throughout the package
+    # Compute the Jacobian with shape (n_obs, n_params), so that rows correspond
+    # to observables and columns to parameters. This convention is used
+    # throughout the forecasting utilities and is assumed by the Fisher/bias
+    # algebra below.
     ckit = CalculusKit(function, theta0)
     j_matrix = np.asarray(
         ckit.jacobian(
