@@ -86,7 +86,6 @@ def get_forecast_tensors(
     cov_arr = validate_covariance_matrix(cov)
     n_observables = cov_arr.shape[0]
 
-    # Check model output dimension
     y0 = np.atleast_1d(function(theta0_arr))
     if y0.shape[0] != n_observables:
         raise ValueError(
