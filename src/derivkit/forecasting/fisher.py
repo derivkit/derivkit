@@ -144,9 +144,9 @@ def build_fisher_bias(
             method=method,
             n_workers=n_workers,
             **dk_kwargs,
-        ),
-        dtype=float,
+        )
     )
+
     n_obs, n_params = n_observables, n_parameters
     if j_matrix.shape != (n_obs, n_params):
         raise ValueError(
