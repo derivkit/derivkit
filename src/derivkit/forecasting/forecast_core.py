@@ -93,7 +93,6 @@ def get_forecast_tensors(
             f"but got {y0.shape[0]} (output shape {y0.shape})."
         )
 
-    # Compute inverse covariance matrix
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
     deriv_order1 = _get_derivatives(
