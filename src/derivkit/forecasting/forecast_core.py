@@ -12,7 +12,7 @@ forecasting interfaces in DerivKit. For details on the DALI expansion,
 see e.g. https://doi.org/10.1103/PhysRevD.107.103506.
 """
 
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -36,7 +36,7 @@ def get_forecast_tensors(
         method: str | None = None,
         n_workers: int = 1,
         **dk_kwargs: Any,
-) -> Union[NDArray[np.float64], Tuple[NDArray[np.float64], NDArray[np.float64]]]:
+) -> Union[NDArray[np.float64], tuple[NDArray[np.float64], NDArray[np.float64]]]:
     """Returns a set of tensors according to the requested order of the forecast.
 
     Args:
