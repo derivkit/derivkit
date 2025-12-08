@@ -103,8 +103,8 @@ def build_fisher_bias(
             flattening convention used throughout the package.
         n_workers: Number of workers used by the internal derivative routine when
             forming the Jacobian.
-        method: Method name or alias (e.g., "adaptive", "finite").
-            If None, the DerivativeKit default ("adaptive") is used.
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            If ``None``, the DerivativeKit default (``"adaptive"``) is used.
         **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
         rcond: Regularization cutoff for pseudoinverse. Default is 1e-12.
 
