@@ -87,34 +87,37 @@ class ForecastKit:
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Estimates parameter bias using the stored model, expansion point, and covariance.
 
-        This method quantifies how differences between two data sets—typically an
-        "unbiased" or reference data vector and a "biased" one including a given
-        systematic—propagate into parameter biases when interpreted through a Fisher
-        forecast. It evaluates the model response internally and uses it, together
-        with the stored covariance and provided Fisher matrix, to estimate both the
-        bias vector and the resulting shift in parameter values.
-        For more information, see https://arxiv.org/abs/0710.5171.
+        This function takes a model, an expansion point, a covariance matrix,
+        a Fisher matrix, and a data-vector difference ``delta_nu`` and maps that
+        difference into parameter space. A common use case is the classic
+        “Fisher bias” setup, where one asks how a systematic-induced change in
+        the data would shift inferred parameters.
+
+        Internally, the function evaluates the model response at the expansion
+        point and uses the covariance and Fisher matrix to compute both the
+        parameter-space bias vector and the corresponding shifts. See
+        https://arxiv.org/abs/0710.5171 for details.
 
         Args:
             fisher_matrix: Square matrix describing information about the parameters.
-                Its shape must be (p, p), where p is the number of parameters.
-            delta_nu: Difference between a "biased" and an "unbiased" data vector,
-                for example :math:`\Delta\nu = \nu_{\mathrm{with\,sys}} - \nu_{\mathrm{without\,sys}}`.
+                Its shape must be ``(p, p)``, where ``p`` is the number of parameters.
+            delta_nu: Difference between a biased and an unbiased data vector,
+                for example :math:`\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}`.
                 Accepts a 1D array of length n or a 2D array that will be flattened in
                 row-major order (“C”) to length n, where n is the number of observables.
                 If supplied as a 1D array, it must already follow the same row-major (“C”)
                 flattening convention used throughout the package.
             n_workers: Number of workers used by the internal derivative routine when
                 forming the Jacobian.
-            method: Method name or alias (e.g., "adaptive", "finite").
-                If None, the DerivativeKit default ("adaptive") is used.
-            **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
-            rcond: Regularization cutoff for pseudoinverse. Default is 1e-12.
+            method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+                If ``None``, the DerivativeKit default (``"adaptive"``) is used.
+            rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
+            **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
         Returns:
-          A tuple ``(bias_vec, delta_theta)`` where both entries are 1D arrays of length ``p``:
-            - bias_vec: parameter-space bias vector.
-            - delta_theta: estimated parameter shifts.
+            A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,
+            where ``bias_vec`` is the parameter-space bias vector
+            and ``delta_theta`` are the corresponding parameter shifts.
 
         Raises:
           ValueError: If input shapes are inconsistent with the stored model, covariance,
@@ -157,7 +160,6 @@ class ForecastKit:
             data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
                 it must follow the NumPy's row-major (“C”) flattening convention used throughout
                 the package.
-            dtype: Data type of the output array (defaults to float).
 
         Returns:
             A 1D NumPy array of length ``self.n_observables`` representing the data
