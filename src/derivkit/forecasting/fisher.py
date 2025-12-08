@@ -230,7 +230,8 @@ def build_delta_nu(
         data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
             it must follow the NumPy's row-major (“C”) flattening convention used throughout
             the package.
-        dtype: Data type of the output array (defaults to float).
+        dtype: NumPy dtype for the output array (defaults to ``np.float64``,
+            i.e. NumPy's default floating type).
 
     Returns:
         A 1D NumPy array of length ``n_observables`` representing the data
