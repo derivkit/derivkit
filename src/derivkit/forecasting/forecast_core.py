@@ -9,7 +9,7 @@ This module provides functional helpers to
 
 These functions are the low-level building blocks used by higher-level
 forecasting interfaces in DerivKit. For details on the DALI expansion,
-see https://doi.org/10.1103/PhysRevD.107.103506.
+see e.g. https://doi.org/10.1103/PhysRevD.107.103506.
 """
 
 from typing import Any, Callable, Tuple, Union
