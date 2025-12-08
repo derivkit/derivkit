@@ -74,15 +74,16 @@ def build_fisher_bias(
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     r"""Estimates parameter bias using the stored model, expansion point, and covariance.
 
-    Quantifies how differences between two data sets
-    propagate into parameter biases when interpreted through a Fisher
-    forecast. Typical comparisons are between an "unbiased" or reference
-    data vector and a "biased" one including a given systematic.
+    This function takes a model, an expansion point, a covariance matrix,
+    a Fisher matrix, and a data-vector difference ``delta_nu`` and maps that
+    difference into parameter space. A common use case is the classic
+    “Fisher bias” setup, where one asks how a systematic-induced change in
+    the data would shift inferred parameters.
 
-    The function evaluates the model response internally and uses it, together
-    with the stored covariance and provided Fisher matrix, to estimate both the
-    bias vector and the resulting shift in parameter values.
-    For more information, see https://arxiv.org/abs/0710.5171.
+    Internally, the function evaluates the model response at the expansion
+    point and uses the covariance and Fisher matrix to compute both the
+    parameter-space bias vector and the corresponding shifts. See
+    https://arxiv.org/abs/0710.5171 for details.
 
     Args:
         function: The scalar or vector-valued function to
