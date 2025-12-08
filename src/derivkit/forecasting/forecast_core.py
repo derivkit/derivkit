@@ -158,8 +158,8 @@ def _get_derivatives(
 
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
-        n_workers (int, optional): Number of workers for per-parameter parallelization
-         (threads). Default 1 (serial).
+        n_workers: Number of workers for per-parameter parallelization
+         (threads). Default `1` (serial).
         **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
     Returns:
