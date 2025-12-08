@@ -110,8 +110,7 @@ def get_forecast_tensors(
     if forecast_order == 1:
         return np.einsum("ai,ij,bj->ab", d1, invcov, d1)  # Fisher
 
-    # Compute second-order derivatives
-    d2 = _get_derivatives(
+    second_order_derivative = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
