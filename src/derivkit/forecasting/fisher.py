@@ -180,7 +180,7 @@ def build_fisher_bias(
     # fall back to a pseudoinverse and emit a warning.
     off = cov.copy()
     np.fill_diagonal(off, 0.0)
-    is_diag = not np.any(off)  # True iff all off-diagonals are exactly zero
+    is_diag = not np.any(off)
 
     if is_diag:
         diag = np.diag(cov)
