@@ -33,7 +33,10 @@ def build_fisher_matrix(
         function: The scalar or vector-valued model function. It should accept
             a 1D array-like of parameter values and return either a scalar or
             an array of observables.
-        theta0: Expansion point in parameter space (fiducial parameters).
+        theta0: 1D array-like of fiducial parameters (single expansion point).
+            This helper currently assumes a single expansion point; if you need
+            multiple expansion points with different covariances, call this
+            function in a loop or work directly with ForecastKit.
         cov: Covariance matrix of the observables. Must be square with shape
             ``(n_observables, n_observables)``.
         method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -86,10 +89,11 @@ def build_fisher_bias(
             differentiate. It should accept a list or array of parameter
             values as input and return either a scalar or a
             :class:`np.ndarray` of observable values.
-        theta0: The points at which the
-            derivative is evaluated. A 1D array or list of parameter values
-            matching the expected input of the function.
-        cov: The covariance matrix of the observables. Should be a square
+        theta0: 1D array-like of fiducial parameters (single expansion point).
+            This helper currently assumes a single expansion point; if you need
+            multiple expansion points with different covariances, call this
+            function in a loop or work directly with ForecastKit.
+        cov: The covariance matrix of the observables. Must be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
         fisher_matrix: Square matrix describing information about the parameters.
