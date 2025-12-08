@@ -53,7 +53,7 @@ def get_forecast_tensors(
         forecast_order: The requested order D of the forecast:
 
                 - D = 1 returns a Fisher matrix.
-                - D = 2 returns the 3-d and 4-d tensors required for the
+                - D = 2 returns the 3D and 4D tensors required for the
                   doublet-DALI approximation.
                 - D = 3 would be the triplet-DALI approximation.
 
