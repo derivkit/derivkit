@@ -147,7 +147,7 @@ def _get_derivatives(
             derivative is evaluated. A 1D array or list of parameter values
             matching the expected input of the function.
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape (n_observables, n_observables), where n_observables
+            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
         order (int): The requested order d of the derivatives:
 
