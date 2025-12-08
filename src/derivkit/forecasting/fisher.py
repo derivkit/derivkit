@@ -3,7 +3,7 @@
 from typing import Any, Callable
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.forecasting.forecast_core import get_forecast_tensors
@@ -208,7 +208,7 @@ def build_delta_nu(
         *,
         data_with: NDArray[np.floating],
         data_without: NDArray[np.floating],
-        dtype: type | np.dtype = float,
+        dtype: DTypeLike = np.float64,
 ) -> NDArray[np.floating]:
     """Computes the difference between two data vectors.
 
