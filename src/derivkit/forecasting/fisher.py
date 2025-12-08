@@ -126,10 +126,13 @@ def build_fisher_bias(
 
     theta0 = np.atleast_1d(theta0)
     cov = validate_covariance_matrix(cov)
-    fisher_matrix = validate_covariance_matrix(fisher_matrix)
 
     n_parameters = theta0.shape[0]
     n_observables = cov.shape[0]
+
+    fisher_matrix = np.asarray(fisher_matrix, dtype=float)
+    if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
+        raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
     # Jacobian — we are enforcing (n_obs, n_params) throughout the package
     ckit = CalculusKit(function, theta0)
