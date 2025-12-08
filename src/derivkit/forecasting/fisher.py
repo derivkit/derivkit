@@ -154,7 +154,6 @@ def build_fisher_bias(
             f"got {j_matrix.shape}."
         )
 
-    # Shape checks consistent with J
     if cov.shape != (j_matrix.shape[0], j_matrix.shape[0]):
         raise ValueError(
             f"covariance shape {cov.shape} must be (n, n) = "
