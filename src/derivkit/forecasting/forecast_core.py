@@ -187,7 +187,6 @@ def _get_derivatives(
     n_workers = normalize_workers(n_workers)
     ckit = CalculusKit(function, theta0_arr)
 
-    # First-order path: compute Jacobian and return immediately
     if order == 1:
         j_raw = np.asarray(
             ckit.jacobian(
