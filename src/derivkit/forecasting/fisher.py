@@ -113,9 +113,9 @@ def build_fisher_bias(
         **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
     Returns:
-      A tuple ``(bias_vec, delta_theta)`` where both entries are 1D arrays of length ``p``:
-        - bias_vec: parameter-space bias vector.
-        - delta_theta: estimated parameter shifts.
+        A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,
+        where ``bias_vec`` is the parameter-space bias vector
+        and ``delta_theta`` are the corresponding parameter shifts.
 
     Raises:
       ValueError: If input shapes are inconsistent with the stored model, covariance,
