@@ -1,7 +1,9 @@
 """Provides the ForecastKit class.
 
-A light wrapper around :class:`LikelihoodExpansion` that exposes a simple
-API for Fisher and DALI tensors.
+A light wrapper around the core forecasting utilities
+(:func:`build_fisher`, :func:`build_dali`, :func:`build_delta_nu`,
+and :func:`build_fisher_bias`) that exposes a simple API for Fisher
+and DALI tensors.
 
 Typical usage example:
 

@@ -1,4 +1,4 @@
-"""Tests for Fisher-bias estimation in LikelihoodExpansion."""
+"""Tests for Fisher-bias estimation in forecast_kit/fisher.py."""
 
 from functools import partial
 
