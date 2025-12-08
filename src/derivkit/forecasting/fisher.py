@@ -212,15 +212,13 @@ def build_delta_nu(
 ) -> NDArray[np.floating]:
     """Computes the difference between two data vectors.
 
-    This function is typically used for Fisher-bias estimates, taking two data vectors—
-    one with a systematic included and one without—and returning their difference as a
-    1D array that matches the expected number of observables in this instance. It works
-    with both 1D inputs and 2D arrays (for example, correlation × ell) and flattens 2D
-    arrays using NumPy's row-major ("C") order, our standard convention throughout the package.
-
-    We standardize on row-major (“C”) flattening of 2D arrays, where the last
-    axis varies fastest. The user must ensure that any data vectors and associated covariances
-    are constructed with the same convention for consistent results.
+    This helper is used in Fisher-bias calculations and any other workflow
+    where two data vectors are compared: it takes a pair of vectors (for example,
+    a version with a systematic and one without) and returns their difference as a
+    1D array whose length matches the number of observables implied by ``cov``.
+    It works with both 1D inputs and 2D arrays (for example, correlation-by-ell)
+    and flattens 2D inputs using NumPy's row-major ("C") order, which is the
+    standard convention throughout the DerivKit package.
 
     Args:
         cov: The covariance matrix of the observables. Should be a square
