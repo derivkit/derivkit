@@ -149,12 +149,12 @@ def _get_derivatives(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        order (int): The requested order d of the derivatives:
+        order: The requested order of the derivatives:
 
-            - d = 1 returns first-order derivatives.
-            - d = 2 returns second-order derivatives.
+            - A value of `1` returns first-order derivatives.
+            - A value of `2` returns second-order derivatives.
 
-            Currently only d = 1, 2 are supported.
+            Currently supported values are `1` and `2`.
 
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
