@@ -99,7 +99,7 @@ def build_fisher_bias(
             is the number of observables returned by the function.
         fisher_matrix: Square matrix describing information about the parameters.
             Its shape must be ``(p, p)``, where ``p`` is the number of parameters.
-        delta_nu: Difference between a "biased" and an "unbiased" data vector,
+        delta_nu: Difference between a biased and an unbiased data vector,
             for example :math:`\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}`.
             Accepts a 1D array of length n or a 2D array that will be flattened in
             row-major order (“C”) to length n, where n is the number of observables.
