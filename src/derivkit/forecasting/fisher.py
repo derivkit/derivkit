@@ -105,8 +105,8 @@ def build_fisher_bias(
             forming the Jacobian.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the DerivativeKit default (``"adaptive"``) is used.
-        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
-        rcond: Regularization cutoff for pseudoinverse. Default is 1e-12.
+        rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
+        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
     Returns:
       A tuple ``(bias_vec, delta_theta)`` where both entries are 1D arrays of length ``p``:
