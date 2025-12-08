@@ -1,4 +1,4 @@
-"""Tests for parallel execution in LikelihoodExpansion."""
+"""Tests for parallel execution in forecast tensor computations."""
 
 from __future__ import annotations
 
