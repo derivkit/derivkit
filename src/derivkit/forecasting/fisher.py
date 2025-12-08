@@ -234,8 +234,10 @@ def build_delta_nu(
             i.e. NumPy's default floating type).
 
     Returns:
-        A 1D NumPy array of length ``n_observables`` representing the data
-        mismatch (delta_nu = data_with − data_without).
+        A 1D NumPy array of length ``n_observables`` representing the mismatch
+        between the two input data vectors. This is simply the element-wise
+        difference between the input with systematic and the input without systematic,
+        flattened if necessary to match the expected observable ordering.
 
     Raises:
       ValueError: If input shapes differ, inputs are not 1D/2D, or the flattened
