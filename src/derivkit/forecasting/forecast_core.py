@@ -156,7 +156,7 @@ def _get_derivatives(
 
             Currently supported values are `1` and `2`.
 
-        method: Method name or alias (e.g., "adaptive", "finite"). If None,
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
         n_workers (int, optional): Number of workers for per-parameter parallelization
          (threads). Default 1 (serial).
