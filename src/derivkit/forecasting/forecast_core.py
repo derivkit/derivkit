@@ -97,8 +97,7 @@ def get_forecast_tensors(
     # Compute inverse covariance matrix
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
-    # Compute first-order derivatives
-    d1 = _get_derivatives(
+    first_order_derivative = _get_derivatives(
         function,
         theta0_arr,
         cov_arr,
