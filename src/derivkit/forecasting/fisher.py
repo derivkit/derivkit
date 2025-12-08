@@ -218,7 +218,7 @@ def build_delta_nu(
 
     Args:
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape (n_observables, n_observables), where n_observables
+            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
         data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
             If 1D, it must follow the NumPy's row-major (“C”) flattening convention used
