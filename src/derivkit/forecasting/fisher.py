@@ -54,7 +54,6 @@ def build_fisher_matrix(
         n_workers=n_workers,
         **dk_kwargs,
     )
-    # get_forecast_tensors already returns a NumPy array here, but enforce dtype.
     return fisher
 
 
@@ -70,13 +69,13 @@ def build_fisher_bias(
         rcond: float = 1e-12,
         **dk_kwargs: Any,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    """Estimates parameter bias using the stored model, expansion point, and covariance.
+    r"""Estimates parameter bias using the stored model, expansion point, and covariance.
 
     Quantifies how differences between two data sets
     propagate into parameter biases when interpreted through a Fisher
     forecast. Typical comparisons are between an "unbiased" or reference
     data vector and a "biased" one including a given systematic.
-    
+
     The function evaluates the model response internally and uses it, together
     with the stored covariance and provided Fisher matrix, to estimate both the
     bias vector and the resulting shift in parameter values.
@@ -96,7 +95,7 @@ def build_fisher_bias(
         fisher_matrix: Square matrix describing information about the parameters.
             Its shape must be ``(p, p)``, where ``p`` is the number of parameters.
         delta_nu: Difference between a "biased" and an "unbiased" data vector,
-            for example :math:`\Delta\nu = \nu_{\mathrm{with\,sys}} - \nu_{\mathrm{without\,sys}}`.
+            for example :math:`\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}`.
             Accepts a 1D array of length n or a 2D array that will be flattened in
             row-major order (“C”) to length n, where n is the number of observables.
             If supplied as a 1D array, it must already follow the same row-major (“C”)
