@@ -126,13 +126,10 @@ def build_fisher_bias(
 
     theta0 = np.atleast_1d(theta0)
     cov = validate_covariance_matrix(cov)
+    fisher_matrix = validate_covariance_matrix(fisher_matrix)
 
     n_parameters = theta0.shape[0]
     n_observables = cov.shape[0]
-
-    fisher_matrix = np.asarray(fisher_matrix, dtype=float)
-    if fisher_matrix.ndim != 2 or fisher_matrix.shape[0] != fisher_matrix.shape[1]:
-        raise ValueError(f"fisher_matrix must be square; got shape {fisher_matrix.shape}.")
 
     # Jacobian — we are enforcing (n_obs, n_params) throughout the package
     ckit = CalculusKit(function, theta0)
@@ -233,12 +230,12 @@ def build_delta_nu(
         dtype: Data type of the output array (defaults to float).
 
     Returns:
-        A 1D NumPy array of length ``self.n_observables`` representing the data
+        A 1D NumPy array of length ``n_observables`` representing the data
         mismatch (delta_nu = data_with − data_without).
 
     Raises:
       ValueError: If input shapes differ, inputs are not 1D/2D, or the flattened
-        length does not match ``self.n_observables``.
+        length does not match ``n_observables``.
       FloatingPointError: If non-finite values are detected in the result.
     """
     n_observables = cov.shape[0]
@@ -258,7 +255,7 @@ def build_delta_nu(
 
     if delta_nu.size != n_observables:
         raise ValueError(
-            f"Flattened length {delta_nu.size} != expected self.n_observables {n_observables}."
+            f"Flattened length {delta_nu.size} != expected n_observables {n_observables}."
         )
 
     if not np.isfinite(delta_nu).all():
