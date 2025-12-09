@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-import derivkit.forecasting.likelihoods as dkl
+import derivkit.likelihoods.likelihoods as dkl
 
 
 def test_gaussian_likelihood_basic_shape_checks():
