@@ -36,7 +36,7 @@ def build_dali(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        method: Method name or alias (e.g., "adaptive", "finite"). If None,
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default 1 (serial). Inner batch evaluation is kept serial to avoid
