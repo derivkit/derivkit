@@ -34,7 +34,7 @@ def build_dali(
             derivative is evaluated. A 1D array or list of parameter values
             matching the expected input of the function.
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape (n_observables, n_observables), where n_observables
+            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
         method: Method name or alias (e.g., "adaptive", "finite"). If None,
             the DerivativeKit default ("adaptive") is used.
