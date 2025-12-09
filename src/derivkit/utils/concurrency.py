@@ -14,6 +14,7 @@ __all__ = [
     "resolve_inner_from_outer",
     "parallel_execute",
     "_inner_workers_var",
+    "normalize_workers",
 ]
 
 
@@ -134,3 +135,24 @@ def parallel_execute(
                 return [f.result() for f in futures]
         else:
             return [worker(*args) for args in arg_tuples]
+
+
+def normalize_workers(
+        n_workers: Any
+) -> int:
+    """Ensure n_workers is a positive integer, defaulting to 1.
+
+    Args:
+        n_workers: Input number of workers (can be None, float, negative, etc.)
+
+    Returns:
+        int: A positive integer number of workers (at least 1).
+
+    Raises:
+        None: Invalid inputs are coerced to 1.
+    """
+    try:
+        n = int(n_workers)
+    except (TypeError, ValueError):
+        n = 1
+    return 1 if n < 1 else n

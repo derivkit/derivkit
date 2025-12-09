@@ -13,7 +13,8 @@ from derivkit.utils.sandbox import get_partial_function
 __all__ = [
     "is_finite_and_differentiable",
     "check_scalar_valued",
-    "validate_tabulated_xy"
+    "validate_tabulated_xy",
+    "validate_covariance_matrix",
 ]
 
 def is_finite_and_differentiable(
@@ -101,3 +102,17 @@ def validate_tabulated_xy(
         raise ValueError("y must be at least 1D.")
 
     return x_arr, y_arr
+
+
+def validate_covariance_matrix(cov: ArrayLike) -> NDArray[np.floating]:
+    """Validates and converts a covariance matrix into a NumPy array."""
+    cov_arr = np.asarray(cov, dtype=float)
+
+    if cov_arr.ndim > 2:
+        raise ValueError(
+            f"cov must be at most two-dimensional; got ndim={cov_arr.ndim}."
+        )
+    if cov_arr.ndim == 2 and cov_arr.shape[0] != cov_arr.shape[1]:
+        raise ValueError(f"cov must be square; got shape={cov_arr.shape}.")
+
+    return cov_arr
