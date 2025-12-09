@@ -44,8 +44,8 @@ def build_dali(
         dk_kwargs: Additional keyword arguments passed to the CalculusKit.
 
     Returns:
-        A tuple (G, H) where G has shape (P, P, P) and H has shape (P, P, P, P),
-        with P being the number of model parameters.
+        A tuple ``(G, H)`` where ``G`` has shape ``(P, P, P)`` and ``H`` has shape ``(P, P, P, P)``,
+        with ``P`` being the number of model parameters.
     """
     return get_forecast_tensors(
         function,
