@@ -188,7 +188,7 @@ class ForecastKit:
 
         Args:
             method: Method name or alias (e.g., "adaptive", "finite"). If ``None``,
-                the DerivativeKit default ("adaptive") is used.
+                the DerivativeKit default is used.
             n_workers: Number of workers for per-parameter parallelization/threads.
                 Default 1 (serial). Inner batch evaluation is kept serial to avoid
                 oversubscription.
