@@ -67,7 +67,7 @@ def test_forecastkit_delegates(monkeypatch):
     assert calls["fisher"]["function"] is model
     assert calls["fisher"]["n_workers"] == 3
 
-    # DALI: delegates + forwards n_workers
+    # The DALI computation delegates to the helper function and forwards n_workers.
     g_tensor, h_tensor = fk.dali(n_workers=4)
     assert g_tensor.shape == (2, 2, 2)
     assert h_tensor.shape == (2, 2, 2, 2)
