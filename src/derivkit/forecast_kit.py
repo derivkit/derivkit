@@ -110,7 +110,7 @@ class ForecastKit:
             n_workers: Number of workers used by the internal derivative routine when
                 forming the Jacobian.
             method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-                If ``None``, the DerivativeKit default (``"adaptive"``) is used.
+                If ``None``, the DerivativeKit default is used.
             rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
             **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
 
@@ -195,8 +195,8 @@ class ForecastKit:
             dk_kwargs: Additional keyword arguments passed to the CalculusKit.
 
         Returns:
-            A tuple (G, H) where G has shape (P, P, P) and H has shape (P, P, P, P),
-            with P being the number of model parameters.
+            A tuple ``(G, H)`` where ``G`` has shape ``(P, P, P)`` and ``H`` has shape ``(P, P, P, P)``,
+            with ``P`` being the number of model parameters.
         """
         dali_tensors = build_dali(
             function=self.function,
