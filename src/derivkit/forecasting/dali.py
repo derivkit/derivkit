@@ -15,7 +15,7 @@ __all__ = [
 
 
 def build_dali(
-    function: Callable[[ArrayLike], float | NDArray[np.floating]],
+    function: Callable[[ArrayLike], np.floating | NDArray[np.floating]],
     theta0: ArrayLike,
     cov: ArrayLike,
     *,
