@@ -22,7 +22,7 @@ def test_forecastkit_delegates(monkeypatch):
             "n_workers": n_workers,
             "dk_kwargs": dk_kwargs,
         }
-        return np.full((2, 2), 42.0)  # sentinel Fisher
+        return np.full((2, 2), 42.0)
 
     def fake_build_dali(function, theta0, cov, *, method=None, n_workers=1, **dk_kwargs):
         """Returns mock DALI tensors."""
