@@ -236,8 +236,11 @@ def test_return_error_with_diagnostics_triplet():
     deriv, err, diag = out
 
     # sanity checks
-    assert np.isfinite(float(deriv))
-    assert np.isfinite(float(err))
+    deriv_arr = np.asarray(deriv)
+    err_arr = np.asarray(err)
+
+    assert np.all(np.isfinite(deriv_arr))
+    assert np.all(np.isfinite(err_arr))
     assert isinstance(diag, dict)
     assert "rrms" in diag
     assert "degree" in diag
