@@ -99,8 +99,8 @@ def test_default_n_workers_forwarded(monkeypatch):
     )
 
     fk = ForecastKit(lambda x: np.asarray(x), np.array([0.0]), np.eye(1))
-    fk.fisher()  # no n_workers arg
-    fk.dali()    # no n_workers arg
+    fk.fisher()
+    fk.dali()
 
     assert n_workers_seen["fisher"] == 1
     assert n_workers_seen["dali"] == 1
