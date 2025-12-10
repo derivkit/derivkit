@@ -2,11 +2,10 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.calculus_kit import CalculusKit
-from derivkit.derivative_kit import DerivativeKit, register_method
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+from derivkit.derivative_kit import DerivativeKit
 from derivkit.forecast_kit import ForecastKit
+from derivkit.likelihood_kit import LikelihoodKit
 
 try:
     __version__ = version("derivkit")
@@ -16,10 +15,8 @@ except PackageNotFoundError:
 DerivativeKit.__module__ = "derivkit.derivative_kit"
 
 __all__ = [
-    "AdaptiveFitDerivative",
     "DerivativeKit",
-    "FiniteDifferenceDerivative",
     "ForecastKit",
     "CalculusKit",
-    "register_method",
+    "LikelihoodKit"
 ]
