@@ -291,7 +291,12 @@ def _hessian_component_worker(
         n_workers=inner_workers or 1,
         **dk_kwargs,
     )
-    return float(val)
+    val_arr = np.asarray(val, dtype=float)
+    if val_arr.size != 1:
+        raise TypeError(
+            f"Hessian component must be scalar; got array with shape {val_arr.shape}."
+        )
+    return float(val_arr.item())
 
 
 def _hessian_component(
@@ -397,7 +402,12 @@ def _mixed_partial_value(
         n_workers=n_workers,
         **dk_kwargs,
     )
-    return float(val)
+    val_arr = np.asarray(val, dtype=float)
+    if val_arr.size != 1:
+        raise TypeError(
+            f"Mixed partial derivative must be scalar; got array with shape {val_arr.shape}."
+        )
+    return float(val_arr.item())
 
 
 def _build_hessian_internal(
