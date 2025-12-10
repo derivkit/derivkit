@@ -153,7 +153,7 @@ class ForecastKit:
 
         Args:
             data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
-                If 1D, it must follow the NumPy's row-major (“C”) flattening convention used
+                If 1D, it must follow the NumPy's row-major ("C") flattening convention used
                 throughout the package.
             data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
                 it must follow the NumPy's row-major (“C”) flattening convention used throughout
