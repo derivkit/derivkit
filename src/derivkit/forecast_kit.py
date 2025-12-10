@@ -90,7 +90,7 @@ class ForecastKit:
         This function takes a model, an expansion point, a covariance matrix,
         a Fisher matrix, and a data-vector difference ``delta_nu`` and maps that
         difference into parameter space. A common use case is the classic
-        “Fisher bias” setup, where one asks how a systematic-induced change in
+        "Fisher bias" setup, where one asks how a systematic-induced change in
         the data would shift inferred parameters.
 
         Internally, the function evaluates the model response at the expansion
