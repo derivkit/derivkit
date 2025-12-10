@@ -55,7 +55,8 @@ def test_forecastkit_delegates(monkeypatch):
 
     fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 
-    # Fisher: delegates + forwards n_workers
+    # The fisher() method defaults to forecast_order=1 and forwards n_workers.
+    # The Fisher computation delegates to the helper function and forwards n_workers.
     fish = fk.fisher(n_workers=3)
     assert fish.shape == (2, 2)
     assert np.all(fish == 42.0)
