@@ -103,5 +103,4 @@ calculations:
 - likelihoods can be swapped without changing forecasting code.
 
 This modularity allows users to begin with simple Gaussian forecasts
-and later transition to Poisson or Sellentin–Heavens likelihoods
-without rewriting their models.
+and later transition to Poisson likelihood without rewriting their models.
