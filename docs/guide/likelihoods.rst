@@ -76,31 +76,6 @@ Example:
    data_out, loglike = build_poissonian_likelihood(observed, model_lambda)
 
 
-Sellentin–Heavens Likelihood (Planned)
---------------------------------------
-
-The Gaussian likelihood assumes that the covariance matrix ``C``
-is known perfectly. This is rarely true in practice: most real analyses
-estimate the covariance from simulations, bootstrap resampling, or
-jackknife procedures.
-
-The **Sellentin likelihood**
-(`Sellentin 2015 <https://arxiv.org/pdf/1506.04866>`_)
-corrects the Gaussian likelihood to account for finite-sample covariance
-uncertainty. It replaces the Gaussian form with a multivariate *Student-t*
-structure:
-
-.. math::
-
-   \mathcal{L}_{\rm SH}
-   \propto
-   \left[1 + \frac{(d - m)^\top C^{-1}(d - m)}{N_\nu} \right]^{-N/2},
-
-where ``N`` is the number of realizations from which ``C`` was estimated.
-
-LikelihoodKit will implement this corrected likelihood so that users may
-forecast directly from covariance-estimation pipelines without bias.
-
 
 Input Handling and Validation
 -----------------------------
