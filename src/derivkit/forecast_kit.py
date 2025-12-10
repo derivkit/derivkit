@@ -104,8 +104,8 @@ class ForecastKit:
             delta_nu: Difference between a biased and an unbiased data vector,
                 for example :math:`\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}`.
                 Accepts a 1D array of length n or a 2D array that will be flattened in
-                row-major order (“C”) to length n, where n is the number of observables.
-                If supplied as a 1D array, it must already follow the same row-major (“C”)
+                row-major order ("C") to length n, where n is the number of observables.
+                If supplied as a 1D array, it must already follow the same row-major ("C")
                 flattening convention used throughout the package.
             n_workers: Number of workers used by the internal derivative routine when
                 forming the Jacobian.
