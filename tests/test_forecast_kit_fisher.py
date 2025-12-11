@@ -1,4 +1,4 @@
-"""Tests for Fisher matrix construction in LikelihoodExpansion."""
+"""Tests for Fisher matrix construction in forecast_kit/fisher.py."""
 
 import numpy as np
 import pytest
