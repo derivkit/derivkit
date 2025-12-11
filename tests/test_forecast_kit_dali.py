@@ -29,7 +29,6 @@ def dali_mocks(monkeypatch):
             """Sets the internal state for the fake get_forecast_tensors."""
             self.g = np.asarray(g, dtype=float)
             self.h = np.asarray(h, dtype=float)
-            self.calls = []
 
         def fake_get_forecast_tensors(
             self,
