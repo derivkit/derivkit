@@ -27,7 +27,7 @@ Examples:
         >>> y_tab = x_tab**2
         >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
         >>> # First derivative via the finite difference method:
-        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
+        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")
 
     Registering a new method:
 
