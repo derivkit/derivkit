@@ -160,7 +160,7 @@ def test_build_dali_symmetry_with_symmetric_inputs(dali_mocks):
 
 
 def test_build_dali_p_equals_one_scalar_case(dali_mocks):
-    """Tests that build_dali handles the scalar P=1 case correctly (shapes + scalar)."""
+    """Tests that build_dali handles the scalar reference value case correctly (shapes + scalar)."""
     n_params = 1
 
     d1 = np.array([[2.0, 3.0]])
