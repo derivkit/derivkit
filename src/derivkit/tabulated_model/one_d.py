@@ -9,17 +9,17 @@ Two common entry points are:
 * Direct construction with ``(x, y)`` arrays of shape ``(N,)`` and ``(N, ...)``.
 * :func:`tabulated1d_from_table` for simple 2D tables containing x and one
   or more y components in columns.
+
+To differentiate interpolated models, pass the model instance as
+``function`` to :class:`DerivativeKit`.
 """
 
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.validate import validate_tabulated_xy
 
 __all__ = ["Tabulated1DModel", "tabulated1d_from_table"]
@@ -29,6 +29,9 @@ class Tabulated1DModel:
     """1D interpolator for tabulated data.
 
     Interpolates a tabulated function ``y(x)`` using ``numpy.interp``.
+    To compute derivatives of the interpolated function, use
+    :class:`DerivativeKit` with ``function=model`` or the model instance
+    as the callable.
 
     Here ``x`` is a one-dimensional grid of length ``N``, and the first
     dimension of ``y`` must also have length ``N``. All remaining
@@ -104,41 +107,6 @@ class Tabulated1DModel:
         self.y_flat = np.asarray(y_flat, dtype=float)
         self.extrapolate = extrapolate
         self.fill_value = fill_value
-
-    def differentiate(
-            self,
-            x0: float | np.ndarray,
-            **dk_kwargs: Any,
-    ) -> Any:
-        """Differentiates the tabulated model at x0 using DerivativeKit.
-
-        This runs DerivKit's derivative engines on the interpolated function
-        defined by this model. All additional keyword arguments are forwarded
-        to `DerivativeKit.differentiate`.
-
-        Examples:
-        ---------
-        >>> import numpy as np
-        >>> from derivkit.tabulated_model import Tabulated1DModel
-        >>>
-        >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
-        >>> y_tab = np.array([0.0, 1.0, 4.0, 9.0])  # y = x^2
-        >>>
-        >>> model = Tabulated1DModel(x_tab, y_tab)
-        >>>
-        >>> # First derivative at a single point.
-        >>> # For y = x**2 we have dy/dx = 2*x, so at x=0.5 this is 1.0:
-        >>> d1 = model.differentiate(x0=0.5, order=1)
-        >>> float(d1)
-        1.0
-        >>>
-        >>> xs = np.linspace(0.0, 1.0, 5)
-        >>> d2 = model.differentiate(x0=xs, method="finite", order=2)
-        >>> np.allclose(d2, 2.0)
-        True
-        """
-        dk = DerivativeKit(function=lambda x: self(x), x0=x0)
-        return dk.differentiate(**dk_kwargs)
 
     def __call__(self, x_new: ArrayLike) -> NDArray[np.floating]:
         """Evaluates the interpolated function at the given x values.

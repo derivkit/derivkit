@@ -113,16 +113,24 @@ def test_finite_derivative_extrapolation_linear(
 
 @pytest.mark.parametrize("method", ["finite", "adaptive", "lp"])
 @pytest.mark.parametrize("label, model_factory, is_scalar, expected", _MODEL_CASES)
-def test_tabulated_model_differentiate_matches_derivative_kit(label, model_factory, is_scalar, expected, method):
-    """Tests that Tabulated1DModel.differentiate matches DerivativeKit results."""
+def test_derivative_kit_tabulated_vs_callable(label, model_factory, is_scalar, expected, method):
+    """Tests that DerivativeKit(tab_x, tab_y) matches DerivativeKit(function=model)."""
     model = model_factory()
     x0 = 0.3
 
-    # via DerivativeKit
-    kit = DerivativeKit(model, x0)
-    d1_kit = kit.differentiate(method=method, order=1)
+    # via callable model
+    kit_callable = DerivativeKit(function=model, x0=x0)
+    d1_callable = kit_callable.differentiate(method=method, order=1)
 
-    # via Tabulated1DModel.differentiate
-    d1_model = model.differentiate(x0=x0, method=method, order=1)
+    # reconstruct the original y_tab from the model internals
+    x_tab = model.x
+    if model._out_shape == ():
+        y_tab = model.y_flat[:, 0]
+    else:
+        y_tab = model.y_flat.reshape(len(x_tab), *model._out_shape)
 
-    np.testing.assert_allclose(d1_model, d1_kit, rtol=1e-12, atol=0.0)
+    # via tabulated mode
+    kit_tab = DerivativeKit(tab_x=x_tab, tab_y=y_tab, x0=x0)
+    d1_tab = kit_tab.differentiate(method=method, order=1)
+
+    np.testing.assert_allclose(d1_tab, d1_callable, rtol=1e-12, atol=0.0)

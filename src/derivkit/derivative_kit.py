@@ -18,6 +18,17 @@ Examples:
         >>> # First derivative via the adaptive-fit method:
         >>> # dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
 
+    Using tabulated data directly:
+
+        >>> import numpy as np
+        >>> from derivkit.derivative_kit import DerivativeKit
+        >>>
+        >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
+        >>> y_tab = x_tab**2
+        >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
+        >>> # First derivative via the finite difference method:
+        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
+
     Registering a new method:
 
         >>> from derivkit.derivative_kit import register_method
@@ -43,6 +54,7 @@ from functools import lru_cache
 from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
@@ -50,6 +62,7 @@ from derivkit.fornberg import FornbergDerivative
 from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
+from derivkit.tabulated_model.one_d import Tabulated1DModel
 
 
 class DerivativeEngine(Protocol):
@@ -176,8 +189,13 @@ class DerivativeKit:
 
     The class provides a simple way to evaluate derivatives using any of
     DerivKit’s available backends (e.g., adaptive fit or finite difference).
-    You only need to supply a function and the point ``x0`` at which to
-    compute the derivative.  By default, the adaptive-fit method is used.
+    By default, the adaptive-fit method is used.
+    You can supply either a function and x0, or tabulated tab_x/tab_y and x0
+    in case you want to differentiate a tabulated function.
+    The chosen backend is invoked when you call the `.differentiate()` method.
+
+    You can also pass any callable object as ``function``, including
+    instances of :class:`Tabulated1DModel`.
 
     Example:
         >>> import numpy as np
@@ -191,15 +209,41 @@ class DerivativeKit:
         default_method: The backend used when no method is specified.
     """
 
-    def __init__(self, function: Callable[[float | np.ndarray], Any], x0: float | np.ndarray):
+    def __init__(
+            self,
+            function: Callable[[float | np.ndarray], Any] | None = None,
+            x0: float | np.ndarray | None = None,
+            *,
+            tab_x: ArrayLike | None = None,
+            tab_y: ArrayLike | None = None,
+    ) -> None:
         """Initializes the DerivativeKit with a target function and expansion point.
 
         Args:
             function: The function to be differentiated. Must accept a single float
                       and return a scalar or array-like output.
             x0: Point or array of points at which to evaluate the derivative.
+            tab_x: Optional tabulated x values for creating a Tabulated1DModel.
+            tab_y: Optional tabulated y values for creating a Tabulated1DModel.
         """
-        self.function = function
+        # Enforce "either function or tabulated", not both.
+        if function is not None and (tab_x is not None or tab_y is not None):
+            raise ValueError("Pass either `function` or (`tab_x`, `tab_y`), not both.")
+
+        if function is not None:
+            self.function = function
+
+        elif tab_x is not None or tab_y is not None:
+            if tab_x is None or tab_y is None:
+                raise ValueError("Both `tab_x` and `tab_y` must be provided for tabulated mode.")
+            model = Tabulated1DModel(tab_x, tab_y)
+            self.function = model
+
+        else:
+            raise ValueError("Need either `function` or (`tab_x`, `tab_y`).")
+
+        if x0 is None:
+            raise ValueError("`x0` must be provided.")
         self.x0 = x0
         self.default_method = "adaptive"
 
