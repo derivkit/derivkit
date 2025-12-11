@@ -170,7 +170,7 @@ def test_large_workload_parallel_execution(extra_threads_ok, threads_ok):
 
 
 def test_nworkers_edge_values_behave_serial():
-    """Tests that n_workers edge values (0, None, negative) behave like serial execution."""
+    """Tests that n_workers edge values (``0``, ``None``, negative) behave like serial execution."""
     theta0 = np.linspace(0.1, 1.0, 7)
     cov = np.eye(2)
 
