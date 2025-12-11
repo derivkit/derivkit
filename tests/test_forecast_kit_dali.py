@@ -67,7 +67,7 @@ def dali_mocks(monkeypatch):
 
 
 def test_build_dali_matches_reference_values(dali_mocks):
-    """Tests that build_dali returns expected DALI tensors for a P=2 example."""
+    """Tests that build_dali returns expected DALI tensors for known reference values."""
     g_expected = np.array(
         [
             [[12.5, 16.25],
