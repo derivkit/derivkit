@@ -24,7 +24,6 @@ from derivkit.utils.validate import validate_covariance_matrix
 
 __all__ = [
     "get_forecast_tensors",
-    "_get_derivatives",
 ]
 
 
