@@ -26,9 +26,6 @@ class Tabulated1DModel:
     """1D interpolator for tabulated data.
 
     Interpolates a tabulated function ``y(x)`` using ``numpy.interp``.
-    To compute derivatives of the interpolated function, use
-    :class:`DerivativeKit` with ``function=model`` or the model instance
-    as the callable.
 
     Here ``x`` is a one-dimensional grid of length ``N``, and the first
     dimension of ``y`` must also have length ``N``. All remaining
