@@ -9,9 +9,6 @@ Two common entry points are:
 * Direct construction with ``(x, y)`` arrays of shape ``(N,)`` and ``(N, ...)``.
 * :func:`tabulated1d_from_table` for simple 2D tables containing x and one
   or more y components in columns.
-
-To differentiate interpolated models, pass the model instance as
-``function`` to :class:`DerivativeKit`.
 """
 
 
