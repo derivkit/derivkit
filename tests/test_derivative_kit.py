@@ -309,3 +309,45 @@ def test_array_valued_function_with_scalar_x0():
 
     expected = np.array([np.cos(x0), -np.sin(x0)])
     np.testing.assert_allclose(out, expected, rtol=1e-5, atol=1e-7)
+
+
+def test_tabulated_mode_dispatches_with_finite_engine(monkeypatch):
+    """Tests that tabulated mode dispatches correctly and passes a callable to the engine."""
+    calls, invoked = _setup_fakes(monkeypatch)
+
+    x_tab = np.linspace(-1.0, 1.0, 11)
+    y_tab = 3.0 * x_tab + 1.0
+
+    # Use tabulated mode: no function, just tab_x/tab_y
+    dk = DerivativeKit(x0=0.0, tab_x=x_tab, tab_y=y_tab)
+    out = dk.differentiate(method="finite", order=1)
+
+    assert out == 0.0  # fake engine return value
+
+    # Check that the finite fake engine was used and got a callable function
+    assert calls["finite"]
+    finite_call = calls["finite"]
+    f_called = finite_call["function"]
+    x_called = finite_call["x0"]
+
+    assert callable(f_called)
+    assert np.isclose(x_called, 0.0)
+
+    # Adaptive fake should not have been touched
+    assert calls["adaptive"] == {}
+    assert invoked["adaptive"] == {}
+
+
+@pytest.mark.parametrize("method", ["finite", "adaptive", "local_polynomial"])
+def test_tabulated_mode_linear_function_with_real_engines(method):
+    """Tests that tabulated mode gives the correct derivative for a linear function."""
+    x_tab = np.linspace(-2.0, 2.0, 41)
+    y_tab = 3.0 * x_tab + 1.0  # true derivative is 3 everywhere
+
+    x0 = np.array([-0.5, 0.0, 0.7])
+    dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
+
+    d1 = dk.differentiate(method=method, order=1)
+    expected = 3.0 * np.ones_like(x0, dtype=float)
+
+    np.testing.assert_allclose(d1, expected, rtol=1e-5, atol=1e-7)
