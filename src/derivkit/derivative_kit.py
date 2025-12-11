@@ -194,9 +194,6 @@ class DerivativeKit:
     in case you want to differentiate a tabulated function.
     The chosen backend is invoked when you call the `.differentiate()` method.
 
-    You can also pass any callable object as ``function``, including
-    instances of :class:`Tabulated1DModel`.
-
     Example:
         >>> import numpy as np
         >>> from derivkit.derivative_kit import DerivativeKit
