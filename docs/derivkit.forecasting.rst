@@ -7,8 +7,9 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   derivkit.forecasting.expansions
-   derivkit.forecasting.likelihoods
+   derivkit.forecasting.dali
+   derivkit.forecasting.fisher
+   derivkit.forecasting.forecast_core
 
 Module contents
 ---------------
