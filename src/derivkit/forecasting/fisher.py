@@ -9,7 +9,7 @@ from derivkit.calculus_kit import CalculusKit
 from derivkit.forecasting.forecast_core import get_forecast_tensors
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import solve_or_pinv
-from derivkit.utils.validate import validate_covariance_matrix
+from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
     "build_fisher_matrix",
@@ -125,7 +125,7 @@ def build_fisher_bias(
     n_workers = normalize_workers(n_workers)
 
     theta0 = np.atleast_1d(theta0)
-    cov = validate_covariance_matrix(cov)
+    cov = validate_covariance_matrix_shape(cov)
 
     n_parameters = theta0.shape[0]
     n_observables = cov.shape[0]

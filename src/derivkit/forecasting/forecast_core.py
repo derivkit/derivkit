@@ -20,7 +20,7 @@ from numpy.typing import ArrayLike, NDArray
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
-from derivkit.utils.validate import validate_covariance_matrix
+from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
     "get_forecast_tensors",
@@ -83,7 +83,7 @@ def get_forecast_tensors(
         )
 
     theta0_arr = np.atleast_1d(theta0)
-    cov_arr = validate_covariance_matrix(cov)
+    cov_arr = validate_covariance_matrix_shape(cov)
     n_observables = cov_arr.shape[0]
 
     y0 = np.atleast_1d(function(theta0_arr))
@@ -179,7 +179,7 @@ def _get_derivatives(
         raise ValueError("Only first- and second-order derivatives are currently supported.")
 
     theta0_arr = np.atleast_1d(theta0)
-    cov_arr = validate_covariance_matrix(cov)
+    cov_arr = validate_covariance_matrix_shape(cov)
 
     n_parameters = theta0_arr.shape[0]
     n_observables = cov_arr.shape[0]
