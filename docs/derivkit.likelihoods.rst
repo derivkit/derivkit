@@ -1,4 +1,4 @@
-derivkit.forecasting package
+derivkit.likelihoods package
 ============================
 
 Submodules
@@ -7,14 +7,13 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   derivkit.forecasting.dali
-   derivkit.forecasting.fisher
-   derivkit.forecasting.forecast_core
+   derivkit.likelihoods.gaussian
+   derivkit.likelihoods.poisson
 
 Module contents
 ---------------
 
-.. automodule:: derivkit.forecasting
+.. automodule:: derivkit.likelihoods
    :members:
    :show-inheritance:
    :undoc-members:

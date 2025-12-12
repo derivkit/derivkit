@@ -10,6 +10,7 @@ Subpackages
    derivkit.adaptive
    derivkit.calculus
    derivkit.forecasting
+   derivkit.likelihoods
    derivkit.local_polynomial_derivative
    derivkit.tabulated_model
    derivkit.utils
@@ -24,6 +25,7 @@ Submodules
    derivkit.derivative_kit
    derivkit.forecast_kit
    derivkit.fornberg
+   derivkit.likelihood_kit
 
 Module contents
 ---------------
