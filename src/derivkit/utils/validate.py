@@ -131,8 +131,9 @@ def validate_symmetric_psd(
     Policy:
       - Requires 2D square shape.
       - Requires near-symmetry within ``sym_atol`` (raises if violated).
-      - Checks PSD by computing eigenvalues of the symmetrized matrix
-        ``S = 0.5 * (A + A.T)`` and requiring ``min_eig >= -psd_atol``.
+      - After the symmetry check passes, checks PSD by computing eigenvalues of the
+        symmetrized matrix ``S = 0.5 * (A + A.T)`` for numerical robustness, and
+        requires ``min_eig(S) >= -psd_atol``.
 
     Args:
         matrix: Array-like input expected to be a covariance-like matrix.
