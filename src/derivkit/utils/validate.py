@@ -143,9 +143,13 @@ def validate_symmetric_psd(
             down to ``-psd_atol``.
 
     Returns:
-        A NumPy array view/copy of the input, converted to ``float`` (same values as input).
-        Note: this function does not modify the returned matrix (it does *not* symmetrize it);
-        the PSD check is performed on the symmetrized form only.
+    A NumPy array view/copy of the input, converted to ``float`` (same values as input).
+
+    Note:
+        The input must be symmetric within ``sym_atol``; this function does not
+        modify or symmetrize the returned matrix. The positive semi-definite check uses the
+        symmetrized form ``0.5*(A + A.T)`` only to reduce roundoff sensitivity
+        after the symmetry check passes.
 
     Raises:
         ValueError: If ``matrix`` is not 2D, square, is too asymmetric, contains non-finite
