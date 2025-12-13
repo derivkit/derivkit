@@ -140,7 +140,7 @@ def validate_symmetric_psd(
         sym_atol: Absolute tolerance for symmetry check. If ``max(|A-A^T|) > sym_atol``,
             this raises ``ValueError``.
         psd_atol: Absolute tolerance for PSD check. Allows small negative eigenvalues
-            down to ``-psd_atol`` (useful for roundoff).
+            down to ``-psd_atol``.
 
     Returns:
         A NumPy array view/copy of the input, converted to ``float`` (same values as input).
