@@ -40,7 +40,7 @@ def is_finite_and_differentiable(
     return np.isfinite(f0).all() and np.isfinite(f1).all()
 
 
-def check_scalar_valued(function, theta0: np.ndarray, i: int):
+def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
     """Helper used by ``build_gradient`` and ``build_hessian``.
 
     Args:
@@ -51,6 +51,9 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int):
             A 1D array or list of parameter values matching the expected
             input of the function.
         i: Zero-based index of the parameter with respect to which to differentiate.
+        n_workers: Number of workers used inside
+            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
+            across parameters.
 
     Raises:
         TypeError: If ``function`` does not return a scalar value.
