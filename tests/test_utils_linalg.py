@@ -194,3 +194,15 @@ def test_solve_or_pinv_invalid_shapes_raise():
 
     with pytest.raises(ValueError):
         solve_or_pinv(matrix, bad_vector)
+
+
+def test_invert_covariance_warns_once_on_asymmetry(recwarn):
+    """Tests that non-symmetric covariance should trigger a single symmetry warning."""
+    cov = np.array([[1.0, 2.0], [0.0, 1.0]])
+
+    inv = invert_covariance(cov, warn_prefix="linalg")
+    assert inv.shape == (2, 2)
+    assert np.all(np.isfinite(inv))
+
+    msgs = [str(w.message) for w in recwarn if issubclass(w.category, RuntimeWarning)]
+    assert sum("not symmetric" in m for m in msgs) == 1

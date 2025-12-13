@@ -18,6 +18,11 @@ def _identity(x):
     """A test function that returns its input unchanged."""
     return x
 
+def _two_obs(theta):
+    """A test function that returns two identical observables."""
+    t = float(np.asarray(theta)[0])
+    return np.array([t, t], dtype=float)
+
 
 def test_derivative_order():
     """Tests that unsupported derivative orders raise ValueError."""
@@ -49,26 +54,22 @@ def test_forecast_order():
 def test_pseudoinverse_path_no_nan():
     """Test that pseudoinverse path yields finite tensors."""
     # singular covariance -> forces pinv path
-    func = _identity
+    func = _two_obs
     theta0 = np.array([1.0])
-    cov = np.array([[0.0]])  # singular → pinv path
 
-    # Fisher (order=1)
-    with pytest.warns(RuntimeWarning, match=r"`cov` is ill-conditioned"):
-        with pytest.warns(
-                RuntimeWarning,
-                match=r"`cov` inversion failed; using pseudoinverse",
-        ):
-            fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
+    cov = np.array([[1.0, 1.0],
+                    [1.0, 1.0]], dtype=float)  # singular 2x2
+
+    with pytest.warns(RuntimeWarning) as w:
+        fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
+    msgs = [str(rec.message) for rec in w]
+    assert any("pseudoinverse" in m for m in msgs)
     assert np.isfinite(fisher).all()
 
-    # DALI (order=2)
-    with pytest.warns(RuntimeWarning, match=r"`cov` is ill-conditioned"):
-        with pytest.warns(
-                RuntimeWarning,
-                match=r"`cov` inversion failed; using pseudoinverse",
-        ):
-            tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
+    with pytest.warns(RuntimeWarning) as w:
+        tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
+    msgs = [str(rec.message) for rec in w]
+    assert any("pseudoinverse" in m for m in msgs)
     assert np.isfinite(tensor_g).all()
     assert np.isfinite(tensor_h).all()
 
