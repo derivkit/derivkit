@@ -173,7 +173,6 @@ def validate_symmetric_psd(
             f"max(|A-A^T|)={max_abs_skew:.2e}."
         )
 
-    # PSD check (numerically robust): eigenvalues of symmetrized matrix
     s = 0.5 * (a + a.T)
     try:
         evals = np.linalg.eigvalsh(s)
