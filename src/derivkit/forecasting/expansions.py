@@ -23,7 +23,7 @@ We expose two conventions that are common in the codebase:
         log p = -0.5 * Δχ².
 
 - ``convention="matplotlib_loglike"``:
-    Matches the prefactors used in Niko's matplotlib contour scripts:
+    Matches the prefactors used in some matplotlib contour scripts:
 
         log p = -0.5 d^T F d - 0.5 (G:d^3) - 0.125 (H:d^4)
 
@@ -49,203 +49,304 @@ a compatible choice for GetDist is therefore
 
 (optionally shifted by a constant for numerical stability).
 
-Notes
+Notes:
 -----
 - All log posterior values returned are defined up to an additive constant.
-- Optional hard bounds implement flat priors: outside bounds returns ``-np.inf``.
+- Priors are optional and are applied via a single unified prior spec:
+  (`prior_terms`, `prior_bounds`) which is compiled using `build_prior`.
+- If no prior is provided, the functions return the *likelihood expansion*
+  (i.e. improper flat prior, no hard cutoffs).
 """
-
 
 from __future__ import annotations
 
-from typing import Sequence, Callable
+from typing import Any, Callable, Sequence
 
 import numpy as np
+from numpy.typing import NDArray
 
-from derivkit.utils.validate import validate_fisher_shapes, validate_dali_shapes
-
-Array = np.ndarray
+from derivkit.utils.validate import (
+    validate_dali_shapes,
+    validate_fisher_shapes,
+)
 
 __all__ = [
-    "slice_fisher",
-    "slice_tensors",
+    "submatrix_fisher",
+    "submatrix_dali",
     "delta_chi2_fisher",
     "delta_chi2_dali",
-    "logpost_fisher",
-    "logpost_dali",
+    "logposterior_fisher",
+    "logposterior_dali",
 ]
 
 
-def slice_fisher(F: Array, idx: Sequence[int]) -> Array:
-    """Slice a Fisher matrix to a subset of parameter indices."""
-    idx = list(idx)
-    F = np.asarray(F, float)
-    if F.ndim != 2 or F.shape[0] != F.shape[1]:
-        raise ValueError(f"F must be square 2D, got {F.shape}")
-    return F[np.ix_(idx, idx)]
-
-
-def slice_tensors(
-    theta0: Array,
-    F: Array,
-    G: Array,
-    H: Array | None,
+def submatrix_fisher(
+    fisher: NDArray[np.floating],
     idx: Sequence[int],
-) -> tuple[Array, Array, Array, Array | None]:
-    """Slice full tensors to a subset of parameter indices."""
+) -> NDArray[np.floating]:
+    """Extracts a sub-Fisher matrix for a subset of parameter indices.
+
+    Args:
+        fisher: Full Fisher matrix (P, P) with P parameters.
+        idx: Sequence of parameter indices to extract.
+
+    Returns:
+        Sub-Fisher matrix (len(idx), len(idx)).
+
+    Raises:
+        ValueError: If `fisher` is not square 2D.
+    """
+    idx = list(idx)
+    fisher = np.asarray(fisher, float)
+    if fisher.ndim != 2 or fisher.shape[0] != fisher.shape[1]:
+        raise ValueError(f"F must be square 2D, got {fisher.shape}")
+    return fisher[np.ix_(idx, idx)]
+
+
+def submatrix_dali(
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+    g_tensor: NDArray[np.floating],
+    h_tensor: NDArray[np.floating] | None,
+    idx: Sequence[int],
+) -> tuple[
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating] | None,
+]:
+    """Extracts sub-DALI tensors for a subset of parameter indices.
+
+    Args:
+        theta0: Full expansion point (P,) with P parameters.
+        fisher: Full Fisher matrix (P, P).
+        g_tensor: Full DALI cubic tensor (P, P, P).
+        h_tensor: Full DALI quartic tensor (P, P, P, P) or None.
+        idx: Sequence of parameter indices to extract.
+
+    Returns:
+        A tuple (theta0_sub, f_sub, g_sub, h_sub) where each entry is restricted
+        to the specified indices. Shapes are:
+        theta0_sub: (len(idx),)
+        f_sub: (len(idx), len(idx))
+        g_sub: (len(idx), len(idx), len(idx))
+        h_sub: (len(idx), len(idx), len(idx), len(idx)) or None.
+    """
     idx = list(idx)
     t0 = np.asarray(theta0, float)[idx]
-    F2 = np.asarray(F, float)[np.ix_(idx, idx)]
-    G2 = np.asarray(G, float)[np.ix_(idx, idx, idx)]
-    H2 = None if H is None else np.asarray(H, float)[np.ix_(idx, idx, idx, idx)]
-    return t0, F2, G2, H2
+    f2 = np.asarray(fisher, float)[np.ix_(idx, idx)]
+    g2 = np.asarray(g_tensor, float)[np.ix_(idx, idx, idx)]
+    h2 = None if h_tensor is None else np.asarray(h_tensor, float)[np.ix_(idx, idx, idx, idx)]
+    return t0, f2, g2, h2
 
-
-def _apply_bounds(theta: Array, bounds) -> bool:
-    if bounds is None:
-        return True
-    for t, (lo, hi) in zip(theta, bounds):
-        if (lo is not None and t < lo) or (hi is not None and t > hi):
-            return False
-    return True
-
-
-
-# ---------------------------------------------------------------------------
-# Fisher expansion evaluation
-# ---------------------------------------------------------------------------
 
 def delta_chi2_fisher(
-    theta: Array,
-    theta0: Array,
-    F: Array,
+    theta: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
 ) -> float:
-    """Compute Fisher Δχ² = d^T F d."""
+    """Computes a displacement chi-squared under the Fisher approximation.
+
+    Args:
+        theta: Parameter vector (trial/evaluation point).
+        theta0: Expansion point (parameter vector at which Fisher was computed).
+        fisher: Fisher matrix (P, P) with P parameters.
+
+    Returns:
+        Scalar delta chi-squared value.
+    """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
-    F = np.asarray(F, float)
-    validate_fisher_shapes(theta0, F)
+    fisher = np.asarray(fisher, float)
+    validate_fisher_shapes(theta0, fisher)
 
-    d = theta - theta0
-    return float(d @ F @ d)
+    displacement = theta - theta0
+    return float(displacement @ fisher @ displacement)
 
 
-def logpost_fisher(
-    theta: Array,
-    theta0: Array,
-    F: Array,
+def _resolve_logprior(
     *,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
-    logprior: Callable[[Array], float] | None = None,
-) -> float:
-    """Log posterior (up to a constant) under the Fisher approximation."""
-    theta = np.asarray(theta, float)
+    prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None,
+    prior_bounds: Sequence[tuple[float | None, float | None]] | None,
+    logprior: Callable[[NDArray[np.floating]], float] | None,
+) -> Callable[[NDArray[np.floating]], float] | None:
+    """Resolve the logprior callable from either unified spec or direct callable.
 
-    # hard top-hat bounds (flat prior with cutoffs)
-    if hard_bounds is not None:
-        for t, (lo, hi) in zip(theta, hard_bounds):
-            if (lo is not None and t < lo) or (hi is not None and t > hi):
-                return -np.inf
-
-    # additional prior term (optional)
-    lp = 0.0
-    if logprior is not None:
-        lp = float(logprior(theta))
-        if not np.isfinite(lp):
-            return -np.inf
-
-    # Fisher quadratic term
-    d = theta - np.asarray(theta0, float)
-    F = np.asarray(F, float)
-    chi2 = float(d @ F @ d)
-
-    return lp - 0.5 * chi2
-
-
-# ---------------------------------------------------------------------------
-# DALI expansion evaluation
-# ---------------------------------------------------------------------------
-
-def delta_chi2_dali(
-    theta: Array,
-    theta0: Array,
-    F: Array,
-    G: Array,
-    H: Array | None,
-    *,
-    convention: str = "delta_chi2",
-) -> float:
+    Rules:
+      - If `logprior` is provided, `prior_terms`/`prior_bounds` must be None.
+      - If `prior_terms` or `prior_bounds` is provided, compile via `build_prior`.
+      - If none provided, return None (no prior).
     """
-    Compute an effective Δχ² from DALI tensors.
+    if logprior is not None and (prior_terms is not None or prior_bounds is not None):
+        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
+
+    if logprior is None and (prior_terms is not None or prior_bounds is not None):
+        # Local import avoids import cycles and keeps this module lightweight.
+        from derivkit.forecasting.priors.core import build_prior
+
+        return build_prior(terms=prior_terms, bounds=prior_bounds)
+
+    return logprior
+
+
+def logposterior_fisher(
+    theta: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+    *,
+    prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+    prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    logprior: Callable[[NDArray[np.floating]], float] | None = None,
+) -> float:
+    """Computes the log posterior (up to a constant) under the Fisher approximation.
+
+    If no prior is provided, this returns the Fisher log-likelihood expansion
+    (improper flat prior, no hard cutoffs).
 
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
-        F: Fisher matrix (P, P).
-        G: DALI cubic tensor (P, P, P).
-        H: DALI quartic tensor (P, P, P, P) or None.
-        convention: See module docstring.
+        fisher: Fisher matrix (P, P) with P parameters.
+        prior_terms: See module docstring.
+        prior_bounds: See module docstring.
+        logprior: See module docstring.
 
     Returns:
-        Scalar Δχ² value.
+        Scalar log posterior value (up to a constant).
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
-    F = np.asarray(F, float)
-    G = np.asarray(G, float)
-    H = None if H is None else np.asarray(H, float)
-    validate_dali_shapes(theta0, F, G, H)
+    fisher = np.asarray(fisher, float)
+    validate_fisher_shapes(theta0, fisher)
 
-    d = theta - theta0
-    quad = float(d @ F @ d)
-    g3 = float(np.einsum("ijk,i,j,k->", G, d, d, d))
-    h4 = 0.0 if H is None else float(np.einsum("ijkl,i,j,k,l->", H, d, d, d, d))
+    lp_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
 
-    if convention == "delta_chi2":
-        return quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4
-
-    if convention == "matplotlib_loglike":
-        return quad + g3 + 0.25 * h4
-
-    raise ValueError(f"Unknown convention='{convention}'")
-
-
-def logpost_dali(
-    theta: Array,
-    theta0: Array,
-    F: Array,
-    G: Array,
-    H: Array | None,
-    *,
-    convention: str = "delta_chi2",
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
-    logprior: Callable[[Array], float] | None = None,
-) -> float:
-    """Log posterior (up to a constant) under the DALI approximation."""
-    theta = np.asarray(theta, float)
-
-    # hard top-hat bounds (flat prior with cutoffs)
-    if hard_bounds is not None:
-        for t, (lo, hi) in zip(theta, hard_bounds):
-            if (lo is not None and t < lo) or (hi is not None and t > hi):
-                return -np.inf
-
-    # additional prior term (optional)
     lp = 0.0
-    if logprior is not None:
-        lp = float(logprior(theta))
+    if lp_fn is not None:
+        lp = float(lp_fn(theta))
         if not np.isfinite(lp):
             return -np.inf
 
-    # DALI Δχ²
-    d = theta - np.asarray(theta0, float)
-    F = np.asarray(F, float)
-    G = np.asarray(G, float)
-    H = None if H is None else np.asarray(H, float)
+    displacement = theta - theta0
+    chi2 = float(displacement @ fisher @ displacement)
+    return lp - 0.5 * chi2
 
-    quad = float(d @ F @ d)
-    g3 = float(np.einsum("ijk,i,j,k->", G, d, d, d))
-    h4 = 0.0 if H is None else float(np.einsum("ijkl,i,j,k,l->", H, d, d, d, d))
+
+def delta_chi2_dali(
+    theta: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+    g_tensor: NDArray[np.floating],
+    h_tensor: NDArray[np.floating] | None,
+    *,
+    convention: str = "delta_chi2",
+) -> float:
+    """Computes a displacement chi-squared under the DALI approximation.
+
+    Args:
+        theta: Parameter vector.
+        theta0: Expansion point.
+        fisher: Fisher matrix (P, P) with P parameters.
+        g_tensor: DALI cubic tensor (P, P, P).
+        h_tensor: DALI quartic tensor (P, P, P, P) or None.
+        convention: See module docstring.
+
+    Returns:
+        Scalar delta chi-squared value.
+    """
+    if convention not in ("delta_chi2", "matplotlib_loglike"):
+        raise ValueError(f"Unknown convention='{convention}'")
+
+    theta = np.asarray(theta, float)
+    theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    g_tensor = np.asarray(g_tensor, float)
+    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+
+    displacement = theta - theta0
+    quad = float(displacement @ fisher @ displacement)
+    g3 = float(np.einsum(
+        "ijk,i,j,k->",
+        g_tensor,
+        displacement,
+        displacement,
+        displacement
+    )
+    )
+    h4 = 0.0 if h_tensor is None else float(np.einsum("ijkl,i,j,k,l->",
+                                                      h_tensor,
+                                                      displacement,
+                                                      displacement,
+                                                      displacement,
+                                                      displacement
+                                                      ))
+
+    conv_dict = {
+        "delta_chi2": quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4,
+        "matplotlib_loglike": quad + g3 + 0.25 * h4,
+    }
+    return conv_dict[convention]
+
+
+def logposterior_dali(
+    theta: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+    g_tensor: NDArray[np.floating],
+    h_tensor: NDArray[np.floating] | None,
+    *,
+    convention: str = "delta_chi2",
+    prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+    prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    logprior: Callable[[NDArray[np.floating]], float] | None = None,
+) -> float:
+    """Computes the log posterior (up to a constant) under the DALI approximation.
+
+    If no prior is provided, this returns the DALI log-likelihood expansion
+    (improper flat prior, no hard cutoffs).
+
+    Args:
+        theta: Parameter vector.
+        theta0: Expansion point.
+        fisher: Fisher matrix (P, P) with P parameters.
+        g_tensor: DALI cubic tensor (P, P, P).
+        h_tensor: DALI quartic tensor (P, P, P, P) or None.
+        convention: See module docstring.
+        prior_terms: See module docstring.
+        prior_bounds: See module docstring.
+        logprior: See module docstring.
+    """
+    theta = np.asarray(theta, float)
+    theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    g_tensor = np.asarray(g_tensor, float)
+    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+
+    lp_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
+
+    lp = 0.0
+    if lp_fn is not None:
+        lp = float(lp_fn(theta))
+        if not np.isfinite(lp):
+            return -np.inf
+
+    displacement = theta - theta0
+    quad = float(displacement @ fisher @ displacement)
+    g3 = float(np.einsum("ijk,i,j,k->",
+                         g_tensor,
+                         displacement,
+                         displacement,
+                         displacement
+                         ))
+    h4 = 0.0 if h_tensor is None else float(np.einsum("ijkl,i,j,k,l->",
+                                                      h_tensor,
+                                                      displacement,
+                                                      displacement,
+                                                      displacement,
+                                                      displacement
+                                                      ))
 
     if convention == "delta_chi2":
         chi2 = quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4

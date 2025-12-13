@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-"""
-Demo: DALI (3 params) -> GetDist corner plot.
+"""Demo: DALI (3 params) -> GetDist corner plot.
 
 - Builds Fisher + DALI tensors using ForecastKit
 - Converts tensors into GetDist MCSamples (importance sampling)
@@ -25,8 +23,7 @@ from derivkit.forecasting.integrations import dali_to_mcsamples_importance
 
 
 def model_3d(theta: np.ndarray) -> np.ndarray:
-    """
-    3-parameter nonlinear toy model.
+    """3-parameter nonlinear toy model.
 
     theta = [x, eps, a]
 

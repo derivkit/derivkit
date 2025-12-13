@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import warnings
 from functools import partial
 from typing import Callable, Sequence
-import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
