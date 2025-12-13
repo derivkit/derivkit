@@ -100,7 +100,7 @@ def invert_covariance(
 
     # Pseudoinverse path — IMPORTANT: hermitian = symmetric flag
     warnings.warn(
-        f"{prefix}`cov` inversion failed; using pseudoinverse.",
+        f"{prefix}`cov` inversion failed; falling back to pseudoinverse (rcond={rcond}).",
         RuntimeWarning,
     )
     inv_cov = np.linalg.pinv(cov, rcond=rcond, hermitian=symmetric).astype(float, copy=False)
