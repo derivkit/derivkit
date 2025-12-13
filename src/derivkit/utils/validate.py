@@ -149,7 +149,8 @@ def validate_symmetric_psd(
 
     Raises:
         ValueError: If ``matrix`` is not 2D, square, is too asymmetric, contains non-finite
-            values, or is not PSD within tolerance.
+            values, is not PSD within tolerance, if `max(|A - A.T|) > sym_atol``,
+            if ``min_eig(0.5*(A + A.T)) < -psd_atol``, or if eigenvalue computation fails.
     """
     a = np.asarray(matrix, dtype=float)
 
