@@ -124,7 +124,7 @@ def validate_symmetric_psd(
     """Validates that an input is a symmetric positive semidefinite (PSD) matrix.
 
     This is intended for strict validation (e.g., inputs passed to GetDist, or any
-    code path where an indefinite "covariance-like" matrix should hard-fail). This
+    code path where an indefinite covariance-like matrix should hard-fail). This
     is an important validation because many algorithms assume PSD inputs, and
     invalid inputs can lead to silent failures or nonsensical results.
 
