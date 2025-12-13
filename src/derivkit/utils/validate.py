@@ -178,7 +178,7 @@ def validate_symmetric_psd(
     min_eig = float(np.min(evals)) if evals.size else 0.0
     if min_eig < -psd_atol:
         raise ValueError(
-            f"matrix is not PSD within psd_atol={psd_atol:.2e}; min eigenvalue={min_eig:.2e}."
+            f"matrix is not positive semi-definite within psd_atol={psd_atol:.2e}; min eigenvalue={min_eig:.2e}."
         )
 
     return a
