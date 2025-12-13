@@ -64,3 +64,12 @@ def test_validate_symmetric_psd_rejects_indefinite_matrix():
                   [1.0, 0.0]])
     with pytest.raises(ValueError, match="not positive semi-definite|min eigenvalue"):
         validate_symmetric_psd(a, psd_atol=1e-12)
+
+
+def test_validate_symmetric_psd_accepts_nearly_symmetric_matrix():
+    """Tests that a nearly symmetric matrix within tolerance is accepted."""
+    a = np.array([[2.0, 0.5 + 1e-13],
+                  [0.5, 1.0]])
+    # asymmetry ~1e-13 < sym_atol
+    out = validate_symmetric_psd(a, sym_atol=1e-12)
+    assert out.shape == (2, 2)
