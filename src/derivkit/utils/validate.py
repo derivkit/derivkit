@@ -137,8 +137,7 @@ def validate_symmetric_psd(
 
     Args:
         matrix: Array-like input expected to be a covariance-like matrix.
-        sym_atol: Absolute tolerance for symmetry check. If ``max(|A-A^T|) > sym_atol``,
-            this raises ``ValueError``.
+        sym_atol: Absolute tolerance for symmetry check.
         psd_atol: Absolute tolerance for PSD check. Allows small negative eigenvalues
             down to ``-psd_atol``.
 
