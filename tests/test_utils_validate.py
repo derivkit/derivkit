@@ -59,7 +59,7 @@ def test_validate_symmetric_psd_rejects_asymmetric_matrix():
 
 
 def test_validate_symmetric_psd_rejects_indefinite_matrix():
-    """Tests that a non-positive-symmetric-definite (PSD) matrix is rejected."""
+    """Tests that a non-positive-symmetric-definite matrix is rejected."""
     a = np.array([[0.0, 1.0],
                   [1.0, 0.0]])
     with pytest.raises(ValueError, match="not positive semi-definite|min eigenvalue"):
