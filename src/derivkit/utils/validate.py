@@ -147,7 +147,7 @@ def validate_symmetric_psd(
         the PSD check is performed on the symmetrized form only.
 
     Raises:
-        ValueError: If ``matrix`` is not 2D square, is too asymmetric, contains non-finite
+        ValueError: If ``matrix`` is not 2D, square, is too asymmetric, contains non-finite
             values, or is not PSD within tolerance.
     """
     a = np.asarray(matrix, dtype=float)
