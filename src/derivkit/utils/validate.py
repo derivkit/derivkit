@@ -142,7 +142,7 @@ def validate_symmetric_psd(
             down to ``-psd_atol``.
 
     Returns:
-    A NumPy array view/copy of the input, converted to ``float`` (same values as input).
+        A NumPy array view/copy of the input, converted to ``float`` (same values as input).
 
     Note:
         The input must be symmetric within ``sym_atol``; this function does not
