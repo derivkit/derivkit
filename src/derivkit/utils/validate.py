@@ -165,7 +165,6 @@ def validate_symmetric_psd(
     if not np.all(np.isfinite(a)):
         raise ValueError("matrix contains non-finite values.")
 
-    # Symmetry check (strict)
     skew = a - a.T
     max_abs_skew = float(np.max(np.abs(skew))) if skew.size else 0.0
     if max_abs_skew > sym_atol:
