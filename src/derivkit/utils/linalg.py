@@ -46,7 +46,7 @@ def invert_covariance(
         A 2D NumPy array containing the inverse covariance.
 
     Raises:
-        ValueError: If ``cov`` has more than 2 dimensions.
+        ValueError: If ``cov`` has more than 2 dimensions or is not square when 2D.
     """
     cov = np.asarray(cov, dtype=float)
 
@@ -58,16 +58,10 @@ def invert_covariance(
     elif cov.ndim != 2:
         raise ValueError(f"`cov` must be 0D, 1D, or 2D; got ndim={cov.ndim}.")
 
+    if cov.ndim == 2 and cov.shape[0] != cov.shape[1]:
+        raise ValueError(f"`cov` must be square; got shape={cov.shape}.")
+
     prefix = f"[{warn_prefix}] " if warn_prefix else ""
-
-    # Symmetry check (warn only; do not symmetrize)
-    if not np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12):
-        warnings.warn(
-            f"{prefix}`cov` is not symmetric; proceeding as-is (no symmetrization).",
-            RuntimeWarning,
-        )
-
-    n = cov.shape[0]
 
     # Symmetry check (warn only; do not symmetrize)
     symmetric = np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12)
@@ -76,6 +70,8 @@ def invert_covariance(
             f"{prefix}`cov` is not symmetric; proceeding as-is",
             RuntimeWarning,
         )
+
+    n = cov.shape[0]
 
     # Ill-conditioning warning
     try:
@@ -100,15 +96,11 @@ def invert_covariance(
             inv = np.linalg.inv(cov)
             return np.asarray(inv, dtype=float)
         except np.linalg.LinAlgError:
-            # fall through to pinv with warning
-            warnings.warn(
-                f"{prefix}`cov` inversion failed; using pseudoinverse.",
-                RuntimeWarning,
-            )
+            pass  # fall through to pinv
 
     # Pseudoinverse path — IMPORTANT: hermitian = symmetric flag
     warnings.warn(
-        f"{prefix}`cov` inversion failed; using pseudoinverse.",
+        f"{prefix}`cov` inversion failed; falling back to pseudoinverse (rcond={rcond}).",
         RuntimeWarning,
     )
     inv_cov = np.linalg.pinv(cov, rcond=rcond, hermitian=symmetric).astype(float, copy=False)
