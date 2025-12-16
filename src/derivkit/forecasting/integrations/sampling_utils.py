@@ -18,6 +18,11 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from derivkit.utils.validate import (
+    validate_fisher_shapes,
+    validate_square_matrix,
+)
+
 __all__ = [
     "proposal_cov_from_fisher",
     "stabilized_cholesky",
@@ -25,6 +30,7 @@ __all__ = [
     "apply_hard_bounds_mask",
     "log_gaussian_proposal",
     "init_walkers_from_fisher",
+    "fisher_to_cov",
 ]
 
 
@@ -54,8 +60,7 @@ def proposal_cov_from_fisher(
     Raises:
         ValueError: If ``fisher`` is not a square 2D array.
     """
-    fisher = np.asarray(fisher, float)
-    cov = np.linalg.pinv(fisher)
+    cov = fisher_to_cov(fisher)
     return (float(proposal_scale) ** 2) * cov
 
 
@@ -80,7 +85,9 @@ def stabilized_cholesky(cov: NDArray[np.floating]) -> NDArray[np.floating]:
     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
         raise ValueError(f"cov must be square 2D, got {cov.shape}")
     p = cov.shape[0]
-    jitter = 1e-12 * float(np.trace(cov)) / max(p, 1)
+    tr = float(np.trace(cov))
+    scale = max(tr, 1.0)
+    jitter = 1e-12 * scale / max(p, 1)
     return np.linalg.cholesky(cov + jitter * np.eye(p))
 
 
@@ -95,14 +102,13 @@ def proposal_samples_from_fisher(
     """Draws a Gaussian proposal samples using a Fisher matrix.
 
     This method generates samples from a multivariate normal distribution centered
-     at ``theta0`` with covariance given by a (scaled) pseudoinverse of the Fisher
+    at ``theta0`` with covariance given by a (scaled) pseudoinverse of the Fisher
     matrix. The Fisher matrix is treated as local curvature (inverse covariance)
     at the expansion point, and ``proposal_scale`` controls the overall width of
     the proposal distribution.
 
     Args:
-        theta0: Expansion point (mean of the proposal) with shape ``(p,)``
-        ``p`` parameters.
+        theta0: Expansion point (mean of the proposal), shape ``(p,)`` for ``p`` parameters.
         fisher: Fisher information matrix with shape ``(p, p)``.
         nsamp: Number of samples to draw.
         proposal_scale: Multiplicative scale factor applied to the covariance.
@@ -119,6 +125,8 @@ def proposal_samples_from_fisher(
     """
     rng = np.random.default_rng(seed)
     theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    validate_fisher_shapes(theta0, fisher)
 
     cov = proposal_cov_from_fisher(fisher, proposal_scale=proposal_scale)
     lower_triangle = stabilized_cholesky(cov)
@@ -147,15 +155,18 @@ def apply_hard_bounds_mask(
             If ``None``, no filtering is applied and ``samples`` is returned.
 
     Returns:
-        Subset of ``samples`` that satisfy all bounds, with shape
-        ``(n_kept, p)``.
+        Subset of ``samples`` that satisfy all bounds, shape ``(n_kept, p)``.
+        Note: ``n_kept`` may be zero.
 
     Raises:
-        RuntimeError: If all samples are rejected by the bounds.
         ValueError: If ``hard_bounds`` is provided but does not have length ``p``.
     """
     if hard_bounds is None:
         return samples
+
+    p = samples.shape[1]
+    if len(hard_bounds) != p:
+        raise ValueError(f"hard_bounds must have length p={p}; got {len(hard_bounds)}")
 
     mask = np.ones(samples.shape[0], dtype=bool)
     for j, (lo, hi) in enumerate(hard_bounds):
@@ -165,8 +176,7 @@ def apply_hard_bounds_mask(
             mask &= samples[:, j] <= hi
 
     out = samples[mask]
-    if out.shape[0] == 0:
-        raise RuntimeError("All proposal samples rejected by hard_bounds.")
+
     return out
 
 
@@ -206,13 +216,18 @@ def log_gaussian_proposal(
         ValueError: If input shapes are incompatible.
     """
     theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    validate_fisher_shapes(theta0, fisher)
+
     samples = np.asarray(samples, float)
 
     cov = proposal_cov_from_fisher(fisher, proposal_scale=proposal_scale)
 
     # Match sampling jitter convention to keep logq consistent with draws
     p = theta0.size
-    jitter = 1e-12 * float(np.trace(cov)) / max(p, 1)
+    tr = float(np.trace(cov))
+    scale = max(tr, 1.0)
+    jitter = 1e-12 * scale / max(p, 1)
     cov = cov + jitter * np.eye(p)
 
     sign, logdet = np.linalg.slogdet(cov)
@@ -266,12 +281,17 @@ def init_walkers_from_fisher(
             ``init_scale``).
         ValueError: If input shapes are incompatible.
     """
+    theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    validate_fisher_shapes(theta0, fisher)
+
     if hard_bounds is None:
         return proposal_samples_from_fisher(
             theta0, fisher, nsamp=int(nwalkers), proposal_scale=float(init_scale), seed=seed
         )
 
     # Rejection sampling with cap
+    # because we don't know how many draws will be needed
     out: list[np.ndarray] = []
     need = int(nwalkers)
     tries = 0
@@ -295,3 +315,25 @@ def init_walkers_from_fisher(
         need -= take
 
     return np.vstack(out)
+
+
+def fisher_to_cov(
+        fisher: NDArray[np.floating],
+        *,
+        rcond: float | None = None
+) -> NDArray[np.floating]:
+    """Converts a Fisher matrix to a covariance matrix using pseudoinverse.
+
+    Args:
+        fisher: Fisher information matrix with shape ``(p, p)``.
+        rcond: Cutoff ratio for small singular values in pseudoinverse.
+            If ``None``, the default from ``np.linalg.pinv`` is used.
+
+    Returns:
+        Covariance matrix with shape ``(p, p)`` given by ``pinv(fisher)``.
+
+    Raises:
+        ValueError: If ``fisher`` is not a square 2D array.
+    """
+    fisher = validate_square_matrix(fisher, name="fisher")
+    return np.linalg.pinv(fisher) if rcond is None else np.linalg.pinv(fisher, rcond=rcond)
