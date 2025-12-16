@@ -14,24 +14,24 @@ Conventions
 We expose two conventions that are common in the codebase:
 
 - ``convention="delta_chi2"``:
-    Uses the standard DALI Δχ² form
+    Uses the standard DALI delta_chi2 form
 
-        Δχ² = d^T F d + (1/3) G:d^3 + (1/12) H:d^4
+        delta_chi2 = d^T F d + (1/3) einsum(G, d, d, d) + (1/12) einsum(H, d, d, d, d)
 
     and returns log posterior (up to a constant) as
 
-        log p = -0.5 * Δχ².
+        log p = -0.5 * delta_chi2.
 
 - ``convention="matplotlib_loglike"``:
     Matches the prefactors used in some matplotlib contour scripts:
 
-        log p = -0.5 d^T F d - 0.5 (G:d^3) - 0.125 (H:d^4)
+        log p = -0.5 d^T F d - 0.5 einsum(G, d, d, d) - 0.125 einsum(H, d, d, d, d)
 
     which corresponds to
 
-        Δχ² = d^T F d + (G:d^3) + 0.25 (H:d^4)
+        delta_chi2 = d^T F d + einsum(G, d, d, d) + 0.25 einsum(H, d, d, d, d)
 
-    so that again log p = -0.5 * Δχ².
+    so that again log p = -0.5 * delta_chi2.
 
 GetDist convention
 ------------------
@@ -41,11 +41,11 @@ GetDist expects ``loglikes`` to be the negative log posterior,
 
 up to an additive constant. Since this module defines
 
-    ``log(posterior) = -0.5 * Δχ² + const``,
+    ``log(posterior) = -0.5 * delta_chi2 + const``,
 
 a compatible choice for GetDist is therefore
 
-    ``loglikes = 0.5 * Δχ²``
+    ``loglikes = 0.5 * delta_chi2``
 
 (optionally shifted by a constant for numerical stability).
 
@@ -65,6 +65,7 @@ from typing import Any, Callable, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import (
     validate_dali_shapes,
     validate_fisher_shapes,
@@ -181,9 +182,6 @@ def _resolve_logprior(
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
 
     if logprior is None and (prior_terms is not None or prior_bounds is not None):
-        # Local import avoids import cycles and keeps this module lightweight.
-        from derivkit.forecasting.priors.core import build_prior
-
         return build_prior(terms=prior_terms, bounds=prior_bounds)
 
     return logprior
@@ -203,13 +201,35 @@ def logposterior_fisher(
     If no prior is provided, this returns the Fisher log-likelihood expansion
     (improper flat prior, no hard cutoffs).
 
+    The Fisher approximation corresponds to a purely quadratic delta chi^2 surface,
+
+        delta_chi2 = d^T F d ,
+
+    so the log posterior is
+
+        log p = -0.5 * delta_chi2
+
+    up to an additive constant. This normalization is equivalent to the
+    ``convention="delta_chi2"`` used for DALI and should be used for all
+    scientific results. In this interpretation, fixed delta_chi2 values correspond
+    to fixed probability content (e.g. 68%, 95%) in parameter space, exactly
+    as for a Gaussian likelihood.
+
+    This is the same statistical interpretation used in standard Fisher
+    forecasts and Gaussian likelihood analyses, making Fisher and DALI
+    results directly comparable and statistically well-defined.
+
+    Unlike the DALI case, there is no alternative normalization for the
+    Fisher approximation: the likelihood is strictly Gaussian and fully
+    described by the quadratic form.
+
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
         fisher: Fisher matrix (P, P) with P parameters.
         prior_terms: See module docstring.
         prior_bounds: See module docstring.
-        logprior: See module docstring.
+        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
 
     Returns:
         Scalar log posterior value (up to a constant).
@@ -243,19 +263,33 @@ def delta_chi2_dali(
 ) -> float:
     """Computes a displacement chi-squared under the DALI approximation.
 
+    By default this uses ``convention="delta_chi2"``, which should be used for all
+    scientific results. In this convention, the DALI log-posterior is treated as a
+    standard likelihood, so fixed ``delta_chi2`` values correspond to fixed probability
+    content (e.g. 68%, 95%) in parameter space. This is the same interpretation used for
+    Gaussian likelihoods and Fisher forecasts, making results directly comparable
+    and statistically well-defined.
+
+    The alternative ``convention="matplotlib_loglike"`` follows an older plotting
+    normalization based on equal log-likelihood height rather than probability mass.
+    It is kept only as a visual sanity check or for reproducing legacy figures. For
+    non-Gaussian DALI posteriors, it can change the apparent size and shape of
+    contours and should not be used as the default.
+
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
         fisher: Fisher matrix (P, P) with P parameters.
         g_tensor: DALI cubic tensor (P, P, P).
         h_tensor: DALI quartic tensor (P, P, P, P) or None.
-        convention: See module docstring.
+        convention: Which normalization to use (``"delta_chi2"`` or
+            ``"matplotlib_loglike"``).
 
     Returns:
         Scalar delta chi-squared value.
     """
     if convention not in ("delta_chi2", "matplotlib_loglike"):
-        raise ValueError(f"Unknown convention='{convention}'")
+        raise ValueError(f"Unknown convention='{convention}'. Supported: 'delta_chi2', 'matplotlib_loglike'.")
 
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
@@ -315,7 +349,7 @@ def logposterior_dali(
         convention: See module docstring.
         prior_terms: See module docstring.
         prior_bounds: See module docstring.
-        logprior: See module docstring.
+        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)

@@ -14,9 +14,11 @@ __all__ = [
     "is_finite_and_differentiable",
     "check_scalar_valued",
     "validate_tabulated_xy",
-    "validate_covariance_matrix",
+    "validate_covariance_matrix_shape",
+    "validate_symmetric_psd",
     "validate_fisher_shapes",
     "validate_dali_shapes",
+    "validate_square_matrix",
 ]
 
 def is_finite_and_differentiable(
@@ -106,18 +108,86 @@ def validate_tabulated_xy(
     return x_arr, y_arr
 
 
-def validate_covariance_matrix(cov: ArrayLike) -> NDArray[np.floating]:
-    """Validates and converts a covariance matrix into a NumPy array."""
+def validate_covariance_matrix_shape(cov: ArrayLike) -> NDArray[np.floating]:
+    """Validates covariance input shape: allows 0D/1D/2D; if 2D requires square."""
     cov_arr = np.asarray(cov, dtype=float)
-
     if cov_arr.ndim > 2:
-        raise ValueError(
-            f"cov must be at most two-dimensional; got ndim={cov_arr.ndim}."
-        )
+        raise ValueError(f"cov must be at most two-dimensional; got ndim={cov_arr.ndim}.")
     if cov_arr.ndim == 2 and cov_arr.shape[0] != cov_arr.shape[1]:
         raise ValueError(f"cov must be square; got shape={cov_arr.shape}.")
-
     return cov_arr
+
+
+def validate_symmetric_psd(
+    matrix: ArrayLike,
+    *,
+    sym_atol: np.floating = np.float64(1e-12),
+    psd_atol: np.floating = np.float64(1e-12),
+) -> NDArray[np.floating]:
+    """Validates that an input is a symmetric positive semidefinite (PSD) matrix.
+
+    This is intended for strict validation (e.g., inputs passed to GetDist, or any
+    code path where an indefinite covariance-like matrix should hard-fail). This
+    is an important validation because many algorithms assume PSD inputs, and
+    invalid inputs can lead to silent failures or nonsensical results.
+
+    Policy:
+      - Requires 2D square shape.
+      - Requires near-symmetry within ``sym_atol`` (raises if violated).
+      - After the symmetry check passes, checks PSD by computing eigenvalues of the
+        symmetrized matrix ``S = 0.5 * (A + A.T)`` for numerical robustness, and
+        requires ``min_eig(S) >= -psd_atol``.
+
+    Args:
+        matrix: Array-like input expected to be a covariance-like matrix.
+        sym_atol: Absolute tolerance for symmetry check.
+        psd_atol: Absolute tolerance for PSD check. Allows small negative eigenvalues
+            down to ``-psd_atol``.
+
+    Returns:
+        A NumPy array view/copy of the input, converted to ``float`` (same values as input).
+
+    Note:
+        The input must be symmetric within ``sym_atol``; this function does not
+        modify or symmetrize the returned matrix. The positive semi-definite check uses the
+        symmetrized form ``0.5*(A + A.T)`` only to reduce roundoff sensitivity
+        after the symmetry check passes.
+
+    Raises:
+        ValueError: If ``matrix`` is not 2D, square, is too asymmetric, contains non-finite
+            values, is not PSD within tolerance, if `max(|A - A.T|) > sym_atol``,
+            if ``min_eig(0.5*(A + A.T)) < -psd_atol``, or if eigenvalue computation fails.
+    """
+    a = np.asarray(matrix, dtype=float)
+
+    if a.ndim != 2:
+        raise ValueError(f"matrix must be 2D; got ndim={a.ndim}.")
+    if a.shape[0] != a.shape[1]:
+        raise ValueError(f"matrix must be square; got shape={a.shape}.")
+    if not np.all(np.isfinite(a)):
+        raise ValueError("matrix contains non-finite values.")
+
+    skew = a - a.T
+    max_abs_skew = float(np.max(np.abs(skew))) if skew.size else 0.0
+    if max_abs_skew > sym_atol:
+        raise ValueError(
+            f"matrix must be symmetric within sym_atol={sym_atol:.2e}; "
+            f"max(|A-A^T|)={max_abs_skew:.2e}."
+        )
+
+    s = 0.5 * (a + a.T)
+    try:
+        evals = np.linalg.eigvalsh(s)
+    except np.linalg.LinAlgError as e:
+        raise ValueError("eigenvalue check failed for matrix (LinAlgError).") from e
+
+    min_eig = float(np.min(evals)) if evals.size else 0.0
+    if min_eig < -psd_atol:
+        raise ValueError(
+            f"matrix is not positive semi-definite within psd_atol={psd_atol:.2e}; min eigenvalue={min_eig:.2e}."
+        )
+
+    return a
 
 
 def validate_fisher_shapes(
@@ -191,3 +261,13 @@ def validate_dali_shapes(
             raise ValueError(
                 f"h_tensor must have shape {(p, p, p, p)}, got {h_tensor.shape}"
             )
+
+
+def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
+    """Validates that `a` is a 2D square matrix and return it as float array."""
+    arr = np.asarray(a, dtype=float)
+    if arr.ndim != 2:
+        raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")
+    if arr.shape[0] != arr.shape[1]:
+        raise ValueError(f"{name} must be square; got shape={arr.shape}.")
+    return arr
