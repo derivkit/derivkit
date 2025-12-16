@@ -19,7 +19,6 @@ authors = [
   { name="Nikolina Šarčević", email="nikolina.sarcevic@gmail.com" },
   { name="Matthijs van der Wild", email="matthijs@vanderwild.com" },
   { name="Cynthia Trendafilova", email="cyntrendafilova@gmail.com" },
-  { name="Bastien Carreres", email="bastien.carreres@duke.edu" },
 ]
 description = "A robust toolkit for stable numerical derivatives"
 readme = "README.md"
@@ -46,6 +45,10 @@ license-files = ["LICENSE*"]
 ]
 "lint" = [
     "ruff",
+]
+"getdist" = [
+    "getdist",
+    "emcee",
 ]
 
 [tool.pytest.ini_options]
@@ -87,7 +90,7 @@ envlist = [
 [tool.tox.env_run_base]
 change_dir = "{tox_root}/tests"
 description = "Run tests under {base_python}"
-extras = ["test"]
+extras = ["test", "getdist"]
 allowlist_externals = ["pytest"]
 commands = [
     [
