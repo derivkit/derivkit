@@ -561,9 +561,6 @@ def prior_gaussian_mixture(
     if (covs is None) == (inv_covs is None):
         raise ValueError("Provide exactly one of `covs` or `inv_covs`.")
 
-    # ------------------------------------------------------------------
-    # Build per-component precisions and optional per-component norms
-    # ------------------------------------------------------------------
     if inv_covs is None:
         cov = np.asarray(covs, dtype=float)
         if cov.ndim != 3 or cov.shape != (n, p, p):
@@ -578,7 +575,6 @@ def prior_gaussian_mixture(
                         "include_component_norm=True requires each cov_n to be positive-definite "
                         "(slogdet sign>0 and finite)."
                     )
-                # -0.5 log|C|
                 log_component_norm[i] = -0.5 * logdet
         else:
             log_component_norm = np.zeros(n, dtype=float)
@@ -606,9 +602,6 @@ def prior_gaussian_mixture(
         else:
             log_component_norm = np.zeros(n, dtype=float)
 
-    # ------------------------------------------------------------------
-    # Weights (either linear or log), normalized
-    # ------------------------------------------------------------------
     if (weights is None) == (log_weights is None):
         raise ValueError("Provide exactly one of `weights` or `log_weights`.")
 
@@ -622,7 +615,9 @@ def prior_gaussian_mixture(
         if s <= 0.0:
             raise ValueError("weights must sum to a positive value")
         w = w / s
-        lw = np.log(w)  # ok to contain -inf for zero weights
+        # Allow zero weights without triggering "divide by zero encountered in log"
+        lw = np.full_like(w, -np.inf, dtype=float)
+        np.log(w, out=lw, where=(w > 0))
     else:
         lw_in = np.asarray(log_weights, dtype=float)
         if lw_in.ndim != 1 or lw_in.size != n:

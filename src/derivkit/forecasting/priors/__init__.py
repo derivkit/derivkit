@@ -1,1 +1,1 @@
-"""Forecasting priors."""
+"""Forecasting priors module."""
