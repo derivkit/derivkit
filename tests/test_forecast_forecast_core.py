@@ -444,14 +444,15 @@ def test_fisher_bias_matches_gls_weighted_cov():
     )
 
     delta_nu = np.array([0.7, -1.2], dtype=float)
-    bias_vec, delta_theta = build_fisher_bias(
-        function=linear_model,
-        theta0=theta0,
-        cov=covariance,
-        fisher_matrix=fisher_matrix,
-        delta_nu=delta_nu,
-        n_workers=1,
-    )
+    with pytest.warns(RuntimeWarning, match=r"rank-deficient"):
+        bias_vec, delta_theta = build_fisher_bias(
+            function=linear_model,
+            theta0=theta0,
+            cov=covariance,
+            fisher_matrix=fisher_matrix,
+            delta_nu=delta_nu,
+            n_workers=1,
+        )
 
     expected_bias = design_matrix.T @ (inv_covariance @ delta_nu)
     expected_delta_theta = np.linalg.pinv(fisher_matrix) @ expected_bias
@@ -507,13 +508,14 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
     fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
     delta = np.array([1.0, -0.5], float)
 
-    bias_vec, delta_theta = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta,
-    )
+    with pytest.warns(RuntimeWarning, match=r"rank-deficient"):
+        bias_vec, delta_theta = build_fisher_bias(
+            function=model,
+            theta0=theta0,
+            cov=cov,
+            fisher_matrix=fisher,
+            delta_nu=delta,
+        )
 
     expected_bias = design_matrix.T @ delta
 
@@ -531,11 +533,12 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
                     [1.0, 1.0]], float)  # rank-1
     theta0 = np.zeros(2)
 
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
+    with pytest.warns(RuntimeWarning, match=r"\[get_forecast_tensors\] `cov` (is ill-conditioned|inversion failed)"):
+        fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     delta = np.array([2.0, -1.0], float)
 
-    with pytest.warns(RuntimeWarning, match="covariance solve"):
+    with pytest.warns(RuntimeWarning) as w:
         bias_vec, dtheta = build_fisher_bias(
             function=model,
             theta0=theta0,
@@ -543,6 +546,10 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
             fisher_matrix=fisher,
             delta_nu=delta,
         )
+
+    msgs = "\n".join(str(rec.message) for rec in w)
+    assert "covariance solve" in msgs
+    assert "rank-deficient" in msgs
 
     c_pinv = np.linalg.pinv(cov)
     expected_bias = design_matrix.T @ (c_pinv @ delta)
