@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import warnings
+import logging
 
 import numpy as np
 
@@ -10,6 +10,8 @@ __all__ = [
     "central_difference_error_estimate",
     "relative_error",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def central_difference_error_estimate(step_size: float, order: int = 1) -> float:
@@ -30,10 +32,9 @@ def central_difference_error_estimate(step_size: float, order: int = 1) -> float
 
     # if order higher than 4 we do not support it, but we can still compute the estimate
     if order > 4:
-        warnings.warn(
+        logger.warning(
             "central_difference_error_estimate called with order > 4,"
             " which is not supported by finite_difference module.",
-            UserWarning,
         )
     return step_size**2 / ((order + 1) * (order + 2))
 
