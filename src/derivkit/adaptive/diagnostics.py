@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -15,6 +16,8 @@ __all__ = [
     "make_derivative_diag",
     "fit_is_obviously_bad"
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def format_derivative_diagnostics(
@@ -146,7 +149,7 @@ def print_derivative_diagnostics(
     Returns:
       None
     """
-    print(format_derivative_diagnostics(diag, meta=meta))
+    logger.info(format_derivative_diagnostics(diag, meta=meta))
 
 
 def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:

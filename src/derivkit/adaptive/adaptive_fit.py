@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 
 from derivkit.adaptive.batch_eval import eval_function_batch
@@ -20,6 +22,8 @@ from derivkit.adaptive.polyfit_utils import (
     pullback_derivative_from_fit,
     scale_offsets,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AdaptiveFitDerivative:
@@ -176,7 +180,7 @@ class AdaptiveFitDerivative:
         bad, msg = fit_is_obviously_bad(metrics)
         if bad:
             pretty_suggestions = "\n  ".join(suggestions)
-            print(
+            logger.info(
                 msg
                 + "\nTo improve this derivative, try:\n  "
                 + pretty_suggestions
