@@ -13,7 +13,7 @@ The main features are:
 
 from __future__ import annotations
 
-import warnings
+import logging
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -23,6 +23,9 @@ __all__ = [
     "normalize_covariance",
     "solve_or_pinv",
 ]
+
+logger = logging.getLogger(__name__)
+
 
 def invert_covariance(
     cov: np.ndarray,
@@ -66,10 +69,7 @@ def invert_covariance(
     # Symmetry check (warn only; do not symmetrize)
     symmetric = np.allclose(cov, cov.T, rtol=1e-12, atol=1e-12)
     if not symmetric:
-        warnings.warn(
-            f"{prefix}`cov` is not symmetric; proceeding as-is",
-            RuntimeWarning,
-        )
+        logger.warning(f"{prefix}`cov` is not symmetric; proceeding as-is")
 
     n = cov.shape[0]
 
@@ -77,9 +77,9 @@ def invert_covariance(
     try:
         cond_val = np.linalg.cond(cov)
         if (not np.isfinite(cond_val)) or (cond_val > 1.0 / rcond):
-            warnings.warn(
-                f"{prefix}`cov` is ill-conditioned (cond≈{cond_val:.2e}); results may be unstable.",
-                RuntimeWarning,
+            logger.warning(
+                f"{prefix}`cov` is ill-conditioned (cond≈{cond_val:.2e});"
+                "results may be unstable."
             )
     except np.linalg.LinAlgError:
         pass
@@ -99,9 +99,10 @@ def invert_covariance(
             pass  # fall through to pinv
 
     # Pseudoinverse path — IMPORTANT: hermitian = symmetric flag
-    warnings.warn(
-        f"{prefix}`cov` inversion failed; falling back to pseudoinverse (rcond={rcond}).",
-        RuntimeWarning,
+    logger.warning(
+        f"{prefix}`cov` inversion failed; "
+        "falling back to pseudoinverse "
+        "(rcond={rcond})."
     )
     inv_cov = np.linalg.pinv(cov, rcond=rcond, hermitian=symmetric).astype(float, copy=False)
     return inv_cov
@@ -206,10 +207,9 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
     except np.linalg.LinAlgError:
         rank = n
     if rank < n:
-        warnings.warn(
+        logger.warning(
             f"In {warn_context}, matrix is rank-deficient (rank={rank} < {n}); "
-            f"falling back to pseudoinverse with rcond={rcond}.",
-            RuntimeWarning,
+            f"falling back to pseudoinverse with rcond={rcond}."
         )
         hermitian = np.allclose(matrix, matrix.T, rtol=1e-12, atol=1e-12)
         return (np.linalg.pinv(matrix, rcond=rcond, hermitian=hermitian) @ vector).astype(float, copy=False)
@@ -231,10 +231,9 @@ def solve_or_pinv(matrix: np.ndarray, vector: np.ndarray, *, rcond: float = 1e-1
         except np.linalg.LinAlgError:
             pass
 
-        warnings.warn(
+        logger.warning(
             f"In {warn_context}, the matrix was not SPD or was singular; "
-            f"falling back to pseudoinverse with rcond={rcond}{cond_msg}.",
-            RuntimeWarning,
+            f"falling back to pseudoinverse with rcond={rcond}{cond_msg}."
         )
         hermitian = np.allclose(matrix, matrix.T, rtol=1e-12, atol=1e-12)
         return (np.linalg.pinv(matrix, rcond=rcond, hermitian=hermitian) @ vector).astype(float, copy=False)
