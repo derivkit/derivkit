@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.adaptive.polyfit_utils import assess_polyfit_quality
+from derivkit.logger import derivkit_logger
 
 __all__ = [
     "format_derivative_diagnostics",
@@ -16,8 +16,6 @@ __all__ = [
     "make_derivative_diag",
     "fit_is_obviously_bad"
 ]
-
-logger = logging.getLogger(__name__)
 
 
 def format_derivative_diagnostics(
@@ -149,7 +147,7 @@ def print_derivative_diagnostics(
     Returns:
       None
     """
-    logger.info(format_derivative_diagnostics(diag, meta=meta))
+    derivkit_logger.info(format_derivative_diagnostics(diag, meta=meta))
 
 
 def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:

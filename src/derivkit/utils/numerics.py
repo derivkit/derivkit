@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import logging
-
 import numpy as np
+
+from derivkit.logger import derivkit_logger
 
 __all__ = [
     "central_difference_error_estimate",
     "relative_error",
 ]
-
-logger = logging.getLogger(__name__)
 
 
 def central_difference_error_estimate(step_size: float, order: int = 1) -> float:
@@ -32,7 +30,7 @@ def central_difference_error_estimate(step_size: float, order: int = 1) -> float
 
     # if order higher than 4 we do not support it, but we can still compute the estimate
     if order > 4:
-        logger.warning(
+        derivkit_logger.warning(
             "central_difference_error_estimate called with order > 4,"
             " which is not supported by finite_difference module.",
         )
