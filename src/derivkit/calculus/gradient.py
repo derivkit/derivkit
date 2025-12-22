@@ -25,11 +25,14 @@ def build_gradient(function: Callable,
     Args:
         function (Callable): The function to be differentiated.
         theta0  (array-like): The parameter vector at which the gradient is evaluated.
-        method: Method name or alias (e.g., "adaptive", "finite"). If None,
-            the DerivativeKit default ("adaptive") is used.
-        n_workers (int): Number of workers used by DerivativeKit.adaptive.differentiate.
-                        This setting does not parallelize across parameters. Default is 1.
-        dk_kwargs (dict, optional): Additional keyword arguments passed to DerivativeKit.differentiate.
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default (``"adaptive"``) is used.
+        n_workers (int): Number of workers used by
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+            This setting does not parallelize across parameters. Default is ``1``.
+        dk_kwargs (dict, optional): Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A 1D array representing the gradient.
@@ -71,17 +74,20 @@ def _grad_component(
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 
-    Used inside ``build_gradient`` to find how the function changes with respect
-    to a single parameter while keeping the others fixed.
+    Used inside :func:`derivkit.calculus.gradient.build_gradient` to find how
+    the function changes with respect to a single parameter while keeping the
+    others fixed.
 
     Args:
         function: A function that returns a single value.
         theta0: The parameter values where the derivative is evaluated.
         i: The index of the parameter being varied.
-        method: Method name or alias (e.g., "adaptive", "finite"). If None,
-            the DerivativeKit default ("adaptive") is used.
-        n_workers: Number of workers used for the internal derivative step. Default is 1.
-        dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default (``"adaptive"``) is used.
+        n_workers: Number of workers used for the internal derivative step. Default is ``1``.
+        dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A single number showing how the function changes with that parameter.

@@ -71,7 +71,8 @@ def ridders_extrapolate(
 
     This builds the usual Ridders diagonal assuming a central finite-difference
     scheme (leading error is approximately O(h^2)) by repeatedly extrapolating
-    prefixes of ``base_values``. By default it uses :func:`richardson_extrapolate`
+    prefixes of ``base_values``. By default it uses
+    :func:`derivkit.utils.extrapolation.richardson_extrapolate`
     with ``p=2``, but a different extrapolator can be passed if needed.
 
     Args:
@@ -83,7 +84,8 @@ def ridders_extrapolate(
         extrapolator:
             Function implementing the extrapolation step. Must have the
             signature ``extrapolator(base_values, p, r) -> array_like``.
-            Defaults to :func:`richardson_extrapolate`.
+            Defaults to
+            :func:`derivkit.utils.extrapolation.richardson_extrapolate`.
         p:
             Leading error order passed to ``extrapolator`` (default ``2``).
 

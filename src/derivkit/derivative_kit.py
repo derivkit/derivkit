@@ -44,7 +44,7 @@ Notes:
       ``"adaptive-fit"`` or ``"finite_difference"`` are supported when
       registered.
     - For available canonical method names at runtime, call
-      ``available_methods()``.
+      :func:`derivkit.derivative_kit.available_methods`.
 """
 
 from __future__ import annotations
@@ -143,14 +143,15 @@ def register_method(
     """Register a new derivative method.
 
     Adds a new derivative engine that can be referenced by name in
-    :class:`DerivativeKit`. This function can be called from anywhere in the
-    package (for example, inside a submodule’s ``__init__.py``) and is safe
-    regardless of import order. The internal cache is automatically cleared
-    and rebuilt on the next lookup.
+    :class:`derivkit.derivative_kit.DerivativeKit`. This function can be called
+    from anywhere in the package (for example, inside a submodule’s
+    ``__init__.py``) and is safe regardless of import order. The internal cache
+    is automatically cleared and rebuilt on the next lookup.
 
     Args:
         name: Canonical public name of the method (e.g., ``"gp"``).
-        cls: Engine class implementing the DerivativeEngine protocol.
+        cls: Engine class implementing the
+            :class:`derivkit.derivative_kit.DerivativeEngine` protocol.
         aliases: Additional accepted spellings (e.g., ``"gaussian-process"``).
 
     Example:
@@ -222,8 +223,10 @@ class DerivativeKit:
             function: The function to be differentiated. Must accept a single float
                       and return a scalar or array-like output.
             x0: Point or array of points at which to evaluate the derivative.
-            tab_x: Optional tabulated x values for creating a ``Tabulated1DModel``.
-            tab_y: Optional tabulated y values for creating a ``Tabulated1DModel``.
+            tab_x: Optional tabulated x values for creating a
+                :class:`tabulated_model.one_d.Tabulated1DModel`.
+            tab_y: Optional tabulated y values for creating a
+                :class:`tabulated_model.one_d.Tabulated1DModel`.
         """
         # Enforce "either function or tabulated", not both.
         if function is not None and (tab_x is not None or tab_y is not None):

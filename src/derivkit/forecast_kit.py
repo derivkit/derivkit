@@ -1,9 +1,11 @@
 """Provides the ForecastKit class.
 
 A light wrapper around the core forecasting utilities
-(:func:`build_fisher`, :func:`build_dali`, :func:`build_delta_nu`,
-and :func:`build_fisher_bias`) that exposes a simple API for Fisher
-and DALI tensors.
+(:meth:`derivkit.forecasting.fisher.build_fisher_matrix`,
+:meth:`derivkit.forecasting.dali.build_dali`,
+:meth:`derivkit.forecasting.fisher.build_delta_nu`,
+and :meth:`derivkit.forecasting.fisher.build_fisher_bias`) that exposes a simple
+API for Fisher and DALI tensors.
 
 Typical usage example:
 
@@ -61,11 +63,12 @@ class ForecastKit:
 
         Args:
             method: Derivative method name or alias (e.g., ``"adaptive"``,
-                ``"finite"``). If ``None``, the DerivativeKit default is used.
+                ``"finite"``). If ``None``, the
+                :class:`derivkit.derivative_kit.DerivativeKit` default is used.
             n_workers: Number of workers for per-parameter parallelisation.
                 Default is ``1`` (serial).
             **dk_kwargs: Additional keyword arguments forwarded to
-                :meth:`DerivativeKit.differentiate`.
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
         Returns:
             Fisher matrix with shape ``(n_parameters, n_parameters)``.
@@ -117,11 +120,11 @@ class ForecastKit:
             n_workers: Number of workers used by the internal derivative routine
                 when forming the Jacobian.
             method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-                If ``None``, the DerivativeKit default is used.
+                If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
             rcond: Regularization cutoff for pseudoinverse.
                 Default is ``1e-12``.
             **dk_kwargs: Additional keyword arguments passed to
-                ``DerivativeKit.differentiate``.
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
         Returns:
             A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,
@@ -199,11 +202,13 @@ class ForecastKit:
 
         Args:
             method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-                If ``None``, the DerivativeKit default is used.
+                If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+                default is used.
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
-            dk_kwargs: Additional keyword arguments passed to the CalculusKit.
+            dk_kwargs: Additional keyword arguments passed to
+                :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
             A tuple ``(G, H)`` where ``G`` has shape ``(P, P, P)`` and ``H``

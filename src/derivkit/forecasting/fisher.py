@@ -36,7 +36,8 @@ def build_fisher_matrix(
         theta0: 1D array-like of fiducial parameters (single expansion point).
             This helper currently assumes a single expansion point; if you need
             multiple expansion points with different covariances, call this
-            function in a loop or work directly with ForecastKit.
+            function in a loop or work directly with
+            :class:`derivkit.forecast_kit.ForecastKit`.
         cov: Covariance matrix of the observables. Must be square with shape
             ``(n_observables, n_observables)``.
         method: Derivative method name or alias (e.g., ``"adaptive"``,
@@ -46,7 +47,7 @@ def build_fisher_matrix(
         n_workers: Number of workers for per-parameter parallelisation.
             Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to
-            :meth:`DerivativeKit.differentiate`.
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Fisher matrix with shape ``(n_parameters, n_parameters)``.
@@ -96,7 +97,8 @@ def build_fisher_bias(
         theta0: 1D array-like of fiducial parameters (single expansion point).
             This helper currently assumes a single expansion point; if you need
             multiple expansion points with different covariances, call this
-            function in a loop or work directly with ForecastKit.
+            function in a loop or work directly with
+            :class:`derivkit.forecast_kit.ForecastKit`.
         cov: The covariance matrix of the observables. Must be a square
             matrix with shape ``(n_observables, n_observables)``, where
             ``n_observables`` is the number of observables returned by the
@@ -115,7 +117,8 @@ def build_fisher_bias(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
-        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,

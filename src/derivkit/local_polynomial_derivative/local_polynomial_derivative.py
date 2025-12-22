@@ -38,7 +38,8 @@ class LocalPolynomialDerivative:
             x0:
                 The point at which to estimate the derivative.
             config:
-                An optional LocalPolyConfig instance with configuration settings.
+                An optional :class:`derivkit.local_polynomial_derivative.local_poly_config.LocalPolyConfig`
+                instance with configuration settings.
         """
         self.func = func
         self.x0 = float(x0)

@@ -53,8 +53,8 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
             input of the function.
         i: Zero-based index of the parameter with respect to which to differentiate.
         n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+            This does not parallelize across parameters.
 
     Raises:
         TypeError: If ``function`` does not return a scalar value.

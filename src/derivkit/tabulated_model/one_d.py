@@ -7,8 +7,8 @@ tensor-valued outputs.
 Two common entry points are:
 
 * Direct construction with ``(x, y)`` arrays of shape ``(N,)`` and ``(N, ...)``.
-* :func:`tabulated1d_from_table` for simple 2D tables containing x and one
-  or more y components in columns.
+* :func:`derivkit.tabulated_model.one_d.tabulated1d_from_table` for simple 2D
+  tables containing x and one or more y components in columns.
 """
 
 
@@ -165,7 +165,8 @@ def tabulated1d_from_table(
     For multi-component tables, the resulting ``y`` has shape ``(N, M)``.
     Higher-rank outputs (for example matrices or tensors associated with
     each x) are not encoded via this table format. Such data must be loaded
-    and reshaped prior to constructing a :class:`Tabulated1DModel` directly
+    and reshaped prior to constructing a
+    :class:`derivkit.tabulated_model.one_d.Tabulated1DModel` directly
     from ``(x, y)``.
 
     Args:
@@ -179,7 +180,8 @@ def tabulated1d_from_table(
             disabled.
 
     Returns:
-        A :class:`Tabulated1DModel` constructed from the parsed table.
+        A :class:`derivkit.tabulated_model.one_d.Tabulated1DModel` constructed
+        from the parsed table.
     """
     x, y = parse_xy_table(table)
     return Tabulated1DModel(x, y, extrapolate=extrapolate, fill_value=fill_value)
@@ -205,7 +207,7 @@ def parse_xy_table(
     This function does not handle tensor-valued outputs directly.
     When each x corresponds to a matrix or higher-rank object, the data
     must be parsed and reshaped prior to constructing a
-    :class:`Tabulated1DModel`.
+    :class:`derivkit.tabulated_model.one_d.Tabulated1DModel`.
 
     Args:
         table: 2D array containing x and y columns (e.g. data loaded from a text
