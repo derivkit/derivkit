@@ -81,9 +81,10 @@ class Tabulated1DModel:
 
         Args:
             x: Strictly increasing tabulated x values with shape ``(N,)``.
-            y: Tabulated y values with shape ``(N,)`` (scalar) or ``(N, ...)`` (vector/tensor).
-               The first dimension must match ``x``.
-            extrapolate: Whether to allow evaluation outside the x range. Default is False.
+            y: Tabulated y values with shape ``(N,)`` (scalar) or ``(N, ...)``
+                (vector/tensor). The first dimension must match ``x``.
+            extrapolate: Whether to allow evaluation outside the x range.
+                Default is ``False``.
             fill_value: Value for out-of-bounds evaluation when extrapolation is
                 disabled. If ``None``, a ``ValueError`` is raised instead.
         """
@@ -113,8 +114,8 @@ class Tabulated1DModel:
             y output shape.
 
         Raises:
-            ValueError: If evaluating outside the x range with extrapolation disabled
-                and no fill_value is provided.
+            ValueError: If evaluating outside the x range with extrapolation
+                disabled and no fill_value is provided.
         """
         x_new_arr = np.asarray(x_new, dtype=float)
         flat_x = x_new_arr.ravel()
@@ -150,7 +151,7 @@ def tabulated1d_from_table(
     extrapolate: bool = False,
     fill_value: float | None = None,
 ) -> Tabulated1DModel:
-    """Creates a Tabulated1DModel from a simple 2D ``(x, y)`` table.
+    """Creates a ``Tabulated1DModel`` from a simple 2D ``(x, y)`` table.
 
     This helper covers the common case where data are stored in a 2D array
     or text file with x in one column and one or more y components in the

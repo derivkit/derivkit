@@ -33,7 +33,8 @@ def is_finite_and_differentiable(
       delta: Small forward step.
 
     Returns:
-      True if finite at both points; otherwise False.
+      A boolean which is ``True`` if the input is finite at both points
+      and ``False`` otherwise.
     """
     f0 = np.asarray(function(x))
     f1 = np.asarray(function(x + delta))

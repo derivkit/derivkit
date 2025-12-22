@@ -114,7 +114,8 @@ def _compute_component_hessian(
     Args:
         idx: Flat index into ``function(theta)`` after raveling.
         theta: Parameter vector where derivatives are evaluated.
-        method: Derivative method name or alias (e.g., "adaptive", "finite").
+        method: Derivative method name or alias
+            (e.g., ``"adaptive"``, ``"finite"``).
         inner_workers: Optional parallelism hint for the differentiation engine.
         return_diag: If True, return only the diagonal entries.
         dk_kwargs: Extra options forwarded to ``DerivativeKit.differentiate``.
@@ -169,7 +170,7 @@ def _build_hessian_scalar_full(
     Args:
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., "adaptive", "finite").
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
         outer_workers: Number of outer parallel workers for Hessian entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.
@@ -229,7 +230,7 @@ def _build_hessian_scalar_diag(
     Args:
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., "adaptive", "finite").
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
         outer_workers: Number of outer parallel workers for diagonal entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments for DerivativeKit.differentiate.

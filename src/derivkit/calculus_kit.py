@@ -43,9 +43,10 @@ class CalculusKit:
         """Initialises class with function and expansion point.
 
         Args:
-            function: The function to be differentiated. Accepts a 1D array-like. Must return
-                      either a scalar (for gradient/Hessian) or a 1D array (for Jacobian).
-            x0: Point at which to evaluate derivatives (shape (P,)).
+            function: The function to be differentiated. Accepts a 1D
+                array-like. Must return either a scalar (for gradient/Hessian)
+                or a 1D array (for Jacobian).
+            x0: Point at which to evaluate derivatives (shape ``(P,)``).
         """
         self.function = function
         self.x0 = np.asarray(x0, dtype=float)

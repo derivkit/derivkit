@@ -65,12 +65,14 @@ class LocalPolynomialDerivative:
 
         Args:
             order: The order of the derivative to estimate (must be >= 1).
-            degree: The degree of the polynomial fit. If None, it is set to max(order +
-                2, 3) but capped by ``config.max_degree``.
-            n_workers: The number of parallel workers for function evaluation (must be >= 1).
-            return_error: If True, also returns a relative error estimate based on the disagreement
-                between trimmed and least-squares fits.
-            diagnostics: If True, returns a diagnostics dictionary along with the derivative estimate.
+            degree: The degree of the polynomial fit. If ``None``, it is set to
+                ``max(order + 2, 3)`` but capped by ``self.config.max_degree``.
+            n_workers: The number of parallel workers for function evaluation
+                (must be >= 1).
+            return_error: If ``True``, also returns a relative error estimate
+                based on the disagreement between trimmed and least-squares fits.
+            diagnostics: If ``True``, returns a diagnostics dictionary along with
+                the derivative estimate.
 
         Returns:
             The return type depends on ``return_error`` and ``diagnostics``:
