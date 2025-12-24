@@ -535,20 +535,27 @@ def prior_beta(
     alpha: float | np.floating,
     beta: float | np.floating,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Constructs a Beta prior for a single parameter in (0, 1).
+    """Constructs a Beta distribution prior for a single parameter in ``(0, 1)``.
 
-    This prior has density proportional to ``x^(alpha-1) * (1-x)^(beta-1)`` for ``x in (0, 1)``.
+    This prior uses the Beta density on ``x in (0, 1)``, with shape parameters
+    ``alpha > 0`` and ``beta > 0``. The returned callable evaluates the
+    corresponding log-density up to an additive constant (the normalization
+    constant does not depend on ``x`` and is therefore omitted).
+
+    The (unnormalized) density is proportional to::
+
+        x**(alpha - 1) * (1 - x)**(beta - 1)
 
     Args:
         index: Index of the parameter to which the prior applies.
-        alpha: Alpha shape parameter (> 0).
-        beta: Beta shape parameter (> 0).
+        alpha: Alpha shape parameter (must be greater than 0).
+        beta: Beta shape parameter (must be greater than 0).
 
     Returns:
-        Callable log-prior: logp(theta) -> float
+        Callable log-prior: ``logp(theta) -> float``.
 
     Raises:
-        ValueError: If `alpha` or `beta` are not positive.
+        ValueError: If ``alpha`` or ``beta`` are not positive.
     """
     if alpha <= 0.0 or beta <= 0.0:
         raise ValueError("alpha and beta must be > 0")
