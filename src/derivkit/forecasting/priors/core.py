@@ -56,7 +56,7 @@ def _prior_none_impl(
     Returns:
         Callable log-prior: ``logp(theta) -> 0.0``
     """
-    _ = theta  # unused
+    _ = theta
     return 0.0
 
 
@@ -89,7 +89,6 @@ def _prior_1d_impl(
     """
     x = get_index_value(theta, index, name="theta")
 
-    # domain gate
     if domain == "positive":
         if x <= 0.0:
             return -np.inf
@@ -102,7 +101,6 @@ def _prior_1d_impl(
     else:
         raise ValueError(f"unknown domain '{domain}'")
 
-    # Define different prior shapes here
     if kind == "log_uniform":
         return float(-np.log(x))
 
@@ -658,7 +656,6 @@ def prior_gaussian_mixture(
         if s <= 0.0:
             raise ValueError("weights must sum to a positive value")
         w = w / s
-        # Allow zero weights without triggering "divide by zero encountered in log"
         lw = np.full_like(w, -np.inf, dtype=np.float64)
         np.log(w, out=lw, where=(w > 0))
     else:
@@ -670,7 +667,6 @@ def prior_gaussian_mixture(
     if not (np.all(np.isfinite(mus)) and np.all(np.isfinite(inv_cov_n))):
         raise ValueError("mixture prior inputs must be finite")
 
-    # allow -inf (zero-weight components), forbid nan / +inf
     if np.any(np.isnan(lw)) or np.any(lw == np.inf):
         raise ValueError("log_weights must not contain nan or +inf")
 
@@ -729,7 +725,6 @@ def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], f
     term_bounds = spec.get("bounds", None)
 
     if name == "uniform":
-        # allow either params["bounds"] or spec["bounds"] (but not both)
         pb = params.get("bounds", None)
         if pb is not None and term_bounds is not None:
             raise ValueError(
@@ -788,7 +783,6 @@ def build_prior(
     """
     term_list = [] if terms is None else list(terms)
 
-    # Empty -> either flat or bounded-uniform
     if len(term_list) == 0:
         base = prior_none() if bounds is None else prior_uniform(bounds=bounds)
         return base
@@ -808,9 +802,7 @@ def build_prior(
             raise TypeError("Term params must be a dict.")
         specs.append({"name": str(name), "params": dict(params)})
 
-    # Use existing builder for dict-spec terms (supports per-term bounds, uniform special case)
     built_terms = [_make_prior_term(s) for s in specs]
     combined = sum_terms(*built_terms)
 
-    # Global bounds apply last
     return apply_hard_bounds(combined, bounds=bounds)
