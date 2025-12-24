@@ -66,8 +66,8 @@ def relative_error(a: np.ndarray, b: np.ndarray) -> float:
     Returns:
         The relative error metric as a float.
     """
-    a = np.asarray(a, dtype=float)
-    b = np.asarray(b, dtype=float)
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
     denom = np.maximum(1.0, np.maximum(np.abs(a), np.abs(b)))
     return float(np.max(np.abs(a - b) / denom))
 
@@ -76,24 +76,24 @@ def evaluate_logprior(
         theta: ArrayLike,
         logprior: Callable[[NDArray[np.floating]], np.floating] | None,
 ) -> np.floating:
-    """Evaluates a log-prior and attempts to handle non-finite values.
+    """Evaluates a user-supplied log-prior callable at ``theta``.
 
-    If ``logprior`` is ``None``, this function assumes a flat prior and returns zero.
-    If a prior is provided, its output is interpreted as a log-density
-    defined up to an additive constant. Any non-finite value (e.g., ``-np.inf`` or
+    If ``logprior`` is ``None``, a flat prior is assumed and this returns ``0.0``.
+    If a callable is provided, its output is interpreted as a log-density defined
+    up to an additive constant. Any non-finite output (e.g., ``-np.inf`` or
     ``np.nan``) is treated as zero probability and mapped to ``-np.inf``.
 
     Args:
         theta: Parameter vector at which to evaluate the prior.
-        logprior: Callable returning the log-prior density, or ``None`` to indicate a flat prior.
+        logprior: Callable returning the log-prior density, or ``None`` to indicate
+            a flat prior.
 
     Returns:
-        The log-prior value at ``theta``. If the prior assigns zero probability to
-        that point, returns ``-np.inf``.
+        Log-prior value at ``theta`` (finite or ``-np.inf``).
     """
     if logprior is None:
         return np.float64(0.0)
-    v = np.float64(logprior(np.asarray(theta, dtype=float)))
+    v = np.float64(logprior(np.asarray(theta, dtype=np.float64)))
     return v if np.isfinite(v) else np.float64(-np.inf)
 
 
@@ -163,7 +163,7 @@ def apply_hard_bounds(
 
     def bounded(theta: NDArray[np.floating]) -> np.floating:
         """Evaluates the bounded log-density term."""
-        th = np.asarray(theta, dtype=float)
+        th = np.asarray(theta, dtype=np.float64)
         v = np.float64(-np.inf)
         if is_in_bounds(th, bounds):
             v = np.float64(term(th))
@@ -199,7 +199,7 @@ def sum_terms(
 
     def summed(theta: NDArray[np.floating]) -> np.floating:
         """Evaluates the summed log-density terms."""
-        th = np.asarray(theta, dtype=float)
+        th = np.asarray(theta, dtype=np.float64)
         total = np.float64(0.0)
         for f in terms:
             v = np.float64(f(th))
@@ -228,7 +228,7 @@ def as_1d_float_array(x: ArrayLike, *, name: str = "x") -> NDArray[np.float64]:
     Raises:
         ValueError: If the converted array is not 1D.
     """
-    arr = np.asarray(x, dtype=float)
+    arr = np.asarray(x, dtype=np.float64)
     if arr.ndim != 1:
         raise ValueError(f"{name} must be 1D, got shape {arr.shape}")
     return arr.astype(np.float64, copy=False)
@@ -273,7 +273,7 @@ def logsumexp_1d(x: ArrayLike) -> float:
     Raises:
         ValueError: If x is not 1D.
     """
-    arr = np.asarray(x, dtype=float)
+    arr = np.asarray(x, dtype=np.float64)
     if arr.ndim != 1:
         raise ValueError(f"logsumexp_1d expects a 1D array, got shape {arr.shape}")
 
