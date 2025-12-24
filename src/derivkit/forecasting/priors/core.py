@@ -47,9 +47,9 @@ __all__ = [
 
 
 def _prior_none_impl(
-        theta: NDArray[np.floating]
+    theta: NDArray[np.floating]
 ) -> float:
-    """Internal helper that implements an improper flat prior.
+    """Returns a constant log-prior (improper flat prior).
 
     Args:
         theta: Parameter vector (unused).
@@ -149,7 +149,7 @@ def _prior_gaussian_impl(
     mean: NDArray[np.floating],
     inv_cov: NDArray[np.floating],
 ) -> float:
-    """Internal helper that implements a multivariate Gaussian log-prior term (up to an additive constant).
+    """Evaluates a multivariate Gaussian log-prior (up to an additive constant).
 
     Args:
         theta: Parameter vector.
@@ -184,7 +184,7 @@ def _prior_gaussian_diag_impl(
     mean: NDArray[np.floating],
     inv_cov: NDArray[np.floating],
 ) -> float:
-    """Internal helper that implements a diagonal multivariate Gaussian log-prior term (up to an additive constant).
+    """Evaluates a diagonal multivariate Gaussian log-prior (up to an additive constant).
 
     Args:
         theta: Parameter vector.
@@ -225,7 +225,7 @@ def _prior_gaussian_diag_impl(
 def _prior_gaussian_mixture_impl(
     theta: NDArray[np.floating],
     *,
-    mean: NDArray[np.floating],
+    means: NDArray[np.floating],
     inv_covs: NDArray[np.floating],
     log_weights: NDArray[np.floating],
     log_component_norm: NDArray[np.floating],
@@ -234,10 +234,10 @@ def _prior_gaussian_mixture_impl(
 
     This function computes the log of a weighted sum of Gaussian components:
 
-        ``p(theta) = sum_n w_n * N(theta | mean_n, cov_n)``
-    where N(theta | mean, cov) is the multivariate Gaussian density with the
-    specified mean and covariance; w_n are the mixture weights (in log-space); and
-    the sum runs over the `n=1..N`` components.
+        ``p(theta) = sum_n w_n * N(theta | means_n, cov_n)``
+    where ``N(theta | mean, cov)`` is the multivariate Gaussian density with the
+    specified mean and covariance; ``w_n` are the mixture weights (in log-space); and
+    the sum runs over the ``n=1..N`` components.
 
     The result is a log-density defined up to an additive constant.
 
@@ -253,7 +253,7 @@ def _prior_gaussian_mixture_impl(
 
     Args:
         theta: Parameter vector ``theta`` with shape ``(p,)``.
-        mean: Component means with shape ``(n, p)``.
+        means: Component means with shape ``(n, p)``.
         inv_covs: Component inverse covariances with shape ``(n, p, p)``.
         log_weights: Log-weights for the ``n`` components with shape ``(n,)``.
         log_component_norm: Per-component log-normalization terms with shape
@@ -267,7 +267,7 @@ def _prior_gaussian_mixture_impl(
         ValueError: If input arrays have incompatible shapes or dimensions.
     """
     thetas = np.asarray(theta, dtype=np.float64)
-    means = np.asarray(mean, dtype=np.float64)
+    means = np.asarray(means, dtype=np.float64)
     inv_covs = np.asarray(inv_covs, dtype=np.float64)
     log_weights = np.asarray(log_weights, dtype=np.float64)
     log_comp_norm = np.asarray(log_component_norm, dtype=np.float64)
@@ -404,8 +404,8 @@ def prior_gaussian_diag(
 
 
 def prior_log_uniform(
-        *,
-        index: int,
+    *,
+    index: int,
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a log-uniform prior for a single positive parameter.
 
@@ -688,7 +688,7 @@ def prior_gaussian_mixture(
 
     return partial(
         _prior_gaussian_mixture_impl,
-        mean=means,
+        means=means,
         inv_covs=inv_cov_n,
         log_weights=lw,
         log_component_norm=log_component_norm,
