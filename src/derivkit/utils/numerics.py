@@ -218,7 +218,7 @@ def as_1d_float_array(x: ArrayLike, *, name: str = "x") -> NDArray[np.float64]:
     """Convert input to a 1D float array.
 
     This is a small convenience for model/likelihood/prior code that expects
-    parameter vectors. It performs a minimal shape check (must be 1D) and
+    parameter vectors. It performs a shape check (the array must be 1D) and
     ensures a float dtype.
 
     Args:
