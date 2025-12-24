@@ -772,7 +772,17 @@ def build_prior(
     terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     bounds: Sequence[tuple[float | np.floating | None, float | np.floating | None]] | None = None,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Builds a ``logprior(theta) -> float`` callable from a unified specification.
+    """Constructs and returns a single log-prior callable from a unified prior specification.
+
+    This function takes a list of prior terms (each specified either as a
+    ``(name, params)`` tuple or as a dict with keys like ``name``, ``params``,
+    and optional per-term ``bounds``), builds each term using the internal
+    registry, sums the resulting log-priors, and then applies optional global
+    hard bounds.
+
+    If no terms are provided, the behavior falls back to a simple default:
+    it returns an improper flat prior when ``bounds`` is ``None``, and a uniform
+    top-hat prior over ``bounds`` otherwise.
 
     Args:
         terms: Sequence of prior term specifications (see below).
