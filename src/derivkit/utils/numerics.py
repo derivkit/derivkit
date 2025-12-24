@@ -39,6 +39,9 @@ def central_difference_error_estimate(step_size: float, order: int = 1) -> float
 
     Returns:
         Estimated truncation error scale.
+
+    Raises:
+        ValueError: If order is not a positive integer.
     """
     if order < 1:
         raise ValueError("order must be a positive integer.")
