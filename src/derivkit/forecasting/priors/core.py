@@ -64,8 +64,8 @@ def _prior_1d_impl(
     index: int,
     domain: str,
     kind: str,
-    a: float = 0.0,
-    b: float = 1.0,
+    a: float | np.floating = 0.0,
+    b: float | np.floating = 1.0,
 ) -> float:
     """A generic 1D prior implementation.
 
@@ -133,10 +133,10 @@ def _prior_1d_impl(
 
 
 def _prior_gaussian_impl(
-        theta: NDArray[np.floating],
-        *,
-        mean: NDArray[np.floating],
-        inv_cov: NDArray[np.floating]
+    theta: NDArray[np.floating],
+    *,
+    mean: NDArray[np.floating],
+    inv_cov: NDArray[np.floating],
 ) -> float:
     """Internal helper that implements a multivariate Gaussian log-prior term (up to an additive constant).
 
@@ -148,9 +148,9 @@ def _prior_gaussian_impl(
     Returns:
         Log-prior value.
     """
-    th = np.asarray(theta, dtype=float)
-    mu = np.asarray(mean, dtype=float)
-    inv_cov = np.asarray(inv_cov, dtype=float)
+    th = np.asarray(theta, dtype=np.float64)
+    mu = np.asarray(mean, dtype=np.float64)
+    inv_cov = np.asarray(inv_cov, dtype=np.float64)
 
     if mu.ndim != 1:
         raise ValueError(f"mean must be 1D, got shape {mu.shape}")
@@ -179,9 +179,9 @@ def _prior_gaussian_diag_impl(
     Returns:
         Log-prior value.
     """
-    th = np.asarray(theta, dtype=float)
-    mu = np.asarray(mean, dtype=float)
-    inv_cov = np.asarray(inv_cov, dtype=float)
+    th = np.asarray(theta, dtype=np.float64)
+    mu = np.asarray(mean, dtype=np.float64)
+    inv_cov = np.asarray(inv_cov, dtype=np.float64)
 
     if mu.ndim != 1:
         raise ValueError(f"mean must be 1D, got shape {mu.shape}")
@@ -244,11 +244,11 @@ def _prior_gaussian_mixture_impl(
         The mixture log-prior value at ``theta`` (a finite float or ``-np.inf`` if
         the caller enforces hard bounds elsewhere).
     """
-    th = np.asarray(theta, dtype=float)
-    mus = np.asarray(means, dtype=float)
-    inv_covs = np.asarray(inv_covs, dtype=float)
-    lw = np.asarray(log_weights, dtype=float)
-    lcn = np.asarray(log_component_norm, dtype=float)
+    th = np.asarray(theta, dtype=np.float64)
+    mus = np.asarray(means, dtype=np.float64)
+    inv_covs = np.asarray(inv_covs, dtype=np.float64)
+    lw = np.asarray(log_weights, dtype=np.float64)
+    lcn = np.asarray(log_component_norm, dtype=np.float64)
 
     if th.ndim != 1:
         raise ValueError(f"theta must be 1D, got shape {th.shape}")
@@ -264,7 +264,7 @@ def _prior_gaussian_mixture_impl(
     if lcn.ndim != 1 or lcn.size != n:
         raise ValueError(f"log_component_norm must be (n,), got shape {lcn.shape}")
 
-    vals = np.empty(n, dtype=float)
+    vals = np.empty(n, dtype=np.float64)
     for i in range(n):
         d = th - mus[i]
         vals[i] = lw[i] + lcn[i] - 0.5 * float(d @ inv_covs[i] @ d)
@@ -285,7 +285,7 @@ def prior_none() -> Callable[[NDArray[np.floating]], float]:
 
 def prior_uniform(
     *,
-    bounds: Sequence[tuple[float | None, float | None]],
+    bounds: Sequence[tuple[float | np.floating | None, float | np.floating | None]],
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a uniform prior with hard bounds.
 
@@ -331,7 +331,7 @@ def prior_gaussian(
     if (cov is None) == (inv_cov is None):
         raise ValueError("Provide exactly one of `cov` or `inv_cov`.")
 
-    mu = np.asarray(mean, dtype=float)
+    mu = np.asarray(mean, dtype=np.float64)
     if mu.ndim != 1:
         raise ValueError(f"mean must be 1D, got shape {mu.shape}")
 
@@ -339,7 +339,7 @@ def prior_gaussian(
         cov = normalize_covariance(cov, n_parameters=mu.size)
         inv_cov = invert_covariance(cov, warn_prefix="prior_gaussian")
     else:
-        inv_cov = np.asarray(inv_cov, dtype=float)
+        inv_cov = np.asarray(inv_cov, dtype=np.float64)
         if inv_cov.ndim != 2 or inv_cov.shape != (mu.size, mu.size):
             raise ValueError(f"inv_cov must have shape (p,p) with p={mu.size}, got {inv_cov.shape}")
         if not np.all(np.isfinite(inv_cov)):
@@ -369,8 +369,8 @@ def prior_gaussian_diag(
         ValueError: If `mean` and `sigma` have incompatible shapes,
             or if any `sigma` entries are non-positive.
     """
-    mu = np.asarray(mean, dtype=float)
-    sig = np.asarray(sigma, dtype=float)
+    mu = np.asarray(mean, dtype=np.float64)
+    sig = np.asarray(sigma, dtype=np.float64)
 
     if mu.ndim != 1 or sig.ndim != 1 or mu.shape != sig.shape:
         raise ValueError("mean and sigma must be 1D arrays with the same shape")
@@ -416,7 +416,7 @@ def prior_jeffreys(*, index: int) -> Callable[[NDArray[np.floating]], float]:
     return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_uniform")
 
 
-def prior_half_normal(*, index: int, sigma: float) -> Callable[[NDArray[np.floating]], float]:
+def prior_half_normal(*, index: int, sigma: float | np.floating) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a half-normal prior for a single non-negative parameter.
 
     This prior has density proportional to exp(-0.5 * (x/sigma)^2) for x >= 0.
@@ -437,7 +437,7 @@ def prior_half_normal(*, index: int, sigma: float) -> Callable[[NDArray[np.float
     return partial(_prior_1d_impl, index=int(index), domain="nonnegative", kind="half_normal", a=s)
 
 
-def prior_half_cauchy(*, index: int, scale: float) -> Callable[[NDArray[np.floating]], float]:
+def prior_half_cauchy(*, index: int, scale: float | np.floating) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a half-Cauchy prior for a single non-negative parameter.
 
     This prior has density proportional to 1 / (1 + (x/scale)^2) for x >= 0,
@@ -462,8 +462,8 @@ def prior_half_cauchy(*, index: int, scale: float) -> Callable[[NDArray[np.float
 def prior_log_normal(
         *,
         index: int,
-        mean_log: float,
-        sigma_log: float
+        mean_log: float | np.floating,
+        sigma_log: float | np.floating
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a log-normal prior for a single positive parameter.
 
@@ -487,7 +487,12 @@ def prior_log_normal(
     return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_normal", a=float(mean_log), b=s)
 
 
-def prior_beta(*, index: int, alpha: float, beta: float) -> Callable[[NDArray[np.floating]], float]:
+def prior_beta(
+        *,
+        index: int,
+        alpha: float | np.floating,
+        beta: float | np.floating,
+) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a Beta prior for a single parameter in (0, 1).
 
     This prior has density proportional to x^(alpha-1) * (1-x)^(beta-1) for x in (0, 1).
@@ -551,7 +556,7 @@ def prior_gaussian_mixture(
     Returns:
         Callable log-prior: logp(theta) -> float.
     """
-    mus = np.asarray(means, dtype=float)
+    mus = np.asarray(means, dtype=np.float64)
     if mus.ndim != 2:
         raise ValueError(f"means must be (n, p), got shape {mus.shape}")
     n, p = mus.shape
@@ -562,12 +567,12 @@ def prior_gaussian_mixture(
         raise ValueError("Provide exactly one of `covs` or `inv_covs`.")
 
     if inv_covs is None:
-        cov = np.asarray(covs, dtype=float)
+        cov = np.asarray(covs, dtype=np.float64)
         if cov.ndim != 3 or cov.shape != (n, p, p):
             raise ValueError(f"covs must be (n, p, p) with n={n}, p={p}, got shape {cov.shape}")
 
         if include:
-            log_component_norm = np.empty(n, dtype=float)
+            log_component_norm = np.empty(n, dtype=np.float64)
             for i in range(n):
                 sign, logdet = np.linalg.slogdet(cov[i])
                 if sign <= 0 or not np.isfinite(logdet):
@@ -577,19 +582,19 @@ def prior_gaussian_mixture(
                     )
                 log_component_norm[i] = -0.5 * logdet
         else:
-            log_component_norm = np.zeros(n, dtype=float)
+            log_component_norm = np.zeros(n, dtype=np.float64)
 
         inv_cov_n = np.empty_like(cov)
         for i in range(n):
             inv_cov_n[i] = invert_covariance(cov[i], warn_prefix="prior_gaussian_mixture")
 
     else:
-        inv_cov_n = np.asarray(inv_covs, dtype=float)
+        inv_cov_n = np.asarray(inv_covs, dtype=np.float64)
         if inv_cov_n.ndim != 3 or inv_cov_n.shape != (n, p, p):
             raise ValueError(f"inv_covs must be (n, p, p) with n={n}, p={p}, got shape {inv_cov_n.shape}")
 
         if include:
-            log_component_norm = np.empty(n, dtype=float)
+            log_component_norm = np.empty(n, dtype=np.float64)
             for i in range(n):
                 sign, logdet = np.linalg.slogdet(inv_cov_n[i])
                 if sign <= 0 or not np.isfinite(logdet):
@@ -600,13 +605,13 @@ def prior_gaussian_mixture(
                 # -0.5 log|C| = +0.5 log|C^{-1}|
                 log_component_norm[i] = 0.5 * logdet
         else:
-            log_component_norm = np.zeros(n, dtype=float)
+            log_component_norm = np.zeros(n, dtype=np.float64)
 
     if (weights is None) == (log_weights is None):
         raise ValueError("Provide exactly one of `weights` or `log_weights`.")
 
     if weights is not None:
-        w = np.asarray(weights, dtype=float)
+        w = np.asarray(weights, dtype=np.float64)
         if w.ndim != 1 or w.size != n:
             raise ValueError(f"weights must be (n,) with n={n}, got shape {w.shape}")
         if np.any(w < 0.0):
@@ -616,10 +621,10 @@ def prior_gaussian_mixture(
             raise ValueError("weights must sum to a positive value")
         w = w / s
         # Allow zero weights without triggering "divide by zero encountered in log"
-        lw = np.full_like(w, -np.inf, dtype=float)
+        lw = np.full_like(w, -np.inf, dtype=np.float64)
         np.log(w, out=lw, where=(w > 0))
     else:
-        lw_in = np.asarray(log_weights, dtype=float)
+        lw_in = np.asarray(log_weights, dtype=np.float64)
         if lw_in.ndim != 1 or lw_in.size != n:
             raise ValueError(f"log_weights must be (n,) with n={n}, got shape {lw_in.shape}")
         lw = lw_in - logsumexp_1d(lw_in)
@@ -698,7 +703,7 @@ def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], f
 def build_prior(
     *,
     terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
-    bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    bounds: Sequence[tuple[float | np.floating | None, float | np.floating | None]] | None = None,
 ) -> Callable[[NDArray[np.floating]], float]:
     """Builds a logprior(theta)->float callable from a single unified spec.
 
