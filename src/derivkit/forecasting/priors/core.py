@@ -51,11 +51,14 @@ def _prior_none_impl(
 ) -> float:
     """Returns a constant log-prior (improper flat prior).
 
+    This prior is constant in parameter space (up to an additive constant), so it
+    contributes zero to the log-posterior at every point.
+
     Args:
         theta: Parameter vector (unused).
 
     Returns:
-        Callable log-prior: ``logp(theta) -> 0.0``
+        Log-prior value (always ``0.0``).
     """
     _ = theta
     return 0.0
@@ -305,7 +308,7 @@ def prior_none() -> Callable[[NDArray[np.floating]], float]:
     This prior has density proportional to 1 everywhere.
 
     Returns:
-        Callable log-prior: logp(theta) -> 0.0
+        Log-prior value (always ``0.0``).
     """
     return _prior_none_impl
 
