@@ -557,7 +557,7 @@ def prior_beta(
         beta: Beta shape parameter (must be greater than 0).
 
     Returns:
-        Callable log-prior: ``logp(theta) -> float``.
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If ``alpha`` or ``beta`` are not positive.
