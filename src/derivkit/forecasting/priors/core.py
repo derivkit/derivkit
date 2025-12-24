@@ -415,20 +415,23 @@ def prior_log_uniform(
     *,
     index: int,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Constructs a log-uniform prior for a single positive parameter.
+    """Construct a Jeffreys prior for a single positive scale parameter.
 
-    This prior has density proportional to ``1/x`` for ``x > 0``, which means it is
-    uniform when expressed in ``log(x)``. It is commonly used for scale parameters
-    when equal weight per order of magnitude is desired.
+    The Jeffreys prior is defined via the Fisher information of the parameter.
+    For a positive scale parameter, this results in a prior proportional to
+    ``1 / x``, which is the same functional form as a log-uniform prior.
 
     Args:
         index: Index of the parameter to which the prior applies.
 
+    Returns:
+        A callable that evaluates the log-prior at a given parameter vector.
+
     Note:
-        For a positive scale parameter, the Jeffreys prior has the same form as a
-        log-uniform prior. This is why ``prior_log_uniform`` and ``prior_jeffreys``
-        use the same implementation here. Both names are kept because they reflect
-        different motivations in user code.
+        Although this implementation is identical to ``prior_log_uniform``,
+        the name ``prior_jeffreys`` emphasizes the statistical motivation
+        (reparameterization invariance for scale parameters) rather than
+        uniformity in log-space.
     """
     return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_uniform")
 
