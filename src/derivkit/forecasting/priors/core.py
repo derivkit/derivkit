@@ -8,9 +8,10 @@ The return value is interpreted as a log-density defined up to an additive
 constant. Returning ``-np.inf`` denotes zero probability (hard exclusion).
 
 These priors are designed to be used when constructing log-posteriors for
-sampling (e.g., Fisher/DALI approximate posteriors) or when evaluating posterior
-surfaces. GetDist plots what is provided; priors must be applied when generating
-samples (or explicitly added to the Fisher matrix), not automatically inferred.
+sampling (e.g., from Fisher/DALI Gaussian approximations) or when evaluating
+posterior surfaces. GetDist plots what it is given; priors must be applied when
+generating samples or, for Gaussian approximations, incorporated explicitly into
+the Fisher matrix.
 """
 
 from __future__ import annotations
