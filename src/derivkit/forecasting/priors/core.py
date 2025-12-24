@@ -10,7 +10,7 @@ constant. Returning ``-np.inf`` denotes zero probability (hard exclusion).
 These priors are designed to be used when constructing log-posteriors for
 sampling (e.g., Fisher/DALI approximate posteriors) or when evaluating posterior
 surfaces. GetDist plots what is provided; priors must be applied when generating
-samples/gaussians (or explicitly added to the Fisher), not automatically inferred.
+samples (or explicitly added to the Fisher matrix), not automatically inferred.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ __all__ = [
     "prior_log_normal",
     "prior_beta",
     "prior_gaussian_mixture",
-    "build_prior"
+    "build_prior",
 ]
 
 
@@ -95,7 +95,7 @@ def _prior_1d_impl(
     else:
         raise ValueError(f"unknown domain '{domain}'")
 
-    # We define different prior shapes here
+    # Define different prior shapes here
     if kind == "log_uniform":
         return float(-np.log(x))
 
@@ -213,7 +213,7 @@ def _prior_gaussian_mixture_impl(
 ) -> float:
     """Evaluates a Gaussian mixture log-prior at ``theta``.
 
-    This method computes the log of a weighted sum of Gaussian components:
+    This function computes the log of a weighted sum of Gaussian components:
 
         p(theta) = sum_n w_n * N(theta | mean_n, cov_n)
     where N(theta | mean, cov) is the multivariate Gaussian density with the
