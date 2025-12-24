@@ -274,15 +274,20 @@ def _prior_gaussian_mixture_impl(
 
     if thetas.ndim != 1:
         raise ValueError(f"theta must be 1D, got shape {thetas.shape}")
+
     if means.ndim != 2:
         raise ValueError(f"means must be (n, p), got shape {means.shape}")
+
     n, p = means.shape
     if thetas.size != p:
         raise ValueError(f"theta length {thetas.size} != p {p}")
+
     if inv_covs.ndim != 3 or inv_covs.shape != (n, p, p):
         raise ValueError(f"inv_covs must be (n, p, p) with n={n}, p={p}, got shape {inv_covs.shape}")
+
     if log_weights.ndim != 1 or log_weights.size != n:
         raise ValueError(f"log_weights must be (n,), got shape {log_weights.shape}")
+
     if log_comp_norm.ndim != 1 or log_comp_norm.size != n:
         raise ValueError(f"log_component_norm must be (n,), got shape {log_comp_norm.shape}")
 
