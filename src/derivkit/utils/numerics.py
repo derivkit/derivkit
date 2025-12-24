@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 from functools import partial
+=======
+import warnings
+>>>>>>> 243daef (utils: clean up numerics helpers)
 from typing import Callable, Sequence
 
 import numpy as np
@@ -14,7 +18,7 @@ __all__ = [
     "central_difference_error_estimate",
     "relative_error",
     "evaluate_logprior",
-    "in_bounds_checker",
+    "is_in_bounds",
     "apply_hard_bounds",
     "sum_terms",
     "as_1d_float_array",
@@ -69,40 +73,41 @@ def relative_error(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def evaluate_logprior(
-    theta: ArrayLike,
-    logprior: Callable[[NDArray[np.floating]], float] | None,
-) -> float:
-    """Evaluates a log-prior with robust handling of invalid values.
+        theta: ArrayLike,
+        logprior: Callable[[NDArray[np.floating]], np.floating] | None,
+) -> np.floating:
+    """Evaluates a log-prior and attempts to handle non-finite values.
 
-    If no prior is provided, this function represents an improper flat prior
-    and returns zero. If a prior is provided, its value is interpreted as a
-    log-density defined up to an additive constant. Any non-finite value
-    (e.g., ``-inf`` or ``nan``) is treated as zero prior probability.
+    If ``logprior`` is ``None``, this function assumes a flat prior and returns zero.
+    If a prior is provided, its output is interpreted as a log-density
+    defined up to an additive constant. Any non-finite value (e.g., ``-np.inf`` or
+    ``np.nan``) is treated as zero probability and mapped to ``-np.inf``.
 
     Args:
         theta: Parameter vector at which to evaluate the prior.
-        logprior: Callable returning the log-prior density, or ``None`` to
-            indicate an uninformative (flat) prior.
+        logprior: Callable returning the log-prior density, or ``None`` to indicate a flat prior.
 
     Returns:
-        The log-prior value at ``theta``, or ``-inf`` if the prior assigns
-        zero probability to that point.
+        The log-prior value at ``theta``. If the prior assigns zero probability to
+        that point, returns ``-np.inf``.
     """
     if logprior is None:
-        return 0.0
-    v = float(logprior(np.asarray(theta)))
-    return v if np.isfinite(v) else -np.inf
+        return np.float64(0.0)
+    v = np.float64(logprior(np.asarray(theta, dtype=float)))
+    return v if np.isfinite(v) else np.float64(-np.inf)
 
 
-def in_bounds_checker(
-    theta: NDArray[np.floating],
-    bounds: Sequence[tuple[float | None, float | None]] | None,
+def is_in_bounds(
+        theta: NDArray[np.floating],
+        bounds: Sequence[tuple[np.floating | None, np.floating | None]] | None,
 ) -> bool:
-    """Tests whether parameters lie within optional per-parameter bounds.
+    """Checks whether a parameter vector lies within specified bounds.
+
+    If ``bounds`` is ``None``, this returns True by convention so callers can write
+    ``if is_in_bounds(theta, bounds): ...`` without special-casing the absence of bounds.
 
     Bounds are interpreted component-wise. For each parameter, either side may
-    be unbounded by setting that limit to ``None``. If no bounds are provided,
-    all points are considered valid.
+    be unbounded by setting that limit to ``None``.
 
     Args:
         theta: Parameter vector to test.
@@ -110,61 +115,39 @@ def in_bounds_checker(
             Use ``None`` for an unconstrained lower or upper limit.
 
     Returns:
-        True if all parameters satisfy their bounds (or if ``bounds`` is ``None``);
-        otherwise False.
+        A boolean indicating whether all parameters satisfy their bounds
+        (or ``True`` if bounds is ``None`).
+
+    Raises:
+        ValueError: If ``bounds`` is provided and its length does not match ``theta``.
     """
     if bounds is None:
         return True
     if len(bounds) != theta.size:
         raise ValueError(f"bounds length {len(bounds)} != theta length {theta.size}")
 
+    result = True
     for t, (lo, hi) in zip(theta, bounds):
         if (lo is not None and t < lo) or (hi is not None and t > hi):
-            return False
-    return True
-
-
-def _apply_hard_bounds_impl(
-    theta: NDArray[np.floating],
-    *,
-    term: Callable[[NDArray[np.floating]], float],
-    bounds: Sequence[tuple[float | None, float | None]] | None,
-) -> float:
-    """Evaluates a log-density term with hard-support truncation.
-
-    This helper enforces a top-hat support region defined by ``bounds``. If
-    ``theta`` lies outside the allowed region, the result is ``-inf`` to denote
-    zero probability. If ``theta`` lies inside the region, the provided term is
-    evaluated and any non-finite output is treated as ``-inf``.
-
-    Args:
-        theta: Parameter vector at which to evaluate the term.
-        term: Callable returning a log-density contribution.
-        bounds: Optional sequence of ``(lower, upper)`` pairs defining the
-            allowed support region.
-
-    Returns:
-        The term value at ``theta`` if inside bounds and finite; otherwise
-        ``-inf``.
-    """
-    th = np.asarray(theta, dtype=float)
-    if not in_bounds_checker(th, bounds):
-        return -np.inf
-    v = float(term(th))
-    return v if np.isfinite(v) else -np.inf
+            result = False
+            break
+    return result
 
 
 def apply_hard_bounds(
-    term: Callable[[NDArray[np.floating]], float],
-    *,
-    bounds: Sequence[tuple[float | None, float | None]] | None = None,
-) -> Callable[[NDArray[np.floating]], float]:
-    """Returns a bounded version of a log-density term.
+        term: Callable[[NDArray[np.floating]], np.floating],
+        *,
+        bounds: Sequence[tuple[np.floating | None, np.floating | None]] | None = None,
+) -> Callable[[NDArray[np.floating]], np.floating]:
+    """Returns a bounded version of a log-density contribution.
 
-    If ``bounds`` is provided, the returned callable represents the same log
-    term but with compact support: points outside the bounds are assigned
-    ``-inf`` (zero probability). If ``bounds`` is ``None``, the original term
-    is returned unchanged.
+    A ``term`` is a callable that returns a scalar log-density contribution
+    and support refers to the region where the density is non-zero.
+
+    This helper enforces a top-hat support region defined by ``bounds``. If
+    ``theta`` lies outside the allowed region, the result is ``-np.inf`` to denote
+    zero probability. If ``theta`` lies inside the region, the provided term is
+    evaluated and any non-finite output is treated as ``-np.inf``.
 
     Args:
         term: Callable returning a log-density contribution.
@@ -177,47 +160,30 @@ def apply_hard_bounds(
     """
     if bounds is None:
         return term
-    return partial(_apply_hard_bounds_impl, term=term, bounds=bounds)
 
+    def bounded(theta: NDArray[np.floating]) -> np.floating:
+        """Evaluates the bounded log-density term."""
+        th = np.asarray(theta, dtype=float)
+        v = np.float64(-np.inf)
+        if is_in_bounds(th, bounds):
+            v = np.float64(term(th))
+        return v if np.isfinite(v) else np.float64(-np.inf)
 
-def _sum_terms_impl(
-    theta: NDArray[np.floating],
-    *,
-    terms: tuple[Callable[[NDArray[np.floating]], float], ...],
-) -> float:
-    """Evaluates a sum of log-density terms.
-
-    This helper is meant for constructing composite priors/likelihood pieces as
-    additive log terms. If any term evaluates to a non-finite value, the sum is
-    treated as ``-inf`` to indicate that the combined density assigns zero
-    probability to ``theta``.
-
-    Args:
-        theta: Parameter vector at which to evaluate the terms.
-        terms: Tuple of callables, each returning a log-density contribution.
-
-    Returns:
-        Sum of term values at ``theta`` if all are finite; otherwise ``-inf``.
-    """
-    th = np.asarray(theta, dtype=float)
-    total = 0.0
-    for f in terms:
-        v = float(f(th))
-        if not np.isfinite(v):
-            return -np.inf
-        total += v
-    return total
+    return bounded
 
 
 def sum_terms(
-    *terms: Callable[[NDArray[np.floating]], float],
-) -> Callable[[NDArray[np.floating]], float]:
+        *terms: Callable[[NDArray[np.floating]], np.floating]
+) -> Callable[[NDArray[np.floating]], np.floating]:
     """Constructs a composite log term by summing multiple contributions.
 
     The returned callable evaluates each provided term at the same parameter
     vector and adds the results. If any term is non-finite, the composite term
-    evaluates to ``-inf``, corresponding to zero probability under the combined
+    evaluates to ``-np.inf``, corresponding to zero probability under the combined
     density.
+
+    A ``term`` is a callable that returns a scalar log-density contribution
+    and support refers to the region where the density is non-zero.
 
     Args:
         *terms: One or more callables, each returning a log-density contribution.
@@ -230,7 +196,19 @@ def sum_terms(
     """
     if len(terms) == 0:
         raise ValueError("sum_terms requires at least one term")
-    return partial(_sum_terms_impl, terms=terms)
+
+    def summed(theta: NDArray[np.floating]) -> np.floating:
+        """Evaluates the summed log-density terms."""
+        th = np.asarray(theta, dtype=float)
+        total = np.float64(0.0)
+        for f in terms:
+            v = np.float64(f(th))
+            if not np.isfinite(v):
+                return np.float64(-np.inf)
+            total = np.float64(total + v)
+        return total
+
+    return summed
 
 
 def as_1d_float_array(x: ArrayLike, *, name: str = "x") -> NDArray[np.float64]:
@@ -282,16 +260,15 @@ def get_index_value(theta: ArrayLike, index: int, *, name: str = "theta") -> flo
 
 
 def logsumexp_1d(x: ArrayLike) -> float:
-    """Compute log(sum(exp(x))) stably for a 1D array.
+    """Computes log(sum(exp(x))) for a 1D array using the max-shift identity.
 
-    This is a minimal, dependency-free alternative to scipy.special.logsumexp
-    for the common 1D case (e.g., mixture models in log-space).
+    This implements the common max-shift trick used to reduce overflow/underflow.
 
     Args:
         x: 1D array-like values.
 
     Returns:
-        Stable logsumexp as float.
+        Value of log(sum(exp(x))) as a float.
 
     Raises:
         ValueError: If x is not 1D.
