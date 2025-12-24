@@ -734,7 +734,11 @@ _PRIOR_REGISTRY: dict[str, Callable[..., Callable[[NDArray[np.floating]], float]
 
 
 def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], float]:
-    """Builds a single prior term from a configuration dictionary.
+    """Builds one component of a composite prior from a configuration dictionary.
+
+    A "prior term" here means a single log-prior contribution (for example, a
+    Gaussian prior on a subset of parameters) that can be summed with other terms
+    to form a complete prior.
 
     Expected format:
         {"name": "<prior_name>", "params": {...}, "bounds": optional_bounds}
