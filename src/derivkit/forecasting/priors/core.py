@@ -81,6 +81,11 @@ def _prior_1d_impl(
 
     Returns:
         Log-prior value for the specified parameter.
+
+    Raises:
+        ValueError: If ``domain`` is unknown, if ``kind`` is unknown, or if the
+            distribution parameters are invalid (e.g., non-positive scale/sigma or
+            non-positive ``a/b``).
     """
     x = get_index_value(theta, index, name="theta")
 
@@ -149,6 +154,10 @@ def _prior_gaussian_impl(
 
     Returns:
         Log-prior value.
+
+    Raises:
+        ValueError: If ``theta``/``mean`` are not 1D or if ``inv_cov`` does not have
+            shape ``(p, p)`` consistent with ``mean``.
     """
     th = np.asarray(theta, dtype=np.float64)
     mu = np.asarray(mean, dtype=np.float64)
@@ -180,6 +189,10 @@ def _prior_gaussian_diag_impl(
 
     Returns:
         Log-prior value.
+
+    Raises:
+        ValueError: If shapes are inconsistent, if ``inv_cov`` is not diagonal, or if
+            any diagonal entry of ``inv_cov`` is non-positive.
     """
     th = np.asarray(theta, dtype=np.float64)
     mu = np.asarray(mean, dtype=np.float64)
@@ -245,6 +258,9 @@ def _prior_gaussian_mixture_impl(
     Returns:
         The mixture log-prior value at ``theta`` (a finite float or ``-np.inf`` if
         the caller enforces hard bounds elsewhere).
+
+    Raises:
+        ValueError: If input arrays have incompatible shapes or dimensions.
     """
     th = np.asarray(theta, dtype=np.float64)
     mus = np.asarray(means, dtype=np.float64)
@@ -571,6 +587,12 @@ def prior_gaussian_mixture(
 
     Returns:
         Callable log-prior: logp(theta) -> float.
+
+    Raises:
+        ValueError: If inputs have incompatible shapes, if both/neither of
+            ``covs``/``inv_covs`` are provided, if both/neither of ``weights``/``log_weights``
+            are provided, if weights are invalid, or if covariance inputs are not
+            compatible with ``include_component_norm=True``.
     """
     mus = np.asarray(means, dtype=np.float64)
     if mus.ndim != 2:
@@ -691,6 +713,11 @@ def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], f
         - For name="uniform", bounds must be provided via params={"bounds": ...}.
           The top-level "bounds" key is reserved for optional *extra* hard bounds
           on non-uniform terms.
+
+    Raises:
+        ValueError: If the spec is missing a valid prior name, if the name is not
+            registered, or if a uniform prior does not include bounds (or includes
+            bounds twice).
     """
     name = str(spec.get("name", "")).strip().lower()
     if not name:
@@ -753,6 +780,11 @@ def build_prior(
             ],
             bounds=[(0.0, None), (None, None), (0.0, 1.0)],
         )``
+
+    Raises:
+        TypeError: If a term is not a dict spec or a (name, params) tuple/list, or if
+            term params are not a dict.
+        ValueError: If a dict spec is invalid (see ``_make_prior_term``).
     """
     term_list = [] if terms is None else list(terms)
 
