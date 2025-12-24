@@ -328,7 +328,7 @@ def prior_uniform(
             Use None for unbounded sides.
 
     Returns:
-        Callable log-prior: ``logp(theta) -> float``
+        A callable that evaluates the log-prior at a given parameter vector.
     """
     return apply_hard_bounds(_prior_none_impl, bounds=bounds)
 
@@ -351,7 +351,7 @@ def prior_gaussian(
         inv_cov: Inverse covariance matrix (provide exactly one of ``cov`` or ``inv_cov``).
 
     Returns:
-        Callable log-prior: logp(theta) -> float.
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If neither or both of ``cov`` and ``inv_cov`` are provided,
@@ -393,7 +393,7 @@ def prior_gaussian_diag(
         sigma: Standard deviation vector (must be positive).
 
     Returns:
-        Callable log-prior: logp(theta) -> float.
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If `mean` and `sigma` have incompatible shapes,
@@ -446,6 +446,12 @@ def prior_jeffreys(
     For a positive scale parameter, this leads to a prior proportional to 1/x
     (with x being the scale parameter that is > 0), which is the same functional
     form as a log-uniform prior.
+
+    Args:
+        index: Index of the parameter to which the prior applies.
+
+    Returns:
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Note:
         Although the implementation matches ``prior_log_uniform``, the name
@@ -501,7 +507,7 @@ def prior_half_cauchy(
         scale: Scale parameter of the half-Cauchy distribution.
 
     Returns:
-        Callable log-prior: logp(theta) -> float
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If `scale` is not positive.
@@ -529,7 +535,7 @@ def prior_log_normal(
         sigma_log: Standard deviation of the underlying normal distribution in log-space.
 
     Returns:
-        Callable log-prior: logp(theta) -> float
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If `sigma_log` is not positive.
@@ -624,7 +630,7 @@ def prior_gaussian_mixture(
             This is important for *mixtures* when covariances differ.
 
     Returns:
-        Callable log-prior: logp(theta) -> float.
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If inputs have incompatible shapes, if both/neither of
@@ -804,6 +810,9 @@ def build_prior(
         terms: Sequence of prior term specifications (see below).
         bounds: Optional global hard bounds applied to the combined prior.
 
+    Returns:
+        A callable that evaluates the combined log-prior at a given parameter vector.
+
     The user-facing API is:
         - ``terms``: a list of prior terms, each either
             * ``("prior_name", {"param": value, ...})``
@@ -838,7 +847,7 @@ def build_prior(
     """
     term_list = [] if terms is None else list(terms)
 
-    # Empty -> either flat or bounded-uniform
+    # If empty then use either flat or bounded-uniform
     if len(term_list) == 0:
         base = prior_none() if bounds is None else prior_uniform(bounds=bounds)
         return base
@@ -858,9 +867,7 @@ def build_prior(
             raise TypeError("Term params must be a dict.")
         specs.append({"name": str(name), "params": dict(params)})
 
-    # Use existing builder for dict-spec terms (supports per-term bounds, uniform special case)
     built_terms = [_make_prior_term(s) for s in specs]
     combined = sum_terms(*built_terms)
 
-    # Global bounds apply last
     return apply_hard_bounds(combined, bounds=bounds)
