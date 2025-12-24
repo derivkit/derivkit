@@ -460,16 +460,22 @@ def prior_half_normal(
         index: int,
         sigma: float | np.floating,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Constructs a half-normal prior for a single non-negative parameter.
+    """"Constructs a half-normal prior for a single non-negative parameter.
 
-    This prior has density proportional to ``exp(-0.5 * (x/sigma)^2)`` for ``x >= 0`.
+    This prior is a standard weakly informative choice for non-negative amplitude
+    or scale parameters. It is conceptually different from a normal prior with a
+    non-negativity bound, which corresponds to a truncated normal. The half-normal
+    instead arises as the distribution of ``|N(0, sigma)|``.
+
+    The (unnormalized) density is proportional to ``exp(-0.5 * (x / sigma)**2)``
+    for ``x >= 0``.
 
     Args:
         index: Index of the parameter to which the prior applies.
         sigma: Standard deviation of the underlying normal distribution.
 
     Returns:
-        Callable log-prior: logp(theta) -> float
+        A callable that evaluates the log-prior at a given parameter vector.
 
     Raises:
         ValueError: If `sigma` is not positive.
