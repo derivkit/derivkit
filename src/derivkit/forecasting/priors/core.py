@@ -89,52 +89,57 @@ def _prior_1d_impl(
     """
     x = get_index_value(theta, index, name="theta")
 
-    if domain == "positive":
-        if x <= 0.0:
-            return -np.inf
-    elif domain == "nonnegative":
-        if x < 0.0:
-            return -np.inf
-    elif domain == "unit_open":
-        if x <= 0.0 or x >= 1.0:
-            return -np.inf
-    else:
-        raise ValueError(f"unknown domain '{domain}'")
+    match domain:
+        case "positive":
+            if x <= 0.0:
+                return -np.inf
+        case "nonnegative":
+            if x < 0.0:
+                return -np.inf
+        case "unit_open":
+            if x <= 0.0 or x >= 1.0:
+                return -np.inf
+        case _:
+            raise ValueError(f"unknown domain '{domain}'")
 
-    if kind == "log_uniform":
-        return float(-np.log(x))
+    logp: float
+    match kind:
+        case "log_uniform":
+            logp = float(-np.log(x))
 
-    if kind == "half_normal":
-        sigma = float(a)
-        # We need to validate here too, in case someone partials directly to _prior_1d_impl
-        if sigma <= 0.0:
-            raise ValueError("sigma must be > 0")
-        return float(-0.5 * (x / sigma) ** 2)
+        case "half_normal":
+            sigma = float(a)
+            if sigma <= 0.0:
+                raise ValueError("sigma must be > 0")
+            logp = float(-0.5 * (x / sigma) ** 2)
 
-    if kind == "half_cauchy":
-        scale = float(a)
-        if scale <= 0.0:
-            raise ValueError("scale must be > 0")
-        t = x / scale
-        return float(-np.log1p(t * t))
+        case "half_cauchy":
+            scale = float(a)
+            if scale <= 0.0:
+                raise ValueError("scale must be > 0")
+            t = x / scale
+            logp = float(-np.log1p(t * t))
 
-    if kind == "log_normal":
-        mean = float(a)
-        sigma = float(b)
-        if sigma <= 0.0:
-            raise ValueError("sigma must be > 0")
-        lx = np.log(x)
-        z = (lx - mean) / sigma
-        return float(-0.5 * z * z - lx)
+        case "log_normal":
+            mean = float(a)
+            sigma = float(b)
+            if sigma <= 0.0:
+                raise ValueError("sigma must be > 0")
+            lx = np.log(x)
+            z = (lx - mean) / sigma
+            logp = float(-0.5 * z * z - lx)
 
-    if kind == "beta":
-        alpha = float(a)
-        beta = float(b)
-        if alpha <= 0.0 or beta <= 0.0:
-            raise ValueError("alpha and beta must be > 0")
-        return float((alpha - 1.0) * np.log(x) + (beta - 1.0) * np.log1p(-x))
+        case "beta":
+            alpha = float(a)
+            beta = float(b)
+            if alpha <= 0.0 or beta <= 0.0:
+                raise ValueError("alpha and beta must be > 0")
+            logp = float((alpha - 1.0) * np.log(x) + (beta - 1.0) * np.log1p(-x))
 
-    raise ValueError(f"unknown prior kind '{kind}'")
+        case _:
+            raise ValueError(f"unknown prior kind '{kind}'")
+
+    return logp
 
 
 def _prior_gaussian_impl(
