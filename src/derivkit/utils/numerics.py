@@ -238,7 +238,7 @@ def as_1d_float_array(x: ArrayLike, *, name: str = "x") -> NDArray[np.float64]:
 
 
 def get_index_value(theta: ArrayLike, index: int, *, name: str = "theta") -> float:
-    """Return theta[index] as a float with a clear bounds error.
+    """Returns the value of an array specified by the given index.
 
     This helper is useful for one-dimensional priors/likelihood pieces that
     operate on a single parameter component.
