@@ -157,19 +157,19 @@ def _prior_gaussian_impl(
         ValueError: If ``theta``/``mean`` are not 1D or if ``inv_cov`` does not have
             shape ``(p, p)`` consistent with ``mean``.
     """
-    th = np.asarray(theta, dtype=np.float64)
-    mu = np.asarray(mean, dtype=np.float64)
+    thetas = np.asarray(theta, dtype=np.float64)
+    means = np.asarray(mean, dtype=np.float64)
     inv_cov = np.asarray(inv_cov, dtype=np.float64)
 
-    if mu.ndim != 1:
-        raise ValueError(f"mean must be 1D, got shape {mu.shape}")
-    if inv_cov.ndim != 2 or inv_cov.shape[0] != inv_cov.shape[1] or inv_cov.shape[0] != mu.size:
-        raise ValueError(f"inv_cov must have shape (p, p) with p={mu.size}, got {inv_cov.shape}")
-    if th.ndim != 1 or th.size != mu.size:
-        raise ValueError(f"theta must have shape ({mu.size},), got {th.shape}")
+    if means.ndim != 1:
+        raise ValueError(f"mean must be 1D, got shape {means.shape}")
+    if inv_cov.ndim != 2 or inv_cov.shape[0] != inv_cov.shape[1] or inv_cov.shape[0] != means.size:
+        raise ValueError(f"inv_cov must have shape (p, p) with p={means.size}, got {inv_cov.shape}")
+    if thetas.ndim != 1 or thetas.size != means.size:
+        raise ValueError(f"theta must have shape ({means.size},), got {thetas.shape}")
 
-    d = th - mu
-    return float(-0.5 * (d @ inv_cov @ d))
+    diff = thetas - means
+    return float(-0.5 * (diff @ inv_cov @ diff))
 
 
 def _prior_gaussian_diag_impl(
@@ -192,17 +192,17 @@ def _prior_gaussian_diag_impl(
         ValueError: If shapes are inconsistent, if ``inv_cov`` is not diagonal, or if
             any diagonal entry of ``inv_cov`` is non-positive.
     """
-    th = np.asarray(theta, dtype=np.float64)
-    mu = np.asarray(mean, dtype=np.float64)
+    thetas = np.asarray(theta, dtype=np.float64)
+    means = np.asarray(mean, dtype=np.float64)
     inv_cov = np.asarray(inv_cov, dtype=np.float64)
 
-    if mu.ndim != 1:
-        raise ValueError(f"mean must be 1D, got shape {mu.shape}")
-    p = mu.size
+    if means.ndim != 1:
+        raise ValueError(f"mean must be 1D, got shape {means.shape}")
+    p = means.size
     if inv_cov.ndim != 2 or inv_cov.shape != (p, p):
         raise ValueError(f"inv_cov must have shape ({p},{p}), got {inv_cov.shape}")
-    if th.ndim != 1 or th.size != p:
-        raise ValueError(f"theta must have shape ({p},), got {th.shape}")
+    if thetas.ndim != 1 or thetas.size != p:
+        raise ValueError(f"theta must have shape ({p},), got {thetas.shape}")
 
     inv_var = np.diag(inv_cov)
     off_diag = inv_cov.copy()
@@ -212,14 +212,14 @@ def _prior_gaussian_diag_impl(
     if np.any(inv_var <= 0.0):
         raise ValueError("diagonal inv_cov entries must be > 0")
 
-    d = th - mu
-    return float(-0.5 * np.sum(d * d * inv_var))
+    diff = thetas - means
+    return float(-0.5 * np.sum(diff * diff * inv_var))
 
 
 def _prior_gaussian_mixture_impl(
     theta: NDArray[np.floating],
     *,
-    means: NDArray[np.floating],
+    mean: NDArray[np.floating],
     inv_covs: NDArray[np.floating],
     log_weights: NDArray[np.floating],
     log_component_norm: NDArray[np.floating],
@@ -247,7 +247,7 @@ def _prior_gaussian_mixture_impl(
 
     Args:
         theta: Parameter vector ``theta`` with shape ``(p,)``.
-        means: Component means with shape ``(n, p)``.
+        mean: Component means with shape ``(n, p)``.
         inv_covs: Component inverse covariances with shape ``(n, p, p)``.
         log_weights: Log-weights for the ``n`` components with shape ``(n,)``.
         log_component_norm: Per-component log-normalization terms with shape
@@ -260,30 +260,30 @@ def _prior_gaussian_mixture_impl(
     Raises:
         ValueError: If input arrays have incompatible shapes or dimensions.
     """
-    th = np.asarray(theta, dtype=np.float64)
-    mus = np.asarray(means, dtype=np.float64)
+    thetas = np.asarray(theta, dtype=np.float64)
+    means = np.asarray(mean, dtype=np.float64)
     inv_covs = np.asarray(inv_covs, dtype=np.float64)
-    lw = np.asarray(log_weights, dtype=np.float64)
-    lcn = np.asarray(log_component_norm, dtype=np.float64)
+    log_weights = np.asarray(log_weights, dtype=np.float64)
+    log_comp_norm = np.asarray(log_component_norm, dtype=np.float64)
 
-    if th.ndim != 1:
-        raise ValueError(f"theta must be 1D, got shape {th.shape}")
-    if mus.ndim != 2:
-        raise ValueError(f"means must be (n, p), got shape {mus.shape}")
-    n, p = mus.shape
-    if th.size != p:
-        raise ValueError(f"theta length {th.size} != p {p}")
+    if thetas.ndim != 1:
+        raise ValueError(f"theta must be 1D, got shape {thetas.shape}")
+    if means.ndim != 2:
+        raise ValueError(f"means must be (n, p), got shape {means.shape}")
+    n, p = means.shape
+    if thetas.size != p:
+        raise ValueError(f"theta length {thetas.size} != p {p}")
     if inv_covs.ndim != 3 or inv_covs.shape != (n, p, p):
         raise ValueError(f"inv_covs must be (n, p, p) with n={n}, p={p}, got shape {inv_covs.shape}")
-    if lw.ndim != 1 or lw.size != n:
-        raise ValueError(f"log_weights must be (n,), got shape {lw.shape}")
-    if lcn.ndim != 1 or lcn.size != n:
-        raise ValueError(f"log_component_norm must be (n,), got shape {lcn.shape}")
+    if log_weights.ndim != 1 or log_weights.size != n:
+        raise ValueError(f"log_weights must be (n,), got shape {log_weights.shape}")
+    if log_comp_norm.ndim != 1 or log_comp_norm.size != n:
+        raise ValueError(f"log_component_norm must be (n,), got shape {log_comp_norm.shape}")
 
     vals = np.empty(n, dtype=np.float64)
     for i in range(n):
-        d = th - mus[i]
-        vals[i] = lw[i] + lcn[i] - 0.5 * float(d @ inv_covs[i] @ d)
+        diff = thetas - means[i]
+        vals[i] = log_weights[i] + log_comp_norm[i] - 0.5 * float(diff @ inv_covs[i] @ diff)
 
     return float(logsumexp_1d(vals))
 
@@ -347,21 +347,21 @@ def prior_gaussian(
     if (cov is None) == (inv_cov is None):
         raise ValueError("Provide exactly one of `cov` or `inv_cov`.")
 
-    mu = np.asarray(mean, dtype=np.float64)
-    if mu.ndim != 1:
-        raise ValueError(f"mean must be 1D, got shape {mu.shape}")
+    means = np.asarray(mean, dtype=np.float64)
+    if means.ndim != 1:
+        raise ValueError(f"mean must be 1D, got shape {means.shape}")
 
     if inv_cov is None:
-        cov = normalize_covariance(cov, n_parameters=mu.size)
+        cov = normalize_covariance(cov, n_parameters=means.size)
         inv_cov = invert_covariance(cov, warn_prefix="prior_gaussian")
     else:
         inv_cov = np.asarray(inv_cov, dtype=np.float64)
-        if inv_cov.ndim != 2 or inv_cov.shape != (mu.size, mu.size):
-            raise ValueError(f"inv_cov must have shape (p,p) with p={mu.size}, got {inv_cov.shape}")
+        if inv_cov.ndim != 2 or inv_cov.shape != (means.size, means.size):
+            raise ValueError(f"inv_cov must have shape (p,p) with p={means.size}, got {inv_cov.shape}")
         if not np.all(np.isfinite(inv_cov)):
             raise ValueError("inv_cov contains non-finite values.")
 
-    return partial(_prior_gaussian_impl, mean=mu, inv_cov=inv_cov)
+    return partial(_prior_gaussian_impl, mean=means, inv_cov=inv_cov)
 
 
 def prior_gaussian_diag(
@@ -385,16 +385,16 @@ def prior_gaussian_diag(
         ValueError: If `mean` and `sigma` have incompatible shapes,
             or if any `sigma` entries are non-positive.
     """
-    mu = np.asarray(mean, dtype=np.float64)
-    sig = np.asarray(sigma, dtype=np.float64)
+    means = np.asarray(mean, dtype=np.float64)
+    sigmas = np.asarray(sigma, dtype=np.float64)
 
-    if mu.ndim != 1 or sig.ndim != 1 or mu.shape != sig.shape:
+    if means.ndim != 1 or sigmas.ndim != 1 or means.shape != sigmas.shape:
         raise ValueError("mean and sigma must be 1D arrays with the same shape")
-    if np.any(sig <= 0.0):
+    if np.any(sigmas <= 0.0):
         raise ValueError("all sigma entries must be > 0")
 
-    inv_cov = np.diag(1.0 / (sig ** 2))
-    return partial(_prior_gaussian_diag_impl, mean=mu, inv_cov=inv_cov)
+    inv_cov = np.diag(1.0 / (sigmas ** 2))
+    return partial(_prior_gaussian_diag_impl, mean=means, inv_cov=inv_cov)
 
 
 def prior_log_uniform(
@@ -457,10 +457,10 @@ def prior_half_normal(
     Raises:
         ValueError: If `sigma` is not positive.
     """
-    s = float(sigma)
-    if s <= 0.0:
+    sigma = float(sigma)
+    if sigma <= 0.0:
         raise ValueError("sigma must be > 0")
-    return partial(_prior_1d_impl, index=int(index), domain="nonnegative", kind="half_normal", a=s)
+    return partial(_prior_1d_impl, index=int(index), domain="nonnegative", kind="half_normal", a=sigma)
 
 
 def prior_half_cauchy(
@@ -483,10 +483,10 @@ def prior_half_cauchy(
     Raises:
         ValueError: If `scale` is not positive.
     """
-    s = float(scale)
-    if s <= 0.0:
+    scale = float(scale)
+    if scale <= 0.0:
         raise ValueError("scale must be > 0")
-    return partial(_prior_1d_impl, index=int(index), domain="nonnegative", kind="half_cauchy", a=s)
+    return partial(_prior_1d_impl, index=int(index), domain="nonnegative", kind="half_cauchy", a=scale)
 
 
 def prior_log_normal(
@@ -511,10 +511,16 @@ def prior_log_normal(
     Raises:
         ValueError: If `sigma_log` is not positive.
     """
-    s = float(sigma_log)
-    if s <= 0.0:
+    sig_log = float(sigma_log)
+    if sig_log <= 0.0:
         raise ValueError("sigma_log must be > 0")
-    return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_normal", a=float(mean_log), b=s)
+    return partial(
+        _prior_1d_impl,
+        index=int(index),
+        domain="positive",
+        kind="log_normal",
+        a=float(mean_log),
+        b=sig_log)
 
 
 def prior_beta(
@@ -538,11 +544,15 @@ def prior_beta(
     Raises:
         ValueError: If `alpha` or `beta` are not positive.
     """
-    a = float(alpha)
-    b = float(beta)
-    if a <= 0.0 or b <= 0.0:
+    if alpha <= 0.0 or beta <= 0.0:
         raise ValueError("alpha and beta must be > 0")
-    return partial(_prior_1d_impl, index=int(index), domain="unit_open", kind="beta", a=a, b=b)
+    return partial(
+        _prior_1d_impl,
+        index=int(index),
+        domain="unit_open",
+        kind="beta",
+        a=alpha,
+        b=beta)
 
 
 def prior_gaussian_mixture(
@@ -592,10 +602,10 @@ def prior_gaussian_mixture(
             are provided, if weights are invalid, or if covariance inputs are not
             compatible with ``include_component_norm=True``.
     """
-    mus = np.asarray(means, dtype=np.float64)
-    if mus.ndim != 2:
-        raise ValueError(f"means must be (n, p), got shape {mus.shape}")
-    n, p = mus.shape
+    means = np.asarray(means, dtype=np.float64)
+    if means.ndim != 2:
+        raise ValueError(f"means must be (n, p), got shape {means.shape}")
+    n, p = means.shape
 
     include = bool(include_component_norm)
 
@@ -664,7 +674,7 @@ def prior_gaussian_mixture(
             raise ValueError(f"log_weights must be (n,) with n={n}, got shape {lw_in.shape}")
         lw = lw_in - logsumexp_1d(lw_in)
 
-    if not (np.all(np.isfinite(mus)) and np.all(np.isfinite(inv_cov_n))):
+    if not (np.all(np.isfinite(means)) and np.all(np.isfinite(inv_cov_n))):
         raise ValueError("mixture prior inputs must be finite")
 
     if np.any(np.isnan(lw)) or np.any(lw == np.inf):
@@ -672,7 +682,7 @@ def prior_gaussian_mixture(
 
     return partial(
         _prior_gaussian_mixture_impl,
-        means=mus,
+        mean=means,
         inv_covs=inv_cov_n,
         log_weights=lw,
         log_component_norm=log_component_norm,
@@ -725,6 +735,7 @@ def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], f
     term_bounds = spec.get("bounds", None)
 
     if name == "uniform":
+        # allow either params["bounds"] or spec["bounds"] (but not both)
         pb = params.get("bounds", None)
         if pb is not None and term_bounds is not None:
             raise ValueError(
@@ -783,6 +794,7 @@ def build_prior(
     """
     term_list = [] if terms is None else list(terms)
 
+    # Empty -> either flat or bounded-uniform
     if len(term_list) == 0:
         base = prior_none() if bounds is None else prior_uniform(bounds=bounds)
         return base
@@ -802,7 +814,9 @@ def build_prior(
             raise TypeError("Term params must be a dict.")
         specs.append({"name": str(name), "params": dict(params)})
 
+    # Use existing builder for dict-spec terms (supports per-term bounds, uniform special case)
     built_terms = [_make_prior_term(s) for s in specs]
     combined = sum_terms(*built_terms)
 
+    # Global bounds apply last
     return apply_hard_bounds(combined, bounds=bounds)
