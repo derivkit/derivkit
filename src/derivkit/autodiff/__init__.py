@@ -1,1 +1,1 @@
-"""JAX autodiff backend for DerivativeKit (experimental)."""
+"""JAX autodiff backend for DerivativeKit."""

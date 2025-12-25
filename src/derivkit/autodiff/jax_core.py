@@ -1,4 +1,4 @@
-"""Experimental JAX-based autodiff helpers for DerivKit.
+"""JAX-based autodiff helpers for DerivKit.
 
 This module does not register any DerivKit backend by default.
 
@@ -7,32 +7,33 @@ for an opt-in integration.
 
 Use only with JAX-differentiable functions. For arbitrary models, prefer
 the "adaptive" or "finite" methods.
+
+Shape conventions (aligned with DerivKit calculus builders):
+- autodiff_derivative: f: R -> R                      -> scalar float
+- autodiff_gradient:   f: R^n -> R                    -> (n,)
+- autodiff_jacobian:   f: R^n -> R^m (or tensor)      -> (m, n) with m = prod(out_shape)
+- autodiff_hessian:    f: R^n -> R                    -> (n, n)
 """
 
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable
+from typing import Callable
 
-import numpy as _np
+import numpy as np
 
-try:
-    import jax
-    import jax.numpy as jnp
-    from jax.errors import ConcretizationTypeError
-except Exception:  # JAX not installed / misconfigured
-    jax = None
-    jnp = None
-    ConcretizationTypeError = RuntimeError  # type: ignore[assignment]
-    _HAS_JAX = False
-else:
-    _HAS_JAX = True
-
-has_jax: bool = _HAS_JAX
+from derivkit.autodiff.jax_utils import (
+    AutodiffUnavailable,
+    ConcretizationTypeError,
+    apply_array_nd,
+    apply_scalar_1d,
+    apply_scalar_nd,
+    jax,
+    jnp,
+    require_jax,
+)
 
 __all__ = [
-    "has_jax",
-    "AutodiffUnavailable",
     "autodiff_derivative",
     "autodiff_gradient",
     "autodiff_jacobian",
@@ -40,108 +41,8 @@ __all__ = [
 ]
 
 
-class AutodiffUnavailable(RuntimeError):
-    """Raised when JAX autodiff cannot be used."""
-
-
-def _require_jax() -> None:
-    """Raises AutodiffUnavailable if JAX is not available."""
-    if not _HAS_JAX:
-        raise AutodiffUnavailable(
-            "JAX autodiff requires `jax` + `jaxlib`.\n"
-            "Install them with `pip install jax jaxlib`, or use "
-            "DerivKit's 'adaptive' or 'finite' methods instead."
-        )
-
-
-def _to_jax_scalar(y: Any, *, where: str) -> jnp.ndarray:
-    """Ensures that output is scalar and returns as JAX array.
-
-    Args:
-        y: Output to check.
-        where: Context string for error messages.
-
-    Returns:
-        JAX array with shape ().
-    """
-    arr = jnp.asarray(y)
-    if arr.ndim != 0:
-        raise TypeError(
-            f"{where}: expected scalar output; got shape {tuple(arr.shape)}."
-        )
-    return arr
-
-
-def _to_jax_array(y: Any, *, where: str) -> jnp.ndarray:
-    """Ensures that output is array-like (not scalar) and returns as JAX array.
-
-    Args:
-        y: Output to check.
-        where: Context string for error messages.
-
-    Returns:
-        JAX array with shape (m,) or higher.
-    """
-    try:
-        arr = jnp.asarray(y)
-    except TypeError as exc:
-        raise TypeError(
-            f"{where}: output could not be converted to a JAX array."
-        ) from exc
-    if arr.ndim == 0:
-        raise TypeError(
-            f"{where}: output is scalar; use autodiff_derivative/gradient instead."
-        )
-    return arr
-
-
-def _apply_scalar_1d(func: Callable[[float], Any], where: str, x: jnp.ndarray) -> jnp.ndarray:
-    """Adapts the function f: R -> R with scalar output enforcement.
-
-    Args:
-        func: User function mapping float -> scalar.
-        where: Context string for error messages.
-        x: JAX array with shape () (scalar input).
-
-    Returns:
-        JAX array with shape () (scalar output).
-    """
-    y = func(x)
-    return _to_jax_scalar(y, where=where)
-
-
-def _apply_scalar_nd(func: Callable, where: str, theta: jnp.ndarray) -> jnp.ndarray:
-    """Adapts the function f: R^n -> R with scalar output enforcement.
-
-    Args:
-        func: User function mapping array-like -> scalar.
-        where: Context string for error messages.
-        theta: JAX array with shape (n,) (input vector).
-
-    Returns:
-        JAX array with shape () (scalar output).
-    """
-    y = func(theta)
-    return _to_jax_scalar(y, where=where)
-
-
-def _apply_array_nd(func: Callable, where: str, theta: jnp.ndarray) -> jnp.ndarray:
-    """Adapts the function f: R^n -> R^m with array output enforcement.
-
-    Args:
-        func: User function mapping array-like -> array-like (non-scalar).
-        where: Context string for error messages.
-        theta: JAX array with shape (n,) (input vector).
-
-    Returns:
-        JAX array with shape (m,) or higher (output vector/tensor).
-    """
-    y = func(theta)
-    return _to_jax_array(y, where=where)
-
-
 def autodiff_derivative(func: Callable, x0: float, order: int = 1) -> float:
-    """Derivative of a scalar function at a scalar point via JAX autodiff.
+    """Calculates the k-th derivative of a function f: R -> R via JAX autodiff.
 
     Args:
         func: Callable mapping float -> scalar.
@@ -151,21 +52,17 @@ def autodiff_derivative(func: Callable, x0: float, order: int = 1) -> float:
     Returns:
         Derivative value as a float.
 
-    Requirements:
-        - func must be JAX-differentiable at x0.
-        - order >= 1.
-
     Raises:
         AutodiffUnavailable: If JAX is not available or function is not differentiable.
         ValueError: If order < 1.
+        TypeError: If func(x) is not scalar-valued.
     """
-    _require_jax()
+    require_jax()
 
     if order < 1:
         raise ValueError("autodiff_derivative: order must be >= 1.")
 
-    # make sure we have a JAX-wrapped version of func
-    f_jax = partial(_apply_scalar_1d, func, "autodiff_derivative")
+    f_jax = partial(apply_scalar_1d, func, "autodiff_derivative")
 
     g = f_jax
     for _ in range(order):
@@ -174,6 +71,7 @@ def autodiff_derivative(func: Callable, x0: float, order: int = 1) -> float:
     try:
         val = g(x0)
     except (ConcretizationTypeError, TypeError, ValueError) as exc:
+        print(f"[JAX autodiff failed] {type(exc).__name__}: {exc}")
         raise AutodiffUnavailable(
             "autodiff_derivative: function is not JAX-differentiable at x0. "
             "Use JAX primitives / jax.numpy or fall back to 'adaptive'/'finite'."
@@ -182,30 +80,25 @@ def autodiff_derivative(func: Callable, x0: float, order: int = 1) -> float:
     return float(val)
 
 
-def autodiff_gradient(func: Callable, x0) -> _np.ndarray:
-    """Computes the gradient of f: R^n -> R at x0 via JAX autodiff.
+def autodiff_gradient(func: Callable, x0) -> np.ndarray:
+    """Computes the gradient of a scalar-valued function f: R^n -> R via JAX autodiff.
 
     Args:
-        func: Callable mapping array-like -> scalar.
-        x0: Point at which to evaluate the gradient; array-like, shape (n,
-            where n is the number of parameters.
+        func: Function to be differentiated.
+        x0: Point at which to evaluate the gradient.
 
     Returns:
-        1D numpy.ndarray with shape (n_params,).
-    Requirements:
-        - func(theta) returns a scalar.
-        - func must be JAX-compatible.
-        - x0 is array-like; treated as 1D vector.
+        A gradient vector as a 1D numpy.ndarray with shape (n,).
 
     Raises:
         AutodiffUnavailable: If JAX is not available or function is not differentiable.
+        TypeError: If func(theta) is not scalar-valued.
     """
-    _require_jax()
+    require_jax()
 
-    x0_arr = _np.asarray(x0, float).ravel()
+    x0_arr = np.asarray(x0, float).ravel()
 
-    # f_jax(theta) = scalar output
-    f_jax = partial(_apply_scalar_nd, func, "autodiff_gradient")
+    f_jax = partial(apply_scalar_nd, func, "autodiff_gradient")
     grad_f = jax.grad(f_jax)
 
     try:
@@ -215,7 +108,7 @@ def autodiff_gradient(func: Callable, x0) -> _np.ndarray:
             "autodiff_gradient: function is not JAX-differentiable."
         ) from exc
 
-    return _np.asarray(g, dtype=float)
+    return np.asarray(g, dtype=float).reshape(-1)
 
 
 def autodiff_jacobian(
@@ -223,33 +116,34 @@ def autodiff_jacobian(
     x0,
     *,
     mode: str | None = None,
-) -> _np.ndarray:
-    """Calculates the Jacobian of a vector/tensor function f: R^n -> R^m via JAX autodiff.
+) -> np.ndarray:
+    """Calculates the Jacobian of a vector-valued function via JAX autodiff.
+
+    Output convention matches DerivKit Jacobian builders: we flatten the function
+    output to length m = prod(out_shape), and return a 2D Jacobian of shape (m, n),
+    with n = input dimension.
 
     Args:
-        func: Callable mapping array-like -> array-like (non-scalar).
+        func: Function to be differentiated.
         x0: Point at which to evaluate the Jacobian; array-like, shape (n,).
         mode: Differentiation mode; None (auto), 'fwd', or 'rev'.
-            If None, chooses 'rev' if m <= n, else 'fwd'.
+            If None, chooses 'rev' if m <= n, else 'fwd'. For more details about
+            modes, see JAX documentation for `jax.jacrev` and `jax.jacfwd`.
 
     Returns:
-        2D numpy.ndarray with shape (m, n), where m is the output dimension.
-
-    Requirements:
-        - func must be JAX-differentiable at x0.
-        - x0 is array-like; treated as 1D vector.
+        A Jacobian matrix as a 2D numpy.ndarray with shape (m, n).
 
     Raises:
         AutodiffUnavailable: If JAX is not available or function is not differentiable.
         ValueError: If mode is invalid.
+        TypeError: If func(theta) is scalar-valued.
     """
-    _require_jax()
+    require_jax()
 
-    x0_arr = _np.asarray(x0, float).ravel()
+    x0_arr = np.asarray(x0, float).ravel()
     x0_jax = jnp.asarray(x0_arr)
 
-    # ensure here we have a JAX-wrapped version of func that returns array output
-    f_jax = partial(_apply_array_nd, func, "autodiff_jacobian")
+    f_jax = partial(apply_array_nd, func, "autodiff_jacobian")
 
     try:
         y0 = f_jax(x0_jax)
@@ -258,12 +152,11 @@ def autodiff_jacobian(
             "autodiff_jacobian: function is not JAX-differentiable at x0."
         ) from exc
 
-    out_shape = y0.shape
     in_dim = x0_arr.size
-    out_dim = int(_np.prod(out_shape))
+    out_dim = int(np.prod(y0.shape))
 
     if mode is None:
-        use_rev = out_dim <= in_dim  # reverse-mode if output not "much bigger" than input
+        use_rev = out_dim <= in_dim
     elif mode == "rev":
         use_rev = True
     elif mode == "fwd":
@@ -280,35 +173,31 @@ def autodiff_jacobian(
             "autodiff_jacobian: failed to trace function with JAX."
         ) from exc
 
-    return _np.asarray(jac, dtype=float)
+    jac_np = np.asarray(jac, dtype=float)
+    return jac_np.reshape(out_dim, in_dim)
 
 
-def autodiff_hessian(func: Callable, x0) -> _np.ndarray:
-    """Calcualtes the Hessian of f: R^n -> R at x0 via JAX autodiff.
+def autodiff_hessian(func: Callable, x0) -> np.ndarray:
+    """Calculates the full Hessian of a scalar-valued function.
 
     Args:
-        func: Callable mapping array-like -> scalar.
-        x0: Point at which to evaluate the Hessian; array-like, shape (n
-            where n is the number of parameters.
+        func: A function to be differentiated.
+        x0: Point at which to evaluate the Hessian; array-like, shape (n,) with
+            n = input dimension.
 
     Returns:
-        2D numpy.ndarray with shape (n, n).
-
-    Requirements:
-        - func(theta) returns a scalar.
-        - func must be JAX-compatible.
-        - x0 is array-like; treated as 1D vector.
+        A Hessian matrix as a 2D numpy.ndarray with shape (n, n).
 
     Raises:
         AutodiffUnavailable: If JAX is not available or function is not differentiable.
+        TypeError: If func(theta) is not scalar-valued.
     """
-    _require_jax()
+    require_jax()
 
-    x0_arr = _np.asarray(x0, float).ravel()
+    x0_arr = np.asarray(x0, float).ravel()
     x0_jax = jnp.asarray(x0_arr)
 
-    # f_jax(theta) = scalar output
-    f_jax = partial(_apply_scalar_nd, func, "autodiff_hessian")
+    f_jax = partial(apply_scalar_nd, func, "autodiff_hessian")
 
     try:
         hess = jax.hessian(f_jax)(x0_jax)
@@ -317,4 +206,4 @@ def autodiff_hessian(func: Callable, x0) -> _np.ndarray:
             "autodiff_hessian: function is not JAX-differentiable."
         ) from exc
 
-    return _np.asarray(hess, dtype=float)
+    return np.asarray(hess, dtype=float)
