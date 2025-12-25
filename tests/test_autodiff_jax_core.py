@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-import jax.numpy as jnp
 import numpy as np
 import pytest
+jax = pytest.importorskip("jax")
+jnp = pytest.importorskip("jax.numpy")
+
 
 from derivkit.autodiff.jax_core import (
     autodiff_derivative,

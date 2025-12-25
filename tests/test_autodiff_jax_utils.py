@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import pytest
+jax = pytest.importorskip("jax")
+jnp = pytest.importorskip("jax.numpy")
 
 from derivkit.autodiff.jax_utils import (
     apply_array_nd,
     apply_scalar_1d,
     apply_scalar_nd,
-    has_jax,
     require_jax,
 )
-
-if has_jax:
-    import jax.numpy as jnp
-
-pytestmark = pytest.mark.skipif(not has_jax, reason="JAX not installed")
 
 
 def test_require_jax_noop_when_available() -> None:
