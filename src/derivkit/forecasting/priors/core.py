@@ -7,11 +7,12 @@ Priors are represented as callables:
 The return value is interpreted as a log-density defined up to an additive
 constant. Returning ``-np.inf`` denotes zero probability (hard exclusion).
 
-These priors are designed to be used when constructing log-posteriors for
-sampling (e.g., from Fisher/DALI Gaussian approximations) or when evaluating
-posterior surfaces. GetDist plots what it is given; priors must be applied when
-generating samples or, for Gaussian approximations, incorporated explicitly into
-the Fisher matrix.
+These priors are intended for use when constructing log-posteriors for sampling
+or when evaluating posterior surfaces. Plotting tools such as GetDist only
+visualize the distributions they are given and do not apply priors implicitly.
+As a result, priors must be included explicitly: either by adding them when
+generating samples, or, in the case of Gaussian approximations, by incorporating
+them directly into the Fisher matrix.
 """
 
 from __future__ import annotations
