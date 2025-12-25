@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.adaptive.polyfit_utils import assess_polyfit_quality
+from derivkit.logger import derivkit_logger
 
 __all__ = [
     "format_derivative_diagnostics",
@@ -146,7 +147,7 @@ def print_derivative_diagnostics(
     Returns:
       None
     """
-    print(format_derivative_diagnostics(diag, meta=meta))
+    derivkit_logger.info(format_derivative_diagnostics(diag, meta=meta))
 
 
 def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:
