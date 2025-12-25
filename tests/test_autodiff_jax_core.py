@@ -57,7 +57,9 @@ def hess_func(t):
 
 def nondiff_func(t):
     """Non-differentiable function: f(t) = |t[0]|."""
-    return float(t[0])
+    if float(t[0]) > 0:
+        return 1.0
+    return 0.0
 
 
 def test_autodiff_derivative_first_order() -> None:
