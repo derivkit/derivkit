@@ -16,6 +16,8 @@ __all__ = [
     "validate_tabulated_xy",
     "validate_covariance_matrix_shape",
     "validate_symmetric_psd",
+    "ensure_finite",
+    "normalize_theta",
 ]
 
 def is_finite_and_differentiable(
@@ -185,3 +187,38 @@ def validate_symmetric_psd(
         )
 
     return a
+
+
+def ensure_finite(arr: ArrayLike, *, msg: str) -> None:
+    """Ensures that all values in an array are finite.
+
+    Args:
+        arr: Input array-like to check.
+        msg: Error message for the exception if non-finite values are found.
+
+    Returns:
+        None.
+
+    Raises:
+        FloatingPointError: If any value in ``arr`` is non-finite.
+    """
+    if not np.isfinite(np.asarray(arr)).all():
+        raise FloatingPointError(msg)
+
+
+def normalize_theta(theta0: ArrayLike) -> NDArray[np.floating]:
+    """Ensures that data vector is a non-empty 1D float array.
+
+    Args:
+        theta0: Input array-like to validate and convert.
+
+    Returns:
+        1D float array.
+
+    Raises:
+        ValueError: if theta0 is empty.
+    """
+    theta = np.asarray(theta0, dtype=float).reshape(-1)
+    if theta.size == 0:
+        raise ValueError("theta0 must be a non-empty 1D array.")
+    return theta
