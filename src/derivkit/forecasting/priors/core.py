@@ -816,9 +816,11 @@ def build_prior(
         - Global ``bounds`` are applied after all terms are combined.
 
     Examples:
-        ``build_prior()``
-        ``build_prior(bounds=[(0.0, None), (None, None)])``
-        ``build_prior(terms=[("gaussian_diag", {"mean": mu, "sigma": sig})])``
+        ```
+        build_prior()
+        build_prior(bounds=[(0.0, None), (None, None)])
+        build_prior(terms=[("gaussian_diag", {"mean": mu, "sigma": sig})])
+        ```
     """
     term_list = [] if terms is None else list(terms)
 
