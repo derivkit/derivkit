@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-jax = pytest.importorskip("jax")
-jnp = pytest.importorskip("jax.numpy")
+
+pytest.importorskip("jax")  # noqa: E402
 
 from derivkit.autodiff.jax_autodiff import (
     AutodiffDerivative,
