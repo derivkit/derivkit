@@ -740,28 +740,23 @@ _PRIOR_REGISTRY: dict[str, Callable[..., Callable[[NDArray[np.floating]], float]
 
 
 def _make_prior_term(spec: dict[str, Any]) -> Callable[[NDArray[np.floating]], float]:
-    """Builds one component of a composite prior from a configuration dictionary.
-
-    A "prior term" here means a single log-prior contribution (for example, a
-    Gaussian prior on a subset of parameters) that can be summed with other terms
-    to form a complete prior.
-
-    Expected format:
-        {"name": "<prior_name>", "params": {...}, "bounds": optional_bounds}
+    """Builds one log-prior contribution from a configuration dictionary.
 
     Args:
-        spec: Prior specification dictionary.
+        spec: Prior specification dictionary with the form
+            ``{"name": "<prior_name>", "params": {...}, "bounds": optional_bounds}``.
+            The ``"name"`` selects a registered prior constructor and ``"params"``
+            are forwarded to that constructor. The optional top-level ``"bounds"``
+            apply additional hard bounds to the resulting callable. For
+            ``name="uniform"``, bounds must be provided via either
+            ``params={"bounds": ...}`` or the top-level ``"bounds"`` key, but not
+            both.
 
     Returns:
-        Callable log-prior term: logp(theta) -> float.
-
-    Notes:
-        - For name="uniform", bounds must be provided via params={"bounds": ...}.
-          The top-level "bounds" key is reserved for optional *extra* hard bounds
-          on non-uniform terms.
+        A callable that evaluates the specified log-prior term.
 
     Raises:
-        ValueError: If the spec is missing a valid prior name, if the name is not
+        ValueError: If ``spec`` is missing a valid prior name, if the name is not
             registered, or if a uniform prior does not include bounds (or includes
             bounds twice).
     """
