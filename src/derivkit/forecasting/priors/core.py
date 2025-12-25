@@ -789,56 +789,36 @@ def build_prior(
     terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     bounds: Sequence[tuple[float | np.floating | None, float | np.floating | None]] | None = None,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Constructs and returns a single log-prior callable from a unified prior specification.
+    """Build and return a single log-prior callable from a simple specification.
 
-    This function takes a list of prior terms (each specified either as a
-    ``(name, params)`` tuple or as a dict with keys like ``name``, ``params``,
-    and optional per-term ``bounds``), builds each term using the internal
-    registry, sums the resulting log-priors, and then applies optional global
-    hard bounds.
+    This function combines one or more prior components into a single
+    ``logprior(theta) -> float`` callable by summing their log-densities and
+    optionally applying global hard bounds.
 
-    If no terms are provided, the behavior falls back to a simple default:
-    it returns an improper flat prior when ``bounds`` is ``None``, and a uniform
-    top-hat prior over ``bounds`` otherwise.
+    Each prior component (a “term”) specifies one distribution, such as a
+    Gaussian or log-uniform prior, and may also include its own hard bounds.
 
     Args:
-        terms: Sequence of prior term specifications (see below).
+        terms: Optional list of prior terms. Each term is specified either as
+            ``("prior_name", params)`` or as a dictionary with keys ``"name"``,
+            ``"params"``, and optional per-term ``"bounds"``.
         bounds: Optional global hard bounds applied to the combined prior.
 
     Returns:
-        A callable that evaluates the combined log-prior at a given parameter vector.
+        A callable that evaluates the combined log-prior at a given parameter
+        vector.
 
-    The user-facing API is:
-        - ``terms``: a list of prior terms, each either
-            * ``("prior_name", {"param": value, ...})``
-            * ``{"name": "prior_name", "params": {...}, "bounds": optional_term_bounds}``
-        - ``bounds``: optional global hard bounds applied to the combined prior.
-
-    Conventions:
+    Behavior:
         - If ``terms`` is ``None`` or empty:
-            * if ``bounds`` is ``None`` -> improper flat prior (``prior_none``)
-            * else -> uniform top-hat prior over ``bounds`` (``prior_uniform``)
-        - ``"uniform"`` priors must be passed as ``("uniform", {"bounds": ...})`` or the dict
-          equivalent. Global ``bounds`` is still allowed (it adds an additional hard gate).
+            * If ``bounds`` is ``None``, returns an improper flat prior.
+            * If ``bounds`` is provided, returns a uniform prior over ``bounds``.
+        - Prior terms are summed in log-space.
+        - Global ``bounds`` are applied after all terms are combined.
 
     Examples:
         ``build_prior()``
         ``build_prior(bounds=[(0.0, None), (None, None)])``
         ``build_prior(terms=[("gaussian_diag", {"mean": mu, "sigma": sig})])``
-        ``build_prior(
-            terms=[
-                ("gaussian_diag", {"mean": mu, "sigma": sig}),
-                ("log_uniform", {"index": 0}),
-                {"name": "beta", "params": {"index": 2, "alpha": 2.0, "beta": 5.0},
-                 "bounds": [(0, 1), (None, None), (0, 1)]},
-            ],
-            bounds=[(0.0, None), (None, None), (0.0, 1.0)],
-        )``
-
-    Raises:
-        TypeError: If a term is not a dict spec or a (name, params) tuple/list, or if
-            term params are not a dict.
-        ValueError: If a dict spec is invalid (see ``_make_prior_term``).
     """
     term_list = [] if terms is None else list(terms)
 
