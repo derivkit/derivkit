@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-<<<<<<< HEAD
-from functools import partial
-=======
-import warnings
->>>>>>> 243daef (utils: clean up numerics helpers)
 from typing import Callable, Sequence
 
 import numpy as np
