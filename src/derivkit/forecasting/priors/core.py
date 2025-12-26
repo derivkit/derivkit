@@ -1,8 +1,8 @@
 """Prior utilities (core priors + unified builder).
 
-Priors are represented as callables:
-
-    ``logprior(theta) -> float``
+Priors are represented as functions that evaluate how compatible a parameter vector is
+with the prior assumptions. They return a single log-prior value, with negative infinity
+used to exclude invalid parameter values.
 
 The return value is interpreted as a log-density defined up to an additive
 constant. Returning ``-np.inf`` denotes zero probability (hard exclusion).
