@@ -283,8 +283,8 @@ def delta_chi2_dali(
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
-        fisher: Fisher matrix (P, P) with P parameters.
-        g_tensor: DALI cubic tensor (P, P, P).
+        fisher: Fisher matrix ``(P, P)`` with ``P`` the number of parameters.
+        g_tensor: DALI cubic tensor with shape ``(P, P, P)``.
         h_tensor: DALI quartic tensor (P, P, P, P) or None.
         convention: Which normalization to use (``"delta_chi2"`` or
             ``"matplotlib_loglike"``).
