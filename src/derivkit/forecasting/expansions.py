@@ -35,17 +35,18 @@ We expose two conventions that are common in the codebase:
 
 GetDist convention
 ------------------
-GetDist expects ``loglikes`` to be the negative log posterior,
 
-    ``loglikes = -log(posterior)``
+GetDist expects ``loglikes`` to be the negative log posterior::
 
-up to an additive constant. Since this module defines
+    loglikes = -log(posterior)
 
-    ``log(posterior) = -0.5 * delta_chi2 + const``,
+up to an additive constant. Since this module defines::
 
-a compatible choice for GetDist is therefore
+    log(posterior) = -0.5 * delta_chi2 + const
 
-    ``loglikes = 0.5 * delta_chi2``
+a compatible choice for GetDist is therefore::
+
+    loglikes = 0.5 * delta_chi2
 
 (optionally shifted by a constant for numerical stability).
 
