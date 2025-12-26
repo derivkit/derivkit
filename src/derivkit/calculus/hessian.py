@@ -438,8 +438,9 @@ def _build_hessian_internal(
 
     Computes either the full Hessian or only its diagonal at ``theta0``.
     Used internally by:
-        - ``build_hessian(...)`` → ``diag=False`` (full)
-        - ``build_hessian_diag(...)`` → ``diag=True`` (diagonal only)
+
+    - ``build_hessian(...)`` → ``diag=False`` (full)
+    - ``build_hessian_diag(...)`` → ``diag=True`` (diagonal only)
 
     Args:
         function:
@@ -464,12 +465,14 @@ def _build_hessian_internal(
 
     Returns:
         If ``function(theta0)`` is scalar:
-            - ``diag=False``: array with shape ``(p, p)``  (full Hessian)
-            - ``diag=True``: array with shape ``(p,)``    (diagonal only)
+
+        - ``diag=False``: array with shape ``(p, p)``  (full Hessian)
+        - ``diag=True``: array with shape ``(p,)``    (diagonal only)
 
         If ``function(theta0)`` has shape ``out_shape``:
-            - ``diag=False``: array with shape ``(*out_shape, p, p)``
-            - ``diag=True``: array with shape ``(*out_shape, p)``
+
+        - ``diag=False``: array with shape ``(*out_shape, p, p)``
+        - ``diag=True``: array with shape ``(*out_shape, p)``
 
     Raises:
         FloatingPointError:
@@ -480,9 +483,10 @@ def _build_hessian_internal(
             If evaluating a single output component does not return a scalar.
 
     Notes:
-        - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
-        - The inner worker count defaults to ``resolve_inner_from_outer(n_workers)`` unless
-          explicitly overridden via ``inner_workers`` in ``dk_kwargs``.
+
+    - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
+    - The inner worker count defaults to ``resolve_inner_from_outer(n_workers)`` unless
+      explicitly overridden via ``inner_workers`` in ``dk_kwargs``.
     """
     theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:

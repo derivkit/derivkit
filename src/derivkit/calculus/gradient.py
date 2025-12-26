@@ -23,15 +23,15 @@ def build_gradient(function: Callable,
     """Returns the gradient of a scalar-valued function.
 
     Args:
-        function (Callable): The function to be differentiated.
-        theta0  (array-like): The parameter vector at which the gradient is evaluated.
+        function: The function to be differentiated.
+        theta0: The parameter vector at which the gradient is evaluated.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
-        n_workers (int): Number of workers used by
+        n_workers: Number of workers used by
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
             This setting does not parallelize across parameters. Default is ``1``.
-        dk_kwargs (dict, optional): Additional keyword arguments passed to
+        dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
