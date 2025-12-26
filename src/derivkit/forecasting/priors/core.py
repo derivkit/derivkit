@@ -466,7 +466,7 @@ def prior_half_normal(
         index: int,
         sigma: float | np.floating,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """"Constructs a half-normal prior for a single non-negative parameter.
+    """Constructs a half-normal prior for a single non-negative parameter.
 
     This prior is a standard weakly informative choice for non-negative amplitude
     or scale parameters. It is conceptually different from a normal prior with a
