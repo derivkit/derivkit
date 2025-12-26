@@ -265,7 +265,7 @@ def validate_dali_shapes(
 
 
 def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
-    """Validates that `a` is a 2D square matrix and return it as float array."""
+    """Validates that the input is a 2D square matrix and return it as float array."""
     arr = np.asarray(a, dtype=float)
     if arr.ndim != 2:
         raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")
