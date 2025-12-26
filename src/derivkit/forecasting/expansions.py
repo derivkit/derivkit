@@ -48,9 +48,8 @@ a compatible choice for GetDist is therefore::
 
 (optionally shifted by a constant for numerical stability).
 
-Notes
+Notes:
 -----
-
 - All log posterior values returned are defined up to an additive constant.
 - Priors are optional and are applied via a single unified prior spec:
   (``prior_terms``, ``prior_bounds``) which is compiled using ``build_prior``.
@@ -87,15 +86,32 @@ def submatrix_fisher(
 ) -> NDArray[np.floating]:
     """Extracts a sub-Fisher matrix for a subset of parameter indices.
 
+    The submatrix is constructed by selecting rows and columns of ``fisher``
+    at the indices in ``idx`` using ``np.ix_`` such that
+    ``F_sub[a, b] = fisher[idx[a], idx[b]]``.
+
+    The indices in ``idx`` may be any subset and any order. They do not need to
+    correspond to a contiguous block in the original matrix. For example, selecting
+    two parameters that appear at opposite corners of the full Fisher matrix
+    produces the full 2x2 Fisher submatrix for those parameters, including their
+    off-diagonal correlation.
+
+    This operation is useful for extracting a lower-dimensional slice of a Fisher
+    matrix for plotting or evaluation while holding all other parameters fixed at
+    their expansion values. It represents a slice through parameter space rather
+    than a marginalization. Marginalized constraints instead require operating on
+    the covariance matrix obtained by inverting the full Fisher matrix.
+
     Args:
-        fisher: Full Fisher matrix of shape  ``(P, P)`` with ``P`` the number of parameters.
+        fisher: Full Fisher matrix of shape ``(P, P)`` with ``P`` the number of parameters.
         idx: Sequence of parameter indices to extract.
 
     Returns:
-        Sub-Fisher matrix (len(idx), len(idx)).
+        Sub-Fisher matrix ``(len(idx), len(idx))``.
 
     Raises:
-        ValueError: If `fisher` is not square 2D.
+        ValueError: If ``fisher`` is not square 2D.
+        IndexError: If any index in ``idx`` is out of bounds.
     """
     idx = list(idx)
     fisher = np.asarray(fisher, float)
@@ -128,7 +144,7 @@ def submatrix_dali(
     Returns:
         A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where each entry is restricted
         to the specified indices. Shapes are:
-        
+
         - ``theta0_sub``: ``(len(idx),)``
         - ``f_sub``: ``(len(idx), len(idx))``
         - ``g_sub``: ``(len(idx), len(idx), len(idx))``
