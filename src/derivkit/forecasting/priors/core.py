@@ -618,7 +618,7 @@ def prior_gaussian_mixture(
     Provide exactly one of:
         - covs: (n, p, p)
         - inv_covs: (n, p, p)
-    Here, n is the number of components and p is the parameter dimension.
+    Here, ``n`` is the number of components and ``p`` is the parameter dimension.
 
     Provide exactly one of:
         - weights: (n,) non-negative (normalized internally)
