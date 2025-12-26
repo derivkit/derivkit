@@ -122,10 +122,10 @@ def submatrix_dali(
     """Extracts sub-DALI tensors for a subset of parameter indices.
 
     Args:
-        theta0: Full expansion point (P,) with P parameters.
-        fisher: Full Fisher matrix (P, P).
-        g_tensor: Full DALI cubic tensor (P, P, P).
-        h_tensor: Full DALI quartic tensor (P, P, P, P) or None.
+        theta0: Full expansion point with shape ``(P,)`` with ``P`` the number of parameters.
+        fisher: Full Fisher matrix with shape ``(P, P)``.
+        g_tensor: Full DALI cubic tensor with shape ``(P, P, P)``.
+        h_tensor: Full DALI quartic tensor with shape ``(P, P, P, P)`` or ``None``.
         idx: Sequence of parameter indices to extract.
 
     Returns:
