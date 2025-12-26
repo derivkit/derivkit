@@ -205,11 +205,11 @@ def logposterior_fisher(
     If no prior is provided, this returns the Fisher log-likelihood expansion
     (improper flat prior, no hard cutoffs).
 
-    The Fisher approximation corresponds to a purely quadratic delta chi^2 surface,
+    The Fisher approximation corresponds to a purely quadratic ``delta_chi2`` surface::
 
-        delta_chi2 = d^T F d ,
+        delta_chi2 = d.T @ F @ d
 
-    so the log posterior is
+    so the log posterior is::
 
         log p = -0.5 * delta_chi2
 
