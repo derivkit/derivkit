@@ -24,7 +24,8 @@ def build_samples(
 
     Args:
         func:
-            Function to evaluate. Takes a float and returns a scalar or np.ndarray.
+            Function to evaluate. Takes a float and returns a scalar or
+            np.ndarray.
         x0:
             Point around which to sample.
         config:
@@ -33,8 +34,8 @@ def build_samples(
             Number of parallel workers for function evaluation.
 
     Returns:
-        xs: An array of sample points (shape (n_samples,)).
-        ys: An array of function evaluations (shape (n_samples, n_components)).
+        xs: An array of sample points (shape ``(n_samples,)``).
+        ys: An array of function evaluations (shape ``(n_samples, n_components)``).
 
     Raises:
         ValueError:

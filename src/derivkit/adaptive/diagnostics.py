@@ -28,7 +28,8 @@ def format_derivative_diagnostics(
     """Format derivative diagnostics into a human-readable string.
 
     Args:
-      diag: Diagnostics dictionary as returned by ``make_derivative_diag``.
+      diag: Diagnostics dictionary as returned by
+        :func:`adaptive.diagnostics.make_derivative_diag`.
       meta: Optional metadata dictionary to include in the output.
       decimals: Number of decimal places for floating-point numbers.
       max_rows: Maximum number of rows to display for arrays; larger arrays are truncated.
@@ -141,7 +142,8 @@ def print_derivative_diagnostics(
     """Print derivative diagnostics to standard output.
 
     Args:
-      diag: Diagnostics dictionary as returned by ``make_derivative_diag``.
+      diag: Diagnostics dictionary as returned by
+        :func:`adaptive.diagnostics.make_derivative_diag`.
       meta: Optional metadata dictionary to include in the output.
 
     Returns:
