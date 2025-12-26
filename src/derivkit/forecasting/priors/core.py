@@ -48,7 +48,7 @@ __all__ = [
 
 
 def _prior_none_impl(
-    theta: NDArray[np.floating]
+    _theta: NDArray[np.floating]
 ) -> float:
     """Returns a constant log-prior (improper flat prior).
 
@@ -56,12 +56,12 @@ def _prior_none_impl(
     contributes zero to the log-posterior at every point.
 
     Args:
-        theta: Parameter vector (unused).
+        _theta: Parameter vector. This argument is unused
+            and present only for signature compatibility.
 
     Returns:
         Log-prior value (always ``0.0``).
     """
-    _ = theta
     return 0.0
 
 
