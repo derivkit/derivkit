@@ -6,9 +6,6 @@ This module provides functional helpers to evaluate approximate likelihood
 - Fisher quadratic approximation (``F``)
 - Doublet-DALI cubic/quartic corrections (``F``, ``G``, ``H``)
 
-The functions here do not build tensors; they assume you already have
-a Fisher matrix and (optionally) DALI tensors from :mod:`derivkit.forecasting`.
-
 Conventions
 -----------
 
