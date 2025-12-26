@@ -1,4 +1,4 @@
-"""Unit tests for derivkit.forecasting.expansions module."""
+"""Unit tests for the derivkit.forecasting.expansions module."""
 
 import numpy as np
 import pytest
