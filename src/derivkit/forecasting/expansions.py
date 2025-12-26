@@ -16,7 +16,7 @@ We expose two conventions that are common in the codebase:
 - ``convention="delta_chi2"``:
     Uses the standard DALI ``delta_chi2`` form::
 
-        delta_chi2 = d^T F d + (1/3) einsum(G, d, d, d) + (1/12) einsum(H, d, d, d, d)
+        delta_chi2 = d.T @ F @ d + (1/3) einsum(G, d, d, d) + (1/12) einsum(H, d, d, d, d)
 
     and returns log posterior (up to a constant) as
 
