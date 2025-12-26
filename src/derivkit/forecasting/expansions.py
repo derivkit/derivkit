@@ -49,8 +49,9 @@ a compatible choice for GetDist is therefore
 
 (optionally shifted by a constant for numerical stability).
 
-Notes:
+Notes
 -----
+
 - All log posterior values returned are defined up to an additive constant.
 - Priors are optional and are applied via a single unified prior spec:
   (``prior_terms``, ``prior_bounds``) which is compiled using ``build_prior``.
