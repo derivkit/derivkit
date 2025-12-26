@@ -609,7 +609,7 @@ def prior_gaussian_mixture(
 
     This prior has a density proportional to a weighted sum of Gaussian components.
 
-    The mixture is:
+    The mixture is::
 
         p(theta) = sum_n w_n * N(theta | mean_n, cov_n)
 
@@ -619,14 +619,15 @@ def prior_gaussian_mixture(
 
     Provide exactly one of:
 
-- covs: ``(n, p, p)``
-- inv_covs: ``(n, p, p)``
+    - covs: ``(n, p, p)``
+    - inv_covs: ``(n, p, p)``
 
     Here, ``n`` is the number of components and ``p`` is the parameter dimension.
 
     Provide exactly one of:
-        - weights: (n,) non-negative (normalized internally)
-        - log_weights: (n,) (normalized internally in log-space)
+
+    - weights: (n,) non-negative (normalized internally)
+    - log_weights: (n,) (normalized internally in log-space)
 
     Args:
         means: Component means with shape ``(n, p)``.
