@@ -468,13 +468,17 @@ def prior_half_normal(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a half-normal prior for a single non-negative parameter.
 
-    This prior is a standard weakly informative choice for non-negative amplitude
-    or scale parameters. It is conceptually different from a normal prior with a
-    non-negativity bound, which corresponds to a truncated normal. The half-normal
-    instead arises as the distribution of ``|N(0, sigma)|``.
+    This prior is a commonly used weakly informative choice for non-negative
+    amplitude or scale parameters. It concentrates probability near zero while
+    allowing larger values with Gaussian tails, making it suitable when the
+    parameter is expected to be small but not exactly zero.
 
-    The (unnormalized) density is proportional to ``exp(-0.5 * (x / sigma)**2)``
-    for ``x >= 0``.
+    It is conceptually different from a normal prior with a non-negativity bound,
+    which corresponds to a truncated normal distribution. The half-normal instead
+    arises as the distribution of ``|N(0, sigma)|``.
+
+    The (unnormalized) density is proportional to
+    ``exp(-0.5 * (x / sigma)**2)`` for ``x >= 0``.
 
     Args:
         index: Index of the parameter to which the prior applies.
