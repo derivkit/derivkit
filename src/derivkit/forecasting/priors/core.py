@@ -306,7 +306,7 @@ def _prior_gaussian_mixture_impl(
 def prior_none() -> Callable[[NDArray[np.floating]], float]:
     """Constructs an improper flat prior (constant log-density).
 
-    This prior has density proportional to 1 everywhere.
+    This prior has a density proportional to 1 everywhere.
 
     Returns:
         Log-prior value (always ``0.0``).
@@ -320,7 +320,7 @@ def prior_uniform(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a uniform prior with hard bounds.
 
-    This prior has density proportional to 1 within the specified bounds
+    This prior has a density proportional to 1 within the specified bounds
     and zero outside. The log-density is constant (up to an additive constant)
     within the bounds and ``-np.inf`` outside.
 
@@ -342,7 +342,7 @@ def prior_gaussian(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a multivariate Gaussian prior (up to an additive constant).
 
-    This prior has density proportional to
+    This prior has a density proportional to
     ``exp(-0.5 * (theta - mean)^T @ inv_cov @ (theta - mean))`` with ``inv_cov`` being the
     inverse of the provided covariance matrix and ``theta`` being the parameter vector.
 
@@ -386,7 +386,7 @@ def prior_gaussian_diag(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a diagonal Gaussian prior (up to an additive constant).
 
-    This prior has density proportional to
+    This prior has a density proportional to
     ``exp(-0.5 * sum_i ((x_i - mean_i) / sigma_i)^2)``, with independent components.
 
     Args:
@@ -500,7 +500,7 @@ def prior_half_cauchy(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a half-Cauchy prior for a single non-negative parameter.
 
-    This prior has density proportional to ``1 / (1 + (x/scale)^2)`` for ``x >= 0``,
+    This prior has a density proportional to ``1 / (1 + (x/scale)^2)`` for ``x >= 0``,
     with x being the parameter.
 
     Args:
@@ -527,7 +527,7 @@ def prior_log_normal(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a log-normal prior for a single positive parameter.
 
-    This prior has density proportional to
+    This prior has a density proportional to
     ``exp(-0.5 * ((log(x) - mean_log) / sigma_log) ** 2) / x`` for ``x > 0``.
 
     Args:
@@ -603,7 +603,7 @@ def prior_gaussian_mixture(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a Gaussian mixture prior (up to an additive constant).
 
-    This prior has density proportional to a weighted sum of Gaussian components.
+    This prior has a density proportional to a weighted sum of Gaussian components.
 
     The mixture is:
         ``p(theta) = sum_n w_n * N(theta | mean_n, cov_n)``
