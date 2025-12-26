@@ -610,7 +610,9 @@ def prior_gaussian_mixture(
     This prior has a density proportional to a weighted sum of Gaussian components.
 
     The mixture is:
-        ``p(theta) = sum_n w_n * N(theta | mean_n, cov_n)``
+
+        p(theta) = sum_n w_n * N(theta | mean_n, cov_n)
+
     where ``N(theta | mean, cov)`` is the multivariate Gaussian density with the
     specified mean and covariance; ``w_n`` are the mixture weights (non-negative,
     summing to 1); and the sum runs over the n=1..N components.
