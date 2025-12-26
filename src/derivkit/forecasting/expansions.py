@@ -236,7 +236,7 @@ def logposterior_fisher(
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
 
     Returns:
-        Scalar log posterior value (up to a constant).
+        Scalar log posterior value up to a constant.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
