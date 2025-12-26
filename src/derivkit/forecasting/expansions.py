@@ -91,7 +91,7 @@ def submatrix_fisher(
     """Extracts a sub-Fisher matrix for a subset of parameter indices.
 
     Args:
-        fisher: Full Fisher matrix (P, P) with P parameters.
+        fisher: Full Fisher matrix of shape  ``(P, P)`` with ``P`` the number of parameters.
         idx: Sequence of parameter indices to extract.
 
     Returns:
