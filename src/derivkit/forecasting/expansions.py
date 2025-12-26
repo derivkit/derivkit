@@ -18,7 +18,7 @@ We expose two conventions that are common in the codebase:
 
         delta_chi2 = d.T @ F @ d + (1/3) einsum(G, d, d, d) + (1/12) einsum(H, d, d, d, d)
 
-    and returns log posterior (up to a constant) as
+    and returns log posterior (up to a constant) as::
 
         log p = -0.5 * delta_chi2.
 
