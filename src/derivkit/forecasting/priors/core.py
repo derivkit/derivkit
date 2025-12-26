@@ -625,13 +625,13 @@ def prior_gaussian_mixture(
         - log_weights: (n,) (normalized internally in log-space)
 
     Args:
-        means: Component means with shape (n, p).
-        covs: Component covariances with shape (n, p, p).
-        inv_covs: Component inverse covariances with shape (n, p, p).
-        weights: Mixture weights with shape (n,). Can include zeros.
-        log_weights: Log-weights with shape (n,). Can include -inf entries.
-        include_component_norm: If True (default), include the per-component
-            Gaussian normalization factor proportional to |C_n|^{-1/2}.
+        means: Component means with shape ``(n, p)``.
+        covs: Component covariances with shape ``(n, p, p)``.
+        inv_covs: Component inverse covariances with shape ``(n, p, p)``.
+        weights: Mixture weights with shape ``(n,)``. Can include zeros.
+        log_weights: Log-weights with shape ``(n,)``. Can include -inf entries.
+        include_component_norm: If ``True`` (default), include the per-component
+            Gaussian normalization factor proportional to :math:`|C_n|^{-1/2}`.
             This is important for *mixtures* when covariances differ.
 
     Returns:
