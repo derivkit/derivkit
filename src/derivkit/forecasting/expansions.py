@@ -158,7 +158,7 @@ def delta_chi2_fisher(
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
 
     Returns:
-        Scalar delta chi-squared value.
+        The scalar delta chi-squared value between ``theta`` and ``theta_0``.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
