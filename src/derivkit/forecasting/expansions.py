@@ -347,9 +347,9 @@ def logposterior_dali(
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
-        fisher: Fisher matrix (P, P) with P parameters.
-        g_tensor: DALI cubic tensor (P, P, P).
-        h_tensor: DALI quartic tensor (P, P, P, P) or None.
+        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
+        g_tensor: DALI cubic tensor ``(P, P, P)``.
+        h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
         convention: See module docstring.
         prior_terms: See module docstring.
         prior_bounds: See module docstring.
