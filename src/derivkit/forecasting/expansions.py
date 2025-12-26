@@ -25,7 +25,7 @@ We expose two conventions that are common in the codebase:
 - ``convention="matplotlib_loglike"``:
     Matches the prefactors used in some matplotlib contour scripts::
 
-        log p = -0.5 d^T F d - 0.5 einsum(G, d, d, d) - 0.125 einsum(H, d, d, d, d)
+        log p = -0.5 d.T @ F @ d - 0.5 einsum(G, d, d, d) - 0.125 einsum(H, d, d, d, d)
 
     which corresponds to
 
