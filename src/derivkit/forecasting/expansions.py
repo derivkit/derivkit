@@ -230,7 +230,7 @@ def logposterior_fisher(
     Args:
         theta: Parameter vector.
         theta0: Expansion point.
-        fisher: Fisher matrix (P, P) with P parameters.
+        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
         prior_terms: See module docstring.
         prior_bounds: See module docstring.
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
