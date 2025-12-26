@@ -11,6 +11,7 @@ a Fisher matrix and (optionally) DALI tensors from :mod:`derivkit.forecasting`.
 
 Conventions
 -----------
+
 We expose two conventions that are common in the codebase:
 
 - ``convention="delta_chi2"``:
