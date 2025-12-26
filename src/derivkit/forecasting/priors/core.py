@@ -236,9 +236,10 @@ def _prior_gaussian_mixture_impl(
 ) -> float:
     """Evaluates a Gaussian mixture log-prior at ``theta``.
 
-    This function computes the log of a weighted sum of Gaussian components:
+    This function computes the log of a weighted sum of Gaussian components::
 
-        ``p(theta) = sum_n w_n * N(theta | means_n, cov_n)``
+        p(theta) = sum_n w_n * N(theta | means_n, cov_n)
+
     where ``N(theta | mean, cov)`` is the multivariate Gaussian density with the
     specified mean and covariance; ``w_n` are the mixture weights (in log-space); and
     the sum runs over the ``n=1..N`` components.
