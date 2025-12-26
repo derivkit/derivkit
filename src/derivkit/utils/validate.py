@@ -230,12 +230,12 @@ def validate_dali_shapes(
     """Validates shapes for DALI expansion inputs.
 
     Checks that:
-      - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-      - ``fisher`` has shape ``(p, p)``.
-      - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
-      - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
-        ``(p, p, p, p)``
-        with ``p`` being the number of parameters.
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` has shape ``(p, p)``.
+    - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
+    - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
+      ``(p, p, p, p)``  with ``p`` being the number of parameters.
 
     Args:
       theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
