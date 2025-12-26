@@ -290,7 +290,7 @@ def delta_chi2_dali(
             ``"matplotlib_loglike"``).
 
     Returns:
-        Scalar delta chi-squared value.
+        The scalar delta chi-squared value.
     """
     if convention not in ("delta_chi2", "matplotlib_loglike"):
         raise ValueError(f"Unknown convention='{convention}'. Supported: 'delta_chi2', 'matplotlib_loglike'.")
