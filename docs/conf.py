@@ -39,6 +39,12 @@ html_sidebar = {
     ],
 }
 
+# -- Sphinx Multiversion --------------------------------------------------
+# https://sphinx-contrib.github.io/multiversion/main/configuration.html
+
+smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
+smv_branch_whitelist = "main"
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

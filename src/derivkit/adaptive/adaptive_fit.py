@@ -20,6 +20,7 @@ from derivkit.adaptive.polyfit_utils import (
     pullback_derivative_from_fit,
     scale_offsets,
 )
+from derivkit.logger import derivkit_logger
 
 
 class AdaptiveFitDerivative:
@@ -176,7 +177,7 @@ class AdaptiveFitDerivative:
         bad, msg = fit_is_obviously_bad(metrics)
         if bad:
             pretty_suggestions = "\n  ".join(suggestions)
-            print(
+            derivkit_logger.info(
                 msg
                 + "\nTo improve this derivative, try:\n  "
                 + pretty_suggestions

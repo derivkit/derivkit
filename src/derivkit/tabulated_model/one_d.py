@@ -7,8 +7,8 @@ tensor-valued outputs.
 Two common entry points are:
 
 * Direct construction with ``(x, y)`` arrays of shape ``(N,)`` and ``(N, ...)``.
-* :func:`tabulated1d_from_table` for simple 2D tables containing x and one
-  or more y components in columns.
+* :func:`derivkit.tabulated_model.one_d.tabulated1d_from_table` for simple 2D
+  tables containing x and one or more y components in columns.
 """
 
 
@@ -81,9 +81,10 @@ class Tabulated1DModel:
 
         Args:
             x: Strictly increasing tabulated x values with shape ``(N,)``.
-            y: Tabulated y values with shape ``(N,)`` (scalar) or ``(N, ...)`` (vector/tensor).
-               The first dimension must match ``x``.
-            extrapolate: Whether to allow evaluation outside the x range. Default is False.
+            y: Tabulated y values with shape ``(N,)`` (scalar) or ``(N, ...)``
+                (vector/tensor). The first dimension must match ``x``.
+            extrapolate: Whether to allow evaluation outside the x range.
+                Default is ``False``.
             fill_value: Value for out-of-bounds evaluation when extrapolation is
                 disabled. If ``None``, a ``ValueError`` is raised instead.
         """
@@ -113,8 +114,8 @@ class Tabulated1DModel:
             y output shape.
 
         Raises:
-            ValueError: If evaluating outside the x range with extrapolation disabled
-                and no fill_value is provided.
+            ValueError: If evaluating outside the x range with extrapolation
+                disabled and no fill_value is provided.
         """
         x_new_arr = np.asarray(x_new, dtype=float)
         flat_x = x_new_arr.ravel()
@@ -150,7 +151,7 @@ def tabulated1d_from_table(
     extrapolate: bool = False,
     fill_value: float | None = None,
 ) -> Tabulated1DModel:
-    """Creates a Tabulated1DModel from a simple 2D ``(x, y)`` table.
+    """Creates a ``Tabulated1DModel`` from a simple 2D ``(x, y)`` table.
 
     This helper covers the common case where data are stored in a 2D array
     or text file with x in one column and one or more y components in the
@@ -164,7 +165,8 @@ def tabulated1d_from_table(
     For multi-component tables, the resulting ``y`` has shape ``(N, M)``.
     Higher-rank outputs (for example matrices or tensors associated with
     each x) are not encoded via this table format. Such data must be loaded
-    and reshaped prior to constructing a :class:`Tabulated1DModel` directly
+    and reshaped prior to constructing a
+    :class:`derivkit.tabulated_model.one_d.Tabulated1DModel` directly
     from ``(x, y)``.
 
     Args:
@@ -178,7 +180,8 @@ def tabulated1d_from_table(
             disabled.
 
     Returns:
-        A :class:`Tabulated1DModel` constructed from the parsed table.
+        A :class:`derivkit.tabulated_model.one_d.Tabulated1DModel` constructed
+        from the parsed table.
     """
     x, y = parse_xy_table(table)
     return Tabulated1DModel(x, y, extrapolate=extrapolate, fill_value=fill_value)
@@ -204,7 +207,7 @@ def parse_xy_table(
     This function does not handle tensor-valued outputs directly.
     When each x corresponds to a matrix or higher-rank object, the data
     must be parsed and reshaped prior to constructing a
-    :class:`Tabulated1DModel`.
+    :class:`derivkit.tabulated_model.one_d.Tabulated1DModel`.
 
     Args:
         table: 2D array containing x and y columns (e.g. data loaded from a text

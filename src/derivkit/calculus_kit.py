@@ -43,25 +43,50 @@ class CalculusKit:
         """Initialises class with function and expansion point.
 
         Args:
-            function: The function to be differentiated. Accepts a 1D array-like. Must return
-                      either a scalar (for gradient/Hessian) or a 1D array (for Jacobian).
-            x0: Point at which to evaluate derivatives (shape (P,)).
+            function: The function to be differentiated. Accepts a 1D
+                array-like. Must return either a scalar (for gradient/Hessian)
+                or a 1D array (for Jacobian).
+            x0: Point at which to evaluate derivatives (shape ``(P,)``).
         """
         self.function = function
         self.x0 = np.asarray(x0, dtype=float)
 
     def gradient(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the gradient of a scalar-valued function."""
+        """Returns the gradient of a scalar-valued function.
+
+        This function is a convenience wrapper around
+        :func:`derivkit.calculus.build_gradient`.
+        Refer to the documentation of that function for tunable optional
+        arguments.
+        """
         return build_gradient(self.function, self.x0, *args, **kwargs)
 
     def jacobian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the Jacobian of a vector-valued function."""
+        """Returns the Jacobian of a vector-valued function.
+
+        This function is a convenience wrapper around
+        :func:`derivkit.calculus.build_jacobian`.
+        Refer to the documentation of that function for tunable optional
+        arguments.
+        """
         return build_jacobian(self.function, self.x0, *args, **kwargs)
 
     def hessian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the Hessian of a scalar-valued function."""
+        """Returns the Hessian of a scalar-valued function.
+
+        This function is a convenience wrapper around
+        :func:`derivkit.calculus.build_hessian`.
+        Refer to the documentation of that function for tunable optional
+        arguments.
+        """
         return build_hessian(self.function, self.x0, *args, **kwargs)
 
     def hessian_diag(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the diagonal of the Hessian of a scalar-valued function."""
+        """Returns the diagonal of the Hessian of a scalar-valued function.
+
+        This function is a convenience wrapper around
+        :func:`derivkit.calculus.hessian.build_hessian_diag`.
+        Refer to the documentation of that function for tunable optional
+        arguments.
+        """
         return build_hessian_diag(self.function, self.x0, *args, **kwargs)

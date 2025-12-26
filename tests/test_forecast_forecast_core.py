@@ -1,6 +1,5 @@
 """Tests for forecast_core methods."""
 
-from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
@@ -51,7 +50,7 @@ def test_forecast_order():
         )
 
 
-def test_pseudoinverse_path_no_nan():
+def test_pseudoinverse_path_no_nan(caplog):
     """Test that pseudoinverse path yields finite tensors."""
     # singular covariance -> forces pinv path
     func = _two_obs
@@ -60,19 +59,18 @@ def test_pseudoinverse_path_no_nan():
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], dtype=float)  # singular 2x2
 
-    with pytest.warns(RuntimeWarning) as w:
-        fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
-    msgs = [str(rec.message) for rec in w]
-    assert any("pseudoinverse" in m for m in msgs)
-    assert np.isfinite(fisher).all()
+    fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
+    tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
 
-    with pytest.warns(RuntimeWarning) as w:
-        tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
-    msgs = [str(rec.message) for rec in w]
-    assert any("pseudoinverse" in m for m in msgs)
+    # We expect 2 warnings: 1 from the Fisher path and 1 from the DALI path
+    assert 2 == len([x for x in caplog.records
+        if "pseudoinverse" in x.message
+        and "WARNING" == x.levelname
+    ])
+
+    assert np.isfinite(fisher).all()
     assert np.isfinite(tensor_g).all()
     assert np.isfinite(tensor_h).all()
-
 
 @pytest.mark.parametrize(
     (
@@ -193,6 +191,7 @@ def test_forecast(
     expected_fisher,
     expected_dali_g,
     expected_dali_h,
+    caplog,
 ):
     """Validates Fisher and DALI tensors against reference values.
 
@@ -204,20 +203,6 @@ def test_forecast(
       tiny absolute floor only where the expected entries are near zero. This
       avoids false failures from floating-point noise in ~0 entries while
       keeping real values strict.
-
-    Args:
-      model (Callable[[np.ndarray], np.ndarray | float]): Observable
-        model evaluated at `fiducials`.
-      fiducials (np.ndarray): Parameter point(s) at which derivatives are
-        evaluated.
-      covariance_matrix (np.ndarray): Observables' covariance used to weight
-        derivatives.
-      expected_fisher (np.ndarray): Reference Fisher matrix.
-      expected_dali_g (np.ndarray): Reference third-order DALI tensor G.
-      expected_dali_h (np.ndarray): Reference fourth-order DALI tensor H.
-
-    Raises:
-      AssertionError: If any tensor deviates beyond the specified tolerances.
     """
     observables = model
     fiducial_values = fiducials
@@ -226,22 +211,18 @@ def test_forecast(
     func = observables
     theta0 = fiducial_values
 
-    # Helper: warn only if cov is non-symmetric
-    want_sym_warn = not np.allclose(covmat, covmat.T)
-
     # Fisher (order=1): set tolerances up front
     fisher_rtol = 3e-3
     fisher_atol = 1e-12
 
-    fisher_ctx = (
-        pytest.warns(
-            RuntimeWarning, match=r"`cov` is not symmetric; proceeding as-is"
-        )
-        if want_sym_warn
-        else nullcontext()
-    )
-    with fisher_ctx:
-        fisher_matrix = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
+    fisher_matrix = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
+    dali_g, dali_h = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
+    # Helper: warn only if cov is non-symmetric
+    want_sym_warn = not np.allclose(covmat, covmat.T)
+    if want_sym_warn:
+        for record in caplog.records:
+            assert record.levelname == "WARNING"
+        assert r"`cov` is not symmetric; proceeding as-is" in caplog.text
 
     assert np.allclose(
         np.asarray(fisher_matrix, float),
@@ -249,17 +230,6 @@ def test_forecast(
         rtol=fisher_rtol,
         atol=fisher_atol,
     )
-
-    # DALI (order=2): same symmetry-warning behavior
-    dali_ctx = (
-        pytest.warns(
-            RuntimeWarning, match=r"`cov` is not symmetric; proceeding as-is"
-        )
-        if want_sym_warn
-        else nullcontext()
-    )
-    with dali_ctx:
-        dali_g, dali_h = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
 
     is_multi_param = fiducials.size > 1
     rtol_g = 3e-3 if is_multi_param else 5e-4
@@ -521,7 +491,7 @@ def test_fisher_bias_singular_fisher_uses_pinv_baseline():
     np.testing.assert_allclose(fisher @ delta_theta, expected_bias, rtol=1e-10, atol=1e-12)
 
 
-def test_fisher_bias_singular_covariance_matches_pinv_baseline():
+def test_fisher_bias_singular_covariance_matches_pinv_baseline(caplog):
     """Tests that build_fisher_bias with singular covariance matches pinv baseline."""
     design_matrix = np.array([[1.0, 0.0],
                               [1.0, 0.0]], float)
@@ -535,14 +505,18 @@ def test_fisher_bias_singular_covariance_matches_pinv_baseline():
 
     delta = np.array([2.0, -1.0], float)
 
-    with pytest.warns(RuntimeWarning, match="covariance solve"):
-        bias_vec, dtheta = build_fisher_bias(
-            function=model,
-            theta0=theta0,
-            cov=cov,
-            fisher_matrix=fisher,
-            delta_nu=delta,
-        )
+    bias_vec, dtheta = build_fisher_bias(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        fisher_matrix=fisher,
+        delta_nu=delta,
+    )
+
+    assert 1 == len([x for x in caplog.records
+        if "covariance solve" in x.message
+        and "WARNING" == x.levelname
+    ])
 
     c_pinv = np.linalg.pinv(cov)
     expected_bias = design_matrix.T @ (c_pinv @ delta)

@@ -2,7 +2,7 @@
 
 Evaluate a user function over a 1D grid with optional parallelism and return
 a 2D array with consistent shape suitable for downstream polynomial fitting
-and diagnostics (e.g., in `AdaptiveFitDerivative`).
+and diagnostics (e.g., in :class:`adaptive.adaptive_fit.AdaptiveFitDerivative`).
 """
 
 from __future__ import annotations

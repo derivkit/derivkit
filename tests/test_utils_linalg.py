@@ -41,28 +41,29 @@ def test_invert_covariance_full_matrix():
     assert_allclose(inv, expected)
 
 
-def test_invert_covariance_singular_uses_pseudoinverse_and_warns():
+def test_invert_covariance_singular_uses_pseudoinverse_and_warns(caplog):
     """Tests that ingular covariance should fall back to pseudoinverse with a warning."""
     cov = np.array([[1.0, 0.0], [0.0, 0.0]])  # rank-deficient
 
-    with pytest.warns(RuntimeWarning) as record:
-        inv = invert_covariance(cov, warn_prefix="test")
+    inv = invert_covariance(cov, warn_prefix="test")
+    assert len(caplog.records) > 0
 
-    # Expect at least one warning mentioning pseudoinverse
-    assert any("pseudoinverse" in str(w.message) for w in record)
+    for record in caplog.records:
+        assert record.levelname == "WARNING"
+
+    assert any("pseudoinverse" in str(w.message) for w in caplog.records)
 
     expected = np.linalg.pinv(cov)
     assert_allclose(inv, expected)
 
 
-def test_invert_covariance_warns_on_asymmetry():
+def test_invert_covariance_warns_on_asymmetry(caplog):
     """Tests that non-symmetric covariance should trigger a symmetry warning."""
     cov = np.array([[1.0, 2.0], [0.0, 1.0]])
 
-    with pytest.warns(RuntimeWarning) as record:
-        _ = invert_covariance(cov, warn_prefix="linalg")
-
-    assert any("not symmetric" in str(w.message) for w in record)
+    _ = invert_covariance(cov, warn_prefix="linalg")
+    assert any("WARNING" == record.levelname for record in caplog.records)
+    assert any("not symmetric" in str(record.message) for record in caplog.records)
 
 
 def test_normalize_covariance_scalar():
@@ -153,30 +154,36 @@ def test_solve_or_pinv_general_solve_when_not_assuming_symmetric():
     assert_allclose(x, expected)
 
 
-def test_solve_or_pinv_rank_deficient_warns_and_uses_pinv():
+def test_solve_or_pinv_rank_deficient_warns_and_uses_pinv(caplog):
     """Tests that rank-deficient matrix should warn and fall back to pseudoinverse."""
     matrix = np.array([[1.0, 0.0], [0.0, 0.0]])  # rank 1
     vector = np.array([1.0, 2.0])
 
-    with pytest.warns(RuntimeWarning) as record:
-        x = solve_or_pinv(matrix, vector, warn_context="test_solve")
+    x = solve_or_pinv(matrix, vector, warn_context="test_solve")
 
-    assert any("rank-deficient" in str(w.message) for w in record)
+    assert len(caplog.records) > 0
+
+    for record in caplog.records:
+        assert record.levelname == "WARNING"
+
+    assert any("rank-deficient" in str(w.message) for w in caplog.records)
 
     expected = np.linalg.pinv(matrix) @ vector
     assert_allclose(x, expected)
 
 
-def test_solve_or_pinv_cholesky_failure_warns_and_uses_pinv():
+def test_solve_or_pinv_cholesky_failure_warns_and_uses_pinv(caplog):
     """Tests that indefinite matrix with assume_symmetric=True should trigger fallback."""
     # Symmetric, full rank but indefinite, so Cholesky fails
     matrix = np.array([[0.0, -1.0], [-1.0, 0.0]])
     vector = np.array([1.0, 2.0])
 
-    with pytest.warns(RuntimeWarning) as record:
-        x = solve_or_pinv(matrix, vector, assume_symmetric=True, warn_context="chol_fail")
+    x = solve_or_pinv(matrix, vector, assume_symmetric=True, warn_context="chol_fail")
 
-    assert any("not SPD or was singular" in str(w.message) for w in record)
+    for record in caplog.records:
+        assert record.levelname == "WARNING"
+
+    assert any("not SPD or was singular" in str(w.message) for w in caplog.records)
 
     expected = np.linalg.pinv(matrix) @ vector
     assert_allclose(x, expected)
@@ -196,13 +203,14 @@ def test_solve_or_pinv_invalid_shapes_raise():
         solve_or_pinv(matrix, bad_vector)
 
 
-def test_invert_covariance_warns_once_on_asymmetry(recwarn):
+def test_invert_covariance_warns_once_on_asymmetry(caplog):
     """Tests that non-symmetric covariance should trigger a single symmetry warning."""
     cov = np.array([[1.0, 2.0], [0.0, 1.0]])
 
     inv = invert_covariance(cov, warn_prefix="linalg")
     assert inv.shape == (2, 2)
     assert np.all(np.isfinite(inv))
-
-    msgs = [str(w.message) for w in recwarn if issubclass(w.category, RuntimeWarning)]
-    assert sum("not symmetric" in m for m in msgs) == 1
+    assert len([x for x in caplog.records
+        if "not symmetric" in x.message
+        and "WARNING" == x.levelname
+    ]) == 1

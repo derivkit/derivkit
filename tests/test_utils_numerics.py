@@ -36,15 +36,16 @@ def test_central_difference_error_estimate_raises_on_nonpositive_order(bad_order
 
 
 @pytest.mark.parametrize("high_order", [5, 999])
-def test_central_difference_error_estimate_warns_on_orders_above_supported_range(high_order):
+def test_central_difference_error_estimate_warns_on_orders_above_supported_range(high_order, caplog):
     """Tests that orders > 4 emit a warning but still scale like h^2."""
     h1 = 0.1
     h2 = 0.05  # half of h1
 
-    with pytest.warns(UserWarning):
-        e1 = central_difference_error_estimate(h1, high_order)
-    with pytest.warns(UserWarning):
-        e2 = central_difference_error_estimate(h2, high_order)
+    e1 = central_difference_error_estimate(h1, high_order)
+    e2 = central_difference_error_estimate(h2, high_order)
+
+    for record in caplog.records:
+        assert record.levelname == "WARNING"
 
     # Both estimates finite and non-negative
     assert np.isfinite(e1)
