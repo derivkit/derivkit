@@ -1,6 +1,14 @@
 derivkit.forecasting package
 ============================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   derivkit.forecasting.priors
+
 Submodules
 ----------
 
