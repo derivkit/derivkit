@@ -215,7 +215,7 @@ def logposterior_fisher(
 
     up to an additive constant. This normalization is equivalent to the
     ``convention="delta_chi2"`` used for DALI and should be used for all
-    scientific results. In this interpretation, fixed delta_chi2 values correspond
+    scientific results. In this interpretation, fixed ``delta_chi2`` values correspond
     to fixed probability content (e.g. 68%, 95%) in parameter space, exactly
     as for a Gaussian likelihood.
 
