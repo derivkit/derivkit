@@ -154,8 +154,8 @@ def delta_chi2_fisher(
 
     Args:
         theta: Parameter vector (trial/evaluation point).
-        theta0: Expansion point (parameter vector at which Fisher was computed).
-        fisher: Fisher matrix (P, P) with P parameters.
+        theta0: Parameter vector at which ``fisher`` was computed.
+        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
 
     Returns:
         Scalar delta chi-squared value.
