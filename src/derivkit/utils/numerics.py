@@ -16,7 +16,6 @@ __all__ = [
     "is_in_bounds",
     "apply_hard_bounds",
     "sum_terms",
-    "as_1d_float_array",
     "get_index_value",
     "logsumexp_1d",
 ]
@@ -209,29 +208,6 @@ def sum_terms(
     return summed
 
 
-def as_1d_float_array(x: ArrayLike, *, name: str = "x") -> NDArray[np.float64]:
-    """Convert input to a 1D float array.
-
-    This is a small convenience for model/likelihood/prior code that expects
-    parameter vectors. It performs a shape check (the array must be 1D) and
-    ensures a float dtype.
-
-    Args:
-        x: Input array-like.
-        name: Name used in error messages.
-
-    Returns:
-        1D NumPy array with dtype float64.
-
-    Raises:
-        ValueError: If the converted array is not 1D.
-    """
-    arr = np.asarray(x, dtype=np.float64)
-    if arr.ndim != 1:
-        raise ValueError(f"{name} must be 1D, got shape {arr.shape}")
-    return arr.astype(np.float64, copy=False)
-
-
 def get_index_value(theta: ArrayLike, index: int, *, name: str = "theta") -> float:
     """Extracts a single parameter value from a 1D parameter vector.
 
@@ -248,10 +224,13 @@ def get_index_value(theta: ArrayLike, index: int, *, name: str = "theta") -> flo
         Value at the given index as float.
 
     Raises:
-        ValueError: If theta is not 1D.
-        IndexError: If index is out of bounds.
+        ValueError: If ``theta`` is not 1D.
+        IndexError: If ``index`` is out of bounds.
     """
-    th = as_1d_float_array(theta, name=name)
+    th = np.asarray(theta, dtype=np.float64)
+    if th.ndim != 1:
+        raise ValueError(f"{name} must be 1D, got shape {th.shape}")
+
     j = int(index)
     if j < 0 or j >= th.size:
         raise IndexError(f"{name} index {j} out of bounds for length {th.size}")
