@@ -178,9 +178,9 @@ def _resolve_logprior(
     """Resolve the logprior callable from either unified spec or direct callable.
 
     Rules:
-      - If `logprior` is provided, `prior_terms`/`prior_bounds` must be None.
-      - If `prior_terms` or `prior_bounds` is provided, compile via `build_prior`.
-      - If none provided, return None (no prior).
+      - If ``logprior`` is provided, ``prior_terms``/``prior_bounds`` must be ``None``.
+      - If ``prior_terms`` or ``prior_bounds`` is provided, compile via ``build_prior``.
+      - If ``None`` provided, return ``None`` (no prior).
     """
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
