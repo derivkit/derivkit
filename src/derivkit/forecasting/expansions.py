@@ -27,9 +27,9 @@ We expose two conventions that are common in the codebase:
 
         log p = -0.5 d.T @ F @ d - 0.5 einsum(G, d, d, d) - 0.125 einsum(H, d, d, d, d)
 
-    which corresponds to
+    which corresponds to::
 
-        delta_chi2 = d.T @ F @ d + einsum(G, d, d::, d) + 0.25 einsum(H, d, d, d, d)
+        delta_chi2 = d.T @ F @ d + einsum(G, d, d, d) + 0.25 einsum(H, d, d, d, d)
 
     so that again ``log p = -0.5 * delta_chi2``.
 
