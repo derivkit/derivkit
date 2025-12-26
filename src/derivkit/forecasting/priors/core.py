@@ -416,23 +416,22 @@ def prior_log_uniform(
     *,
     index: int,
 ) -> Callable[[NDArray[np.floating]], float]:
-    """Construct a Jeffreys prior for a single positive scale parameter.
+    """Constructs a log-uniform prior for a single positive parameter.
 
-    The Jeffreys prior is defined via the Fisher information of the parameter.
-    For a positive scale parameter, this results in a prior proportional to
-    ``1 / x``, which is the same functional form as a log-uniform prior.
+    This prior assigns equal weight to multiplicative (relative) changes in the
+    parameter rather than additive changes. It is commonly used for positive,
+    scale-like parameters when no preferred scale is known.
+
+    For a positive parameter :math:`x`, the (improper) prior density is
+    proportional to :math:`1/x` on :math:`(0, infinity)`. This has the same
+    functional form as the Jeffreys prior for a positive scale parameter; see
+    ``prior_jeffreys`` for that interpretation.
 
     Args:
         index: Index of the parameter to which the prior applies.
 
     Returns:
         A callable that evaluates the log-prior at a given parameter vector.
-
-    Note:
-        Although this implementation is identical to ``prior_log_uniform``,
-        the name ``prior_jeffreys`` emphasizes the statistical motivation
-        (reparameterization invariance for scale parameters) rather than
-        uniformity in log-space.
     """
     return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_uniform")
 
@@ -443,21 +442,21 @@ def prior_jeffreys(
 ) -> Callable[[NDArray[np.floating]], float]:
     """Constructs a Jeffreys prior for a single positive scale parameter.
 
-    The Jeffreys prior is defined using the Fisher information of the parameter.
-    For a positive scale parameter, this leads to a prior proportional to 1/x
-    (with x being the scale parameter that is > 0), which is the same functional
-    form as a log-uniform prior.
+    This prior encodes reparameterization invariance for a positive scale
+    parameter: inference does not depend on the choice of units used to describe
+    the parameter. It is commonly used to express ignorance about the absolute
+    scale of a quantity.
+
+    For a positive scale parameter :math:`x`, the (improper) prior density is
+    proportional to :math:`1/x` on :math:`(0, infinity)`. In practice, this has
+    the same functional form as the log-uniform prior; the separate name exists
+    to emphasize the statistical motivation.
 
     Args:
         index: Index of the parameter to which the prior applies.
 
     Returns:
         A callable that evaluates the log-prior at a given parameter vector.
-
-    Note:
-        Although the implementation matches ``prior_log_uniform``, the name
-        ``prior_jeffreys`` emphasizes the motivation (reparameterization
-        invariance for scale parameters) rather than “uniform in log-space”.
     """
     return partial(_prior_1d_impl, index=int(index), domain="positive", kind="log_uniform")
 
