@@ -113,7 +113,7 @@ def is_in_bounds(
 
     Returns:
         A boolean indicating whether all parameters satisfy their bounds
-        (or ``True`` if bounds is ``None`).
+        (or ``True`` if bounds is ``None``).
 
     Raises:
         ValueError: If ``bounds`` is provided and its length does not match ``theta``.
