@@ -616,8 +616,10 @@ def prior_gaussian_mixture(
     summing to 1); and the sum runs over the n=1..N components.
 
     Provide exactly one of:
-        - covs: (n, p, p)
-        - inv_covs: (n, p, p)
+
+- covs: ``(n, p, p)``
+- inv_covs: ``(n, p, p)``
+
     Here, ``n`` is the number of components and ``p`` is the parameter dimension.
 
     Provide exactly one of:
