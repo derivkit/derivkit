@@ -129,12 +129,13 @@ def submatrix_dali(
         idx: Sequence of parameter indices to extract.
 
     Returns:
-        A tuple (theta0_sub, f_sub, g_sub, h_sub) where each entry is restricted
+        A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where each entry is restricted
         to the specified indices. Shapes are:
-        theta0_sub: (len(idx),)
-        f_sub: (len(idx), len(idx))
-        g_sub: (len(idx), len(idx), len(idx))
-        h_sub: (len(idx), len(idx), len(idx), len(idx)) or None.
+        
+        - ``theta0_sub``: ``(len(idx),)``
+        - ``f_sub``: ``(len(idx), len(idx))``
+        - ``g_sub``: ``(len(idx), len(idx), len(idx))``
+        - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
     """
     idx = list(idx)
     t0 = np.asarray(theta0, float)[idx]
