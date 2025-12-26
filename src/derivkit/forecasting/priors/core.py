@@ -473,9 +473,9 @@ def prior_half_normal(
     allowing larger values with Gaussian tails, making it suitable when the
     parameter is expected to be small but not exactly zero.
 
-    It is conceptually different from a normal prior with a non-negativity bound,
-    which corresponds to a truncated normal distribution. The half-normal instead
-    arises as the distribution of ``|N(0, sigma)|`` with N being a normal random variable.
+    The half-normal distribution is obtained by taking the absolute value of a
+    zero-mean normal distribution, ``|N(0, sigma)|`` with N being a normal random
+    variable and sigma the standard deviation.
 
     The (unnormalized) density is proportional to
     ``exp(-0.5 * (x / sigma)**2)`` for ``x >= 0``.
