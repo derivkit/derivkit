@@ -53,7 +53,7 @@ Notes:
 -----
 - All log posterior values returned are defined up to an additive constant.
 - Priors are optional and are applied via a single unified prior spec:
-  (`prior_terms`, `prior_bounds`) which is compiled using `build_prior`.
+  (``prior_terms``, ``prior_bounds``) which is compiled using ``build_prior``.
 - If no prior is provided, the functions return the *likelihood expansion*
   (i.e. improper flat prior, no hard cutoffs).
 """
