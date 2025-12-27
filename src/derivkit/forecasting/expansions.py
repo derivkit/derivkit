@@ -102,11 +102,22 @@ def submatrix_fisher(
 
     Raises:
         ValueError: If ``fisher`` is not square 2D.
+        TypeError: If ``idx`` contains non-integer indices.
+        IndexError: If any index in ``idx`` is out of bounds.
     """
     idx = list(idx)
     fisher = np.asarray(fisher, float)
     if fisher.ndim != 2 or fisher.shape[0] != fisher.shape[1]:
-        raise ValueError(f"F must be square 2D, got {fisher.shape}")
+        raise ValueError(f"fisher must be square 2D, got {fisher.shape}")
+
+    p = int(fisher.shape[0])
+
+    if not all(isinstance(i, (int, np.integer)) for i in idx):
+        raise TypeError("idx must contain integer indices")
+
+    if any((i < 0) or (i >= p) for i in idx):
+        raise IndexError(f"idx contains out-of-bounds indices for p={p}: {idx}")
+
     return fisher[np.ix_(idx, idx)]
 
 
@@ -150,13 +161,31 @@ def submatrix_dali(
         - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
 
     Raises:
+        ValueError: If input tensors have invalid shapes.
+        TypeError: If ``idx`` contains non-integer indices.
         IndexError: If any index in ``idx`` is out of bounds.
     """
     idx = list(idx)
-    t0 = np.asarray(theta0, float)[idx]
-    f2 = np.asarray(fisher, float)[np.ix_(idx, idx)]
-    g2 = np.asarray(g_tensor, float)[np.ix_(idx, idx, idx)]
-    h2 = None if h_tensor is None else np.asarray(h_tensor, float)[np.ix_(idx, idx, idx, idx)]
+
+    theta0 = np.asarray(theta0, float)
+    fisher = np.asarray(fisher, float)
+    g_tensor = np.asarray(g_tensor, float)
+    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+
+    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+
+    p = int(theta0.shape[0])
+
+    if not all(isinstance(i, (int, np.integer)) for i in idx):
+        raise TypeError("idx must contain integer indices")
+
+    if any((i < 0) or (i >= p) for i in idx):
+        raise IndexError(f"idx contains out-of-bounds indices for p={p}: {idx}")
+
+    t0 = theta0[idx]
+    f2 = fisher[np.ix_(idx, idx)]
+    g2 = g_tensor[np.ix_(idx, idx, idx)]
+    h2 = None if h_tensor is None else h_tensor[np.ix_(idx, idx, idx, idx)]
     return t0, f2, g2, h2
 
 
