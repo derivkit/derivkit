@@ -177,8 +177,11 @@ def delta_chi2_fisher(
     """Computes a displacement chi-squared under the Fisher approximation.
 
     Args:
-        theta: Parameter vector (trial/evaluation point).
-        theta0: Parameter vector at which ``fisher`` was computed.
+        theta: Evaluation point in parameter space. This is the trial parameter vector
+            at which the Fisher/DALI expansion is evaluated.
+        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
+            DALI tensors are assumed to have been computed at this point, and the
+            expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
 
     Returns:
@@ -211,8 +214,10 @@ def _resolve_logprior(
     that no prior is applied.
 
     Args:
-        prior_terms: See module docstring.
-        prior_bounds: See module docstring.
+        prior_terms: Prior term specification passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
+        prior_bounds: Global hard bounds passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject
 
     Returns:
@@ -271,8 +276,10 @@ def logposterior_fisher(
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
-        prior_terms: See module docstring.
-        prior_bounds: See module docstring.
+        prior_terms: Prior term specification passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
+        prior_bounds: Global hard bounds passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
 
     Returns:
@@ -321,8 +328,11 @@ def delta_chi2_dali(
     contours and should not be used as the default.
 
     Args:
-        theta: Parameter vector.
-        theta0: Expansion point.
+        theta: Evaluation point in parameter space. This is the trial parameter vector
+            at which the Fisher/DALI expansion is evaluated.
+        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
+            DALI tensors are assumed to have been computed at this point, and the
+            expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix ``(P, P)`` with ``P`` the number of parameters.
         g_tensor: DALI cubic tensor with shape ``(P, P, P)``.
         h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
@@ -393,9 +403,12 @@ def logposterior_dali(
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
         g_tensor: DALI cubic tensor ``(P, P, P)``.
         h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
-        convention: See module docstring.
-        prior_terms: See module docstring.
-        prior_bounds: See module docstring.
+        convention: The normalization to use (``"delta_chi2"`` or
+            ``"matplotlib_loglike"``).
+        prior_terms: Prior term specification passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
+        prior_bounds: Global hard bounds passed to
+            :meth:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
     """
     theta = np.asarray(theta, float)
