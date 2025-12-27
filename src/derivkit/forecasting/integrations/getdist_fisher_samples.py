@@ -1,14 +1,15 @@
-"""Conversion utilities for Fisher-Gaussian forecasts and GetDist outputs.
+"""Conversion helpers for Fisher–Gaussian forecasts and GetDist objects.
 
-This module provides helpers to represent a Fisher forecast in GetDist:
+This module provides lightweight bridges from a Fisher matrix to common GetDist
+representations:
 
-- As an analytic Gaussian approximation via ``GaussianND`` (mean ``theta0``,
-  covariance from the (pseudo-)inverse Fisher matrix).
-- As Monte Carlo samples drawn from the Fisher Gaussian, optionally applying
-  priors and hard bounds and storing GetDist-style ``loglikes``.
+- An analytic Gaussian approximation via ``GaussianND`` with mean ``theta0`` and
+  covariance from the (pseudo-)inverse Fisher matrix.
+- Monte Carlo samples drawn from the Fisher Gaussian as ``MCSamples``, with
+  optional prior support and hard bounds, and optional GetDist-style ``loglikes``.
 
-These utilities are intended for quick visualization (e.g. GetDist triangle
-plots) and lightweight prior truncation without running an MCMC sampler.
+These helpers are intended for quick visualization (e.g. triangle plots) and
+simple prior truncation without running an MCMC sampler.
 """
 
 from __future__ import annotations
@@ -38,27 +39,52 @@ def fisher_to_getdist_gaussiannd(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
     *,
-    names: Sequence[str],
-    labels: Sequence[str],
+    names: Sequence[str] | None = None,
+    labels: Sequence[str] | None = None,
     label: str = "Fisher (Gaussian)",
     rcond: float | None = None,
-):
-    """Returns a GetDist GaussianND object for the Fisher Gaussian."""
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
+) -> GaussianND:
+    """Returns a GetDist ``GaussianND`` for the Fisher Gaussian.
+
+    Args:
+        theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
+        fisher: Fisher matrix with shape ``(p, p)``.
+        names: Optional parameter names (length ``p``). Defaults to ``p0, p1, ...``.
+        labels: Optional parameter labels (length ``p``). Defaults to ``p_0, p_1, ...``.
+        label: Label attached to the returned object.
+        rcond: Cutoff passed to the Fisher (pseudo-)inverse when forming the covariance.
+
+    Returns:
+        A ``GaussianND`` with mean ``theta0`` and covariance from ``fisher``.
+
+    Raises:
+        ValueError: If shapes or names/labels lengths are inconsistent.
+
+    See Also:
+        ``getdist.gaussian_mixtures.GaussianND``.
+    """
+    theta0 = np.asarray(theta0, dtype=float)
+    fisher = np.asarray(fisher, dtype=float)
     validate_fisher_shapes(theta0, fisher)
 
-    p = theta0.size
-    if len(names) != p or len(labels) != p:
+    n_params = int(theta0.size)
+
+    default_names = [f"p{i}" for i in range(n_params)]
+    default_labels = [rf"p_{{{i}}}" for i in range(n_params)]
+
+    param_names = list(default_names if names is None else names)
+    param_labels = list(default_labels if labels is None else labels)
+
+    if len(param_names) != n_params or len(param_labels) != n_params:
         raise ValueError("names/labels must match number of parameters")
 
-    cov = fisher_to_cov(fisher, rcond=rcond)
+    covariance = fisher_to_cov(fisher, rcond=rcond)
 
     return GaussianND(
         mean=theta0,
-        cov=cov,
-        names=list(names),
-        labels=list(labels),
+        cov=covariance,
+        names=param_names,
+        labels=param_labels,
         label=label,
     )
 
@@ -69,103 +95,114 @@ def fisher_to_getdist_samples(
     *,
     names: Sequence[str],
     labels: Sequence[str],
-    nsamp: int = 30_000,
+    n_samples: int = 30_000,
     seed: int | None = None,
-    proposal_scale: float = 1.0,
+    kernel_scale: float = 1.0,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
     hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     store_loglikes: bool = True,
     label: str = "Fisher (samples)",
-):
-    """Draws samples from the Fisher Gaussian and returns GetDist ``MCSamples``.
+) -> MCSamples:
+    """Draws samples from the Fisher Gaussian as GetDist ``MCSamples``.
 
-    GetDist convention:
-        The ``loglikes`` field stores ``-log(posterior)`` (up to an additive constant).
-        Despite the name, this is not necessarily ``-log L`` unless the prior is flat.
+    Samples are drawn from a multivariate Gaussian with mean ``theta0`` and
+    covariance ``kernel_scale**2 * pinv(fisher)``. Optionally, samples are
+    truncated by hard bounds and/or by a prior (via ``logprior`` or
+    ``prior_terms``/``prior_bounds``).
 
-    In this function (when ``store_loglikes=True``), we store:
-        ``-log posterior(theta) = 0.5 * d^T F d - logprior(theta) + const``,
-        where ``d = (theta - theta0)``.
+    GetDist stores “loglikes” as ``-log(posterior)`` up to an additive
+    constant. When ``store_loglikes=True`` we store:
+
+        ``-log p(theta) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + const``.
 
     Args:
-        theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
-        fisher: Fisher information matrix as a 2D array with shape ``(p, p)``.
-        names: List of parameter names (length ``p``).
-        labels: List of parameter labels (length ``p``).
-        nsamp: Number of samples to draw.
-        seed: Random seed for reproducibility.
-        proposal_scale: Scale factor for proposal covariance.
-        prior_terms: Prior terms to build a prior from (see ``build_prior``).
-        prior_bounds: Prior bounds to build a prior from (see ``build_prior``).
-        logprior: Custom log-prior function (overrides ``prior_terms``/``prior_bounds``).
-        hard_bounds: Hard bounds to apply to samples (outside samples are dropped).
-        store_loglikes: Whether to compute and store loglikes in the output samples.
-            If ``store_loglikes=True`` and a prior is provided, samples outside support are dropped
-            and the *posterior* loglikes are stored (up to an additive constant).
-        label: Label for the GetDist MCSamples object.
+        theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
+        fisher: Fisher matrix with shape ``(p, p)``.
+        names: Parameter names (length ``p``).
+        labels: Parameter labels (length ``p``).
+        n_samples: Number of samples to draw.
+        seed: Random seed.
+        kernel_scale: Multiplicative scale applied to the Gaussian covariance.
+        prior_terms: Prior specification for ``build_prior``.
+        prior_bounds: Prior bounds for ``build_prior``.
+        logprior: Custom log-prior callable. Mutually exclusive with
+            ``prior_terms``/``prior_bounds``.
+        hard_bounds: Hard bounds applied by rejection (samples outside are dropped).
+            Mutually exclusive with encoding support via ``prior_terms``/``prior_bounds``.
+        store_loglikes: If True, compute and store GetDist-style ``loglikes``.
+        label: Label for the returned ``MCSamples``.
 
     Returns:
-        A GetDist MCSamples object containing the drawn samples and GetDist-style ``loglikes``
-        (i.e. ``-log posterior`` up to an additive constant, if ``store_loglikes=True``).
+        ``MCSamples`` containing the retained samples and optional ``loglikes``.
 
     Raises:
-        ValueError: If shapes or names/labels lengths are inconsistent, or if conflicting
-            prior/support options are provided (e.g. `logprior` together with `prior_terms`/`prior_bounds`,
-            or `hard_bounds` together with `prior_bounds`/`prior_terms`).
-        RuntimeError: If all samples are rejected by hard bounds, or if all samples are rejected by the prior.
+        ValueError: If shapes are inconsistent, names/labels lengths mismatch, or
+            mutually exclusive options are provided.
+        RuntimeError: If all samples are rejected by bounds or prior support.
     """
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
+    theta0 = np.asarray(theta0, dtype=float)
+    fisher = np.asarray(fisher, dtype=float)
     validate_fisher_shapes(theta0, fisher)
 
-    p = theta0.size
-    if len(names) != p or len(labels) != p:
+    n_params = int(theta0.size)
+    if len(names) != n_params or len(labels) != n_params:
         raise ValueError("names/labels must match number of parameters")
+
+    n_samples = int(n_samples)
+    if n_samples <= 0:
+        raise ValueError("n_samples must be a positive integer")
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
 
     if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
-            "Ambiguous support: you passed `hard_bounds` and also `prior_bounds`/`prior_terms`.\n"
-            "Choose ONE support mechanism:\n"
-            "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
-            "  - encode support via the prior (set `hard_bounds=None`)."
+            "Ambiguous support: choose either `hard_bounds` or prior-based support "
+            "via (`prior_terms`/`prior_bounds`)."
         )
 
-    # Draw from N(theta0, proposal_scale^2 * pinv(F))
     samples = kernel_samples_from_fisher(
-        theta0, fisher, n_samples=int(nsamp), kernel_scale=float(proposal_scale), seed=seed
+        theta0,
+        fisher,
+        n_samples=n_samples,
+        kernel_scale=float(kernel_scale),
+        seed=seed,
     )
+
     samples = apply_parameter_bounds(samples, hard_bounds)
     if samples.shape[0] == 0:
         raise RuntimeError("All samples rejected by hard bounds (no samples left).")
 
-    d = samples - theta0[None, :]
-    quad = np.einsum("ni,ij,nj->n", d, fisher, d).astype(float, copy=False)  # d^T F d
+    delta = samples - theta0[None, :]
+    theta_quad = np.einsum("ni,ij,nj->n", delta, fisher, delta).astype(float, copy=False)
 
-    loglikes = None
+    loglikes: NDArray[np.floating] | None = None
     if store_loglikes:
-        lp_vals: NDArray[np.floating] | None = None
-        if logprior is not None or prior_terms is not None or prior_bounds is not None:
-            if logprior is None:
-                logprior = build_prior(terms=prior_terms, bounds=prior_bounds)
+        logprior_fn: Callable[[NDArray[np.floating]], float] | None = None
+        if logprior is not None:
+            logprior_fn = logprior
+        elif prior_terms is not None or prior_bounds is not None:
+            logprior_fn = build_prior(terms=prior_terms, bounds=prior_bounds)
 
-            lp_vals = np.array([float(logprior(s)) for s in samples], dtype=float)
-            finite = np.isfinite(lp_vals)
-            samples = samples[finite]
-            quad = quad[finite]
-            lp_vals = lp_vals[finite]
+        log_prior_vals: NDArray[np.floating] | None = None
+        if logprior_fn is not None:
+            log_prior_vals = np.array([float(logprior_fn(s)) for s in samples], dtype=float)
+            keep = np.isfinite(log_prior_vals)
+            samples = samples[keep]
+            theta_quad = theta_quad[keep]
+            log_prior_vals = log_prior_vals[keep]
             if samples.shape[0] == 0:
                 raise RuntimeError("All samples rejected by the prior (logprior=-inf).")
 
-        # -log posterior = 0.5*quad - logprior + const
-        loglikes = 0.5 * quad if lp_vals is None else (0.5 * quad - lp_vals)
+        # GetDist convention: loglikes = -log(posterior) + const
+        loglikes = 0.5 * theta_quad if log_prior_vals is None else (0.5 * theta_quad - log_prior_vals)
 
-        # shift const for numerical stability
-        loglikes = loglikes - np.nanmin(loglikes)
+        # Shift by a constant for numerical stability (preserves relative weights).
+        finite_ll = np.isfinite(loglikes)
+        if np.any(finite_ll):
+            loglikes = loglikes - np.min(loglikes[finite_ll])
 
     return MCSamples(
         samples=samples,
