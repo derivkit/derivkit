@@ -1,0 +1,1124 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="derivkit.adaptive package" href="derivkit.adaptive.html"><link rel="prev" title="derivkit" href="modules.html">
+
+    <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+        <title>derivkit package - DerivKit documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/derivkit.css?v=ed9d9a37" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  --color-brand-primary: #3b9ab2;
+  --color-brand-content: #3b9ab2;
+  --color-link: #3b9ab2;
+  --color-link--hover: #f21901;
+  --color-link--visited: #e1af00;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #3b9ab2;
+  --color-brand-content: #3b9ab2;
+  --color-link: #3b9ab2;
+  --color-link--hover: #f21901;
+  --color-link--visited: #e1af00;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #3b9ab2;
+  --color-brand-content: #3b9ab2;
+  --color-link: #3b9ab2;
+  --color-link--hover: #f21901;
+  --color-link--visited: #e1af00;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">DerivKit  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">DerivKit  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="guide/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/methods.html">Derivative Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/forecasting.html">Forecasting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/likelihoods.html">Likelihoods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="team.html">Team</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="modules.html">derivkit</a><input aria-label="Toggle navigation of derivkit" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">derivkit package</a><input aria-label="Toggle navigation of derivkit package" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.adaptive.html">derivkit.adaptive package</a><input aria-label="Toggle navigation of derivkit.adaptive package" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.adaptive_fit.html">derivkit.adaptive.adaptive_fit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.batch_eval.html">derivkit.adaptive.batch_eval module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html">derivkit.adaptive.diagnostics module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html">derivkit.adaptive.grid module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html">derivkit.adaptive.polyfit_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.spacing.html">derivkit.adaptive.spacing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html">derivkit.adaptive.transforms module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.calculus.html">derivkit.calculus package</a><input aria-label="Toggle navigation of derivkit.calculus package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.gradient.html">derivkit.calculus.gradient module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.hessian.html">derivkit.calculus.hessian module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.jacobian.html">derivkit.calculus.jacobian module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.forecasting.html">derivkit.forecasting package</a><input aria-label="Toggle navigation of derivkit.forecasting package" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="derivkit.forecasting.priors.html">derivkit.forecasting.priors package</a><input aria-label="Toggle navigation of derivkit.forecasting.priors package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="derivkit.forecasting.priors.core.html">derivkit.forecasting.priors.core module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.dali.html">derivkit.forecasting.dali module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html">derivkit.forecasting.expansions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.fisher.html">derivkit.forecasting.fisher module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.forecast_core.html">derivkit.forecasting.forecast_core module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.likelihoods.html">derivkit.likelihoods package</a><input aria-label="Toggle navigation of derivkit.likelihoods package" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.likelihoods.gaussian.html">derivkit.likelihoods.gaussian module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.likelihoods.poisson.html">derivkit.likelihoods.poisson module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.local_polynomial_derivative.html">derivkit.local_polynomial_derivative package</a><input aria-label="Toggle navigation of derivkit.local_polynomial_derivative package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.diagnostics.html">derivkit.local_polynomial_derivative.diagnostics module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.fit.html">derivkit.local_polynomial_derivative.fit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_poly_config.html">derivkit.local_polynomial_derivative.local_poly_config module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_polynomial_derivative.html">derivkit.local_polynomial_derivative.local_polynomial_derivative module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.sampling.html">derivkit.local_polynomial_derivative.sampling module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.tabulated_model.html">derivkit.tabulated_model package</a><input aria-label="Toggle navigation of derivkit.tabulated_model package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.tabulated_model.one_d.html">derivkit.tabulated_model.one_d module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="derivkit.utils.html">derivkit.utils package</a><input aria-label="Toggle navigation of derivkit.utils package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html">derivkit.utils.concurrency module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.extrapolation.html">derivkit.utils.extrapolation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.linalg.html">derivkit.utils.linalg module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html">derivkit.utils.numerics module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.sandbox.html">derivkit.utils.sandbox module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html">derivkit.utils.validate module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus_kit.html">derivkit.calculus_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html">derivkit.derivative_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html">derivkit.forecast_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.fornberg.html">derivkit.fornberg module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.likelihood_kit.html">derivkit.likelihood_kit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.logger.html">derivkit.logger module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+<div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Branches</span></p>
+  <ul>
+    <li class="toctree-l1"><a class="reference" href="derivkit.html">main</a></li>
+  </ul>
+  <p class="caption" role="heading"><span class="caption-text">Tags</span></p>
+  <ul>
+  </ul>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/derivkit.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="derivkit-package">
+<h1>derivkit package<a class="headerlink" href="#derivkit-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.adaptive.html">derivkit.adaptive package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.adaptive.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.adaptive_fit.html">derivkit.adaptive.adaptive_fit module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.adaptive_fit.html#derivkit.adaptive.adaptive_fit.AdaptiveFitDerivative"><code class="docutils literal notranslate"><span class="pre">AdaptiveFitDerivative</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.batch_eval.html">derivkit.adaptive.batch_eval module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.batch_eval.html#derivkit.adaptive.batch_eval.eval_function_batch"><code class="docutils literal notranslate"><span class="pre">eval_function_batch()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.diagnostics.html">derivkit.adaptive.diagnostics module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.fit_is_obviously_bad"><code class="docutils literal notranslate"><span class="pre">fit_is_obviously_bad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.format_derivative_diagnostics"><code class="docutils literal notranslate"><span class="pre">format_derivative_diagnostics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.make_derivative_diag"><code class="docutils literal notranslate"><span class="pre">make_derivative_diag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.diagnostics.html#derivkit.adaptive.diagnostics.print_derivative_diagnostics"><code class="docutils literal notranslate"><span class="pre">print_derivative_diagnostics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.grid.html">derivkit.adaptive.grid module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.chebyshev_offsets"><code class="docutils literal notranslate"><span class="pre">chebyshev_offsets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.ensure_min_samples_and_maybe_rebuild"><code class="docutils literal notranslate"><span class="pre">ensure_min_samples_and_maybe_rebuild()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.make_domain_aware_chebyshev_grid"><code class="docutils literal notranslate"><span class="pre">make_domain_aware_chebyshev_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.make_grid"><code class="docutils literal notranslate"><span class="pre">make_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.grid.html#derivkit.adaptive.grid.make_offsets"><code class="docutils literal notranslate"><span class="pre">make_offsets()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html">derivkit.adaptive.polyfit_utils module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.assess_polyfit_quality"><code class="docutils literal notranslate"><span class="pre">assess_polyfit_quality()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.choose_degree"><code class="docutils literal notranslate"><span class="pre">choose_degree()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.extract_derivative"><code class="docutils literal notranslate"><span class="pre">extract_derivative()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.fit_multi_power"><code class="docutils literal notranslate"><span class="pre">fit_multi_power()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.fit_with_headroom_and_maybe_minimize"><code class="docutils literal notranslate"><span class="pre">fit_with_headroom_and_maybe_minimize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.pullback_derivative_from_fit"><code class="docutils literal notranslate"><span class="pre">pullback_derivative_from_fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.polyfit_utils.html#derivkit.adaptive.polyfit_utils.scale_offsets"><code class="docutils literal notranslate"><span class="pre">scale_offsets()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.spacing.html">derivkit.adaptive.spacing module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.spacing.html#derivkit.adaptive.spacing.resolve_spacing"><code class="docutils literal notranslate"><span class="pre">resolve_spacing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.adaptive.transforms.html">derivkit.adaptive.transforms module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.signed_log_derivatives_to_x"><code class="docutils literal notranslate"><span class="pre">signed_log_derivatives_to_x()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.signed_log_forward"><code class="docutils literal notranslate"><span class="pre">signed_log_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.signed_log_to_physical"><code class="docutils literal notranslate"><span class="pre">signed_log_to_physical()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.sqrt_derivatives_to_x_at_zero"><code class="docutils literal notranslate"><span class="pre">sqrt_derivatives_to_x_at_zero()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.sqrt_domain_forward"><code class="docutils literal notranslate"><span class="pre">sqrt_domain_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.adaptive.transforms.html#derivkit.adaptive.transforms.sqrt_to_physical"><code class="docutils literal notranslate"><span class="pre">sqrt_to_physical()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.adaptive.html#module-derivkit.adaptive">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.calculus.html">derivkit.calculus package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.calculus.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.gradient.html">derivkit.calculus.gradient module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.gradient.html#derivkit.calculus.gradient.build_gradient"><code class="docutils literal notranslate"><span class="pre">build_gradient()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.hessian.html">derivkit.calculus.hessian module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.hessian.html#derivkit.calculus.hessian.build_hessian"><code class="docutils literal notranslate"><span class="pre">build_hessian()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.hessian.html#derivkit.calculus.hessian.build_hessian_diag"><code class="docutils literal notranslate"><span class="pre">build_hessian_diag()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.jacobian.html">derivkit.calculus.jacobian module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.calculus.jacobian.html#derivkit.calculus.jacobian.build_jacobian"><code class="docutils literal notranslate"><span class="pre">build_jacobian()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.calculus.html#module-derivkit.calculus">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_gradient"><code class="docutils literal notranslate"><span class="pre">build_gradient()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_hessian"><code class="docutils literal notranslate"><span class="pre">build_hessian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_jacobian"><code class="docutils literal notranslate"><span class="pre">build_jacobian()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.forecasting.html">derivkit.forecasting package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.forecasting.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.priors.html">derivkit.forecasting.priors package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.priors.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.priors.html#module-derivkit.forecasting.priors">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.forecasting.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.dali.html">derivkit.forecasting.dali module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.dali.html#derivkit.forecasting.dali.build_dali"><code class="docutils literal notranslate"><span class="pre">build_dali()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.expansions.html">derivkit.forecasting.expansions module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#conventions">Conventions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#getdist-convention">GetDist convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.delta_chi2_dali"><code class="docutils literal notranslate"><span class="pre">delta_chi2_dali()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.delta_chi2_fisher"><code class="docutils literal notranslate"><span class="pre">delta_chi2_fisher()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.logposterior_dali"><code class="docutils literal notranslate"><span class="pre">logposterior_dali()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.logposterior_fisher"><code class="docutils literal notranslate"><span class="pre">logposterior_fisher()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.submatrix_dali"><code class="docutils literal notranslate"><span class="pre">submatrix_dali()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.expansions.html#derivkit.forecasting.expansions.submatrix_fisher"><code class="docutils literal notranslate"><span class="pre">submatrix_fisher()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.fisher.html">derivkit.forecasting.fisher module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.fisher.html#derivkit.forecasting.fisher.build_delta_nu"><code class="docutils literal notranslate"><span class="pre">build_delta_nu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.fisher.html#derivkit.forecasting.fisher.build_fisher_bias"><code class="docutils literal notranslate"><span class="pre">build_fisher_bias()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.fisher.html#derivkit.forecasting.fisher.build_fisher_matrix"><code class="docutils literal notranslate"><span class="pre">build_fisher_matrix()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecasting.forecast_core.html">derivkit.forecasting.forecast_core module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.forecasting.forecast_core.html#derivkit.forecasting.forecast_core.get_forecast_tensors"><code class="docutils literal notranslate"><span class="pre">get_forecast_tensors()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.forecasting.html#module-derivkit.forecasting">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.likelihoods.html">derivkit.likelihoods package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.likelihoods.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.likelihoods.gaussian.html">derivkit.likelihoods.gaussian module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.likelihoods.gaussian.html#derivkit.likelihoods.gaussian.build_gaussian_likelihood"><code class="docutils literal notranslate"><span class="pre">build_gaussian_likelihood()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.likelihoods.poisson.html">derivkit.likelihoods.poisson module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.likelihoods.poisson.html#derivkit.likelihoods.poisson.build_poissonian_likelihood"><code class="docutils literal notranslate"><span class="pre">build_poissonian_likelihood()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.likelihoods.html#module-derivkit.likelihoods">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.local_polynomial_derivative.html">derivkit.local_polynomial_derivative package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.local_polynomial_derivative.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.local_polynomial_derivative.diagnostics.html">derivkit.local_polynomial_derivative.diagnostics module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.diagnostics.html#derivkit.local_polynomial_derivative.diagnostics.make_diagnostics"><code class="docutils literal notranslate"><span class="pre">make_diagnostics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.local_polynomial_derivative.fit.html">derivkit.local_polynomial_derivative.fit module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.fit.html#derivkit.local_polynomial_derivative.fit.centered_polyfit_least_squares"><code class="docutils literal notranslate"><span class="pre">centered_polyfit_least_squares()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.fit.html#derivkit.local_polynomial_derivative.fit.design_matrix"><code class="docutils literal notranslate"><span class="pre">design_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.fit.html#derivkit.local_polynomial_derivative.fit.trimmed_polyfit"><code class="docutils literal notranslate"><span class="pre">trimmed_polyfit()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_poly_config.html">derivkit.local_polynomial_derivative.local_poly_config module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_poly_config.html#derivkit.local_polynomial_derivative.local_poly_config.LocalPolyConfig"><code class="docutils literal notranslate"><span class="pre">LocalPolyConfig</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_polynomial_derivative.html">derivkit.local_polynomial_derivative.local_polynomial_derivative module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.local_polynomial_derivative.html#derivkit.local_polynomial_derivative.local_polynomial_derivative.LocalPolynomialDerivative"><code class="docutils literal notranslate"><span class="pre">LocalPolynomialDerivative</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.local_polynomial_derivative.sampling.html">derivkit.local_polynomial_derivative.sampling module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.local_polynomial_derivative.sampling.html#derivkit.local_polynomial_derivative.sampling.build_samples"><code class="docutils literal notranslate"><span class="pre">build_samples()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.local_polynomial_derivative.html#module-derivkit.local_polynomial_derivative">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.tabulated_model.html">derivkit.tabulated_model package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.tabulated_model.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.tabulated_model.one_d.html">derivkit.tabulated_model.one_d module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.tabulated_model.one_d.html#derivkit.tabulated_model.one_d.Tabulated1DModel"><code class="docutils literal notranslate"><span class="pre">Tabulated1DModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.tabulated_model.one_d.html#derivkit.tabulated_model.one_d.tabulated1d_from_table"><code class="docutils literal notranslate"><span class="pre">tabulated1d_from_table()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.tabulated_model.html#module-derivkit.tabulated_model">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.utils.html">derivkit.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.utils.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.concurrency.html">derivkit.utils.concurrency module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html#derivkit.utils.concurrency.normalize_workers"><code class="docutils literal notranslate"><span class="pre">normalize_workers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html#derivkit.utils.concurrency.parallel_execute"><code class="docutils literal notranslate"><span class="pre">parallel_execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html#derivkit.utils.concurrency.resolve_inner_from_outer"><code class="docutils literal notranslate"><span class="pre">resolve_inner_from_outer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html#derivkit.utils.concurrency.set_default_inner_derivative_workers"><code class="docutils literal notranslate"><span class="pre">set_default_inner_derivative_workers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.concurrency.html#derivkit.utils.concurrency.set_inner_derivative_workers"><code class="docutils literal notranslate"><span class="pre">set_inner_derivative_workers()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.extrapolation.html">derivkit.utils.extrapolation module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.extrapolation.html#derivkit.utils.extrapolation.gauss_richardson_extrapolate"><code class="docutils literal notranslate"><span class="pre">gauss_richardson_extrapolate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.extrapolation.html#derivkit.utils.extrapolation.richardson_extrapolate"><code class="docutils literal notranslate"><span class="pre">richardson_extrapolate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.extrapolation.html#derivkit.utils.extrapolation.ridders_extrapolate"><code class="docutils literal notranslate"><span class="pre">ridders_extrapolate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.linalg.html">derivkit.utils.linalg module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.linalg.html#derivkit.utils.linalg.invert_covariance"><code class="docutils literal notranslate"><span class="pre">invert_covariance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.linalg.html#derivkit.utils.linalg.normalize_covariance"><code class="docutils literal notranslate"><span class="pre">normalize_covariance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.linalg.html#derivkit.utils.linalg.solve_or_pinv"><code class="docutils literal notranslate"><span class="pre">solve_or_pinv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.numerics.html">derivkit.utils.numerics module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.apply_hard_bounds"><code class="docutils literal notranslate"><span class="pre">apply_hard_bounds()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.central_difference_error_estimate"><code class="docutils literal notranslate"><span class="pre">central_difference_error_estimate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.evaluate_logprior"><code class="docutils literal notranslate"><span class="pre">evaluate_logprior()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.get_index_value"><code class="docutils literal notranslate"><span class="pre">get_index_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.is_in_bounds"><code class="docutils literal notranslate"><span class="pre">is_in_bounds()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.logsumexp_1d"><code class="docutils literal notranslate"><span class="pre">logsumexp_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.relative_error"><code class="docutils literal notranslate"><span class="pre">relative_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.numerics.html#derivkit.utils.numerics.sum_terms"><code class="docutils literal notranslate"><span class="pre">sum_terms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.sandbox.html">derivkit.utils.sandbox module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.sandbox.html#derivkit.utils.sandbox.generate_test_function"><code class="docutils literal notranslate"><span class="pre">generate_test_function()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.sandbox.html#derivkit.utils.sandbox.get_partial_function"><code class="docutils literal notranslate"><span class="pre">get_partial_function()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.validate.html">derivkit.utils.validate module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.check_scalar_valued"><code class="docutils literal notranslate"><span class="pre">check_scalar_valued()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.is_finite_and_differentiable"><code class="docutils literal notranslate"><span class="pre">is_finite_and_differentiable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_covariance_matrix_shape"><code class="docutils literal notranslate"><span class="pre">validate_covariance_matrix_shape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_dali_shapes"><code class="docutils literal notranslate"><span class="pre">validate_dali_shapes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_fisher_shapes"><code class="docutils literal notranslate"><span class="pre">validate_fisher_shapes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_square_matrix"><code class="docutils literal notranslate"><span class="pre">validate_square_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_symmetric_psd"><code class="docutils literal notranslate"><span class="pre">validate_symmetric_psd()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="derivkit.utils.validate.html#derivkit.utils.validate.validate_tabulated_xy"><code class="docutils literal notranslate"><span class="pre">validate_tabulated_xy()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.utils.html#module-derivkit.utils">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.html#derivkit.utils.invert_covariance"><code class="docutils literal notranslate"><span class="pre">invert_covariance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.html#derivkit.utils.normalize_covariance"><code class="docutils literal notranslate"><span class="pre">normalize_covariance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.utils.html#derivkit.utils.solve_or_pinv"><code class="docutils literal notranslate"><span class="pre">solve_or_pinv()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.calculus_kit.html">derivkit.calculus_kit module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit"><code class="docutils literal notranslate"><span class="pre">CalculusKit</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit.gradient"><code class="docutils literal notranslate"><span class="pre">CalculusKit.gradient()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit.hessian"><code class="docutils literal notranslate"><span class="pre">CalculusKit.hessian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit.hessian_diag"><code class="docutils literal notranslate"><span class="pre">CalculusKit.hessian_diag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit.jacobian"><code class="docutils literal notranslate"><span class="pre">CalculusKit.jacobian()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.derivative_kit.html">derivkit.derivative_kit module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.derivative_kit.html#adding-methods">Adding methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeEngine"><code class="docutils literal notranslate"><span class="pre">DerivativeEngine</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeEngine.differentiate"><code class="docutils literal notranslate"><span class="pre">DerivativeEngine.differentiate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit"><code class="docutils literal notranslate"><span class="pre">DerivativeKit</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.function"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.function</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.x0"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.x0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.default_method"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.default_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.differentiate"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.differentiate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.available_methods"><code class="docutils literal notranslate"><span class="pre">available_methods()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.register_method"><code class="docutils literal notranslate"><span class="pre">register_method()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.forecast_kit.html">derivkit.forecast_kit module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit"><code class="docutils literal notranslate"><span class="pre">ForecastKit</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.dali"><code class="docutils literal notranslate"><span class="pre">ForecastKit.dali()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.delta_nu"><code class="docutils literal notranslate"><span class="pre">ForecastKit.delta_nu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.fisher"><code class="docutils literal notranslate"><span class="pre">ForecastKit.fisher()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.forecast_kit.html#derivkit.forecast_kit.ForecastKit.fisher_bias"><code class="docutils literal notranslate"><span class="pre">ForecastKit.fisher_bias()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.fornberg.html">derivkit.fornberg module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.fornberg.html#derivkit.fornberg.FornbergDerivative"><code class="docutils literal notranslate"><span class="pre">FornbergDerivative</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.fornberg.html#derivkit.fornberg.FornbergDerivative.function"><code class="docutils literal notranslate"><span class="pre">FornbergDerivative.function</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.fornberg.html#derivkit.fornberg.FornbergDerivative.x0"><code class="docutils literal notranslate"><span class="pre">FornbergDerivative.x0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.fornberg.html#derivkit.fornberg.FornbergDerivative.differentiate"><code class="docutils literal notranslate"><span class="pre">FornbergDerivative.differentiate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.fornberg.html#derivkit.fornberg.FornbergDerivative.get_weights"><code class="docutils literal notranslate"><span class="pre">FornbergDerivative.get_weights()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.likelihood_kit.html">derivkit.likelihood_kit module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.likelihood_kit.html#typical-usage-examples">Typical usage examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derivkit.likelihood_kit.html#derivkit.likelihood_kit.LikelihoodKit"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.likelihood_kit.html#derivkit.likelihood_kit.LikelihoodKit.gaussian"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit.gaussian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="derivkit.likelihood_kit.html#derivkit.likelihood_kit.LikelihoodKit.poissonian"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit.poissonian()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derivkit.logger.html">derivkit.logger module</a></li>
+</ul>
+</div>
+</section>
+<section id="module-derivkit">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-derivkit" title="Link to this heading">¶</a></h2>
+<p>Provides all derivkit methods.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="derivkit.CalculusKit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">derivkit.</span></span><span class="sig-name descname"><span class="pre">CalculusKit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">floating</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#derivkit.CalculusKit" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Provides access to gradient, Jacobian, and Hessian tensors.</p>
+<p>Initialises class with function and expansion point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>function</strong> – The function to be differentiated. Accepts a 1D
+array-like. Must return either a scalar (for gradient/Hessian)
+or a 1D array (for Jacobian).</p></li>
+<li><p><strong>x0</strong> – Point at which to evaluate derivatives (shape <code class="docutils literal notranslate"><span class="pre">(P,)</span></code>).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.CalculusKit.gradient">
+<span class="sig-name descname"><span class="pre">gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">floating</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.CalculusKit.gradient" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the gradient of a scalar-valued function.</p>
+<p>This function is a convenience wrapper around
+<a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_gradient" title="derivkit.calculus.build_gradient"><code class="xref py py-func docutils literal notranslate"><span class="pre">derivkit.calculus.build_gradient()</span></code></a>.
+Refer to the documentation of that function for tunable optional
+arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.CalculusKit.hessian">
+<span class="sig-name descname"><span class="pre">hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">floating</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.CalculusKit.hessian" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the Hessian of a scalar-valued function.</p>
+<p>This function is a convenience wrapper around
+<a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_hessian" title="derivkit.calculus.build_hessian"><code class="xref py py-func docutils literal notranslate"><span class="pre">derivkit.calculus.build_hessian()</span></code></a>.
+Refer to the documentation of that function for tunable optional
+arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.CalculusKit.hessian_diag">
+<span class="sig-name descname"><span class="pre">hessian_diag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">floating</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.CalculusKit.hessian_diag" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the diagonal of the Hessian of a scalar-valued function.</p>
+<p>This function is a convenience wrapper around
+<a class="reference internal" href="derivkit.calculus.hessian.html#derivkit.calculus.hessian.build_hessian_diag" title="derivkit.calculus.hessian.build_hessian_diag"><code class="xref py py-func docutils literal notranslate"><span class="pre">derivkit.calculus.hessian.build_hessian_diag()</span></code></a>.
+Refer to the documentation of that function for tunable optional
+arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.CalculusKit.jacobian">
+<span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">floating</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.CalculusKit.jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the Jacobian of a vector-valued function.</p>
+<p>This function is a convenience wrapper around
+<a class="reference internal" href="derivkit.calculus.html#derivkit.calculus.build_jacobian" title="derivkit.calculus.build_jacobian"><code class="xref py py-func docutils literal notranslate"><span class="pre">derivkit.calculus.build_jacobian()</span></code></a>.
+Refer to the documentation of that function for tunable optional
+arguments.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="derivkit.DerivativeKit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">derivkit.</span></span><span class="sig-name descname"><span class="pre">DerivativeKit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tab_x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tab_y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#derivkit.DerivativeKit" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Unified interface for computing numerical derivatives.</p>
+<p>The class provides a simple way to evaluate derivatives using any of
+DerivKit’s available backends (e.g., adaptive fit or finite difference).
+By default, the adaptive-fit method is used.</p>
+<p>You can supply either a function and x0, or tabulated tab_x/tab_y and x0
+in case you want to differentiate a tabulated function.
+The chosen backend is invoked when you call the <code class="docutils literal notranslate"><span class="pre">.differentiate()</span></code> method.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">derivkit.derivative_kit</span><span class="w"> </span><span class="kn">import</span> <span class="n">DerivativeKit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">DerivativeKit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="o">.</span><span class="n">differentiate</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># uses the default &quot;adaptive&quot; method</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="derivkit.DerivativeKit.function">
+<span class="sig-name descname"><span class="pre">function</span></span><a class="headerlink" href="#derivkit.DerivativeKit.function" title="Link to this definition">¶</a></dt>
+<dd><p>The callable to differentiate.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="derivkit.DerivativeKit.x0">
+<span class="sig-name descname"><span class="pre">x0</span></span><a class="headerlink" href="#derivkit.DerivativeKit.x0" title="Link to this definition">¶</a></dt>
+<dd><p>The point or points at which the derivative is evaluated.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="derivkit.DerivativeKit.default_method">
+<span class="sig-name descname"><span class="pre">default_method</span></span><a class="headerlink" href="#derivkit.DerivativeKit.default_method" title="Link to this definition">¶</a></dt>
+<dd><p>The backend used when no method is specified.</p>
+</dd></dl>
+
+<p>Initializes the DerivativeKit with a target function and expansion point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>function</strong> – The function to be differentiated. Must accept a single float
+and return a scalar or array-like output.</p></li>
+<li><p><strong>x0</strong> – Point or array of points at which to evaluate the derivative.</p></li>
+<li><p><strong>tab_x</strong> – Optional tabulated x values for creating a
+<a class="reference internal" href="derivkit.tabulated_model.one_d.html#derivkit.tabulated_model.one_d.Tabulated1DModel" title="derivkit.tabulated_model.one_d.Tabulated1DModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tabulated_model.one_d.Tabulated1DModel</span></code></a>.</p></li>
+<li><p><strong>tab_y</strong> – Optional tabulated y values for creating a
+<a class="reference internal" href="derivkit.tabulated_model.one_d.html#derivkit.tabulated_model.one_d.Tabulated1DModel" title="derivkit.tabulated_model.one_d.Tabulated1DModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tabulated_model.one_d.Tabulated1DModel</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.DerivativeKit.differentiate">
+<span class="sig-name descname"><span class="pre">differentiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#derivkit.DerivativeKit.differentiate" title="Link to this definition">¶</a></dt>
+<dd><p>Compute derivatives using the chosen method.</p>
+<p>Forwards all keyword arguments to the engine’s <code class="docutils literal notranslate"><span class="pre">.differentiate()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – Method name or alias (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;adaptive&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;finite&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;fd&quot;</span></code>). Default is <code class="docutils literal notranslate"><span class="pre">&quot;adaptive&quot;</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed through to the chosen engine.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>The derivative result from the underlying engine.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">x0</span></code> is a single value, returns the usual derivative output.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">x0</span></code> is an array of points, returns an array where the first
+dimension indexes the points in <code class="docutils literal notranslate"><span class="pre">x0</span></code>. For example, if you pass
+5 points and each derivative has shape <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">3)</span></code>, the result has
+shape <code class="docutils literal notranslate"><span class="pre">(5,</span> <span class="pre">2,</span> <span class="pre">3)</span></code>.</p>
+</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">method</span></code> is not recognized.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="derivkit.ForecastKit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">derivkit.</span></span><span class="sig-name descname"><span class="pre">ForecastKit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#derivkit.ForecastKit" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Provides access to Fisher and DALI likelihood-expansion tensors.</p>
+<p>Initialises the forecaster with model, fiducials, and covariance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>function</strong> – Model mapping parameters to observables (1D array-like
+in, 1D array out).</p></li>
+<li><p><strong>theta0</strong> – Fiducial parameter values (shape <code class="docutils literal notranslate"><span class="pre">(P,)</span></code>). Here, <code class="docutils literal notranslate"><span class="pre">P</span></code>
+is the number of model parameters (<code class="docutils literal notranslate"><span class="pre">P</span> <span class="pre">==</span> <span class="pre">len(theta0)</span></code>)</p></li>
+<li><p><strong>cov</strong> – Observables covariance (shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">N)</span></code>). <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number
+of observables (<code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">==</span> <span class="pre">cov.shape[0]</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.ForecastKit.dali">
+<span class="sig-name descname"><span class="pre">dali</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dk_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.ForecastKit.dali" title="Link to this definition">¶</a></dt>
+<dd><p>Builds the doublet-DALI tensors (G, H) for the given model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – Method name or alias (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;adaptive&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;finite&quot;</span></code>).
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the <a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit" title="derivkit.derivative_kit.DerivativeKit"><code class="xref py py-class docutils literal notranslate"><span class="pre">derivkit.derivative_kit.DerivativeKit</span></code></a>
+default is used.</p></li>
+<li><p><strong>n_workers</strong> – Number of workers for per-parameter
+parallelization/threads. Default <code class="docutils literal notranslate"><span class="pre">1</span></code> (serial). Inner batch
+evaluation is kept serial to avoid oversubscription.</p></li>
+<li><p><strong>dk_kwargs</strong> – Additional keyword arguments passed to
+<a class="reference internal" href="derivkit.calculus_kit.html#derivkit.calculus_kit.CalculusKit" title="derivkit.calculus_kit.CalculusKit"><code class="xref py py-class docutils literal notranslate"><span class="pre">derivkit.calculus_kit.CalculusKit</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple <code class="docutils literal notranslate"><span class="pre">(G,</span> <span class="pre">H)</span></code> where <code class="docutils literal notranslate"><span class="pre">G</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">P,</span> <span class="pre">P)</span></code> and <code class="docutils literal notranslate"><span class="pre">H</span></code>
+has shape <code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">P,</span> <span class="pre">P,</span> <span class="pre">P)</span></code>, with <code class="docutils literal notranslate"><span class="pre">P</span></code> being the number of model
+parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.ForecastKit.delta_nu">
+<span class="sig-name descname"><span class="pre">delta_nu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_with</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_without</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#derivkit.ForecastKit.delta_nu" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the difference between two data vectors.</p>
+<p>This helper is used in Fisher-bias calculations and any other workflow
+where two data vectors are compared: it takes a pair of vectors (for
+example, a version with a systematic and one without) and returns their
+difference as a 1D array whose length matches the number of observables
+implied by <code class="docutils literal notranslate"><span class="pre">cov</span></code>. It works with both 1D inputs and 2D arrays (for
+example, correlation-by-ell) and flattens 2D inputs using NumPy’s
+row-major (“C”) order, which is the standard convention throughout the
+DerivKit package.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_with</strong> – Data vector that includes the systematic effect.
+Can be 1D or 2D. If 1D, it must follow the NumPy’s row-major
+(“C”) flattening convention used throughout the package.</p></li>
+<li><p><strong>data_without</strong> – Reference data vector without the systematic.
+Can be 1D or 2D. If 1D, it must follow the NumPy’s row-major
+(“C”) flattening convention used throughout the package.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 1D NumPy array of length <code class="docutils literal notranslate"><span class="pre">n_observables</span></code> representing the
+mismatch between the two input data vectors. This is simply the
+element-wise difference between the input with systematic and the
+input without systematic, flattened if necessary to match the
+expected observable ordering.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – If input shapes differ, inputs are not 1D/2D, or the
+    flattened length does not match <code class="docutils literal notranslate"><span class="pre">n_observables</span></code>.</p></li>
+<li><p><strong>FloatingPointError</strong> – If non-finite values are detected in the result.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.ForecastKit.fisher">
+<span class="sig-name descname"><span class="pre">fisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dk_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#derivkit.ForecastKit.fisher" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the Fisher information matrix for a given model and covariance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – Derivative method name or alias (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;adaptive&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;finite&quot;</span></code>). If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the
+<a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit" title="derivkit.derivative_kit.DerivativeKit"><code class="xref py py-class docutils literal notranslate"><span class="pre">derivkit.derivative_kit.DerivativeKit</span></code></a> default is used.</p></li>
+<li><p><strong>n_workers</strong> – Number of workers for per-parameter parallelisation.
+Default is <code class="docutils literal notranslate"><span class="pre">1</span></code> (serial).</p></li>
+<li><p><strong>**dk_kwargs</strong> – Additional keyword arguments forwarded to
+<a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.differentiate" title="derivkit.derivative_kit.DerivativeKit.differentiate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">derivkit.derivative_kit.DerivativeKit.differentiate()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Fisher matrix with shape <code class="docutils literal notranslate"><span class="pre">(n_parameters,</span> <span class="pre">n_parameters)</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.ForecastKit.fisher_bias">
+<span class="sig-name descname"><span class="pre">fisher_bias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fisher_matrix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rcond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dk_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.ForecastKit.fisher_bias" title="Link to this definition">¶</a></dt>
+<dd><p>Estimates parameter bias using the stored model, expansion point, and covariance.</p>
+<p>This function takes a model, an expansion point, a covariance matrix,
+a Fisher matrix, and a data-vector difference <code class="docutils literal notranslate"><span class="pre">delta_nu</span></code> and maps that
+difference into parameter space. A common use case is the classic
+“Fisher bias” setup, where one asks how a systematic-induced change in
+the data would shift inferred parameters.</p>
+<p>Internally, the function evaluates the model response at the expansion
+point and uses the covariance and Fisher matrix to compute both the
+parameter-space bias vector and the corresponding shifts. See
+<a class="reference external" href="https://arxiv.org/abs/0710.5171">https://arxiv.org/abs/0710.5171</a> for details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fisher_matrix</strong> – Square matrix describing information about
+the parameters. Its shape must be <code class="docutils literal notranslate"><span class="pre">(p,</span> <span class="pre">p)</span></code>, where <code class="docutils literal notranslate"><span class="pre">p</span></code>
+is the number of parameters.</p></li>
+<li><p><strong>delta_nu</strong> – Difference between a biased and an unbiased data vector,
+for example <span class="math notranslate nohighlight">\(\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}\)</span>.
+Accepts a 1D array of length n or a 2D array that will be
+flattened in row-major order (“C”) to length n, where n is
+the number of observables. If supplied as a 1D array, it must
+already follow the same row-major (“C”) flattening convention
+used throughout the package.</p></li>
+<li><p><strong>n_workers</strong> – Number of workers used by the internal derivative routine
+when forming the Jacobian.</p></li>
+<li><p><strong>method</strong> – Method name or alias (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;adaptive&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;finite&quot;</span></code>).
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the <a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit" title="derivkit.derivative_kit.DerivativeKit"><code class="xref py py-class docutils literal notranslate"><span class="pre">derivkit.derivative_kit.DerivativeKit</span></code></a> default is used.</p></li>
+<li><p><strong>rcond</strong> – Regularization cutoff for pseudoinverse.
+Default is <code class="docutils literal notranslate"><span class="pre">1e-12</span></code>.</p></li>
+<li><p><strong>**dk_kwargs</strong> – Additional keyword arguments passed to
+<a class="reference internal" href="derivkit.derivative_kit.html#derivkit.derivative_kit.DerivativeKit.differentiate" title="derivkit.derivative_kit.DerivativeKit.differentiate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">derivkit.derivative_kit.DerivativeKit.differentiate()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple <code class="docutils literal notranslate"><span class="pre">(bias_vec,</span> <span class="pre">delta_theta)</span></code> of 1D arrays with length <code class="docutils literal notranslate"><span class="pre">p</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">bias_vec</span></code> is the parameter-space bias vector
+and <code class="docutils literal notranslate"><span class="pre">delta_theta</span></code> are the corresponding parameter shifts.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – If input shapes are inconsistent with the stored model,
+    covariance, or the Fisher matrix dimensions.</p></li>
+<li><p><strong>FloatingPointError</strong> – If the difference vector contains <code class="docutils literal notranslate"><span class="pre">NaN</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="derivkit.LikelihoodKit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">derivkit.</span></span><span class="sig-name descname"><span class="pre">LikelihoodKit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#derivkit.LikelihoodKit" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>High-level interface for Gaussian and Poissonian likelihoods.</p>
+<p>The class stores <code class="docutils literal notranslate"><span class="pre">data</span></code> and <code class="docutils literal notranslate"><span class="pre">model_parameters</span></code> and provides
+methods to evaluate the corresponding likelihoods.</p>
+<p>Initialises the likelihood object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Observed data values. The expected shape depends on the
+particular likelihood. For the Gaussian likelihood, <code class="docutils literal notranslate"><span class="pre">data</span></code>
+is 1D or 2D, where axis 0 represents different samples and
+axis 1 the values. For the Poissonian likelihood, <code class="docutils literal notranslate"><span class="pre">data</span></code> is
+reshaped to align with <code class="docutils literal notranslate"><span class="pre">model_parameters</span></code>.</p></li>
+<li><p><strong>model_parameters</strong> – Theoretical model values. For the Gaussian
+likelihood, this is a 1D array of parameters used as the mean
+of the multivariate normal. For the Poissonian likelihood,
+this is the expected counts (Poisson means).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.LikelihoodKit.gaussian">
+<span class="sig-name descname"><span class="pre">gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cov</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_log</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.LikelihoodKit.gaussian" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluates a Gaussian likelihood for the stored data and parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cov</strong> – Covariance matrix. May be a scalar, a 1D vector of diagonal
+variances, or a full 2D covariance matrix. It will be
+symmetrized and normalized internally.</p></li>
+<li><p><strong>return_log</strong> – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, return the log-likelihood instead of
+the probability density function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">coordinate_grids</span></code> is a tuple of 1D arrays giving the
+evaluation coordinates for each dimension.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">probabilities</span></code> is an array with the values of the
+multivariate Gaussian probability density (or log-density)
+evaluated on the Cartesian product of those coordinates.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple <code class="docutils literal notranslate"><span class="pre">(coordinate_grids,</span> <span class="pre">probabilities)</span></code> where</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="derivkit.LikelihoodKit.poissonian">
+<span class="sig-name descname"><span class="pre">poissonian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_log</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#derivkit.LikelihoodKit.poissonian" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluates a Poissonian likelihood for the stored data and parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>return_log</strong> – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, return the log-likelihood instead of
+the probability mass function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">counts</span></code> is the data reshaped to align with the
+model parameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">probabilities</span></code> is an array of Poisson probabilities
+(or log-probabilities) computed from <code class="docutils literal notranslate"><span class="pre">counts</span></code> and
+<code class="docutils literal notranslate"><span class="pre">model_parameters</span></code>.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple <code class="docutils literal notranslate"><span class="pre">(counts,</span> <span class="pre">probabilities)</span></code> where</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="derivkit.adaptive.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">derivkit.adaptive package</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="modules.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">derivkit</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Nikolina Šarčević, Matthijs van der Wild, Cynthia Trendafilova
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">derivkit package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-derivkit">Module contents</a><ul>
+<li><a class="reference internal" href="#derivkit.CalculusKit"><code class="docutils literal notranslate"><span class="pre">CalculusKit</span></code></a><ul>
+<li><a class="reference internal" href="#derivkit.CalculusKit.gradient"><code class="docutils literal notranslate"><span class="pre">CalculusKit.gradient()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.CalculusKit.hessian"><code class="docutils literal notranslate"><span class="pre">CalculusKit.hessian()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.CalculusKit.hessian_diag"><code class="docutils literal notranslate"><span class="pre">CalculusKit.hessian_diag()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.CalculusKit.jacobian"><code class="docutils literal notranslate"><span class="pre">CalculusKit.jacobian()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#derivkit.DerivativeKit"><code class="docutils literal notranslate"><span class="pre">DerivativeKit</span></code></a><ul>
+<li><a class="reference internal" href="#derivkit.DerivativeKit.function"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.function</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.DerivativeKit.x0"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.x0</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.DerivativeKit.default_method"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.default_method</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.DerivativeKit.differentiate"><code class="docutils literal notranslate"><span class="pre">DerivativeKit.differentiate()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#derivkit.ForecastKit"><code class="docutils literal notranslate"><span class="pre">ForecastKit</span></code></a><ul>
+<li><a class="reference internal" href="#derivkit.ForecastKit.dali"><code class="docutils literal notranslate"><span class="pre">ForecastKit.dali()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.ForecastKit.delta_nu"><code class="docutils literal notranslate"><span class="pre">ForecastKit.delta_nu()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.ForecastKit.fisher"><code class="docutils literal notranslate"><span class="pre">ForecastKit.fisher()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.ForecastKit.fisher_bias"><code class="docutils literal notranslate"><span class="pre">ForecastKit.fisher_bias()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#derivkit.LikelihoodKit"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit</span></code></a><ul>
+<li><a class="reference internal" href="#derivkit.LikelihoodKit.gaussian"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit.gaussian()</span></code></a></li>
+<li><a class="reference internal" href="#derivkit.LikelihoodKit.poissonian"><code class="docutils literal notranslate"><span class="pre">LikelihoodKit.poissonian()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
