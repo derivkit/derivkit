@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.adaptive.polyfit_utils import assess_polyfit_quality
+from derivkit.logger import derivkit_logger
 
 __all__ = [
     "format_derivative_diagnostics",
@@ -27,7 +28,8 @@ def format_derivative_diagnostics(
     """Format derivative diagnostics into a human-readable string.
 
     Args:
-      diag: Diagnostics dictionary as returned by ``make_derivative_diag``.
+      diag: Diagnostics dictionary as returned by
+        :func:`adaptive.diagnostics.make_derivative_diag`.
       meta: Optional metadata dictionary to include in the output.
       decimals: Number of decimal places for floating-point numbers.
       max_rows: Maximum number of rows to display for arrays; larger arrays are truncated.
@@ -140,13 +142,14 @@ def print_derivative_diagnostics(
     """Print derivative diagnostics to standard output.
 
     Args:
-      diag: Diagnostics dictionary as returned by ``make_derivative_diag``.
+      diag: Diagnostics dictionary as returned by
+        :func:`adaptive.diagnostics.make_derivative_diag`.
       meta: Optional metadata dictionary to include in the output.
 
     Returns:
       None
     """
-    print(format_derivative_diagnostics(diag, meta=meta))
+    derivkit_logger.info(format_derivative_diagnostics(diag, meta=meta))
 
 
 def _preview_1d(a: np.ndarray, max_rows: int) -> np.ndarray:

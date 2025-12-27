@@ -26,6 +26,7 @@ Submodules
    derivkit.forecast_kit
    derivkit.fornberg
    derivkit.likelihood_kit
+   derivkit.logger
 
 Module contents
 ---------------

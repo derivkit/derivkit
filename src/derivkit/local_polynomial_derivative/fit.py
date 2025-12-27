@@ -31,12 +31,12 @@ def design_matrix(
         config:
             LocalPolyConfig instance with fitting settings.
         sample_points:
-            An array of sample points (shape (n_samples,)).
+            An array of sample points (shape ``(n_samples,)``).
         degree:
             The degree of the polynomial to fit.
 
     Returns:
-        A Vandermonde matrix (shape (n_samples, degree + 1)).
+        A Vandermonde matrix (shape ``(n_samples, degree + 1)``).
     """
     if config.center:
         z = sample_points - x0
@@ -67,9 +67,10 @@ def trimmed_polyfit(
         config:
             LocalPolyConfig instance with fitting settings.
         xs:
-            An array of sample points (shape (n_samples,)).
+            An array of sample points (shape ``(n_samples,)``).
         ys:
-            An array of function evaluations (shape (n_samples, n_components)).
+            An array of function evaluations (shape
+            ``(n_samples, n_components)``).
         degree:
             The degree of the polynomial to fit.
 
@@ -159,15 +160,16 @@ def centered_polyfit_least_squares(
     Args:
         x0: Expansion point.
         xs: Sample locations (1D array-like).
-        ys: Sample values (shape (n_samples,) or (n_samples, n_comp)).
+        ys: Sample values (shape ``(n_samples,)`` or ``(n_samples, n_comp)``).
         degree: Polynomial degree.
 
     Returns:
         A tuple containing
 
-            - An array of shape (degree+1, n_comp) with coefficients for sum_k a_k (x - x0)^k.
-            - A boolean mask of length n_samples (all True here).
-            - An array of shape (degree+1, n).
+            - An array of shape ``(degree+1, n_comp)`` with coefficients for
+              :math:`sum_k a_k (x - x0)^k`.
+            - A boolean mask of length ``n_samples`` (all ``True`` here).
+            - An array of shape ``(degree+1, n)``.
     """
     xs = np.asarray(xs, dtype=float)
     ys = np.asarray(ys)
