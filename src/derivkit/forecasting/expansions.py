@@ -178,7 +178,7 @@ def delta_chi2_fisher(
 
     Args:
         theta: Evaluation point in parameter space. This is the trial parameter vector
-            at which the Fisher/DALI expansion is evaluated.
+            at which the Fisher expansion is evaluated.
         theta0: Expansion point (reference parameter vector). The Fisher matrix and any
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
@@ -316,18 +316,19 @@ def delta_chi2_dali(
 ) -> float:
     """Computes a displacement chi-squared under the DALI approximation.
 
-    By default this uses ``convention="delta_chi2"``, which should be used for all
-    scientific results. In this convention, the DALI log-posterior is treated as a
-    standard likelihood, so fixed ``delta_chi2`` values correspond to fixed probability
-    content (e.g. 68%, 95%) in parameter space. This is the same interpretation used for
-    Gaussian likelihoods and Fisher forecasts, making results directly comparable
-    and statistically well-defined.
+    This function evaluates a scalar ``delta_chi2`` from the displacement
+    ``d = theta - theta0`` using the Fisher matrix and (optionally) the cubic
+    and quartic DALI tensors.
 
-    The alternative ``convention="matplotlib_loglike"`` follows an older plotting
-    normalization based on equal log-likelihood height rather than probability mass.
-    It is kept only as a visual sanity check or for reproducing legacy figures. For
-    non-Gaussian DALI posteriors, it can change the apparent size and shape of
-    contours and should not be used as the default.
+    The ``convention`` parameter controls the numerical prefactors applied to
+    the cubic/quartic contractions, i.e. it changes the *scaling* of the higher-
+    order corrections relative to the quadratic Fisher term:
+
+    - ``convention="delta_chi2"``:
+        ``delta_chi2 = d.T @ F @ d + (1/3) * G[d,d,d] + (1/12) * H[d,d,d,d]``
+
+    - ``convention="matplotlib_loglike"``:
+        ``delta_chi2 = d.T @ F @ d + 1 * G[d,d,d] + (1/4) * H[d,d,d,d]``
 
     Args:
         theta: Evaluation point in parameter space. This is the trial parameter vector
@@ -338,8 +339,8 @@ def delta_chi2_dali(
         fisher: Fisher matrix ``(P, P)`` with ``P`` the number of parameters.
         g_tensor: DALI cubic tensor with shape ``(P, P, P)``.
         h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
-        convention: The normalization to use (``"delta_chi2"`` or
-            ``"matplotlib_loglike"``).
+        convention: Controls the prefactors used in the cubic/quartic tensor
+            contractions inside ``delta_chi2``.
 
     Returns:
         The scalar delta chi-squared value.
