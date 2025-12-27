@@ -47,14 +47,6 @@ a compatible choice for GetDist is therefore::
     loglikes = 0.5 * delta_chi2
 
 (optionally shifted by a constant for numerical stability).
-
-Notes:
------
-- All log posterior values returned are defined up to an additive constant.
-- Priors are optional and are applied via a single unified prior spec:
-  (``prior_terms``, ``prior_bounds``) which is compiled using ``build_prior``.
-- If no prior is provided, the functions return the *likelihood expansion*
-  (i.e. improper flat prior, no hard cutoffs).
 """
 
 from __future__ import annotations
@@ -250,7 +242,7 @@ def logposterior_fisher(
     density in probability space.
 
     If no prior is provided, this returns the Fisher log-likelihood expansion
-    (improper flat prior, no hard cutoffs).
+    with a flat prior and no hard cutoffs.
 
     The Fisher approximation corresponds to a purely quadratic ``delta_chi2`` surface::
 
@@ -344,6 +336,9 @@ def delta_chi2_dali(
 
     Returns:
         The scalar delta chi-squared value.
+
+    Raises:
+        ValueError: If an unknown ``convention`` is provided.
     """
     if convention not in ("delta_chi2", "matplotlib_loglike"):
         raise ValueError(f"Unknown convention='{convention}'. Supported: 'delta_chi2', 'matplotlib_loglike'.")
@@ -394,8 +389,8 @@ def logposterior_dali(
 ) -> float:
     """Computes the log posterior (up to a constant) under the DALI approximation.
 
-    If no prior is provided, this returns the DALI log-likelihood expansion
-    (improper flat prior, no hard cutoffs).
+    If no prior is provided, this returns the DALI log-likelihood expansion with
+    a flat prior and no hard cutoffs.
 
     Args:
         theta: Evaluation point in parameter space. This is the trial parameter vector
@@ -414,6 +409,12 @@ def logposterior_dali(
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. If it returns a non-finite value,
             the posterior is treated as zero at that point and the function returns ``-np.inf``.
+
+    Returns:
+        Scalar log posterior value, defined up to an additive constant.
+
+    Raises:
+        ValueError: If an unknown ``convention`` is provided.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
