@@ -79,8 +79,7 @@ def submatrix_fisher(
     """Extracts a sub-Fisher matrix for a subset of parameter indices.
 
     The submatrix is constructed by selecting rows and columns of ``fisher``
-    at the indices in ``idx`` using ``np.ix_`` such that
-    ``F_sub[a, b] = fisher[idx[a], idx[b]]``.
+    at the indices such that ``F_sub[a, b] = fisher[idx[a], idx[b]]``.
 
     The indices in ``idx`` may be any subset and any order. They do not need to
     correspond to a contiguous block in the original matrix. For example, selecting
