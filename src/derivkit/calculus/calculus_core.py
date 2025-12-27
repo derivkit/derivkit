@@ -41,7 +41,7 @@ def component_scalar_eval(
     Args:
         theta_vec: 1D parameter vector.
         function: Original function.
-        idx: Flat index into ``np.asarray(function(theta_vec)).ravel()``.
+        idx: Flat (row-major) index into the model output ``y = function(theta_vec)`` after flattening it to 1D.
 
     Returns:
         Scalar value of the specified output component.
