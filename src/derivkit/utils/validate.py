@@ -198,8 +198,9 @@ def validate_fisher_shapes(
     """Validates shapes for Fisher forecasting inputs.
 
     Checks that:
-      - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-      - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
       with ``p`` being the number of parameters.
 
     Args:
