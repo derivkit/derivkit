@@ -305,7 +305,7 @@ def normalize_theta(theta0: Any) -> NDArray[np.float64]:
         1D float array.
 
     Raises:
-        ValueError: if theta0 is empty.
+        ValueError: if ``theta0`` is empty.
     """
     theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta.size == 0:
