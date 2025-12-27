@@ -483,7 +483,6 @@ def _build_hessian_internal(
             If evaluating a single output component does not return a scalar.
 
     Notes:
-
     - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
     - The inner worker count defaults to ``resolve_inner_from_outer(n_workers)`` unless
       explicitly overridden via ``inner_workers`` in ``dk_kwargs``.

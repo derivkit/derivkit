@@ -16,6 +16,9 @@ __all__ = [
     "validate_tabulated_xy",
     "validate_covariance_matrix_shape",
     "validate_symmetric_psd",
+    "validate_fisher_shapes",
+    "validate_dali_shapes",
+    "validate_square_matrix",
 ]
 
 def is_finite_and_differentiable(
@@ -186,3 +189,87 @@ def validate_symmetric_psd(
         )
 
     return a
+
+
+def validate_fisher_shapes(
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+) -> None:
+    """Validates shapes for Fisher forecasting inputs.
+
+    Checks that:
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
+      with ``p`` being the number of parameters.
+
+    Args:
+      theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
+      fisher: Fisher information matrix as a 2D array with shape ``(p, p)``.
+
+    Raises:
+      ValueError: If ``theta0`` is not 1D, or if ``fisher`` does not have shape
+        ``(p, p)``.
+    """
+    theta0 = np.asarray(theta0)
+    fisher = np.asarray(fisher)
+
+    if theta0.ndim != 1:
+        raise ValueError(f"theta0 must be 1D, got {theta0.shape}")
+
+    p = theta0.shape[0]
+    if fisher.shape != (p, p):
+        raise ValueError(f"fisher must have shape {(p, p)}, got {fisher.shape}")
+
+
+def validate_dali_shapes(
+    theta0: NDArray[np.floating],
+    fisher: NDArray[np.floating],
+    g_tensor: NDArray[np.floating],
+    h_tensor: NDArray[np.floating] | None,
+) -> None:
+    """Validates shapes for DALI expansion inputs.
+
+    Checks that:
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` has shape ``(p, p)``.
+    - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
+    - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
+      ``(p, p, p, p)``  with ``p`` being the number of parameters.
+
+    Args:
+      theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
+      fisher: Fisher information matrix as a 2D array with shape ``(p, p)``.
+      g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+      h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``. If
+        ``None``, no quartic shape check is performed.
+
+    Raises:
+      ValueError: If any input does not have the expected dimensionality/shape.
+    """
+    validate_fisher_shapes(theta0, fisher)
+
+    theta0 = np.asarray(theta0)
+    g_tensor = np.asarray(g_tensor)
+
+    p = theta0.shape[0]
+    if g_tensor.shape != (p, p, p):
+        raise ValueError(f"g_tensor must have shape {(p, p, p)}, got {g_tensor.shape}")
+
+    if h_tensor is not None:
+        h_tensor = np.asarray(h_tensor)
+        if h_tensor.shape != (p, p, p, p):
+            raise ValueError(
+                f"h_tensor must have shape {(p, p, p, p)}, got {h_tensor.shape}"
+            )
+
+
+def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
+    """Validates that the input is a 2D square matrix and return it as float array."""
+    arr = np.asarray(a, dtype=float)
+    if arr.ndim != 2:
+        raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")
+    if arr.shape[0] != arr.shape[1]:
+        raise ValueError(f"{name} must be square; got shape={arr.shape}.")
+    return arr
