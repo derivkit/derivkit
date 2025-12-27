@@ -45,9 +45,22 @@ def component_scalar_eval(
 
     Returns:
         Scalar value of the specified output component.
+
+    Raises:
+        IndexError: If ``idx`` is out of bounds for the model output.
     """
+    theta_vec = np.asarray(theta_vec, dtype=np.float64)
     val = np.asarray(function(theta_vec))
-    return float(val.ravel()[int(idx)])
+
+    flat = np.ravel(val, order="C")
+    i = int(idx)
+
+    if i < 0 or i >= flat.size:
+        raise IndexError(
+            f"Output index {i} out of bounds for model output of size {flat.size}."
+        )
+
+    return float(flat[i])
 
 
 def dispatch_tensor_output(
