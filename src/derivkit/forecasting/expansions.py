@@ -265,8 +265,11 @@ def logposterior_fisher(
     quadratic form.
 
     Args:
-        theta: Parameter vector.
-        theta0: Expansion point.
+        theta: Evaluation point in parameter space. This is the trial parameter vector
+            at which the Fisher/DALI expansion is evaluated.
+        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
+            DALI tensors are assumed to have been computed at this point, and the
+            expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
         prior_terms: See module docstring.
         prior_bounds: See module docstring.
@@ -382,8 +385,11 @@ def logposterior_dali(
     (improper flat prior, no hard cutoffs).
 
     Args:
-        theta: Parameter vector.
-        theta0: Expansion point.
+        theta: Evaluation point in parameter space. This is the trial parameter vector
+            at which the Fisher/DALI expansion is evaluated.
+        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
+            DALI tensors are assumed to have been computed at this point, and the
+            expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
         g_tensor: DALI cubic tensor ``(P, P, P)``.
         h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
