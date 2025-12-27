@@ -85,6 +85,11 @@ def dispatch_tensor_output(
 ) -> NDArray[np.float64]:
     """Computes per-output-component derivative objects for tensor-valued outputs and reshapes back.
 
+    This helper is intended for functions whose output has one or more dimensions
+    (i.e. ``function(theta)`` returns an array). Scalar-valued functions should be
+    handled by the scalar derivative routines (e.g. gradient, hessian, or derivative)
+    and must not be routed through this dispatcher.
+
     The function uses the following strategy:
 
       1. Evaluate ``y0 = function(theta)``
@@ -115,7 +120,9 @@ def dispatch_tensor_output(
 
     if y0.ndim == 0:
         raise ValueError(
-            "dispatch_tensor_output is only for tensor outputs; handle scalar output in the caller."
+            "dispatch_tensor_output requires an array-valued model output (ndim >= 1), "
+            f"but function(theta) returned a scalar with shape {y0.shape}. "
+            "Use the scalar-output derivative path (e.g. derivative/gradient/hessian) instead."
         )
 
     out_shape = y0.shape

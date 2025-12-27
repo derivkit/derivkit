@@ -136,7 +136,7 @@ def test_dispatch_tensor_output_raises_on_scalar_output():
     """Tests that scalar outputs raise ValueError."""
     theta = np.array([1.0, 2.0], dtype=float)
 
-    with pytest.raises(ValueError, match="only for tensor outputs"):
+    with pytest.raises(ValueError, match=r"dispatch_tensor_output requires an array-valued model output"):
         dispatch_tensor_output(
             function=scalar_one_model,
             theta=theta,
