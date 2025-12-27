@@ -95,7 +95,7 @@ def submatrix_fisher(
     the covariance matrix obtained by inverting the full Fisher matrix.
 
     Args:
-        fisher: Full Fisher matrix of shape ``(P, P)`` with ``P`` the number of parameters.
+        fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
         idx: Sequence of parameter indices to extract.
 
     Returns:
@@ -135,10 +135,10 @@ def submatrix_dali(
     values. It represents a slice through parameter space rather than a marginalization.
 
     Args:
-        theta0: Full expansion point with shape ``(P,)`` with ``P`` the number of parameters.
-        fisher: Full Fisher matrix with shape ``(P, P)``.
-        g_tensor: Full DALI cubic tensor with shape ``(P, P, P)``.
-        h_tensor: Full DALI quartic tensor with shape ``(P, P, P, P)`` or ``None``.
+        theta0: Full expansion point with shape ``(p,)`` with ``p`` the number of parameters.
+        fisher: Full Fisher matrix with shape ``(p, p)``.
+        g_tensor: Full DALI cubic tensor with shape ``(p, p, p)``.
+        h_tensor: Full DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
         idx: Sequence of parameter indices to extract.
 
     Returns:
@@ -174,7 +174,7 @@ def delta_chi2_fisher(
         theta0: Expansion point (reference parameter vector). The Fisher matrix and any
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
+        fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
 
     Returns:
         The scalar delta chi-squared value between ``theta`` and ``theta_0``.
@@ -268,8 +268,8 @@ def logposterior_fisher(
         theta0: Expansion point (reference parameter vector). The Fisher matrix and any
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
-        prior_terms: Prior term specification passed to
+        fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
+        prior_terms: prior term specification passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
@@ -328,9 +328,9 @@ def delta_chi2_dali(
         theta0: Expansion point (reference parameter vector). The Fisher matrix and any
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix ``(P, P)`` with ``P`` the number of parameters.
-        g_tensor: DALI cubic tensor with shape ``(P, P, P)``.
-        h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
+        fisher: Fisher matrix ``(p, p)`` with ``p`` the number of parameters.
+        g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+        h_tensor: DALI quartic tensor ``(p, p, p, p)`` or ``None``.
         convention: Controls the prefactors used in the cubic/quartic tensor
             contractions inside ``delta_chi2``.
 
@@ -398,12 +398,12 @@ def logposterior_dali(
         theta0: Expansion point (reference parameter vector). The Fisher matrix and any
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix with shape ``(P, P)`` with ``P`` the number of parameters.
-        g_tensor: DALI cubic tensor ``(P, P, P)``.
-        h_tensor: DALI quartic tensor ``(P, P, P, P)`` or ``None``.
+        fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
+        g_tensor: DALI cubic tensor ``(p, p, p)``.
+        h_tensor: DALI quartic tensor ``(p, p, p, p)`` or ``None``.
         convention: The normalization to use (``"delta_chi2"`` or
             ``"matplotlib_loglike"``).
-        prior_terms: Prior term specification passed to
+        prior_terms: prior term specification passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
