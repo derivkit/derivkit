@@ -199,12 +199,25 @@ def _resolve_logprior(
     prior_bounds: Sequence[tuple[float | None, float | None]] | None,
     logprior: Callable[[NDArray[np.floating]], float] | None,
 ) -> Callable[[NDArray[np.floating]], float] | None:
-    """Resolve the logprior callable from either unified spec or direct callable.
+    """Determines which log-prior to use for likelihood expansion evaluation.
 
-    Rules:
-      - If ``logprior`` is provided, ``prior_terms``/``prior_bounds`` must be ``None``.
-      - If ``prior_terms`` or ``prior_bounds`` is provided, compile via ``build_prior``.
-      - If ``None`` provided, return ``None`` (no prior).
+    This helper allows callers to specify a prior in one of two ways: either by passing
+    a pre-built ``logprior(theta)`` callable directly, or by providing a lightweight
+    prior specification (``prior_terms`` and/or ``prior_bounds``) that is compiled
+    internally using :meth:`derivkit.forecasting.priors.core.build_prior`.
+
+    Only one of these input styles may be used at a time. Providing both results in a
+    ``ValueError``. If neither is provided, the function returns ``None``, indicating
+    that no prior is applied.
+
+    Args:
+        prior_terms: See module docstring.
+        prior_bounds: See module docstring.
+        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject
+
+    Returns:
+        A function that computes the log-prior contribution to the posterior, or
+        ``None`` if the likelihood should be evaluated without a prior.
     """
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
