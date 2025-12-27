@@ -237,7 +237,11 @@ def logposterior_fisher(
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
 ) -> float:
-    """Computes the log posterior (up to a constant) under the Fisher approximation.
+    """Computes the log posterior under the Fisher approximation.
+
+    The returned value is defined up to an additive constant in log space.
+    This corresponds to an overall multiplicative normalization of the posterior
+    density in probability space.
 
     If no prior is provided, this returns the Fisher log-likelihood expansion
     (improper flat prior, no hard cutoffs).
@@ -250,19 +254,14 @@ def logposterior_fisher(
 
         log p = -0.5 * delta_chi2
 
-    up to an additive constant. This normalization is equivalent to the
-    ``convention="delta_chi2"`` used for DALI and should be used for all
-    scientific results. In this interpretation, fixed ``delta_chi2`` values correspond
-    to fixed probability content (e.g. 68%, 95%) in parameter space, exactly
-    as for a Gaussian likelihood.
+    This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI
+    and should be used for all scientific results. In this interpretation, fixed
+    ``delta_chi2`` values correspond to fixed probability content (e.g. 68%, 95%)
+    in parameter space, as for a Gaussian likelihood.
 
-    This is the same statistical interpretation used in standard Fisher
-    forecasts and Gaussian likelihood analyses, making Fisher and DALI
-    results directly comparable and statistically well-defined.
-
-    Unlike the DALI case, there is no alternative normalization for the
-    Fisher approximation: the likelihood is strictly Gaussian and fully
-    described by the quadratic form.
+    Unlike the DALI case, there is no alternative normalization for the Fisher
+    approximation: the likelihood is strictly Gaussian and fully described by the
+    quadratic form.
 
     Args:
         theta: Parameter vector.
@@ -273,7 +272,7 @@ def logposterior_fisher(
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
 
     Returns:
-        Scalar log posterior value up to a constant.
+        Scalar log posterior value.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
