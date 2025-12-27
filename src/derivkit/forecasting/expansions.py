@@ -83,7 +83,7 @@ __all__ = [
 def submatrix_fisher(
     fisher: NDArray[np.floating],
     idx: Sequence[int],
-) -> NDArray[np.floating]:
+) -> NDArray[np.float64]:
     """Extracts a sub-Fisher matrix for a subset of parameter indices.
 
     The submatrix is constructed by selecting rows and columns of ``fisher``
@@ -126,10 +126,10 @@ def submatrix_dali(
     h_tensor: NDArray[np.floating] | None,
     idx: Sequence[int],
 ) -> tuple[
-    NDArray[np.floating],
-    NDArray[np.floating],
-    NDArray[np.floating],
-    NDArray[np.floating] | None,
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64] | None,
 ]:
     """Extracts sub-DALI tensors for a subset of parameter indices.
 
