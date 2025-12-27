@@ -125,8 +125,8 @@ def validate_covariance_matrix_shape(cov: Any) -> NDArray[np.float64]:
 def validate_symmetric_psd(
     matrix: Any,
     *,
-        sym_atol: float = 1e-12,
-        psd_atol: float = 1e-12,
+    sym_atol: float = 1e-12,
+    psd_atol: float = 1e-12,
 ) -> NDArray[np.float64]:
     """Validates that an input is a symmetric positive semidefinite (PSD) matrix.
 
