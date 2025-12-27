@@ -69,7 +69,7 @@ def dispatch_tensor_output(
         ],
         NDArray[np.floating],
     ],
-) -> NDArray[np.floating]:
+) -> NDArray[np.float64]:
     """Computes per-output-component derivative objects for tensor-valued outputs and reshapes back.
 
     Pattern:
@@ -122,7 +122,7 @@ def dispatch_tensor_output(
         inner_workers=inner_workers,
     )
 
-    arr = np.stack([np.asarray(v, dtype=float) for v in vals], axis=0)
+    arr = np.stack([np.asarray(v, dtype=np.float64) for v in vals], axis=0)
     arr = arr.reshape(out_shape + arr.shape[1:])
 
     ensure_finite(arr, msg="Non-finite values encountered in tensor-output derivative object.")
