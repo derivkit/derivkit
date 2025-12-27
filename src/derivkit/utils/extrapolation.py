@@ -30,19 +30,19 @@ def richardson_extrapolate(
     Args:
         base_values:
             Sequence of approximations at different step sizes.
-            The step sizes are assumed to decrease by a factor of `r`
+            The step sizes are assumed to decrease by a factor of ``r``
             between successive entries.
         p:
             The order of the leading error term in the approximations.
         r:
             The step-size reduction factor between successive entries
-            (default is 2.0).
+            (default is ``2.0``).
 
     Returns:
         The extrapolated value with improved accuracy.
 
     Raises:
-        ValueError: If `base_values` has fewer than two entries.
+        ValueError: If ``base_values`` has fewer than two entries.
     """
     # Work on float arrays for both scalar and vector cases
     n = len(base_values)
@@ -71,7 +71,8 @@ def ridders_extrapolate(
 
     This builds the usual Ridders diagonal assuming a central finite-difference
     scheme (leading error is approximately O(h^2)) by repeatedly extrapolating
-    prefixes of ``base_values``. By default it uses :func:`richardson_extrapolate`
+    prefixes of ``base_values``. By default it uses
+    :func:`derivkit.utils.extrapolation.richardson_extrapolate`
     with ``p=2``, but a different extrapolator can be passed if needed.
 
     Args:
@@ -79,13 +80,14 @@ def ridders_extrapolate(
             Sequence of derivative approximations at step sizes
             h, h/r, h/r^2, ... (all same shape: scalar, vector, or tensor).
         r:
-            Step-size reduction factor (default 2.0).
+            Step-size reduction factor (default ``2.0``).
         extrapolator:
             Function implementing the extrapolation step. Must have the
             signature ``extrapolator(base_values, p, r) -> array_like``.
-            Defaults to :func:`richardson_extrapolate`.
+            Defaults to
+            :func:`derivkit.utils.extrapolation.richardson_extrapolate`.
         p:
-            Leading error order passed to ``extrapolator`` (default 2).
+            Leading error order passed to ``extrapolator`` (default ``2``).
 
     Returns:
         A tuple ``(best_value, error_estimate)`` where:
@@ -170,7 +172,7 @@ def gauss_richardson_extrapolate(
         h_values: Corresponding step sizes (must be positive and same length as base_values).
         p: The order of the leading error term in the approximations.
         jitter: Small positive value added to the diagonal of the kernel matrix for numerical stability.
-            Defaults to 1e-10.
+            Defaults to ``1e-10``.
 
     Returns:
         A tuple (extrapolated_value, error_estimate) where:

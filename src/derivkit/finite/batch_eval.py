@@ -15,7 +15,7 @@ __all__ = ["eval_points"]
 
 
 def _all_scalar_like(xs: Sequence[Any]) -> bool:
-    """Returns True if all entries in xs are scalar-like.
+    """Returns ``True`` if all entries in ``xs`` are scalar-like.
 
     Scalar-like means:
     - Python scalar, or
@@ -41,8 +41,9 @@ def eval_points(
         func: Callable taking a single argument (scalar or array-like).
         xs: 1D sequence of points at which to evaluate ``func``.
             Entries may be scalars or array-like objects (e.g. vectors/tensors).
-        n_workers: Number of parallel outer workers. If None or <=1, runs serially.
-            If greater than the number of points, capped to that number.
+        n_workers: Number of parallel outer workers. If ``None`` or <=1,
+            runs serially. If greater than the number of points, capped to
+            that number.
 
     Returns:
         An array of function values at the specified points.
@@ -81,7 +82,7 @@ def _to_eval_args(xs: Sequence[Any], scalar_like: bool) -> list[Any]:
 
 
 def _cap_outer_workers(n_workers: int | None, n_tasks: int) -> int:
-    """Cap outer workers by number of tasks; ensure at least 1."""
+    """Cap outer workers by number of tasks; ensure at least ``1``."""
     if n_workers is None or n_workers <= 1:
         return 1
     n = int(n_workers)

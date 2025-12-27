@@ -37,7 +37,7 @@ def single_finite_step(
             The number of points in the finite difference stencil. Must be
             one of [3, 5, 7, 9].
         n_workers:
-            The number of workers to use in multiprocessing. Default is 1.
+            The number of workers to use in multiprocessing. Default is ``1``.
 
     Returns:
         The estimated derivative. Returns a float for scalar-valued functions,

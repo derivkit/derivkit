@@ -33,13 +33,15 @@ def make_diagnostics(
         config:
             LocalPolyConfig instance with fitting settings.
         xs:
-                An array of sample points (shape (n_samples,)).
+            An array of sample points (shape ``(n_samples,)``).
         ys:
-            An array of function evaluations (shape (n_samples, n_components)).
+            An array of function evaluations (shape
+            ``(n_samples, n_components)``).
         used:
-            A boolean array indicating which samples were used (shape (n_samples,)).
+            A boolean array indicating which samples were used (shape
+            ``(n_samples,)``).
         coeffs:
-            The polynomial coefficients (shape (degree + 1, n_components)).
+            The polynomial coefficients (shape ``(degree + 1, n_components)``).
         degree:
             The degree of the polynomial fit.
         order:
