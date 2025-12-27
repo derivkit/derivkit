@@ -58,12 +58,14 @@ def get_forecast_tensors(
                 - D = 3 would be the triplet-DALI approximation.
 
             Currently only D = 1, 2 are supported.
-        method: Method name or alias (e.g., "adaptive", "finite"). If None,
-            the DerivativeKit default ("adaptive") is used.
+        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default (``"adaptive"``) is used.
         n_workers: Number of workers for per-parameter parallelization/threads.
-            Default 1 (serial). Inner batch evaluation is kept serial to avoid
-            nested pools.
-        **dk_kwargs: Additional keyword arguments passed to DerivativeKit.differentiate.
+            Default ``1`` (serial). Inner batch evaluation is kept serial to
+            avoid nested pools.
+        **dk_kwargs: Additional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         If ``D = 1``: Fisher matrix of shape ``(P, P)``.
@@ -152,16 +154,17 @@ def _get_derivatives(
             is the number of observables returned by the function.
         order: The requested order of the derivatives:
 
-            - A value of `1` returns first-order derivatives.
-            - A value of `2` returns second-order derivatives.
+            - A value of ``1`` returns first-order derivatives.
+            - A value of ``2`` returns second-order derivatives.
 
-            Currently supported values are `1` and `2`.
+            Currently supported values are ``1`` and ``2``.
 
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
         n_workers: Number of workers for per-parameter parallelization
-         (threads). Default `1` (serial).
-        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
+         (threads). Default ``1`` (serial).
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Array of derivative values. For ``order == 1``, the

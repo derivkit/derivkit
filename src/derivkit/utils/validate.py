@@ -36,7 +36,8 @@ def is_finite_and_differentiable(
       delta: Small forward step.
 
     Returns:
-      True if finite at both points; otherwise False.
+      A boolean which is ``True`` if the input is finite at both points
+      and ``False`` otherwise.
     """
     f0 = np.asarray(function(x))
     f1 = np.asarray(function(x + delta))
@@ -55,8 +56,8 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
             input of the function.
         i: Zero-based index of the parameter with respect to which to differentiate.
         n_workers: Number of workers used inside
-            ``DerivativeKit.adaptive.differentiate``. This does not parallelize
-            across parameters.
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+            This does not parallelize across parameters.
 
     Raises:
         TypeError: If ``function`` does not return a scalar value.
@@ -197,8 +198,9 @@ def validate_fisher_shapes(
     """Validates shapes for Fisher forecasting inputs.
 
     Checks that:
-      - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-      - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
       with ``p`` being the number of parameters.
 
     Args:
@@ -229,12 +231,12 @@ def validate_dali_shapes(
     """Validates shapes for DALI expansion inputs.
 
     Checks that:
-      - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-      - ``fisher`` has shape ``(p, p)``.
-      - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
-      - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
-        ``(p, p, p, p)``
-        with ``p`` being the number of parameters.
+
+    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
+    - ``fisher`` has shape ``(p, p)``.
+    - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
+    - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
+      ``(p, p, p, p)``  with ``p`` being the number of parameters.
 
     Args:
       theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
@@ -264,7 +266,7 @@ def validate_dali_shapes(
 
 
 def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
-    """Validates that `a` is a 2D square matrix and return it as float array."""
+    """Validates that the input is a 2D square matrix and return it as float array."""
     arr = np.asarray(a, dtype=float)
     if arr.ndim != 2:
         raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")

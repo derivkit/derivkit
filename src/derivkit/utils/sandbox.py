@@ -23,14 +23,11 @@ def get_partial_function(
     are held fixed.
 
     Args:
-        full_function (callable): A function that takes a list of
-            n_parameters parameters and returns a vector of n_observables
-            observables.
-        variable_index (int): The index of the parameter to treat as the
-            variable.
-        fixed_values (list or np.ndarray): The list of parameter values to
-            use as fixed inputs for all parameters except the one being
-            varied.
+        full_function: A function that takes a list of n_parameters
+            parameters and returns a vector of n_observables observables.
+        variable_index: The index of the parameter to treat as the variable.
+        fixed_values: The list of parameter values to use as fixed inputs for
+            all parameters except the one being varied.
 
     Returns:
         callable: A function of a single variable, suitable for use in

@@ -1,7 +1,8 @@
 """Configuration for the local polynomial regression baseline.
 
-This config controls how :class:`LocalPolynomialDerivative` chooses
-sample locations, fits the local polynomial, and decides whether the
+This config controls how
+:class:`derivkit.local_polynomial_derivative.local_polynomial_derivative.LocalPolynomialDerivative`
+chooses sample locations, fits the local polynomial, and decides whether the
 fit is trustworthy enough to mark ``ok=True`` in diagnostics.
 """
 
@@ -11,8 +12,9 @@ from __future__ import annotations
 class LocalPolyConfig:
     """Configuration for the local polynomial regression baseline.
 
-    This config controls how :class:`LocalPolynomialDerivative` chooses
-    sample locations, fits the local polynomial, and decides whether the
+    This config controls how
+    :class:`derivkit.local_polynomial_derivative.local_polynomial_derivative.LocalPolynomialDerivative`
+    chooses sample locations, fits the local polynomial, and decides whether the
     fit is trustworthy enough to mark ``ok=True`` in diagnostics.
     """
 
