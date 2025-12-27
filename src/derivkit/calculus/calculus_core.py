@@ -72,11 +72,12 @@ def dispatch_tensor_output(
 ) -> NDArray[np.float64]:
     """Computes per-output-component derivative objects for tensor-valued outputs and reshapes back.
 
-    Pattern:
-      - Evaluate ``y0 = function(theta)``
-      - Flatten tensor output into m scalar components
-      - For each component idx, compute a scalar-output derivative object
-      - Stack and reshape to ``(*out_shape, *derivative_object_shape)``
+    The function uses the following strategy:
+
+      1. Evaluate ``y0 = function(theta)``
+      2. Flatten tensor output into m scalar components
+      3. For each component ``idx``, compute a scalar-output derivative object
+      4. Stack and reshape to ``(*out_shape, *derivative_object_shape)``
 
     Args:
         function: Original function.
