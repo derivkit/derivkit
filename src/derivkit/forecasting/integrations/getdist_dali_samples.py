@@ -22,10 +22,10 @@ from numpy.typing import NDArray
 
 from derivkit.forecasting.expansions import logposterior_dali
 from derivkit.forecasting.integrations.sampling_utils import (
-    apply_hard_bounds_mask,
+    apply_parameter_bounds,
     init_walkers_from_fisher,
-    log_gaussian_proposal,
-    proposal_samples_from_fisher,
+    kernel_samples_from_fisher,
+    log_gaussian_kernel,
 )
 from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import validate_dali_shapes
@@ -132,15 +132,15 @@ def dali_to_getdist_importance(
     if logprior is None:
         logprior = build_prior(terms=prior_terms, bounds=prior_bounds)
 
-    samples = proposal_samples_from_fisher(
+    samples = kernel_samples_from_fisher(
         theta0,
         fisher,
-        nsamp=int(nsamp),
-        proposal_scale=float(proposal_scale),
+        n_samples=int(nsamp),
+        kernel_scale=float(proposal_scale),
         seed=seed,
     )
 
-    samples = apply_hard_bounds_mask(samples, effective_bounds)
+    samples = apply_parameter_bounds(samples, effective_bounds)
     if samples.shape[0] == 0:
         raise RuntimeError("All proposal samples rejected by bounds (no samples left).")
 
@@ -166,11 +166,11 @@ def dali_to_getdist_importance(
     if samples.shape[0] == 0:
         raise RuntimeError("All proposal samples rejected by the posterior/prior (logpost=-inf).")
 
-    logq = log_gaussian_proposal(
+    logq = log_gaussian_kernel(
         samples,
         theta0,
         fisher,
-        proposal_scale=float(proposal_scale),
+        kernel_scale=float(proposal_scale),
     )
     logw = logpost - logq
     logw -= np.max(logw)
@@ -201,7 +201,7 @@ def dali_to_getdist_emcee(
     nsteps: int = 10_000,
     burn: int = 2_000,
     thin: int = 2,
-    nwalkers: int | None = None,
+    n_walkers: int | None = None,
     init_scale: float = 0.5,
     convention: str = "delta_chi2",
     seed: int | None = None,
@@ -232,7 +232,7 @@ def dali_to_getdist_emcee(
         nsteps: Total number of MCMC steps to run.
         burn: Number of initial steps to discard.
         thin: Thinning factor applied after burn-in.
-        nwalkers: Number of walkers; defaults to ``max(32, 8 * p)``.
+        n_walkers: Number of walkers; defaults to ``max(32, 8 * p)``.
         init_scale: Scale controlling the initial scatter of walkers around ``theta0``.
         convention: DerivKit DALI convention passed through to :func:`logposterior_dali`.
         seed: Random seed for walker initialization.
@@ -262,8 +262,8 @@ def dali_to_getdist_emcee(
     p = theta0.size
     if len(names) != p or len(labels) != p:
         raise ValueError("names/labels must match number of parameters")
-    if nwalkers is None:
-        nwalkers = max(32, 8 * p)
+    if n_walkers is None:
+        n_walkers = max(32, 8 * p)
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
@@ -285,7 +285,7 @@ def dali_to_getdist_emcee(
     p0 = init_walkers_from_fisher(
         theta0,
         fisher,
-        nwalkers=int(nwalkers),
+        n_walkers=int(n_walkers),
         init_scale=float(init_scale),
         seed=seed,
         hard_bounds=effective_bounds,
@@ -309,7 +309,7 @@ def dali_to_getdist_emcee(
         logprior=logprior,
     )
 
-    sampler = emcee.EnsembleSampler(int(nwalkers), int(p), log_prob)
+    sampler = emcee.EnsembleSampler(int(n_walkers), int(p), log_prob)
     sampler.run_mcmc(p0, int(nsteps), progress=True)
 
     chain = sampler.get_chain(discard=int(burn), thin=int(thin))

@@ -21,9 +21,9 @@ from getdist.gaussian_mixtures import GaussianND
 from numpy.typing import NDArray
 
 from derivkit.forecasting.integrations.sampling_utils import (
-    apply_hard_bounds_mask,
+    apply_parameter_bounds,
     fisher_to_cov,
-    proposal_samples_from_fisher,
+    kernel_samples_from_fisher,
 )
 from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import validate_fisher_shapes
@@ -136,10 +136,10 @@ def fisher_to_getdist_samples(
         )
 
     # Draw from N(theta0, proposal_scale^2 * pinv(F))
-    samples = proposal_samples_from_fisher(
-        theta0, fisher, nsamp=int(nsamp), proposal_scale=float(proposal_scale), seed=seed
+    samples = kernel_samples_from_fisher(
+        theta0, fisher, n_samples=int(nsamp), kernel_scale=float(proposal_scale), seed=seed
     )
-    samples = apply_hard_bounds_mask(samples, hard_bounds)
+    samples = apply_parameter_bounds(samples, hard_bounds)
     if samples.shape[0] == 0:
         raise RuntimeError("All samples rejected by hard bounds (no samples left).")
 
