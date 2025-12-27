@@ -59,7 +59,14 @@ def dispatch_tensor_output(
     inner_workers: int | None,
     dk_kwargs: dict[str, Any],
     build_component: Callable[
-        [int, NDArray[np.floating], str | None, int | None, dict[str, Any], Callable[[ArrayLike], float | np.ndarray]],
+        [
+          int, NDArray[np.floating],
+          str | None,
+          int | None,
+          dict[str, Any],
+          Callable[[ArrayLike],
+          float | np.ndarray]
+        ],
         NDArray[np.floating],
     ],
 ) -> NDArray[np.floating]:
