@@ -285,9 +285,6 @@ def ensure_finite(arr: Any, *, msg: str) -> None:
         arr: Input array-like to check.
         msg: Error message for the exception if non-finite values are found.
 
-    Returns:
-        None.
-
     Raises:
         FloatingPointError: If any value in ``arr`` is non-finite.
     """
