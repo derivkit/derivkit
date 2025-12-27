@@ -26,7 +26,7 @@ __all__ = [
 
 
 def component_scalar_eval(
-    theta_vec: NDArray[np.floating],
+    theta_vec: NDArray[np.float64],
     *,
     function: Callable[[ArrayLike], float | np.ndarray],
     idx: int,
@@ -52,7 +52,7 @@ def component_scalar_eval(
 
 def dispatch_tensor_output(
     function: Callable[[ArrayLike], float | np.ndarray],
-    theta: NDArray[np.floating],
+    theta: NDArray[np.float64],
     *,
     method: str | None,
     outer_workers: int,
@@ -60,14 +60,14 @@ def dispatch_tensor_output(
     dk_kwargs: dict[str, Any],
     build_component: Callable[
         [
-          int, NDArray[np.floating],
+          int, NDArray[np.float64],
           str | None,
           int | None,
           dict[str, Any],
           Callable[[ArrayLike],
           float | np.ndarray]
         ],
-        NDArray[np.floating],
+        NDArray[np.float64],
     ],
 ) -> NDArray[np.float64]:
     """Computes per-output-component derivative objects for tensor-valued outputs and reshapes back.
@@ -96,6 +96,7 @@ def dispatch_tensor_output(
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``function(theta)`` is scalar (use scalar path in caller).
     """
+    theta = np.asarray(theta, dtype=np.float64)
     y0 = np.asarray(function(theta))
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
