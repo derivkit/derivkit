@@ -31,7 +31,7 @@ def component_scalar_eval(
     function: Callable[[ArrayLike], float | np.ndarray],
     idx: int,
 ) -> float:
-    """Evaluates a single output component as a scalar function of the parameters.
+    """Evaluates a single element of the model output ``function(theta_vec)`` as a scalar.
 
     This helper is used internally when building derivatives of models that
     return multiple outputs (e.g. vectors or arrays). Derivative routines
