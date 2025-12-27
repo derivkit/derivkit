@@ -10,7 +10,6 @@ import pytest
 from derivkit.calculus.calculus_core import (
     component_scalar_eval,
     dispatch_tensor_output,
-    resolve_workers,
 )
 
 
@@ -89,76 +88,6 @@ def build_component_inf_for_idx1(
     if int(idx) == 1:
         return np.array([np.inf], dtype=float)
     return np.array([0.0], dtype=float)
-
-
-def test_resolve_workers_defaults_to_serial(monkeypatch):
-    """Tests that default outer_workers=1 and inner policy is used."""
-    monkeypatch.setattr(
-        "derivkit.calculus.calculus_core.resolve_inner_from_outer",
-        lambda outer: 42,
-    )
-
-    dk_kwargs = {"foo": "bar"}
-    outer, inner, cleaned = resolve_workers(None, dk_kwargs)
-
-    assert outer == 1
-    assert inner == 42
-    assert cleaned == {"foo": "bar"}
-    assert dk_kwargs == {"foo": "bar"}
-
-
-@pytest.mark.parametrize("n_workers", [0, -3, "nope", 1.2])
-def test_resolve_workers_normalizes_outer_workers(monkeypatch, n_workers):
-    """Tests that invalid outer_workers are normalized to 1."""
-    monkeypatch.setattr(
-        "derivkit.calculus.calculus_core.resolve_inner_from_outer",
-        lambda outer: 7,
-    )
-
-    outer, inner, cleaned = resolve_workers(n_workers, {"x": 1})
-    assert outer >= 1
-    assert inner == 7
-    assert cleaned == {"x": 1}
-
-
-def test_resolve_workers_inner_override_is_respected(monkeypatch):
-    """Tests that valid inner_workers override is respected."""
-    monkeypatch.setattr(
-        "derivkit.calculus.calculus_core.resolve_inner_from_outer",
-        lambda outer: 999,
-    )
-
-    dk_kwargs = {"inner_workers": 3, "alpha": 1.0}
-    outer, inner, cleaned = resolve_workers(4, dk_kwargs)
-
-    assert outer == 4
-    assert inner == 3
-    assert cleaned == {"alpha": 1.0}
-
-    # New contract: resolve_workers does not mutate caller kwargs.
-    assert dk_kwargs == {"inner_workers": 3, "alpha": 1.0}
-
-
-@pytest.mark.parametrize("inner_override", [0, -2, "bad"])
-def test_resolve_workers_invalid_inner_override_falls_back_to_one(monkeypatch, inner_override):
-    """Tests that invalid inner_workers override falls back to single worker."""
-    monkeypatch.setattr(
-        "derivkit.calculus.calculus_core.resolve_inner_from_outer",
-        lambda outer: 5,
-    )
-
-    dk_kwargs = {"beta": 2.0}
-    if inner_override is not None:
-        dk_kwargs["inner_workers"] = inner_override
-
-    outer, inner, cleaned = resolve_workers(2, dk_kwargs)
-
-    assert outer == 2
-    if inner_override is None:
-        assert inner == 5
-    else:
-        assert inner == 1
-    assert cleaned == {"beta": 2.0}
 
 
 def test_component_scalar_eval_scalar_output_idx0():

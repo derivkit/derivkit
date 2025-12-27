@@ -15,53 +15,14 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.utils.concurrency import (
-    normalize_workers,
     parallel_execute,
-    resolve_inner_from_outer,
 )
 from derivkit.utils.validate import ensure_finite
 
 __all__ = [
-    "resolve_workers",
     "component_scalar_eval",
     "dispatch_tensor_output",
 ]
-
-
-def resolve_workers(
-    n_workers: int | None,
-    dk_kwargs: dict[str, Any],
-) -> tuple[int, int | None, dict[str, Any]]:
-    """Decides how parallel work is split between outer calculus routines and the inner derivative engine.
-
-    Outer workers parallelize across independent derivative tasks (e.g. parameters,
-    output components, Hessian entries). Inner workers control parallelism *inside*
-    each derivative evaluation (within DerivativeKit).
-
-    If both levels spawn workers simultaneously, nested parallelism can cause
-    oversubscription. By default, the inner worker count is derived from the
-    outer worker count to avoid that. You can override this by passing
-    ``inner_workers=<int>`` via ``dk_kwargs``.
-
-    Args:
-        n_workers: Number of outer workers. If ``None``, defaults to 1.
-        dk_kwargs: Keyword arguments forwarded to DerivativeKit.differentiate.
-            May include ``inner_workers`` to override the default policy.
-
-    Returns:
-        (outer_workers, inner_workers, dk_kwargs_cleaned), where ``dk_kwargs_cleaned``
-        has any ``inner_workers`` entry removed.
-    """
-    dk_kwargs_cleaned = dict(dk_kwargs)
-    inner_override = dk_kwargs_cleaned.pop("inner_workers", None)
-
-    outer = normalize_workers(n_workers)
-    if inner_override is None:
-        inner = resolve_inner_from_outer(outer)
-    else:
-        inner = normalize_workers(inner_override)
-
-    return outer, inner, dk_kwargs_cleaned
 
 
 def component_scalar_eval(
