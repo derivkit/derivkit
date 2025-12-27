@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 4
 
    derivkit.forecasting.dali
+   derivkit.forecasting.expansions
    derivkit.forecasting.fisher
    derivkit.forecasting.forecast_core
 
