@@ -254,10 +254,11 @@ def logposterior_fisher(
 
         log p = -0.5 * delta_chi2
 
-    This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI
-    and should be used for all scientific results. In this interpretation, fixed
-    ``delta_chi2`` values correspond to fixed probability content (e.g. 68%, 95%)
-    in parameter space, as for a Gaussian likelihood.
+    This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI.
+    In this interpretation, fixed ``delta_chi2`` values correspond to fixed probability content
+    (e.g. 68%, 95%) in parameter space, as for a Gaussian likelihood.
+    See :meth:`derivkit.forecasting.expansions.delta_chi2_dali` for the corresponding
+    DALI definition of ``delta_chi2`` and its supported conventions.
 
     Unlike the DALI case, there is no alternative normalization for the Fisher
     approximation: the likelihood is strictly Gaussian and fully described by the
@@ -272,7 +273,7 @@ def logposterior_fisher(
         logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
 
     Returns:
-        Scalar log posterior value.
+        Scalar log posterior value, defined up to an additive constant.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
