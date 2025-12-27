@@ -218,7 +218,8 @@ def _resolve_logprior(
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
-        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject
+        logprior: Optional custom log-prior callable. If it returns a non-finite value,
+            the posterior is treated as zero at that point and the function returns ``-np.inf``.
 
     Returns:
         A function that computes the log-prior contribution to the posterior, or
@@ -280,7 +281,8 @@ def logposterior_fisher(
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
-        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
+        logprior: Optional custom log-prior callable. If it returns a non-finite value,
+            the posterior is treated as zero at that point and the function returns ``-np.inf``.
 
     Returns:
         Scalar log posterior value, defined up to an additive constant.
@@ -409,7 +411,8 @@ def logposterior_dali(
             :meth:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
             :meth:`derivkit.forecasting.priors.core.build_prior`.
-        logprior: Optional custom log-prior callable. Returns ``-np.inf`` to reject.
+        logprior: Optional custom log-prior callable. If it returns a non-finite value,
+            the posterior is treated as zero at that point and the function returns ``-np.inf``.
     """
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
