@@ -111,7 +111,6 @@ def submatrix_fisher(
 
     Raises:
         ValueError: If ``fisher`` is not square 2D.
-        IndexError: If any index in ``idx`` is out of bounds.
     """
     idx = list(idx)
     fisher = np.asarray(fisher, float)
@@ -134,6 +133,15 @@ def submatrix_dali(
 ]:
     """Extracts sub-DALI tensors for a subset of parameter indices.
 
+    The tensors are constructed by selecting entries of ``theta0`` and the
+    corresponding rows and columns of the Fisher, cubic, and quartic tensors
+    using the indices in ``idx``. The indices may be any subset and any order
+    and do not need to correspond to a contiguous block.
+
+    This operation is useful for evaluating a DALI expansion on a lower-dimensional
+    parameter subspace while holding all other parameters fixed at their expansion
+    values. It represents a slice through parameter space rather than a marginalization.
+
     Args:
         theta0: Full expansion point with shape ``(P,)`` with ``P`` the number of parameters.
         fisher: Full Fisher matrix with shape ``(P, P)``.
@@ -142,13 +150,16 @@ def submatrix_dali(
         idx: Sequence of parameter indices to extract.
 
     Returns:
-        A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where each entry is restricted
-        to the specified indices. Shapes are:
+        A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where each entry is selected
+        using the specified indices. Shapes are:
 
         - ``theta0_sub``: ``(len(idx),)``
         - ``f_sub``: ``(len(idx), len(idx))``
         - ``g_sub``: ``(len(idx), len(idx), len(idx))``
         - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
+
+    Raises:
+        IndexError: If any index in ``idx`` is out of bounds.
     """
     idx = list(idx)
     t0 = np.asarray(theta0, float)[idx]
