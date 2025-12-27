@@ -292,17 +292,17 @@ def logposterior_fisher(
     fisher = np.asarray(fisher, float)
     validate_fisher_shapes(theta0, fisher)
 
-    lp_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
+    logprior_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
 
-    lp = 0.0
-    if lp_fn is not None:
-        lp = float(lp_fn(theta))
-        if not np.isfinite(lp):
+    logprior_val = 0.0
+    if logprior_fn is not None:
+        logprior_val = float(logprior_fn(theta))
+        if not np.isfinite(logprior_val):
             return -np.inf
 
     displacement = theta - theta0
     chi2 = float(displacement @ fisher @ displacement)
-    return lp - 0.5 * chi2
+    return logprior_val - 0.5 * chi2
 
 
 def delta_chi2_dali(
@@ -421,12 +421,12 @@ def logposterior_dali(
     h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
     validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
 
-    lp_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
+    logprior_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
 
-    lp = 0.0
-    if lp_fn is not None:
-        lp = float(lp_fn(theta))
-        if not np.isfinite(lp):
+    logprior_val = 0.0
+    if logprior_fn is not None:
+        logprior_val = float(logprior_fn(theta))
+        if not np.isfinite(logprior_val):
             return -np.inf
 
     displacement = theta - theta0
@@ -452,4 +452,4 @@ def logposterior_dali(
     else:
         raise ValueError(f"Unknown convention='{convention}'")
 
-    return lp - 0.5 * chi2
+    return logprior_val - 0.5 * chi2
