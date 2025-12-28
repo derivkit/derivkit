@@ -83,7 +83,7 @@ def kernel_cov_from_fisher(
 
 
 def stabilized_cholesky(cov: NDArray[np.floating]) -> NDArray[np.float64]:
-    """Returns a robust Cholesky factor of a covariance matrix.
+    """Returns a Cholesky factor of a covariance matrix.
 
     This function computes a lower-triangular matrix ``L`` such that::
 
