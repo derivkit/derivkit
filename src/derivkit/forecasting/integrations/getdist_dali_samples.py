@@ -81,7 +81,7 @@ def dali_to_getdist_importance(
         logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
             from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
         hard_bounds: Optional hard support bounds.
-        label: Label attached to the returned :class:`getdist.MCSamples`.
+        label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
         :class:`getdist.MCSamples` containing the importance ``weights`` and
@@ -224,7 +224,7 @@ def dali_to_getdist_emcee(
         logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
             from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
         hard_bounds: Optional hard support bounds.
-        label: Label attached to the returned :class:`getdist.MCSamples`.
+        label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
         :class:`getdist.MCSamples` containing per-walker chains and
