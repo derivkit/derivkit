@@ -1,7 +1,7 @@
-"""Provides getDist sampling helpers for DALI approximate posteriors.
+"""Provides GetDist sampling helpers for DALI approximate posteriors.
 
 This module converts DALI-expanded posteriors into GetDist-compatible
-``MCSamples`` for plotting and analysis.
+:class:`getdist.MCSamples` for plotting and analysis.
 
 Two backends are provided:
 
@@ -57,7 +57,7 @@ def dali_to_getdist_importance(
     hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (importance)",
 ) -> MCSamples:
-    """Return GetDist ``MCSamples`` for a DALI posterior via importance sampling.
+    """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
     The target posterior is evaluated with
     :meth:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
@@ -65,7 +65,7 @@ def dali_to_getdist_importance(
     between the target log-posterior and the kernel log-density.
 
     Notes:
-        ``MCSamples.loglikes`` follows GetDist convention and stores ``-log(posterior)``
+        :attr:`getdist.MCSamples.loglikes` follows GetDist convention and stores ``-log(posterior)``
         up to an additive constant.
 
     Args:
@@ -85,10 +85,10 @@ def dali_to_getdist_importance(
             ``logprior`` is provided).
         logprior: Optional custom log-prior ``logprior(theta)``.
         hard_bounds: Optional hard support bounds.
-        label: Label attached to the returned ``MCSamples``.
+        label: Label attached to the returned :class:`getdist.MCSamples`.
 
     Returns:
-        GetDist ``MCSamples`` with importance ``weights`` and GetDist-style ``loglikes``.
+        :class:`getdist.MCSamples` with importance ``weights`` and GetDist-style ``loglikes``.
 
     Raises:
         ValueError: If shapes are inconsistent or mutually exclusive options are provided.
@@ -199,15 +199,15 @@ def dali_to_getdist_emcee(
     hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (emcee)",
 ) -> MCSamples:
-    """Returns GetDist ``MCSamples`` from ``emcee`` sampling of a DALI posterior.
+    """Returns :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
 
     The target log-posterior is evaluated with :meth:`derivkit.forecasting.expansions.logposterior_dali`.
     Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
     ``emcee.EnsembleSampler``. Optional priors and support bounds are applied through the target log-posterior.
 
     Notes:
-        The returned ``MCSamples`` is constructed from a list of per-walker chains.
-        ``MCSamples.loglikes`` follows GetDist convention and stores ``-log(posterior)``
+        The returned :class:`getdist.MCSamples` is constructed from a list of per-walker chains.
+        :attr:`getdist.MCSamples.loglikes` follows GetDist convention and stores ``-log(posterior)``
         up to an additive constant.
 
     Args:
@@ -230,10 +230,10 @@ def dali_to_getdist_emcee(
             ``logprior`` is provided).
         logprior: Optional custom log-prior ``logprior(theta)``.
         hard_bounds: Optional hard support bounds.
-        label: Label attached to the returned ``MCSamples``.
+        label: Label attached to the returned :class:`getdist.MCSamples`.
 
     Returns:
-        GetDist ``MCSamples`` containing per-walker chains and GetDist-style ``loglikes``.
+        :class:`getdist.MCSamples` containing per-walker chains and GetDist-style ``loglikes``.
 
     Raises:
         ValueError: If shapes are inconsistent or mutually exclusive options are provided.
