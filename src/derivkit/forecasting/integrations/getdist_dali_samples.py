@@ -132,7 +132,7 @@ def dali_to_getdist_importance(
 
     kernel_samples = apply_parameter_bounds(kernel_samples, support_bounds)
     if kernel_samples.shape[0] == 0:
-        raise RuntimeError("All kernel samples rejected by bounds (no samples left).")
+        raise RuntimeError("All kernel samples rejected by bounds.")
 
     target_logpost = np.array(
         [
