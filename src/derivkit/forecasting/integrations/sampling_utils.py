@@ -13,6 +13,7 @@ This kernel is used to generate candidate points and, for importance sampling,
 to evaluate ``log(q)`` when sampling posteriors approximated with Fisher or DALI.
 
 It provides:
+
 - construction of Fisher-based sampling covariances,
 - stabilized Cholesky factorization for near-singular kernels,
 - sampling and log-density evaluation of the kernel,
