@@ -303,7 +303,7 @@ def init_walkers_from_fisher(
         fisher: Fisher information matrix with shape ``(p, p)``.
         n_walkers: Number of walker positions to return.
         init_scale: Multiplicative scale applied to the kernel covariance.
-        seed: Optional RNG seed for reproducible initialization.
+        seed: Optional random seed for reproducible initialization.
         hard_bounds: Optional per-parameter ``(lower, upper)`` bounds. Use ``None``
             for an unbounded side.
 
