@@ -9,7 +9,7 @@ Two backends are provided:
 - ``emcee`` ensemble MCMC targeting the same DALI log-posterior.
 
 The target log-posterior is evaluated with
-:meth:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
+:func:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
 user-defined priors and parameter support bounds.
 """
 
@@ -60,7 +60,7 @@ def dali_to_getdist_importance(
     """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
     The target posterior is evaluated with
-    :meth:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
+    :func:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
     a Fisher–Gaussian kernel centered on ``theta0`` and reweighted by the difference
     between the target log-posterior and the kernel log-density.
 
@@ -73,7 +73,7 @@ def dali_to_getdist_importance(
         labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         n_samples: Number of importance samples to draw.
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
-        convention: DALI convention passed through to :meth:`derivkit.forecasting.expansions.logposterior_dali`.
+        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for kernel sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
@@ -206,7 +206,7 @@ def dali_to_getdist_emcee(
 ) -> MCSamples:
     """Returns :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
 
-    The target log-posterior is evaluated with :meth:`derivkit.forecasting.expansions.logposterior_dali`.
+    The target log-posterior is evaluated with :func:`derivkit.forecasting.expansions.logposterior_dali`.
     Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
     :class:`emcee.EnsembleSampler`. Optional priors and support bounds are applied through the target log-posterior.
 
@@ -224,7 +224,7 @@ def dali_to_getdist_emcee(
             to reduce autocorrelation in the chain.
         n_walkers: Number of walkers (defaults to ``max(32, 8 * p)``).
         init_scale: Initial scatter scale for walker initialization.
-        convention: DALI convention passed through to :meth:`logposterior_dali`.
+        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for walker initialization.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
