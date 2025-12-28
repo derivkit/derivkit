@@ -232,7 +232,8 @@ def log_gaussian_kernel(
         kernel_scale: Multiplicative scale applied to the covariance.
 
     Returns:
-        Array of ``log q(samples)`` with shape ``(n_samples,)``.
+        Log of the kernel probability density ``log(q(theta))``, evaluated at each
+        sample point, with shape ``(n_samples,)``.
 
     Raises:
         ValueError: If input shapes are incompatible.
