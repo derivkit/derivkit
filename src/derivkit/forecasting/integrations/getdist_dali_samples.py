@@ -77,9 +77,10 @@ def dali_to_getdist_importance(
         seed: Random seed for kernel sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+            If ``logprior`` is provided, ``prior_terms`` must be ``None``.
         prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
             Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
-            bounded-uniform (top-hat) prior.
+            bounded-uniform (top-hat) prior. If ``logprior`` is provided, ``prior_bounds`` must be ``None``.
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
             ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
         hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
@@ -232,9 +233,10 @@ def dali_to_getdist_emcee(
         seed: Random seed for walker initialization.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+            If ``logprior`` is provided, ``prior_terms`` must be ``None``.
         prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
             Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
-            bounded-uniform (top-hat) prior.
+            bounded-uniform (top-hat) prior. If ``logprior`` is provided, ``prior_bounds`` must be ``None``.
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
             ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
         hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
