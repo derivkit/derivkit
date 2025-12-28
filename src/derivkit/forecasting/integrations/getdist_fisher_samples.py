@@ -3,10 +3,10 @@
 This module provides lightweight bridges from a Fisher matrix to common GetDist
 representations:
 
-- An analytic Gaussian approximation via ``GaussianND`` with mean ``theta0`` and
-  covariance from the (pseudo-)inverse Fisher matrix.
-- Monte Carlo samples drawn from the Fisher Gaussian as ``MCSamples``, with
-  optional prior support and hard bounds, and optional GetDist-style ``loglikes``.
+- An analytic Gaussian approximation via :class:`getdist.gaussian_mixtures.GaussianND`
+  with mean ``theta0`` and covariance from the (pseudo-)inverse Fisher matrix.
+- Monte Carlo samples drawn from the Fisher Gaussian as :class:`getdist.MCSamples`, with
+  optional prior support hard bounds, and :attr:`getdist.MCSamples.loglikes`.
 
 These helpers are intended for quick visualization (e.g. triangle plots) and
 simple prior truncation without running an MCMC sampler.
@@ -44,7 +44,7 @@ def fisher_to_getdist_gaussiannd(
     label: str = "Fisher (Gaussian)",
     rcond: float | None = None,
 ) -> GaussianND:
-    """Returns a GetDist ``GaussianND`` for the Fisher Gaussian.
+    """Returns :class:`getdist.gaussian_mixtures.GaussianND` for the Fisher Gaussian.
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
@@ -55,13 +55,10 @@ def fisher_to_getdist_gaussiannd(
         rcond: Cutoff passed to the Fisher (pseudo-)inverse when forming the covariance.
 
     Returns:
-        A ``GaussianND`` with mean ``theta0`` and covariance from ``fisher``.
+        A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``theta0`` and covariance from ``fisher``.
 
     Raises:
         ValueError: If shapes or names/labels lengths are inconsistent.
-
-    See Also:
-        ``getdist.gaussian_mixtures.GaussianND``.
     """
     theta0 = np.asarray(theta0, dtype=float)
     fisher = np.asarray(fisher, dtype=float)
@@ -105,14 +102,14 @@ def fisher_to_getdist_samples(
     store_loglikes: bool = True,
     label: str = "Fisher (samples)",
 ) -> MCSamples:
-    """Draws samples from the Fisher Gaussian as GetDist ``MCSamples``.
+    """Draws samples from the Fisher Gaussian as :class:`getdist.MCSamples`.
 
     Samples are drawn from a multivariate Gaussian with mean ``theta0`` and
     covariance ``kernel_scale**2 * pinv(fisher)``. Optionally, samples are
     truncated by hard bounds and/or by a prior (via ``logprior`` or
     ``prior_terms``/``prior_bounds``).
 
-    GetDist stores “loglikes” as ``-log(posterior)`` up to an additive
+    GetDist stores :attr:`getdist.MCSamples.loglikes` as ``-log(posterior)`` up to an additive
     constant. When ``store_loglikes=True`` we store:
 
         ``-log p(theta) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + const``.
@@ -131,11 +128,12 @@ def fisher_to_getdist_samples(
             ``prior_terms``/``prior_bounds``.
         hard_bounds: Hard bounds applied by rejection (samples outside are dropped).
             Mutually exclusive with encoding support via ``prior_terms``/``prior_bounds``.
-        store_loglikes: If True, compute and store GetDist-style ``loglikes``.
-        label: Label for the returned ``MCSamples``.
+        store_loglikes: If True, compute and store :attr:`getdist.MCSamples.loglikes`.
+        label: Label for the returned :class:`getdist.MCSamples`.
 
     Returns:
-        ``MCSamples`` containing the retained samples and optional ``loglikes``.
+        :class:`getdist.MCSamples` containing the retained samples and
+        optional :attr:`getdist.MCSamples.loglikes`.
 
     Raises:
         ValueError: If shapes are inconsistent, names/labels lengths mismatch, or
