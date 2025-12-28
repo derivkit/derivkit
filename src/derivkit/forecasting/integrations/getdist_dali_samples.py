@@ -369,7 +369,7 @@ def dali_to_getdist_emcee(
     if walker_init.ndim != 2 or walker_init.shape[0] == 0 or walker_init.shape[1] != n_params:
         raise RuntimeError(
             "Walker initialization failed: no valid starting points. "
-            "Your bounds/prior support likely exclude the Fisher kernel around theta0. "
+            "The provided bounds/prior support likely exclude the Fisher kernel around theta0. "
             "Try loosening bounds, increasing init_scale, or checking theta0 is inside support."
         )
 
