@@ -51,7 +51,7 @@ def fisher_to_getdist_gaussiannd(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix with shape ``(p, p)``.
-        nnames: Optional parameter names (length ``p``).
+        names: Optional parameter names (length ``p``).
             Defaults to ``["p" + str(x) for x in range(len(theta0))]``.
         labels: Optional parameter labels (length ``p``).
             Defaults to ``["p" + str(x) for x in range(len(theta0))]``.
@@ -76,8 +76,14 @@ def fisher_to_getdist_gaussiannd(
     param_names = list(default_names if names is None else names)
     param_labels = list(default_labels if labels is None else labels)
 
-    if len(param_names) != n_params or len(param_labels) != n_params:
-        raise ValueError("names/labels must match number of parameters")
+    if len(param_names) != n_params:
+        raise ValueError(
+            f"`names` must have length {n_params} (number of parameters), got {len(param_names)}."
+        )
+    if len(param_labels) != n_params:
+        raise ValueError(
+            f"`labels` must have length {n_params} (number of parameters), got {len(param_labels)}."
+        )
 
     covariance = fisher_to_cov(fisher, rcond=rcond)
 
