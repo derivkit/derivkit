@@ -93,7 +93,7 @@ def stabilized_cholesky(cov: NDArray[np.floating]) -> NDArray[np.float64]:
         cov: Covariance matrix with shape ``(p, p)`` with ``p`` parameters.
 
     Returns:
-        Lower-triangular Cholesky factor ``L`` of the regularized covariance.
+        A lower-triangular Cholesky factor ``L`` of the regularized covariance.
 
     Raises:
         ValueError: If ``cov`` is not a square 2D array.
