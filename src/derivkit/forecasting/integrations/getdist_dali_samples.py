@@ -69,17 +69,17 @@ def dali_to_getdist_importance(
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
         g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
-        names: GetDist parameter names (length ``p``).
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
         convention: DALI convention passed through to :meth:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for kernel sampling.
-        prior_terms: Prior terms used to build a prior via ``build_prior`` (ignored if
-            ``logprior`` is provided).
-        prior_bounds: Bounds used to build a prior via ``build_prior`` (ignored if
-            ``logprior`` is provided).
-        logprior: Optional custom log-prior ``logprior(theta)``.
+        prior_terms: Prior terms used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+        prior_bounds: Bounds used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+        logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
+            from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
         hard_bounds: Optional hard support bounds.
         label: Label attached to the returned :class:`getdist.MCSamples`.
 
@@ -217,11 +217,12 @@ def dali_to_getdist_emcee(
         init_scale: Initial scatter scale for walker initialization.
         convention: DALI convention passed through to :meth:`logposterior_dali`.
         seed: Random seed for walker initialization.
-        prior_terms: Prior terms used to build a prior via ``build_prior`` (ignored if
-            ``logprior`` is provided).
-        prior_bounds: Bounds used to build a prior via ``build_prior`` (ignored if
-            ``logprior`` is provided).
-        logprior: Optional custom log-prior ``logprior(theta)``.
+        prior_terms: Prior terms used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+        prior_bounds: Bounds used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+        logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
+            from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
         hard_bounds: Optional hard support bounds.
         label: Label attached to the returned :class:`getdist.MCSamples`.
 
