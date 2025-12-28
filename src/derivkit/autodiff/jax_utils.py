@@ -7,11 +7,9 @@ from typing import Any, Callable
 try:
     import jax
     import jax.numpy as jnp
-    from jax.errors import ConcretizationTypeError
 except ImportError:
     jax = None
     jnp = None
-    ConcretizationTypeError = RuntimeError
     _HAS_JAX = False
 else:
     _HAS_JAX = True
@@ -48,7 +46,8 @@ def require_jax() -> None:
     if not _HAS_JAX:
         raise AutodiffUnavailable(
             "JAX autodiff requires `jax` + `jaxlib`.\n"
-            "Install them with `pip install jax jaxlib`."
+            "Install with `pip install \"derivkit[jax]\"` "
+            "(or follow JAX's official install instructions for GPU)."
         )
 
 
