@@ -220,9 +220,9 @@ def log_gaussian_kernel(
 ) -> NDArray[np.float64]:
     """Log-density of a Fisher-based Gaussian sampling kernel.
 
-    Defines a Gaussian kernel ``q(theta)`` with mean ``theta0`` and covariance
+    Defines a Gaussian kernel ``q`` with mean ``theta0`` and covariance::
 
-            ``(kernel_scale^2) @ pinv(F)``,
+            (kernel_scale^2) @ pinv(F)
 
     where ``F`` is the Fisher information matrix. The covariance is formed with a
     pseudoinverse (allowing singular or ill-conditioned ``F``). A small diagonal
