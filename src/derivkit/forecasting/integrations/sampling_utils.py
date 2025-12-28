@@ -311,13 +311,19 @@ def init_walkers_from_fisher(
         Array of initial positions with shape ``(n_walkers, p)``.
 
     Raises:
-        ValueError: If input shapes are incompatible.
+        ValueError: If ``theta0`` and ``fisher`` have incompatible shapes.
+        ValueError: If ``hard_bounds`` is provided and does not have length ``p``.
         RuntimeError: If sufficient in-bounds positions cannot be generated within
             the retry limit.
     """
     theta0 = np.asarray(theta0, float)
     fisher = np.asarray(fisher, float)
     validate_fisher_shapes(theta0, fisher)
+
+    if hard_bounds is not None and len(hard_bounds) != theta0.size:
+        raise ValueError(
+            f"hard_bounds must have length {theta0.size}; got {len(hard_bounds)}."
+        )
 
     if hard_bounds is None:
         return kernel_samples_from_fisher(
