@@ -69,7 +69,7 @@ def kernel_cov_from_fisher(
     Args:
         fisher: Fisher information matrix with shape ``(p, p)``.
         kernel_scale: Multiplicative scale factor applied to the covariance.
-            Values > 1 widen the kernel; values < 1 narrow it.
+            Increasing values widen the kernel; decreasing values narrow it.
 
     Returns:
         Kernel covariance matrix with shape ``(p, p)``, equal to
