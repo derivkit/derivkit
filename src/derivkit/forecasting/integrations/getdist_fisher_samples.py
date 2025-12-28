@@ -209,11 +209,6 @@ def fisher_to_getdist_samples(
 
         loglikes = 0.5 * theta_quad if log_prior_vals is None else (0.5 * theta_quad - log_prior_vals)
 
-        # Shift by a constant for numerical stability (preserves relative weights).
-        finite_ll = np.isfinite(loglikes)
-        if np.any(finite_ll):
-            loglikes = loglikes - np.min(loglikes[finite_ll])
-
     return MCSamples(
         samples=samples,
         loglikes=loglikes,
