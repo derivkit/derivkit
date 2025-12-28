@@ -47,6 +47,10 @@ license-files = ["LICENSE*"]
 "lint" = [
     "ruff",
 ]
+"jax" = [
+    "jax>=0.4",
+    "jaxlib>=0.4",
+]
 
 [tool.pytest.ini_options]
 pythonpath = [
