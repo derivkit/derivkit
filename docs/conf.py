@@ -19,9 +19,14 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
     "sphinx_design",
     "sphinx_multiversion",
 ]
+
+intersphinx_mapping = {
+    "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
+}
 
 autoclass_content = "both"
 
