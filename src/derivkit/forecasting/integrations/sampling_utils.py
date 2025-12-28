@@ -121,7 +121,7 @@ def kernel_samples_from_fisher(
     kernel_scale: float,
     seed: int | None,
 ) -> NDArray[np.float64]:
-    """Draw samples from a Fisher-based Gaussian sampling kernel.
+    """Draws samples from a Fisher-based Gaussian sampling kernel.
 
     Samples are drawn from a multivariate normal distribution::
 
