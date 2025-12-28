@@ -218,8 +218,10 @@ def dali_to_getdist_emcee(
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
-        burn: Number of initial steps discarded as burn-in.
-        thin: Thinning factor applied after burn-in.
+        burn: Number of initial MCMC steps discarded as burn-in, allowing the chain to
+            forget its initial starting positions before samples are retained.
+        thin: Thinning factor applied after burn-in; only every ``thin``-th sample is kept
+            to reduce autocorrelation in the chain.
         n_walkers: Number of walkers (defaults to ``max(32, 8 * p)``).
         init_scale: Initial scatter scale for walker initialization.
         convention: DALI convention passed through to :meth:`logposterior_dali`.
