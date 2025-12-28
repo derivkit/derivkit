@@ -202,7 +202,10 @@ def fisher_to_getdist_samples(
             theta_quad = theta_quad[keep]
             log_prior_vals = log_prior_vals[keep]
             if samples.shape[0] == 0:
-                raise RuntimeError("All samples rejected by the prior (logprior=-inf).")
+                raise RuntimeError(
+                    "All samples were rejected by the prior: logprior evaluated to -inf for every sample, "
+                    "indicating zero prior density outside the allowed prior support."
+                )
 
         loglikes = 0.5 * theta_quad if log_prior_vals is None else (0.5 * theta_quad - log_prior_vals)
 
