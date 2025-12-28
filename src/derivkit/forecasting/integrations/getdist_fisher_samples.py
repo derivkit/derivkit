@@ -62,7 +62,7 @@ def fisher_to_getdist_gaussiannd(
         A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``theta0`` and covariance from ``fisher``.
 
     Raises:
-        ValueError: If shapes or names/labels lengths are inconsistent.
+        ValueError: If ``names``/``labels`` lengths do not match ``p``.
     """
     theta0 = np.asarray(theta0, dtype=float)
     fisher = np.asarray(fisher, dtype=float)
