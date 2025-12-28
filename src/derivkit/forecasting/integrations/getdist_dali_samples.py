@@ -70,8 +70,8 @@ def dali_to_getdist_importance(
         g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: GetDist parameter names (length ``p``).
-        labels: GetDist parameter labels (length ``p``).
-        n_samples: Number of kernel samples to draw.
+        names: Parameter names used to label the returned samples (length ``p``).
+        labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
         convention: DALI convention passed through to ``logposterior_dali``.
         seed: Random seed for kernel sampling.
@@ -208,8 +208,8 @@ def dali_to_getdist_emcee(
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
         g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
-        names: GetDist parameter names (length ``p``).
-        labels: GetDist parameter labels (length ``p``).
+        names: Parameter names used to label the returned samples (length ``p``).
+        labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
         burn: Number of initial steps discarded as burn-in.
         thin: Thinning factor applied after burn-in.
