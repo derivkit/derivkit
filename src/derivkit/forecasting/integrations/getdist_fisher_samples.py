@@ -132,8 +132,10 @@ def fisher_to_getdist_samples(
         n_samples: Number of samples to draw.
         seed: Random seed.
         kernel_scale: Multiplicative scale applied to the Gaussian covariance.
-        prior_terms: Prior specification for ``build_prior``.
-        prior_bounds: Prior bounds for ``build_prior``.
+        prior_terms: Optional prior term specifications used to build a prior.
+            Can be provided with or without ``prior_bounds``.
+        prior_bounds: Optional bounds used to truncate prior support.
+            Can be provided with or without ``prior_terms``.
         logprior: Custom log-prior callable. Mutually exclusive with
             ``prior_terms``/``prior_bounds``.
         hard_bounds: Hard bounds applied by rejection (samples outside are dropped).
@@ -163,7 +165,10 @@ def fisher_to_getdist_samples(
         raise ValueError("n_samples must be a positive integer")
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
+        raise ValueError(
+            "Ambiguous prior specification: pass either `logprior` or `prior_terms` and `prior_bounds`, not both. "
+            "`prior_terms` and `prior_bounds` can be provided independently."
+        )
 
     if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
