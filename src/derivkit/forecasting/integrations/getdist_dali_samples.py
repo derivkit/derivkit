@@ -39,6 +39,70 @@ __all__ = [
 ]
 
 
+def _resolve_support_bounds(
+    *,
+    n_params: int,
+    prior_bounds: Sequence[tuple[float | None, float | None]] | None,
+    hard_bounds: Sequence[tuple[float | None, float | None]] | None,
+) -> Sequence[tuple[float | None, float | None]] | None:
+    """Computes the effective parameter-support bounds used by the sampler.
+
+    This function combines two optional sources of support constraints:
+
+    - ``prior_bounds``, which truncate the prior (and therefore the posterior support).
+    - ``hard_bounds``, which impose an additional hard support constraint used for
+      rejection/initialization.
+
+    When both are provided, the returned bounds are their intersection, computed
+    component-wise for each parameter. Each bound is a ``(low, high)`` pair where
+    either endpoint may be ``None`` to indicate no constraint.
+
+    Args:
+        n_params: Number of parameters (expected length of any provided bounds sequence).
+        prior_bounds: Optional per-parameter prior truncation bounds.
+        hard_bounds: Optional per-parameter hard support bounds.
+
+    Returns:
+        The effective per-parameter bounds to use for support filtering, or ``None``
+        if neither set of bounds is provided.
+
+    Raises:
+        ValueError: If a provided bounds sequence does not have length ``n_params``,
+            or if the intersection of ``prior_bounds`` and ``hard_bounds`` is empty
+            for any parameter (i.e., the resulting lower bound exceeds the upper bound).
+    """
+    if hard_bounds is not None and len(hard_bounds) != n_params:
+        raise ValueError(
+            f"hard_bounds must have length p={n_params}; got len(hard_bounds)={len(hard_bounds)}."
+        )
+
+    if prior_bounds is not None and len(prior_bounds) != n_params:
+        raise ValueError(
+            f"prior_bounds must have length p={n_params}; got len(prior_bounds)={len(prior_bounds)}."
+        )
+
+    if hard_bounds is None:
+        return prior_bounds
+    if prior_bounds is None:
+        return hard_bounds
+
+    bounds = []
+    for i, ((hlo, hhi), (plo, phi)) in enumerate(zip(hard_bounds, prior_bounds, strict=True)):
+        lo = None if (hlo is None and plo is None) else max(x for x in (hlo, plo) if x is not None)
+        hi = None if (hhi is None and phi is None) else min(x for x in (hhi, phi) if x is not None)
+
+        if lo is not None and hi is not None and lo > hi:
+            raise ValueError(
+                f"Empty support for parameter index {i}: "
+                f"intersection gives ({lo}, {hi}). "
+                "Check prior_bounds and hard_bounds."
+            )
+
+        bounds.append((lo, hi))
+
+    return bounds
+
+
 def dali_to_getdist_importance(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -59,7 +123,7 @@ def dali_to_getdist_importance(
 ) -> MCSamples:
     """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
-    The target posterior is evaluated with
+    The target log-posterior is evaluated with
     :func:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
     a Fisher–Gaussian kernel centered on ``theta0`` and reweighted by the difference
     between the target log-posterior and the kernel log-density.
@@ -77,13 +141,17 @@ def dali_to_getdist_importance(
         seed: Random seed for kernel sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
-            If ``logprior`` is provided, ``prior_terms`` must be ``None``.
-        prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
-            Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
-            bounded-uniform (top-hat) prior. If ``logprior`` is provided, ``prior_bounds`` must be ``None``.
+            Can be combined with ``prior_bounds`` to truncate prior support.
+        prior_bounds: Optional per-parameter bounds passed to
+            :func:`derivkit.forecasting.priors.core.build_prior` to truncate the prior support.
+            If provided with no ``prior_terms``, this corresponds to a bounded-uniform (top-hat) prior.
+            A bounded-uniform prior is proper (normalizable), unlike an unbounded flat prior which is improper.
+            Mutually exclusive with ``logprior``.
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
-            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
-        hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
+            prior is used.
+        hard_bounds: Optional per-parameter hard support bounds used for sample rejection/initialization.
+            If provided with ``prior_bounds``, the effective support is their intersection.
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
@@ -92,7 +160,8 @@ def dali_to_getdist_importance(
         an additive constant).
 
     Raises:
-        ValueError: If shapes are inconsistent or mutually exclusive options are provided.
+        ValueError: If shapes are inconsistent, mutually exclusive options are provided,
+            or the effective support bounds are invalid (e.g., an empty intersection).
         RuntimeError: If all samples are rejected by bounds or prior support.
     """
     fiducial = np.asarray(theta0, dtype=float)
@@ -114,15 +183,11 @@ def dali_to_getdist_importance(
             "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
         )
 
-    if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError(
-            "Ambiguous support: both `hard_bounds` and `prior_bounds`/`prior_terms` were supplied.\n"
-            "Choose ONE support mechanism:\n"
-            "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
-            "  - encode support via the prior (set `hard_bounds=None`)."
-        )
-
-    support_bounds = hard_bounds if hard_bounds is not None else prior_bounds
+    support_bounds = _resolve_support_bounds(
+        n_params=n_params,
+        prior_bounds=prior_bounds,
+        hard_bounds=hard_bounds,
+    )
 
     # Computing the prior once prevents rebuilding inside logposterior_dali
     logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
@@ -176,7 +241,10 @@ def dali_to_getdist_importance(
     weights = np.exp(log_weights)
 
     loglikes = -target_logpost
-    loglikes -= np.min(loglikes)
+
+    ranges = None
+    if support_bounds is not None:
+        ranges = {n: [lo, hi] for n, (lo, hi) in zip(names, support_bounds, strict=True)}
 
     return MCSamples(
         samples=kernel_samples,
@@ -184,6 +252,7 @@ def dali_to_getdist_importance(
         loglikes=loglikes,
         names=list(names),
         labels=list(labels),
+        ranges=ranges,
         label=label,
     )
 
@@ -233,13 +302,17 @@ def dali_to_getdist_emcee(
         seed: Random seed for walker initialization.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
-            If ``logprior`` is provided, ``prior_terms`` must be ``None``.
-        prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
-            Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
-            bounded-uniform (top-hat) prior. If ``logprior`` is provided, ``prior_bounds`` must be ``None``.
+            Can be combined with ``prior_bounds`` to truncate prior support.
+        prior_bounds: Optional per-parameter bounds passed to
+            :func:`derivkit.forecasting.priors.core.build_prior` to truncate the prior support.
+            If provided with no ``prior_terms``, this corresponds to a bounded-uniform (top-hat) prior.
+            A bounded-uniform prior is proper (normalizable), unlike an unbounded flat prior which is improper.
+            Mutually exclusive with ``logprior``.
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
-            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
-        hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
+            prior is used.
+        hard_bounds: Optional per-parameter hard support bounds used for sample rejection/initialization.
+            If provided with ``prior_bounds``, the effective support is their intersection.
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
@@ -248,7 +321,8 @@ def dali_to_getdist_emcee(
         an additive constant).
 
     Raises:
-        ValueError: If shapes are inconsistent or mutually exclusive options are provided.
+        ValueError: If shapes are inconsistent, mutually exclusive options are provided,
+            or the effective support bounds are invalid (e.g., an empty intersection).
         RuntimeError: If walker initialization fails (no valid starting points).
     """
     fiducial = np.asarray(theta0, dtype=float)
@@ -273,15 +347,11 @@ def dali_to_getdist_emcee(
             "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
         )
 
-    if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError(
-            "Ambiguous support: both `hard_bounds` and  `prior_bounds`/`prior_terms` were provided.\n"
-            "Choose ONE support mechanism:\n"
-            "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
-            "  - encode support via the prior (set `hard_bounds=None`)."
-        )
-
-    support_bounds = hard_bounds if hard_bounds is not None else prior_bounds
+    support_bounds = _resolve_support_bounds(
+        n_params=n_params,
+        prior_bounds=prior_bounds,
+        hard_bounds=hard_bounds,
+    )
 
     # Compile prior once (prevents rebuilding inside logposterior_dali).
     logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
@@ -322,10 +392,15 @@ def dali_to_getdist_emcee(
     chain_list = [chains[:, walker_idx, :] for walker_idx in range(chains.shape[1])]
     loglikes_list = [-log_posteriors[:, walker_idx] for walker_idx in range(log_posteriors.shape[1])]
 
+    ranges = None
+    if support_bounds is not None:
+        ranges = {n: [lo, hi] for n, (lo, hi) in zip(names, support_bounds, strict=True)}
+
     return MCSamples(
         samples=chain_list,
         loglikes=loglikes_list,
         names=list(names),
         labels=list(labels),
+        ranges=ranges,
         label=label,
     )
