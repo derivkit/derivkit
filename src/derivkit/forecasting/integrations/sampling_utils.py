@@ -5,7 +5,10 @@ This module implements a Fisher-based Gaussian sampling distribution
 
     (sampling_scale**2) * pinv(F)
 
-where ``F`` is the Fisher information matrix (local curvature).
+where ``F`` is the Fisher information matrix evaluated at ``theta0``.
+In this approximation, ``F`` is the Hessian of ``-log L`` at ``theta0`` and
+acts as the local inverse covariance.
+
 This kernel is used to generate candidate points (and, for importance sampling,
 to evaluate ``log q``) when sampling Fisher/DALI approximate posteriors.
 
@@ -51,8 +54,9 @@ def kernel_cov_from_fisher(
 ) -> NDArray[np.float64]:
     """Returns the covariance of the Fisher-based Gaussian sampling kernel.
 
-    The Fisher matrix is treated as local curvature (inverse covariance) at the
-    expansion point, and ``kernel_scale`` controls the overall kernel width.
+    The Fisher matrix is treated as the Hessian of ``-log L`` at ``theta0``.
+    In this local approximation it acts as an inverse covariance, and
+    ``kernel_scale`` controls the overall kernel width.
     A pseudoinverse is used so the covariance is defined even if ``fisher`` is singular.
 
     Args:
@@ -74,7 +78,7 @@ def kernel_cov_from_fisher(
 def stabilized_cholesky(cov: NDArray[np.floating]) -> NDArray[np.float64]:
     """Returns a robust Cholesky factor of a covariance matrix.
 
-    This function computes a lower-triangular matrix ``L`` such that
+    This function computes a lower-triangular matrix ``L`` such that::
 
         ``cov`` is approximately ``L @ L.T``.
 
@@ -116,12 +120,13 @@ def kernel_samples_from_fisher(
 ) -> NDArray[np.float64]:
     """Draw samples from a Fisher-based Gaussian sampling kernel.
 
-    Samples are drawn from a multivariate normal distribution
+    Samples are drawn from a multivariate normal distribution::
 
         q(theta) = N(theta0, (kernel_scale^2) * pinv(F)),
 
-    where ``F`` is the Fisher information matrix (local curvature) evaluated at
-    ``theta0``. A pseudoinverse is used so the covariance is defined even if
+    where ``F`` is the Fisher information matrix evaluated at ``theta0``.
+    In this approximation, ``F`` acts as an inverse covariance.
+    A pseudoinverse is used so the covariance is defined even if
     ``F`` is singular or ill-conditioned.
 
     Args:
