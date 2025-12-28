@@ -120,9 +120,9 @@ def fisher_to_getdist_samples(
     ``prior_terms``/``prior_bounds``).
 
     GetDist stores :attr:`getdist.MCSamples.loglikes` as ``-log(posterior)`` up to an additive
-    constant. When ``store_loglikes=True`` we store:
+    constant. When ``store_loglikes=True`` ``fisher_to_getdist_samples`` stores::
 
-        ``-log p(theta) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + const``.
+        -log p(theta) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + const
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
