@@ -111,7 +111,7 @@ def dali_to_getdist_importance(
 
     if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
-            "Ambiguous support: you passed `hard_bounds` and also `prior_bounds`/`prior_terms`.\n"
+            "Ambiguous support: both `hard_bounds` and `prior_bounds`/`prior_terms` were supplied.\n"
             "Choose ONE support mechanism:\n"
             "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
             "  - encode support via the prior (set `hard_bounds=None`)."
