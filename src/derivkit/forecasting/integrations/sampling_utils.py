@@ -57,6 +57,10 @@ def kernel_cov_from_fisher(
 ) -> NDArray[np.float64]:
     """Returns the covariance of the Fisher-based Gaussian sampling kernel.
 
+    This is a thin wrapper around
+    :func:`derivkit.forecasting.integrations.sampling_utils.fisher_to_cov` that converts
+    ``fisher`` to a covariance via pseudoinverse and applies the scaling ``kernel_scale^2``.
+
     The Fisher matrix is treated as the Hessian of ``-log L`` at ``theta0``.
     In this local approximation it acts as an inverse covariance, and
     ``kernel_scale`` controls the overall kernel width.
