@@ -1,7 +1,7 @@
 """Provides getDist sampling helpers for DALI approximate posteriors.
 
 This module converts DALI-expanded posteriors into GetDist-compatible
-``MCSamples`` for plotting and lightweight downstream analysis.
+``MCSamples`` for plotting and analysis.
 
 Two backends are provided:
 
