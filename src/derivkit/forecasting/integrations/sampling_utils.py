@@ -236,7 +236,7 @@ def log_gaussian_kernel(
         sample point, with shape ``(n_samples,)``.
 
     Raises:
-        ValueError: If input shapes are incompatible.
+        TypeError: If ``theta0`` and ``fisher`` have incompatible shapes.
         RuntimeError: If the jittered covariance is not positive-definite.
     """
     theta0_vec = np.asarray(theta0, dtype=float)
