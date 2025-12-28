@@ -204,7 +204,6 @@ def fisher_to_getdist_samples(
             if samples.shape[0] == 0:
                 raise RuntimeError("All samples rejected by the prior (logprior=-inf).")
 
-        # GetDist convention: loglikes = -log(posterior) + const
         loglikes = 0.5 * theta_quad if log_prior_vals is None else (0.5 * theta_quad - log_prior_vals)
 
         # Shift by a constant for numerical stability (preserves relative weights).
