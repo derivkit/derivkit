@@ -73,7 +73,7 @@ def dali_to_getdist_importance(
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
-        convention: DALI convention passed through to ``logposterior_dali``.
+        convention: DALI convention passed through to :meth:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for kernel sampling.
         prior_terms: Prior terms used to build a prior via ``build_prior`` (ignored if
             ``logprior`` is provided).
