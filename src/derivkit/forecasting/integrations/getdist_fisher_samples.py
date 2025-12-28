@@ -144,7 +144,7 @@ def fisher_to_getdist_samples(
             ``prior_terms``/``prior_bounds``.
         hard_bounds: Hard bounds applied by rejection (samples outside are dropped).
             Mutually exclusive with encoding support via ``prior_terms``/``prior_bounds``.
-        store_loglikes: If True, compute and store :attr:`getdist.MCSamples.loglikes`.
+        store_loglikes: If ``True``, compute and store :attr:`getdist.MCSamples.loglikes`.
         label: Label for the returned :class:`getdist.MCSamples`.
 
     Returns:
