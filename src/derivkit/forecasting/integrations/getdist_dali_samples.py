@@ -154,7 +154,10 @@ def dali_to_getdist_importance(
     kernel_samples = kernel_samples[keep]
     target_logpost = target_logpost[keep]
     if kernel_samples.shape[0] == 0:
-        raise RuntimeError("All kernel samples rejected by the posterior/prior (logpost=-inf).")
+        raise RuntimeError(
+            "All kernel samples were rejected: the target log-posterior was -inf for every sample "
+            "(outside prior/support bounds or invalid model evaluation)."
+        )
 
     kernel_logpdf = log_gaussian_kernel(
         kernel_samples,
