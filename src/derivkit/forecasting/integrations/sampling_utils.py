@@ -18,7 +18,7 @@ It provides:
 - stabilized Cholesky factorization for near-singular kernels,
 - sampling and log-density evaluation of the kernel,
 - fast hard-bounds rejection masks,
-- robust MCMC walker initialization under hard bounds.
+- MCMC walker initialization under hard bounds.
 
 These utilities are sampler-agnostic and are used by GetDist integration
 and MCMC initialization code.
