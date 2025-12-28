@@ -78,9 +78,10 @@ def dali_to_getdist_importance(
             :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
         prior_bounds: Bounds used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+            If provided without any other prior terms, this corresponds to a bounded-uniform (top-hat) prior.
         logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
             from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
-        hard_bounds: Optional hard support bounds.
+        hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
@@ -221,9 +222,10 @@ def dali_to_getdist_emcee(
             :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
         prior_bounds: Bounds used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
+            If provided without any other prior terms, this corresponds to a bounded-uniform (top-hat) prior.
         logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
             from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
-        hard_bounds: Optional hard support bounds.
+        hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
