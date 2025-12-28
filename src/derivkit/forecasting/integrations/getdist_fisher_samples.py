@@ -1,7 +1,9 @@
-"""Conversion helpers for Fisher–Gaussian forecasts and GetDist objects.
+"""Provides conversion helpers for Fisher–Gaussian forecasts and GetDist objects.
 
-This module provides lightweight bridges from a Fisher matrix to common GetDist
-representations:
+This module converts Fisher-matrix Gaussian approximations into
+GetDist-compatible representations for plotting and lightweight analysis.
+
+Two outputs are supported:
 
 - An analytic Gaussian approximation via :class:`getdist.gaussian_mixtures.GaussianND`
   with mean ``theta0`` and covariance from the (pseudo-)inverse Fisher matrix.
