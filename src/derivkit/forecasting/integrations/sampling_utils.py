@@ -20,8 +20,10 @@ It provides:
 - fast hard-bounds rejection masks,
 - MCMC walker initialization under hard bounds.
 
-These utilities are sampler-agnostic and are used by GetDist integration
-and MCMC initialization code.
+These utilities do not depend on a specific sampler implementation.
+They provide kernel draws, log-densities, and hard-bounds filtering that are
+called by the GetDist importance-sampling wrappers and by the emcee walker
+initialization routine.
 """
 
 from __future__ import annotations
