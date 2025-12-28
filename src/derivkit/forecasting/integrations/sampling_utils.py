@@ -236,14 +236,24 @@ def log_gaussian_kernel(
         sample point, with shape ``(n_samples,)``.
 
     Raises:
-        TypeError: If ``theta0`` and ``fisher`` have incompatible shapes.
+        ValueError: If input shapes are incompatible.
         RuntimeError: If the jittered covariance is not positive-definite.
     """
     theta0_vec = np.asarray(theta0, dtype=float)
     fisher_matrix = np.asarray(fisher, dtype=float)
     validate_fisher_shapes(theta0_vec, fisher_matrix)
-
     sample_array = np.asarray(samples, dtype=np.float64)
+
+    if sample_array.ndim != 2:
+        raise ValueError(
+            "samples must be 2D with shape (n_samples, p); "
+            f"got shape {sample_array.shape}."
+        )
+
+    if sample_array.shape[1] != theta0_vec.size:
+        raise ValueError(
+            f"samples must have p={theta0_vec.size} columns; got {sample_array.shape[1]}."
+        )
 
     cov_matrix = kernel_cov_from_fisher(fisher_matrix, kernel_scale=float(kernel_scale))
 
