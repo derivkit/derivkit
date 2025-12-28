@@ -139,7 +139,7 @@ def kernel_samples_from_fisher(
         fisher: Fisher information matrix with shape ``(p, p)``.
         n_samples: Number of samples to draw.
         kernel_scale: Multiplicative scale applied to the covariance.
-            Values > 1 widen the kernel; values < 1 narrow it.
+            Increasing values widen the kernel; decreasing values narrow it.
         seed: Optional RNG seed for reproducible draws.
 
     Returns:
