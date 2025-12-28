@@ -123,12 +123,14 @@ def kernel_samples_from_fisher(
 ) -> NDArray[np.float64]:
     """Draws samples from a Fisher-based Gaussian sampling kernel.
 
-    Samples are drawn from a multivariate normal distribution::
+    Samples are drawn from the Gaussian kernel density ``q(theta)`` with mean
+    ``theta0`` and covariance ``(kernel_scale^2) * pinv(F)``::
 
-        q(theta) = N(theta0, (kernel_scale^2) * pinv(F)),
+        q(theta) = Normal(mean=theta0, cov=(kernel_scale^2) * pinv(F))
 
-    where ``F`` is the Fisher information matrix evaluated at ``theta0``.
-    In this approximation, ``F`` acts as an inverse covariance.
+    ``F`` is the Fisher information matrix evaluated at ``theta0``.
+    In this approximation, ``F`` acts as an inverse covariance and
+    Normal represents the multivariate normal distribution.
     A pseudoinverse is used so the covariance is defined even if
     ``F`` is singular or ill-conditioned.
 
