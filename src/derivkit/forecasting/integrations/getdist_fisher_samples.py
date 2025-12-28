@@ -1,7 +1,7 @@
 """Provides conversion helpers for Fisher–Gaussian forecasts and GetDist objects.
 
 This module converts Fisher-matrix Gaussian approximations into
-GetDist-compatible representations for plotting and lightweight analysis.
+GetDist-compatible representations for plotting and analysis.
 
 Two outputs are supported:
 
