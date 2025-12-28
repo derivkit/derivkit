@@ -24,7 +24,6 @@ import numpy as np
 
 from derivkit.autodiff.jax_utils import (
     AutodiffUnavailable,
-    ConcretizationTypeError,
     apply_array_nd,
     apply_scalar_1d,
     apply_scalar_nd,
@@ -70,8 +69,7 @@ def autodiff_derivative(func: Callable, x0: float, order: int = 1) -> float:
 
     try:
         val = g(x0)
-    except (ConcretizationTypeError, TypeError, ValueError) as exc:
-        print(f"[JAX autodiff failed] {type(exc).__name__}: {exc}")
+    except (TypeError, ValueError) as exc:
         raise AutodiffUnavailable(
             "autodiff_derivative: function is not JAX-differentiable at x0. "
             "Use JAX primitives / jax.numpy or fall back to 'adaptive'/'finite'."
@@ -103,7 +101,7 @@ def autodiff_gradient(func: Callable, x0) -> np.ndarray:
 
     try:
         g = grad_f(jnp.asarray(x0_arr))
-    except (ConcretizationTypeError, TypeError, ValueError) as exc:
+    except (TypeError, ValueError) as exc:
         raise AutodiffUnavailable(
             "autodiff_gradient: function is not JAX-differentiable."
         ) from exc
@@ -147,7 +145,7 @@ def autodiff_jacobian(
 
     try:
         y0 = f_jax(x0_jax)
-    except (ConcretizationTypeError, TypeError, ValueError) as exc:
+    except (TypeError, ValueError) as exc:
         raise AutodiffUnavailable(
             "autodiff_jacobian: function is not JAX-differentiable at x0."
         ) from exc
@@ -168,7 +166,7 @@ def autodiff_jacobian(
 
     try:
         jac = jac_fun(f_jax)(x0_jax)
-    except (ConcretizationTypeError, TypeError, ValueError) as exc:
+    except (TypeError, ValueError) as exc:
         raise AutodiffUnavailable(
             "autodiff_jacobian: failed to trace function with JAX."
         ) from exc
@@ -201,7 +199,7 @@ def autodiff_hessian(func: Callable, x0) -> np.ndarray:
 
     try:
         hess = jax.hessian(f_jax)(x0_jax)
-    except (ConcretizationTypeError, TypeError, ValueError) as exc:
+    except (TypeError, ValueError) as exc:
         raise AutodiffUnavailable(
             "autodiff_hessian: function is not JAX-differentiable."
         ) from exc
