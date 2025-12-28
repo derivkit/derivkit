@@ -122,7 +122,7 @@ def dispatch_tensor_output(
     if y0.ndim == 0:
         raise ValueError(
             "dispatch_tensor_output requires an array-valued model output (ndim >= 1), "
-            f"but function(theta) returned a scalar with shape {y0.shape}. "
+            f"but function(theta) returned a scalar (dtype={y0.dtype}). "
             "Use the scalar-output derivative path (e.g. derivative/gradient/hessian) instead."
         )
 
