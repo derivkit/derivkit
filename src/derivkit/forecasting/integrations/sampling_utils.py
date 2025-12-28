@@ -1,9 +1,9 @@
 """Gaussian sampling-kernel helpers derived from a Fisher matrix.
 
 This module implements a Fisher-based Gaussian sampling distribution
-q(theta) centered at ``theta0`` with covariance
+``q`` centered at ``theta0`` with covariance::
 
-    ``(sampling_scale**2) * pinv(F)``,
+    (sampling_scale**2) * pinv(F)
 
 where ``F`` is the Fisher information matrix (local curvature).
 This kernel is used to generate candidate points (and, for importance sampling,
