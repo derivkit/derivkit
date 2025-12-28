@@ -144,9 +144,6 @@ def kernel_samples_from_fisher(
 
     Returns:
         Array of samples with shape ``(n_samples, p)``.
-
-    Raises:
-        ValueError: If input shapes are incompatible.
     """
     rng = np.random.default_rng(seed)
 
