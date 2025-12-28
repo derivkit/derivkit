@@ -41,7 +41,8 @@ def component_scalar_eval(
     Args:
         theta_vec: 1D parameter vector.
         function: Original function.
-        idx: Flat (row-major) index into the model output ``y = function(theta_vec)`` after flattening it to 1D.
+        idx: Index of the output component to differentiate, where the output is first
+            flattened with NumPy C-order (i.e. ``np.ravel(y, order="C")``).
 
     Returns:
         Scalar value of the specified output component.
