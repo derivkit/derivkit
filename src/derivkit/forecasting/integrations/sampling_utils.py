@@ -9,8 +9,8 @@ where ``F`` is the Fisher information matrix evaluated at ``theta0``.
 In this approximation, ``F`` is the Hessian of ``-log L`` at ``theta0`` and
 acts as the local inverse covariance.
 
-This kernel is used to generate candidate points (and, for importance sampling,
-to evaluate ``log q``) when sampling Fisher/DALI approximate posteriors.
+This kernel is used to generate candidate points and, for importance sampling,
+to evaluate ``log(q)`` when sampling posteriors approximated with Fisher or DALI.
 
 It provides:
 - construction of Fisher-based sampling covariances,
