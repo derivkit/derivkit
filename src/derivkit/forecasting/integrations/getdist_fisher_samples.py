@@ -51,8 +51,10 @@ def fisher_to_getdist_gaussiannd(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix with shape ``(p, p)``.
-        names: Optional parameter names (length ``p``). Defaults to ``p0, p1, ...``.
-        labels: Optional parameter labels (length ``p``). Defaults to ``p_0, p_1, ...``.
+        nnames: Optional parameter names (length ``p``).
+            Defaults to ``["p" + str(x) for x in range(len(theta0))]``.
+        labels: Optional parameter labels (length ``p``).
+            Defaults to ``["p" + str(x) for x in range(len(theta0))]``.
         label: Label attached to the returned object.
         rcond: Cutoff passed to the Fisher (pseudo-)inverse when forming the covariance.
 
