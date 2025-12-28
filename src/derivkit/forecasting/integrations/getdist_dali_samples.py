@@ -71,16 +71,17 @@ def dali_to_getdist_importance(
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
+        n_samples: Number of importance samples to draw.
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
         convention: DALI convention passed through to :meth:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for kernel sampling.
-        prior_terms: Prior terms used to build a prior via
-            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
-        prior_bounds: Bounds used to build a prior via
-            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
-            If provided without any other prior terms, this corresponds to a bounded-uniform (top-hat) prior.
-        logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
-            from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
+        prior_terms: Optional prior term specifications used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+        prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
+            Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
+            bounded-uniform (top-hat) prior.
+        logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
         hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
@@ -104,7 +105,9 @@ def dali_to_getdist_importance(
         raise ValueError("names/labels must match number of parameters")
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
+        raise ValueError(
+            "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
+        )
 
     if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
@@ -218,13 +221,13 @@ def dali_to_getdist_emcee(
         init_scale: Initial scatter scale for walker initialization.
         convention: DALI convention passed through to :meth:`logposterior_dali`.
         seed: Random seed for walker initialization.
-        prior_terms: Prior terms used to build a prior via
-            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
-        prior_bounds: Bounds used to build a prior via
-            :func:`derivkit.forecasting.priors.core.build_prior` (ignored if ``logprior`` is provided).
-            If provided without any other prior terms, this corresponds to a bounded-uniform (top-hat) prior.
-        logprior: Optional custom log-prior ``logprior(theta)``. If not provided, a prior is built
-            from ``prior_terms``/``prior_bounds`` using :func:`derivkit.forecasting.priors.core.build_prior`.
+        prior_terms: Optional prior term specifications used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+        prior_bounds: Optional global bounds passed to :func:`derivkit.forecasting.priors.core.build_prior`.
+            Mutually exclusive with ``logprior``. If provided with no ``prior_terms``, this corresponds to a
+            bounded-uniform (top-hat) prior.
+        logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat prior is used.
         hard_bounds: Optional hard support bounds (a top-hat support constraint: posterior is zero outside).
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
@@ -250,7 +253,9 @@ def dali_to_getdist_emcee(
         n_walkers = max(32, 8 * n_params)
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
+        raise ValueError(
+            "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
+        )
 
     if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
