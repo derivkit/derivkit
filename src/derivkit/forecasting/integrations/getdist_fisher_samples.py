@@ -148,8 +148,8 @@ def fisher_to_getdist_samples(
         optional :attr:`getdist.MCSamples.loglikes`.
 
     Raises:
-        ValueError: If shapes are inconsistent, names/labels lengths mismatch, or
-            mutually exclusive options are provided.
+        ValueError: If ``n_samples`` is non-positive, if ``names`` or ``labels`` have
+            incorrect length, or if mutually exclusive options are provided.
         RuntimeError: If all samples are rejected by bounds or prior support.
     """
     theta0 = np.asarray(theta0, dtype=float)
@@ -157,8 +157,15 @@ def fisher_to_getdist_samples(
     validate_fisher_shapes(theta0, fisher)
 
     n_params = int(theta0.size)
-    if len(names) != n_params or len(labels) != n_params:
-        raise ValueError("names/labels must match number of parameters")
+
+    if len(names) != n_params:
+        raise ValueError(
+            f"`names` must have length {n_params} (number of parameters), got {len(names)}."
+        )
+    if len(labels) != n_params:
+        raise ValueError(
+            f"`labels` must have length {n_params} (number of parameters), got {len(labels)}."
+        )
 
     n_samples = int(n_samples)
     if n_samples <= 0:
