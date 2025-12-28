@@ -67,8 +67,8 @@ def dali_to_getdist_importance(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
-        g_tensor: DALI third-order tensor ``G`` with shape ``(p, p, p)``.
-        h_tensor: Optional DALI fourth-order tensor ``H`` with shape ``(p, p, p, p)``.
+        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
+        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: GetDist parameter names (length ``p``).
         labels: GetDist parameter labels (length ``p``).
         n_samples: Number of kernel samples to draw.
@@ -206,8 +206,8 @@ def dali_to_getdist_emcee(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
-        g_tensor: DALI third-order tensor ``G`` with shape ``(p, p, p)``.
-        h_tensor: Optional DALI fourth-order tensor ``H`` with shape ``(p, p, p, p)``.
+        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
+        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: GetDist parameter names (length ``p``).
         labels: GetDist parameter labels (length ``p``).
         n_steps: Total number of MCMC steps.
