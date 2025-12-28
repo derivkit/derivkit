@@ -203,7 +203,7 @@ def dali_to_getdist_emcee(
 
     The target log-posterior is evaluated with :meth:`derivkit.forecasting.expansions.logposterior_dali`.
     Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
-    ``emcee.EnsembleSampler``. Optional priors and support bounds are applied through the target log-posterior.
+    :class:`emcee.EnsembleSampler`. Optional priors and support bounds are applied through the target log-posterior.
 
     Notes:
         The returned :class:`getdist.MCSamples` is constructed from a list of per-walker chains.
