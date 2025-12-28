@@ -85,10 +85,6 @@ def kernel_cov_from_fisher(
 def stabilized_cholesky(cov: NDArray[np.floating]) -> NDArray[np.float64]:
     """Returns a Cholesky factor of a covariance matrix.
 
-    This function computes a lower-triangular matrix ``L`` such that::
-
-        ``cov`` is approximately ``L @ L.T``.
-
     This function computes a lower-triangular matrix ``L`` such that ``cov`` is
     approximately ``L @ L.T``, even when ``cov`` is nearly singular or only
     positive semi-definite.
