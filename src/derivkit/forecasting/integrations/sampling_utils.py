@@ -140,7 +140,7 @@ def kernel_samples_from_fisher(
         n_samples: Number of samples to draw.
         kernel_scale: Multiplicative scale applied to the covariance.
             Increasing values widen the kernel; decreasing values narrow it.
-        seed: Optional RNG seed for reproducible draws.
+        seed: Optional random seed for reproducible draws.
 
     Returns:
         Array of samples with shape ``(n_samples, p)``.
