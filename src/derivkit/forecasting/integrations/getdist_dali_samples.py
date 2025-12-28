@@ -353,7 +353,7 @@ def dali_to_getdist_emcee(
         hard_bounds=hard_bounds,
     )
 
-    # Compile prior once (prevents rebuilding inside logposterior_dali).
+    # Compute prior once, as this prevents rebuilding inside logposterior_dali.
     logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
 
     walker_init = init_walkers_from_fisher(
