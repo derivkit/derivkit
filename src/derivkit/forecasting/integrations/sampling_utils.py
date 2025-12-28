@@ -265,7 +265,7 @@ def log_gaussian_kernel(
 
     sign, logdet = np.linalg.slogdet(cov_matrix)
     if sign <= 0 or not np.isfinite(logdet):
-        raise RuntimeError("Kernel covariance is not positive-definite (after jitter).")
+        raise RuntimeError("Kernel covariance is not positive-definite after adding jitter.")
 
     centered = sample_array - theta0_vec[None, :]
     solved = solve_or_pinv(
