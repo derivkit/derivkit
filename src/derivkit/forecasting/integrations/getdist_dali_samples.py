@@ -64,10 +64,6 @@ def dali_to_getdist_importance(
     a Fisher–Gaussian kernel centered on ``theta0`` and reweighted by the difference
     between the target log-posterior and the kernel log-density.
 
-    Notes:
-        :attr:`getdist.MCSamples.loglikes` follows GetDist convention and stores ``-log(posterior)``
-        up to an additive constant.
-
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
@@ -88,7 +84,9 @@ def dali_to_getdist_importance(
         label: Label attached to the returned :class:`getdist.MCSamples`.
 
     Returns:
-        :class:`getdist.MCSamples` with importance ``weights`` and GetDist-style ``loglikes``.
+        :class:`getdist.MCSamples` containing the importance ``weights`` and
+        :attr:`getdist.MCSamples.loglikes` in GetDist convention (``-log(posterior)`` up to
+        an additive constant).
 
     Raises:
         ValueError: If shapes are inconsistent or mutually exclusive options are provided.
@@ -205,11 +203,6 @@ def dali_to_getdist_emcee(
     Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
     :class:`emcee.EnsembleSampler`. Optional priors and support bounds are applied through the target log-posterior.
 
-    Notes:
-        The returned :class:`getdist.MCSamples` is constructed from a list of per-walker chains.
-        :attr:`getdist.MCSamples.loglikes` follows GetDist convention and stores ``-log(posterior)``
-        up to an additive constant.
-
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
@@ -233,7 +226,9 @@ def dali_to_getdist_emcee(
         label: Label attached to the returned :class:`getdist.MCSamples`.
 
     Returns:
-        :class:`getdist.MCSamples` containing per-walker chains and GetDist-style ``loglikes``.
+        :class:`getdist.MCSamples` containing per-walker chains and
+        :attr:`getdist.MCSamples.loglikes` in GetDist convention (``-log(posterior)`` up to
+        an additive constant).
 
     Raises:
         ValueError: If shapes are inconsistent or mutually exclusive options are provided.
