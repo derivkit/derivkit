@@ -170,8 +170,7 @@ def apply_parameter_bounds(
 
     This function performs a fast, axis-aligned rejection step: any sample with
     at least one parameter value outside the specified bounds is discarded.
-    It does not evaluate priors or compute weights; for that, use the priors
-    utilities in :mod:`derivkit.forecasting.priors`.
+    It does not evaluate priors or compute weights.
 
     Args:
         samples: Sample array with shape ``(n_samples, p)`` with ``p`` parameters.
