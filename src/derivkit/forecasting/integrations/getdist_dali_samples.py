@@ -119,7 +119,7 @@ def dali_to_getdist_importance(
 
     support_bounds = hard_bounds if hard_bounds is not None else prior_bounds
 
-    # Compile prior once (this prevents rebuilding inside logposterior_dali)
+    # Computing the prior once prevents rebuilding inside logposterior_dali
     logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
 
     kernel_samples = kernel_samples_from_fisher(
