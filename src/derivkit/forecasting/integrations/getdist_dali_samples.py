@@ -222,7 +222,7 @@ def dali_to_getdist_emcee(
             forget its initial starting positions before samples are retained.
         thin: Thinning factor applied after burn-in; only every ``thin``-th sample is kept
             to reduce autocorrelation in the chain.
-        n_walkers: Number of walkers (defaults to ``max(32, 8 * p)``).
+        n_walkers: Number of walkers. Defaults to ``max(32, 8 * p)``.
         init_scale: Initial scatter scale for walker initialization.
         convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for walker initialization.
