@@ -101,8 +101,12 @@ def dali_to_getdist_importance(
     validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
 
     n_params = int(fiducial.size)
-    if len(names) != n_params or len(labels) != n_params:
-        raise ValueError("names/labels must match number of parameters")
+    n_names = len(names)
+    n_labels = len(labels)
+    if n_names != n_params:
+        raise ValueError(f"names must have length p={n_params}; got len(names)={n_names}.")
+    if n_labels != n_params:
+        raise ValueError(f"labels must have length p={n_params}; got len(labels)={n_labels}.")
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
@@ -252,8 +256,13 @@ def dali_to_getdist_emcee(
     validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
 
     n_params = int(fiducial.size)
-    if len(names) != n_params or len(labels) != n_params:
-        raise ValueError("names/labels must match number of parameters")
+    n_names = len(names)
+    n_labels = len(labels)
+    if n_names != n_params:
+        raise ValueError(f"names must have length p={n_params}; got len(names)={n_names}.")
+    if n_labels != n_params:
+        raise ValueError(f"labels must have length p={n_params}; got len(labels)={n_labels}.")
+
     if n_walkers is None:
         n_walkers = max(32, 8 * n_params)
 
