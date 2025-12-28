@@ -14,6 +14,8 @@ dependencies = [
   "multiprocess",
   "scipy",
   "tox",
+  "getdist",
+  "emcee",
 ]
 authors = [
   { name="Nikolina Šarčević", email="nikolina.sarcevic@gmail.com" },
@@ -45,10 +47,6 @@ license-files = ["LICENSE*"]
 ]
 "lint" = [
     "ruff",
-]
-"getdist" = [
-    "getdist",
-    "emcee",
 ]
 
 [tool.pytest.ini_options]
