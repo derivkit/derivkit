@@ -345,6 +345,9 @@ def init_walkers_from_fisher(
             theta0, fisher, n_samples=max(need, int(n_walkers)), kernel_scale=float(init_scale), seed=None if seed is None else seed + tries
         )
         draw = apply_parameter_bounds(draw, hard_bounds)
+        # apply_parameter_bounds returns an array with shape (n_kept, p).
+        # If n_kept == 0, all proposed walkers fell outside the hard bounds,
+        # so we retry with a fresh draw.
         if draw.shape[0] == 0:
             continue
 
