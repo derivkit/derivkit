@@ -25,6 +25,7 @@ Basic usage (opt-in registration):
 
 Notes:
 ------
+
 - This backend is scalar-only. For gradients/Jacobians/Hessians of functions
   with vector inputs/outputs, use the standalone helpers in
   ``derivkit.autodiff.jax_core`` (e.g. ``autodiff_gradient``).
