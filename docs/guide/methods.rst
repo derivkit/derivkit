@@ -123,6 +123,25 @@ robust and smooth estimate.
 
 .. image:: ../assets/plots/adaptive_demo_linear_noisy_order1.png
 
+
+Experimental: JAX autodiff (opt-in)
+----------------------------------
+
+DerivKit also exposes optional JAX-based automatic differentiation utilities.
+These are **not registered as an official DerivKit derivative method by default**
+and must be explicitly enabled by the user.
+
+This functionality is intended for quick, informal comparisons or sanity checks against
+DerivKit’s numerical methods when the model is smooth and already written in terms of ``jax.numpy`.
+It is *not* designed for noisy, tabulated, or black-box functions, and should
+not be relied upon for production inference or robustness studies.
+
+In most scientific use cases targeted by DerivKit, the adaptive or finite
+difference methods above are more appropriate.
+
+Installation and usage details are described in :doc:`guide/installation`.
+
+
 References
 ----------
 
