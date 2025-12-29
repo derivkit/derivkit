@@ -2,7 +2,8 @@
 
 This module does not register any DerivKit backend by default.
 
-Use these functions directly, or see `jax_backend.register_jax_autodiff`
+Use these functions directly, or see
+:func:`derivkit.autodiff.jax_autodiff.register_jax_autodiff_backend`
 for an opt-in integration.
 
 Use only with JAX-differentiable functions. For arbitrary models, prefer
