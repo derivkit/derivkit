@@ -59,7 +59,7 @@ def to_jax_scalar(y: Any, *, where: str) -> "jnp.ndarray":
         where: Context string for error messages.
 
     Returns:
-        JAX array with shape ().
+        Scalar (0-d) JAX array with shape ().
 
     Raises:
         TypeError: If output is not scalar.
@@ -78,7 +78,7 @@ def to_jax_array(y: Any, *, where: str) -> "jnp.ndarray":
         where: Context string for error messages.
 
     Returns:
-        JAX array with shape (m,) or higher.
+        Non-scalar JAX array with shape (m,) or higher.
 
     Raises:
         TypeError: If output is scalar or cannot be converted to JAX array.
