@@ -9,7 +9,7 @@ for an opt-in integration.
 Use only with JAX-differentiable functions. For arbitrary models, prefer
 the "adaptive" or "finite" methods.
 
-Shape conventions (aligned with DerivKit calculus builders):
+Shape conventions (aligned with :mod:`derivKit.calculus` builders):
 
 - ``autodiff_derivative``:
   :math:`f:\\mathbb{R}\\mapsto\\mathbb{R}` → returns ``float`` (scalar)
