@@ -5,20 +5,24 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from derivkit.autodiff.jax_utils import AutodiffUnavailable, require_jax
+
+try:
+    require_jax()
+except AutodiffUnavailable:
+    pytest.skip(
+        'JAX not installed; install with `pip install "derivkit[jax]"`.',
+        allow_module_level=True,
+    )
+
+import jax.numpy as jnp
+
 from derivkit.autodiff.jax_core import (
     autodiff_derivative,
     autodiff_gradient,
     autodiff_hessian,
     autodiff_jacobian,
 )
-from derivkit.autodiff.jax_utils import AutodiffUnavailable, require_jax
-
-try:
-    require_jax()
-except AutodiffUnavailable:
-    jnp = None
-else:
-    import jax.numpy as jnp
 
 
 def _skip_if_no_jax() -> None:
@@ -51,7 +55,6 @@ def grad_func(t):
 
 def jac_func(t):
     """Jacobian function: f(t) = [t[0] + t[1], t[0] * t[1]]."""
-    assert jnp is not None
     return jnp.array([t[0] + t[1], t[0] * t[1]])
 
 
