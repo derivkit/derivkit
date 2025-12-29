@@ -4,14 +4,22 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("jax")
-import jax.numpy as jnp  # noqa: E402
+from derivkit.autodiff.jax_utils import AutodiffUnavailable, require_jax
+
+try:
+    require_jax()
+except AutodiffUnavailable:
+    pytest.skip(
+        'JAX not installed; install with `pip install "derivkit[jax]"`.',
+        allow_module_level=True,
+    )
+
+import jax.numpy as jnp
 
 from derivkit.autodiff.jax_utils import (
     apply_array_nd,
     apply_scalar_1d,
     apply_scalar_nd,
-    require_jax,
 )
 
 
