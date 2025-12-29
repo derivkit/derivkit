@@ -4,7 +4,7 @@ This backend is intentionally minimal: it only supports scalar derivatives
 $f: R \mapsto R$ via JAX autodiff, and must be registered explicitly as explained in the example.
 
 Example:
--------
+--------
 Basic usage (opt-in registration):
 
     >>> from derivkit.derivative_kit import DerivativeKit
