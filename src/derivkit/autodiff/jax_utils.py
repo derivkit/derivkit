@@ -46,7 +46,7 @@ def require_jax() -> None:
     if not _HAS_JAX:
         raise AutodiffUnavailable(
             "JAX autodiff requires `jax` + `jaxlib`.\n"
-            "Install with `pip install \"derivkit[jax]\"` "
+            'Install with `pip install "derivkit[jax]"` '
             "(or follow JAX's official install instructions for GPU)."
         )
 
