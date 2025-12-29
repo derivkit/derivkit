@@ -1,4 +1,4 @@
-"""JAX-based autodiff helpers for DerivKit.
+r"""JAX-based autodiff helpers for DerivKit.
 
 This module does not register any DerivKit backend by default.
 
@@ -10,10 +10,19 @@ Use only with JAX-differentiable functions. For arbitrary models, prefer
 the "adaptive" or "finite" methods.
 
 Shape conventions (aligned with DerivKit calculus builders):
-- autodiff_derivative: f: R -> R                      -> scalar float
-- autodiff_gradient:   f: R^n -> R                    -> (n,)
-- autodiff_jacobian:   f: R^n -> R^m (or tensor)      -> (m, n) with m = prod(out_shape)
-- autodiff_hessian:    f: R^n -> R                    -> (n, n)
+
+- ``autodiff_derivative``:
+  :math:`f:\\mathbb{R}\\mapsto\\mathbb{R}` → returns ``float`` (scalar)
+
+- ``autodiff_gradient``:
+  :math:`f:\\mathbb{R}^n\\mapsto\\mathbb{R}` → returns array of shape ``(n,)``
+
+- ``autodiff_jacobian``:
+  :math:`f:\\mathbb{R}^n\\mapsto\\mathbb{R}^m` (or tensor output) → returns array of
+  shape ``(m, n)``, where ``m = \\prod(\text{out\\_shape})``
+
+- ``autodiff_hessian``:
+  :math:`f:\\mathbb{R}^n\\mapsto\\mathbb{R}` → returns array of shape ``(n, n)``
 """
 
 from __future__ import annotations

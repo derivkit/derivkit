@@ -1,11 +1,10 @@
-"""JAX-based autodiff backend for DerivativeKit.
+r"""JAX-based autodiff backend for DerivativeKit.
 
 This backend is intentionally minimal: it only supports scalar derivatives
 $f: R \mapsto R$ via JAX autodiff, and must be registered explicitly as explained in the example.
 
 Example:
 --------
-
 Basic usage (opt-in registration):
 
     >>> from derivkit.derivative_kit import DerivativeKit
@@ -25,7 +24,6 @@ Basic usage (opt-in registration):
 
 Notes:
 ------
-
 - This backend is scalar-only. For gradients/Jacobians/Hessians of functions
   with vector inputs/outputs, use the standalone helpers in
   ``derivkit.autodiff.jax_core`` (e.g. ``autodiff_gradient``).
