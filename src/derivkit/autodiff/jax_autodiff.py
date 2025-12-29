@@ -29,8 +29,7 @@ Notes:
 - This backend is scalar-only. For gradients/Jacobians/Hessians of functions
   with vector inputs/outputs, use the standalone helpers in
   ``derivkit.autodiff.jax_core`` (e.g. ``autodiff_gradient``).
-- JAX is an optional dependency. If ``jax``/``jaxlib`` are not installed,
-  ``register_jax_autodiff_backend`` will raise an error.
+- To enable this backend, install the JAX extra: ``pip install "derivkit[jax]"``.
 """
 
 
