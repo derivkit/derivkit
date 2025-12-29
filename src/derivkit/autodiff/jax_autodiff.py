@@ -1,7 +1,7 @@
 """JAX-based autodiff backend for DerivativeKit.
 
 This backend is intentionally minimal: it only supports scalar derivatives
-f: R -> R via JAX autodiff, and must be registered explicitly.
+$f: R \mapsto R$ via JAX autodiff, and must be registered explicitly as explained in the example.
 
 Example:
 -------
