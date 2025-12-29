@@ -51,7 +51,7 @@ def require_jax() -> None:
         )
 
 
-def to_jax_scalar(y: Any, *, where: str) -> "jnp.ndarray":
+def to_jax_scalar(y: Any, *, where: str) -> jnp.ndarray:
     """Ensures that output is scalar and returns as JAX array.
 
     Args:
@@ -70,7 +70,7 @@ def to_jax_scalar(y: Any, *, where: str) -> "jnp.ndarray":
     return arr
 
 
-def to_jax_array(y: Any, *, where: str) -> "jnp.ndarray":
+def to_jax_array(y: Any, *, where: str) -> jnp.ndarray:
     """Ensures that output is array-like (not scalar) and returns as JAX array.
 
     Args:
@@ -95,8 +95,8 @@ def to_jax_array(y: Any, *, where: str) -> "jnp.ndarray":
 def apply_scalar_1d(
     func: Callable[[float], Any],
     where: str,
-    x: "jnp.ndarray",
-) -> "jnp.ndarray":
+    x: jnp.ndarray,
+) -> jnp.ndarray:
     """Takes an input function and maps it over a 1D array with scalar output enforcement.
 
     Args:
@@ -113,8 +113,8 @@ def apply_scalar_1d(
 def apply_scalar_nd(
     func: Callable,
     where: str,
-    theta: "jnp.ndarray",
-) -> "jnp.ndarray":
+    theta: jnp.ndarray,
+) -> jnp.ndarray:
     """Takes an input function and maps it over an ND array with scalar output enforcement.
 
     Args:
@@ -131,8 +131,8 @@ def apply_scalar_nd(
 def apply_array_nd(
     func: Callable,
     where: str,
-    theta: "jnp.ndarray",
-) -> "jnp.ndarray":
+    theta: jnp.ndarray,
+) -> jnp.ndarray:
     """Takes an input function and maps it over an ND array with array output enforcement.
 
     Args:
