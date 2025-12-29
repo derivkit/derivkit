@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("jax")  # noqa: E402
-
 from derivkit.autodiff.jax_autodiff import (
     AutodiffDerivative,
     register_jax_autodiff_backend,
@@ -15,11 +13,11 @@ from derivkit.derivative_kit import DerivativeKit
 
 
 def _skip_if_no_jax() -> None:
-    """Skips if JAX is not available."""
+    """Skips the test if JAX is not installed."""
     try:
         require_jax()
     except AutodiffUnavailable:
-        pytest.skip("JAX not installed")
+        pytest.skip('JAX not installed; install with `pip install "derivkit[jax]"`.')
 
 
 def square_function(x: float) -> float:
