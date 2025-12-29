@@ -5,6 +5,7 @@ $f: R \mapsto R$ via JAX autodiff, and must be registered explicitly as explaine
 
 Example:
 --------
+
 Basic usage (opt-in registration):
 
     >>> from derivkit.derivative_kit import DerivativeKit
