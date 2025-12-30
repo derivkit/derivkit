@@ -12,6 +12,7 @@ DerivKit documentation
 
    guide/installation
    guide/quickstart
+   examples/index
    guide/methods
    guide/forecasting
    guide/likelihoods
