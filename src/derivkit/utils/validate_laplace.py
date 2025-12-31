@@ -6,8 +6,10 @@ This module is intentionally standalone to avoid merge conflicts with the main
 
 from __future__ import annotations
 
-from numpy.typing import ArrayLike, NDArray
+from typing import Any
+
 import numpy as np
+from numpy.typing import NDArray
 
 __all__ = [
     "validate_theta_1d_finite",
@@ -15,8 +17,8 @@ __all__ = [
 ]
 
 
-def validate_theta_1d_finite(theta: ArrayLike, *, name: str = "theta") -> NDArray[np.float64]:
-    """Validate a 1D finite parameter vector and return as float64.
+def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.float64]:
+    """Validates a 1D finite parameter vector and return as float64.
 
     Args:
         theta: Array-like parameter vector.
@@ -39,9 +41,9 @@ def validate_theta_1d_finite(theta: ArrayLike, *, name: str = "theta") -> NDArra
 
 
 def validate_square_matrix_finite(
-    a: ArrayLike, *, name: str = "matrix"
+    a: Any, *, name: str = "matrix"
 ) -> NDArray[np.float64]:
-    """Validate a finite 2D square matrix and return as float64.
+    """Validates a finite 2D square matrix and return as float64.
 
     Args:
         a: Array-like matrix.
