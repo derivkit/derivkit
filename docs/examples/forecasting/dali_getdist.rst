@@ -1,5 +1,5 @@
 DALI sampling and GetDist integration
-====================================
+=====================================
 
 DerivKit can convert a DALI-expanded posterior into GetDist-ready objects for
 plotting (triangle/corner plots) and lightweight downstream analysis.
