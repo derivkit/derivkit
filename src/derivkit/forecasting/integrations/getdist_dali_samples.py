@@ -136,7 +136,7 @@ def dali_to_getdist_importance(
         g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: Parameter names used to label the returned samples (length ``p``).
-        labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
+        labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_samples: Number of importance samples to draw.
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
         convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
@@ -292,7 +292,7 @@ def dali_to_getdist_emcee(
         g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
         h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
         names: Parameter names used to label the returned samples (length ``p``).
-        labels: LaTeX-style parameter labels used to label the returned samples (length ``p``).
+        labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
         burn: Number of initial MCMC steps discarded as burn-in, allowing the chain to
             forget its initial starting positions before samples are retained.
