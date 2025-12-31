@@ -1,5 +1,5 @@
 DALI tensors (G, H)
-==================
+===================
 
 Use :meth:`derivkit.forecast_kit.ForecastKit.dali` to build the doublet-DALI
 tensors ``(g, h)`` around a fiducial point ``theta0``.
@@ -31,7 +31,7 @@ Basic usage
 
 
 Choosing a derivative backend
-----------------------------
+-----------------------------
 
 As with Fisher, you can choose ``method`` and pass backend-specific options via
 ``**dk_kwargs``.

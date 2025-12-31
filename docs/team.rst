@@ -38,13 +38,6 @@ Core Team
   - **Focus:** CMB science, BSM physics, data-driven cosmology
   - **Links:** `Website <https://caps.ncsa.illinois.edu/about-cynthia-trendafilova/>`__ · `GitHub <https://github.com/ctrendafilova>`__ · `ORCID <https://orcid.org/0000-0001-5500-4058>`__
 
-* :name-red:`Bastien Carreres`
-
-  - :role-blue:`Maintainer`
-  - **Affiliation:** Duke University (USA)
-  - **Focus:** Supernova cosmology, peculiar velocities, cosmic acceleration
-  - **Links:** `Website <https://cosmology.phy.duke.edu/author/bastien-carreres/>`__ · `GitHub <https://github.com/bastiencarreres>`__ · `ORCID <https://orcid.org/0000-0002-7234-844X>`__
-
 Contributors
 ------------
 See the `full list on GitHub <https://github.com/derivkit/derivkit/graphs/contributors>`__.

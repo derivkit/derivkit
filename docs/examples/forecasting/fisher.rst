@@ -30,7 +30,7 @@ Basic usage
 
 
 Choosing a derivative backend
-----------------------------
+-----------------------------
 
 Pass ``method=...`` and backend-specific options via ``**dk_kwargs`` (forwarded
 to :meth:`derivkit.derivative_kit.DerivativeKit.differentiate` through the Fisher

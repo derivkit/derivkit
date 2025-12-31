@@ -129,3 +129,7 @@ Notes
 - This backend computes derivatives component-wise for vector/tensor outputs.
 - ``n_workers`` can be used to parallelize sampling/evaluation.
 - For heavy noise or badly conditioned local fits, consider the ``adaptive`` backend.
+- You can evaluate derivatives at multiple expansion points by passing an array to ``x0``.
+  The derivative is computed independently at each point and the results are stacked with
+  leading shape ``x0.shape``.
+

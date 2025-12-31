@@ -129,7 +129,7 @@ degree, or sensitive functions), a small ridge term can improve stability.
 
 
 Return an error proxy and diagnostics
-------------------------------------
+-------------------------------------
 
 - ``return_error=True`` returns an RMS residual proxy from the polynomial fit.
 - ``diagnostics=True`` returns a diagnostics dictionary (samples, scaling, fit metrics).
@@ -186,3 +186,7 @@ Notes
 - This backend supports scalar and vector outputs (computed component-wise).
 - If you already know your function is smooth and clean, finite differences can be faster.
 - If you need explicit trimming/outlier handling, see the ``local_polynomial`` backend.
+- You can evaluate derivatives at multiple expansion points by passing an array to ``x0``.
+  The derivative is computed independently at each point and the results are stacked with
+  leading shape ``x0.shape``.
+

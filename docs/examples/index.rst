@@ -10,3 +10,4 @@ For deeper, end-to-end workflows, see the `derivkit-demos repository <https://gi
    derivatives/index
    calculus/index
    forecasting/index
+   likelihood/index

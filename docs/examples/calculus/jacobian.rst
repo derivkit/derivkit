@@ -44,7 +44,7 @@ Basic usage
 
 
 Finite differences (Ridders) via dk_kwargs
------------------------------------------
+------------------------------------------
 
 .. code-block:: python
 

@@ -32,7 +32,7 @@ Basic usage
 
 
 Finite differences (pass FD options via dk_kwargs)
--------------------------------------------------
+--------------------------------------------------
 
 ``method="finite"`` uses the finite-difference backend. Any finite-difference
 options are passed through as keyword arguments.
@@ -58,7 +58,7 @@ options are passed through as keyword arguments.
 
 
 Adaptive polynomial fit (pass adaptive options via dk_kwargs)
-------------------------------------------------------------
+-------------------------------------------------------------
 
 ``method="adaptive"`` uses the Chebyshev-spaced polynomial-fit backend.
 

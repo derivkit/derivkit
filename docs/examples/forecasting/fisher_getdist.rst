@@ -1,5 +1,5 @@
 Fisher forecasts and GetDist integration
-=======================================
+========================================
 
 DerivKit provides lightweight helpers to turn Fisher-matrix forecasts into
 GetDist-ready objects for immediate visualization and exploratory analysis.
@@ -122,9 +122,6 @@ the Fisher Gaussian and return them as :class:`getdist.MCSamples`.
        fisher=fisher,
        names=["a", "b"],
        labels=[r"a", r"b"],
-       n_samples=40_000,
-       seed=0,
-       kernel_scale=1.0,
        hard_bounds=[(0.0, None), (0.0, None)],
        store_loglikes=True,
        label="Fisher (samples)",

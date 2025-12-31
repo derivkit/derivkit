@@ -5,7 +5,7 @@ This page shows minimal, task-oriented examples using the finite-difference
 engine. Use this when your function is smooth and reasonably cheap to evaluate.
 
 Plain finite difference (no extrapolation)
------------------------------------------
+------------------------------------------
 
 A single central-difference stencil evaluation.
 
@@ -28,8 +28,9 @@ A single central-difference stencil evaluation.
    print(np.cos(0.7))  # reference
 
 
+
 Plain finite difference + crude error estimate
----------------------------------------------
+----------------------------------------------
 
 If you set ``return_error=True`` with ``extrapolation=None``, the engine does
 a second evaluation at ``h/2`` and returns ``|D(h) - D(h/2)|`` as a simple
@@ -53,7 +54,7 @@ error estimate.
 
 
 Richardson extrapolation (fixed levels)
---------------------------------------
+---------------------------------------
 
 Richardson uses a known truncation order to combine estimates at smaller step
 sizes. Use ``levels`` for a fixed number of extrapolation steps.
@@ -77,7 +78,7 @@ sizes. Use ``levels`` for a fixed number of extrapolation steps.
 
 
 Richardson extrapolation (adaptive)
-----------------------------------
+-----------------------------------
 
 If ``levels=None`` (default), Richardson runs in adaptive mode.
 
@@ -98,8 +99,9 @@ If ``levels=None`` (default), Richardson runs in adaptive mode.
    print(val)
 
 
+
 Ridders extrapolation + error estimate
--------------------------------------
+--------------------------------------
 
 Ridders is similar in spirit, but includes an internal error estimate. This is
 often a good default when you want automatic error control.
@@ -125,7 +127,7 @@ often a good default when you want automatic error control.
 
 
 Vector-valued function + GRE extrapolation
------------------------------------------
+------------------------------------------
 
 Finite differences support vector outputs. GRE (Gauss–Richardson) is intended
 to be more noise-robust.
@@ -156,3 +158,7 @@ Notes
 - Supported stencils: ``num_points in {3, 5, 7, 9}``.
 - Supported derivative orders depend on the stencil size (see API docs for details).
 - When in doubt, start with ``num_points=5`` and ``extrapolation="ridders"``.
+- You can evaluate derivatives at multiple expansion points by passing an array to ``x0``.
+  The derivative is computed independently at each point and the results are stacked with
+  leading shape ``x0.shape``.
+

@@ -64,11 +64,6 @@ are applied through the target log-posterior.
        h_tensor=h,
        names=names,
        labels=labels,
-       n_steps=8_000,
-       burn=2_000,
-       thin=2,
-       init_scale=0.5,
-       seed=0,
        label="DALI (emcee)",
    )
 
@@ -112,10 +107,6 @@ DerivKit uses their intersection as the effective support.
        names=names,
        labels=labels,
        prior_bounds=prior_bounds,
-       n_steps=6_000,
-       burn=1_500,
-       thin=2,
-       seed=1,
    )
 
    gplot = plots.get_subplot_plotter()
@@ -151,10 +142,6 @@ This is typically the fastest route to a usable triangle plot.
        h_tensor=h,
        names=names,
        labels=labels,
-       n_samples=50_000,
-       kernel_scale=1.5,
-       convention="delta_chi2",
-       seed=0,
        label="DALI (importance)",
    )
 
