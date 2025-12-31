@@ -120,11 +120,12 @@ def fisher_to_getdist_samples(
     ``prior_terms``/``prior_bounds``).
 
     GetDist stores :attr:`getdist.MCSamples.loglikes` as ``-log(posterior)`` up to an additive
-    constant. When ``store_loglikes=True`` ``fisher_to_getdist_samples`` stores::
+    constant. When ``store_loglikes=True``, this function stores::
 
-        -log p(theta) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + C
+        -log p(theta|d) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + C
 
-    where ``C`` is an arbitrary additive constant. Only relative differences in ``loglikes`` matter.
+    where ``C`` is an arbitrary additive constant and ``F`` defines the Fisher-Gaussian
+    approximation to ``-log(likelihood)`` around ``theta0``.
     In this implementation, ``C`` is effectively zero since no additional shifting is applied.
     If no prior is provided, the prior term is omitted.
 

@@ -5,12 +5,14 @@ This module converts DALI-expanded posteriors into GetDist-compatible
 
 Two backends are provided:
 
-- Importance sampling using a Fisher–Gaussian kernel centered on ``theta0``.
+- Importance sampling using a Fisher-Gaussian kernel centered on ``theta0``.
 - ``emcee`` ensemble MCMC targeting the same DALI log-posterior.
 
 The target log-posterior is evaluated with
 :func:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
 user-defined priors and parameter support bounds.
+
+Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihood)``.
 """
 
 from __future__ import annotations
@@ -155,9 +157,9 @@ def dali_to_getdist_importance(
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
-        :class:`getdist.MCSamples` containing the importance ``weights`` and
-        :attr:`getdist.MCSamples.loglikes` in GetDist convention (``-log(posterior)`` up to
-        an additive constant).
+        :class:`getdist.MCSamples` containing the importance ``weights``.
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        up to an additive constant, consistent with GetDist's convention.
 
     Raises:
         ValueError: If shapes are inconsistent, mutually exclusive options are provided,
@@ -316,9 +318,9 @@ def dali_to_getdist_emcee(
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
-        :class:`getdist.MCSamples` containing per-walker chains and
-        :attr:`getdist.MCSamples.loglikes` in GetDist convention (``-log(posterior)`` up to
-        an additive constant).
+        :class:`getdist.MCSamples` containing MCMC chains.
+        attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        up to an additive constant, consistent with GetDist's convention.
 
     Raises:
         ValueError: If shapes are inconsistent, mutually exclusive options are provided,

@@ -3,7 +3,7 @@
 This module implements a Fisher-based Gaussian sampling distribution
 ``q`` centered at ``theta0`` with covariance::
 
-    (sampling_scale**2) * pinv(F)
+    (kernel_scale**2) * pinv(F)
 
 where ``F`` is the Fisher information matrix evaluated at ``theta0``.
 In this approximation, ``F`` is the Hessian of ``-log L`` at ``theta0`` and
@@ -11,6 +11,8 @@ acts as the local inverse covariance.
 
 This kernel is used to generate candidate points and, for importance sampling,
 to evaluate ``log(q)`` when sampling posteriors approximated with Fisher or DALI.
+
+For importance sampling, ``log(q)`` is subtracted from the target log-posterior to form log-weights.
 
 It provides:
 
@@ -216,9 +218,9 @@ def log_gaussian_kernel(
 ) -> NDArray[np.float64]:
     """Log-density of a Fisher-based Gaussian sampling kernel.
 
-    Defines a Gaussian kernel ``q`` with mean ``theta0`` and covariance::
+    Defines a Gaussian kernel ``q`` with mean ``theta0`` and covariance
 
-            (kernel_scale^2) @ pinv(F)
+        ``(init_scale^2) * pinv(F)``
 
     where ``F`` is the Fisher information matrix. The covariance is formed with a
     pseudoinverse (allowing singular or ill-conditioned ``F``). A small diagonal
@@ -294,7 +296,7 @@ def init_walkers_from_fisher(
     """Returns initial MCMC walker positions from a Fisher-based Gaussian sampling kernel.
 
     Returns an array of walker positions centered at ``theta0`` with scatter set by
-    a Fisher-derived covariance ``(init_scale^2) @ pinv(F)``. If ``hard_bounds``
+    a Fisher-derived covariance ``(init_scale^2) * pinv(F)``. If ``hard_bounds``
     are provided, positions outside the bounds are rejected and additional candidates
     are generated until ``n_walkers`` positions are collected or a retry limit is reached.
 
