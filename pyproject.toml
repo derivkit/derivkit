@@ -48,10 +48,6 @@ license-files = ["LICENSE*"]
 "lint" = [
     "ruff",
 ]
-"getdist" = [
-    "getdist",
-    "emcee",
-]
 
 [tool.pytest.ini_options]
 pythonpath = [
@@ -92,7 +88,7 @@ envlist = [
 [tool.tox.env_run_base]
 change_dir = "{tox_root}/tests"
 description = "Run tests under {base_python}"
-extras = ["test", "getdist"]
+extras = ["test"]
 allowlist_externals = ["pytest"]
 commands = [
     [
