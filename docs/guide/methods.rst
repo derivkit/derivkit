@@ -125,7 +125,7 @@ robust and smooth estimate.
 
 
 Experimental: JAX autodiff (opt-in)
-----------------------------------
+-----------------------------------
 
 DerivKit also exposes optional JAX-based automatic differentiation utilities.
 These are **not registered as an official DerivKit derivative method by default**
