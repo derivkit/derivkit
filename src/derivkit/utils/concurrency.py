@@ -15,6 +15,7 @@ __all__ = [
     "parallel_execute",
     "_inner_workers_var",
     "normalize_workers",
+    "resolve_workers",
 ]
 
 
@@ -40,7 +41,7 @@ def set_default_inner_derivative_workers(n: int | None) -> None:
 
 @contextmanager
 def set_inner_derivative_workers(n: int | None) -> Iterator[int | None]:
-    """Temporarily set the number of inner derivative workers.
+    """Temporarily sets the number of inner derivative workers.
 
     Args:
         n: Number of inner derivative workers, or ``None`` for automatic policy.
@@ -119,7 +120,7 @@ def parallel_execute(
     outer_workers: int = 1,
     inner_workers: int | None = None,
 ) -> list[Any]:
-    """Run ``worker(*args)`` for each tuple in arg_tuples with outer threads.
+    """Runs ``worker(*args)`` for each tuple in arg_tuples with outer threads.
 
     Inner worker setting is applied to the context, so calls inside worker
     will see the resolved inner worker count.
@@ -138,9 +139,9 @@ def parallel_execute(
 
 
 def normalize_workers(
-        n_workers: Any
+    n_workers: Any
 ) -> int:
-    """Ensure n_workers is a positive integer, defaulting to 1.
+    """Ensures n_workers is a positive integer, defaulting to 1.
 
     Args:
         n_workers: Input number of workers (can be None, float, negative, etc.)
@@ -156,3 +157,39 @@ def normalize_workers(
     except (TypeError, ValueError):
         n = 1
     return 1 if n < 1 else n
+
+
+def resolve_workers(
+    n_workers: Any,
+    dk_kwargs: dict[str, Any],
+) -> tuple[int, int | None, dict[str, Any]]:
+    """Decides how parallel work is split between outer calculus routines and the inner derivative engine.
+
+    Outer workers parallelize across independent derivative tasks (e.g. parameters,
+    output components, Hessian entries). Inner workers control parallelism inside
+    each derivative evaluation (within DerivativeKit).
+
+    If both levels spawn workers simultaneously, nested parallelism can cause
+    oversubscription. By default, the inner worker count is derived from the
+    outer worker count to avoid that. You can override this by passing
+    ``inner_workers=<int>`` via ``dk_kwargs``.
+
+    Args:
+        n_workers: Number of outer workers. If ``None``, defaults to 1.
+        dk_kwargs: Keyword arguments forwarded to DerivativeKit.differentiate.
+            May include ``inner_workers`` to override the default policy.
+
+    Returns:
+        (outer_workers, inner_workers, dk_kwargs_cleaned), where ``dk_kwargs_cleaned``
+        has any ``inner_workers`` entry removed.
+    """
+    dk_kwargs_cleaned = dict(dk_kwargs)
+    inner_override = dk_kwargs_cleaned.pop("inner_workers", None)
+
+    outer = normalize_workers(n_workers)
+    if inner_override is None:
+        inner = resolve_inner_from_outer(outer)
+    else:
+        inner = normalize_workers(inner_override)
+
+    return outer, inner, dk_kwargs_cleaned
