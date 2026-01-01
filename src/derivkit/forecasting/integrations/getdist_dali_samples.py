@@ -45,15 +45,14 @@ def _resolve_support_bounds(
     *,
     n_params: int,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None,
 ) -> Sequence[tuple[float | None, float | None]] | None:
     """Computes the effective parameter-support bounds used by the sampler.
 
     This function combines two optional sources of support constraints:
 
     - ``prior_bounds``, which truncate the prior (and therefore the posterior support).
-    - ``hard_bounds``, which impose an additional hard support constraint used for
-      rejection/initialization.
+    - ``sampler_bounds``, restrict the sampling domain used for rejection/initialization.
 
     When both are provided, the returned bounds are their intersection, computed
     component-wise for each parameter. Each bound is a ``(low, high)`` pair where
@@ -62,7 +61,7 @@ def _resolve_support_bounds(
     Args:
         n_params: Number of parameters (expected length of any provided bounds sequence).
         prior_bounds: Optional per-parameter prior truncation bounds.
-        hard_bounds: Optional per-parameter hard support bounds.
+        sampler_bounds: Optional per-parameter sampling-domain bounds.
 
     Returns:
         The effective per-parameter bounds to use for support filtering, or ``None``
@@ -70,12 +69,12 @@ def _resolve_support_bounds(
 
     Raises:
         ValueError: If a provided bounds sequence does not have length ``n_params``,
-            or if the intersection of ``prior_bounds`` and ``hard_bounds`` is empty
+            or if the intersection of ``prior_bounds`` and ``sampler_bounds`` is empty
             for any parameter (i.e., the resulting lower bound exceeds the upper bound).
     """
-    if hard_bounds is not None and len(hard_bounds) != n_params:
+    if sampler_bounds is not None and len(sampler_bounds) != n_params:
         raise ValueError(
-            f"hard_bounds must have length p={n_params}; got len(hard_bounds)={len(hard_bounds)}."
+            f"sampler_bounds must have length p={n_params}; got len(sampler_bounds)={len(sampler_bounds)}."
         )
 
     if prior_bounds is not None and len(prior_bounds) != n_params:
@@ -83,13 +82,13 @@ def _resolve_support_bounds(
             f"prior_bounds must have length p={n_params}; got len(prior_bounds)={len(prior_bounds)}."
         )
 
-    if hard_bounds is None:
+    if sampler_bounds is None:
         return prior_bounds
     if prior_bounds is None:
-        return hard_bounds
+        return sampler_bounds
 
     bounds = []
-    for i, ((hlo, hhi), (plo, phi)) in enumerate(zip(hard_bounds, prior_bounds, strict=True)):
+    for i, ((hlo, hhi), (plo, phi)) in enumerate(zip(sampler_bounds, prior_bounds, strict=True)):
         lo = None if (hlo is None and plo is None) else max(x for x in (hlo, plo) if x is not None)
         hi = None if (hhi is None and phi is None) else min(x for x in (hhi, phi) if x is not None)
 
@@ -97,7 +96,7 @@ def _resolve_support_bounds(
             raise ValueError(
                 f"Empty support for parameter index {i}: "
                 f"intersection gives ({lo}, {hi}). "
-                "Check prior_bounds and hard_bounds."
+                "Check prior_bounds and sampler_bounds."
             )
 
         bounds.append((lo, hi))
@@ -120,7 +119,7 @@ def dali_to_getdist_importance(
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (importance)",
 ) -> MCSamples:
     """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
@@ -152,8 +151,8 @@ def dali_to_getdist_importance(
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
             ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
             prior is used.
-        hard_bounds: Optional per-parameter hard support bounds used for sample rejection/initialization.
-            If provided with ``prior_bounds``, the effective support is their intersection.
+        sampler_bounds: Optional per-parameter sampling-domain bounds used for early rejection
+            and walker initialization.
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
@@ -188,7 +187,7 @@ def dali_to_getdist_importance(
     support_bounds = _resolve_support_bounds(
         n_params=n_params,
         prior_bounds=prior_bounds,
-        hard_bounds=hard_bounds,
+        sampler_bounds=sampler_bounds,
     )
 
     # Computing the prior once prevents rebuilding inside logposterior_dali
@@ -277,7 +276,7 @@ def dali_to_getdist_emcee(
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (emcee)",
 ) -> MCSamples:
     """Returns :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
@@ -313,13 +312,13 @@ def dali_to_getdist_emcee(
         logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
             ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
             prior is used.
-        hard_bounds: Optional per-parameter hard support bounds used for sample rejection/initialization.
-            If provided with ``prior_bounds``, the effective support is their intersection.
+        sampler_bounds: Optional per-parameter sampling-domain bounds used for early rejection
+            and walker initialization.
         label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
         :class:`getdist.MCSamples` containing MCMC chains.
-        attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
         up to an additive constant, consistent with GetDist's convention.
 
     Raises:
@@ -352,7 +351,7 @@ def dali_to_getdist_emcee(
     support_bounds = _resolve_support_bounds(
         n_params=n_params,
         prior_bounds=prior_bounds,
-        hard_bounds=hard_bounds,
+        sampler_bounds=sampler_bounds,
     )
 
     # Compute prior once, as this prevents rebuilding inside logposterior_dali.
@@ -364,7 +363,7 @@ def dali_to_getdist_emcee(
         n_walkers=int(n_walkers),
         init_scale=float(init_scale),
         seed=seed,
-        hard_bounds=support_bounds,
+        sampler_bounds=support_bounds,
     )
 
     walker_init = np.asarray(walker_init, dtype=float)

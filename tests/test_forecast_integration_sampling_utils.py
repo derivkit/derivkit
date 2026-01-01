@@ -94,8 +94,8 @@ def test_apply_parameter_bounds_none_returns_float64_copy_or_view():
     assert out.shape == samples.shape
 
 
-def test_apply_hard_bounds_mask_filters_and_keeps_shape():
-    """Tests that apply_hard_bounds_mask correctly filters samples based on bounds."""
+def test_apply_sampler_bounds_mask_filters_and_keeps_shape():
+    """Tests that apply_sampler_bounds_mask correctly filters samples based on bounds."""
     samples = np.array([
         [0.0, 1.0],
         [2.0, 3.0],
@@ -110,12 +110,12 @@ def test_apply_hard_bounds_mask_filters_and_keeps_shape():
     assert np.allclose(out, np.array([[0.0, 1.0], [2.0, 3.0]]))
 
 
-def test_apply_hard_bounds_mask_returns_empty_if_all_rejected():
-    """Tests that apply_hard_bounds_mask returns an empty array if all samples are rejected."""
+def test_apply_sampler_bounds_mask_returns_empty_if_all_rejected():
+    """Tests that apply_sampler_bounds_mask returns an empty array if all samples are rejected."""
     samples = np.array([[0.0, 0.0], [0.1, -0.1]])
-    hard_bounds = [(10.0, 11.0), (None, None)]
+    sampler_bounds = [(10.0, 11.0), (None, None)]
 
-    out = apply_parameter_bounds(samples, hard_bounds)
+    out = apply_parameter_bounds(samples, sampler_bounds)
 
     assert out.shape == (0, 2)
 
@@ -161,8 +161,8 @@ def test_init_walkers_no_bounds_matches_sampling_shape_and_seed_reproducible():
     theta0 = np.array([0.0, 0.0])
     fisher = np.eye(2)
 
-    w1 = init_walkers_from_fisher(theta0, fisher, n_walkers=10, init_scale=0.1, seed=42, hard_bounds=None)
-    w2 = init_walkers_from_fisher(theta0, fisher, n_walkers=10, init_scale=0.1, seed=42, hard_bounds=None)
+    w1 = init_walkers_from_fisher(theta0, fisher, n_walkers=10, init_scale=0.1, seed=42, sampler_bounds=None)
+    w2 = init_walkers_from_fisher(theta0, fisher, n_walkers=10, init_scale=0.1, seed=42, sampler_bounds=None)
 
     assert w1.shape == (10, 2)
     assert np.allclose(w1, w2)
@@ -174,7 +174,7 @@ def test_init_walkers_with_bounds_all_within_bounds():
     fisher = np.eye(2)
     bounds = [(-0.5, 0.5), (-0.5, 0.5)]
 
-    walkers = init_walkers_from_fisher(theta0, fisher, n_walkers=20, init_scale=0.2, seed=1, hard_bounds=bounds)
+    walkers = init_walkers_from_fisher(theta0, fisher, n_walkers=20, init_scale=0.2, seed=1, sampler_bounds=bounds)
     assert walkers.shape == (20, 2)
     assert np.all(walkers[:, 0] >= -0.5) and np.all(walkers[:, 0] <= 0.5)
     assert np.all(walkers[:, 1] >= -0.5) and np.all(walkers[:, 1] <= 0.5)
@@ -186,9 +186,9 @@ def test_init_walkers_raises_when_bounds_impossible_or_too_tight():
     fisher = np.eye(2)
     bounds = [(10.0, 10.1), (None, None)]
 
-    with pytest.raises(RuntimeError, match=r"Failed to initialize emcee walkers within hard_bounds"):
+    with pytest.raises(RuntimeError, match=r"Failed to initialize emcee walkers within sampler_bounds"):
         init_walkers_from_fisher(
-            theta0, fisher, n_walkers=10, init_scale=1e-6, seed=0, hard_bounds=bounds
+            theta0, fisher, n_walkers=10, init_scale=1e-6, seed=0, sampler_bounds=bounds
         )
 
 
@@ -273,7 +273,7 @@ def test_init_walkers_with_bounds_returns_exact_count_even_with_rejection():
         n_walkers=25,
         init_scale=0.5,
         seed=123,
-        hard_bounds=bounds,
+        sampler_bounds=bounds,
     )
     assert walkers.shape == (25, 2)
     assert np.all(walkers[:, 0] >= -0.3) and np.all(walkers[:, 0] <= 0.3)
@@ -286,12 +286,12 @@ def test_init_walkers_raises_when_bounds_impossible_message():
     fisher = np.eye(2)
     bounds = [(10.0, 10.1), (None, None)]
 
-    with pytest.raises(RuntimeError, match=r"Failed to initialize emcee walkers within hard_bounds"):
+    with pytest.raises(RuntimeError, match=r"Failed to initialize emcee walkers within sampler_bounds"):
         init_walkers_from_fisher(
             theta0,
             fisher,
             n_walkers=10,
             init_scale=1e-6,
             seed=0,
-            hard_bounds=bounds,
+            sampler_bounds=bounds,
         )

@@ -19,11 +19,11 @@ It provides:
 - construction of Fisher-based sampling covariances,
 - stabilized Cholesky factorization for near-singular kernels,
 - sampling and log-density evaluation of the kernel,
-- fast hard-bounds rejection masks,
-- MCMC walker initialization under hard bounds.
+- fast bounds rejection masks,
+- MCMC walker initialization under sampler bounds.
 
 These utilities do not depend on a specific sampler implementation.
-They provide kernel draws, log-densities, and hard-bounds filtering that are
+They provide kernel draws, log-densities, and bounds filtering that are
 called by the GetDist importance-sampling wrappers and by the emcee walker
 initialization routine.
 """
@@ -168,7 +168,7 @@ def apply_parameter_bounds(
     samples: NDArray[np.floating],
     parameter_bounds: Sequence[tuple[float | None, float | None]] | None,
 ) -> NDArray[np.float64]:
-    """Applies per-parameter hard bounds to a set of samples.
+    """Applies per-parameter bounds to a set of samples.
 
     This function performs a fast, axis-aligned rejection step: any sample with
     at least one parameter value outside the specified bounds is discarded.
@@ -220,7 +220,7 @@ def log_gaussian_kernel(
 
     Defines a Gaussian kernel ``q`` with mean ``theta0`` and covariance
 
-        ``(init_scale^2) * pinv(F)``
+        ``(kernel_scale^2) * pinv(F)``
 
     where ``F`` is the Fisher information matrix. The covariance is formed with a
     pseudoinverse (allowing singular or ill-conditioned ``F``). A small diagonal
@@ -291,12 +291,12 @@ def init_walkers_from_fisher(
     n_walkers: int,
     init_scale: float,
     seed: int | None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None,
 ) -> NDArray[np.float64]:
     """Returns initial MCMC walker positions from a Fisher-based Gaussian sampling kernel.
 
     Returns an array of walker positions centered at ``theta0`` with scatter set by
-    a Fisher-derived covariance ``(init_scale^2) * pinv(F)``. If ``hard_bounds``
+    a Fisher-derived covariance ``(init_scale^2) * pinv(F)``. If ``sampler_bounds``
     are provided, positions outside the bounds are rejected and additional candidates
     are generated until ``n_walkers`` positions are collected or a retry limit is reached.
 
@@ -306,7 +306,7 @@ def init_walkers_from_fisher(
         n_walkers: Number of walker positions to return.
         init_scale: Multiplicative scale applied to the kernel covariance.
         seed: Optional random seed for reproducible initialization.
-        hard_bounds: Optional per-parameter ``(lower, upper)`` bounds. Use ``None``
+        sampler_bounds: Optional per-parameter ``(lower, upper)`` bounds. Use ``None``
             for an unbounded side.
 
     Returns:
@@ -314,7 +314,7 @@ def init_walkers_from_fisher(
 
     Raises:
         ValueError: If ``theta0`` and ``fisher`` have incompatible shapes.
-        ValueError: If ``hard_bounds`` is provided and does not have length ``p``.
+        ValueError: If ``sampler_bounds`` is provided and does not have length ``p``.
         RuntimeError: If sufficient in-bounds positions cannot be generated within
             the retry limit.
     """
@@ -322,12 +322,12 @@ def init_walkers_from_fisher(
     fisher = np.asarray(fisher, float)
     validate_fisher_shapes(theta0, fisher)
 
-    if hard_bounds is not None and len(hard_bounds) != theta0.size:
+    if sampler_bounds is not None and len(sampler_bounds) != theta0.size:
         raise ValueError(
-            f"hard_bounds must have length {theta0.size}; got {len(hard_bounds)}."
+            f"sampler_bounds must have length {theta0.size}; got {len(sampler_bounds)}."
         )
 
-    if hard_bounds is None:
+    if sampler_bounds is None:
         return kernel_samples_from_fisher(
             theta0, fisher, n_samples=int(n_walkers), kernel_scale=float(init_scale), seed=seed
         )
@@ -339,16 +339,20 @@ def init_walkers_from_fisher(
         tries += 1
         if tries > 50:
             raise RuntimeError(
-                "Failed to initialize emcee walkers within hard_bounds. "
-                "Try increasing init_scale or relaxing hard_bounds."
+                "Failed to initialize emcee walkers within sampler_bounds. "
+                "Try increasing init_scale or relaxing sampler_bounds."
             )
 
         draw = kernel_samples_from_fisher(
-            theta0, fisher, n_samples=max(need, int(n_walkers)), kernel_scale=float(init_scale), seed=None if seed is None else seed + tries
+            theta0,
+            fisher,
+            n_samples=max(need, int(n_walkers)),
+            kernel_scale=float(init_scale),
+            seed=None if seed is None else seed + tries
         )
-        draw = apply_parameter_bounds(draw, hard_bounds)
+        draw = apply_parameter_bounds(draw, sampler_bounds)
         # apply_parameter_bounds returns an array with shape (n_kept, p).
-        # If n_kept == 0, all proposed walkers fell outside the hard bounds,
+        # If n_kept == 0, all proposed walkers fell outside the sampler bounds,
         # so we retry with a fresh draw.
         if draw.shape[0] == 0:
             continue
@@ -361,9 +365,9 @@ def init_walkers_from_fisher(
 
 
 def fisher_to_cov(
-        fisher: NDArray[np.floating],
-        *,
-        rcond: float | None = None
+    fisher: NDArray[np.floating],
+    *,
+    rcond: float | None = None
 ) -> NDArray[np.float64]:
     """Converts a Fisher matrix to a covariance matrix using pseudoinverse.
 
