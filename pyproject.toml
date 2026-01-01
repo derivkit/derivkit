@@ -14,6 +14,8 @@ dependencies = [
   "multiprocess",
   "scipy",
   "tox",
+  "getdist",
+  "emcee",
 ]
 authors = [
   { name="Nikolina Šarčević", email="nikolina.sarcevic@gmail.com" },

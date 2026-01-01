@@ -152,37 +152,37 @@ class FiniteDifferenceDerivative:
 
         Args:
             order: The order of the derivative to compute. Must be supported by
-                the chosen stencil size. Default is 1.
-            stepsize: Step size (h) used to evaluate the function around the central
-                value. Default is 0.01.
-            num_points: Number of points in the finite difference stencil. Must be one
-                of [3, 5, 7, 9]. Default is 5.
-            n_workers: Number of workers to use in multiprocessing. Default is 1
-                (no multiprocessing).
+                the chosen stencil size. Default is ``1``.
+            stepsize: Step size (h) used to evaluate the function around the
+                central value. Default is ``0.01``.
+            num_points: Number of points in the finite difference stencil.
+                Must be one of ``[3, 5, 7, 9]``. Default is ``5``.
+            n_workers: Number of workers to use in multiprocessing.
+                Default is ``1`` (no multiprocessing).
             extrapolation: Extrapolation scheme to use for improving accuracy.
                 Supported options are:
 
                 * ``None``: no extrapolation (single finite difference).
                 * ``"richardson"``:
 
-                  - fixed-level if ``levels`` is not None
-                  - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not ``None``
+                  - adaptive if ``levels`` is ``None``
 
                 * ``"ridders"``:
 
-                  - fixed-level if ``levels`` is not None
-                  - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not ``None``
+                  - adaptive if ``levels`` is ``None``
 
                 * ``"gauss-richardson"`` or ``"gre"``:
 
-                  - fixed-level if ``levels`` is not None
-                  - adaptive if ``levels`` is None
+                  - fixed-level if ``levels`` is not ``None``
+                  - adaptive if ``levels`` is ``None``
 
-            levels: Number of extrapolation levels for fixed schemes. If None,
-                the chosen extrapolation method runs in adaptive mode where
-                supported.
-            return_error: If True, also return an error estimate from the extrapolation
-                (or two-step) routine.
+            levels: Number of extrapolation levels for fixed schemes.
+                If ``None``, the chosen extrapolation method runs in
+                adaptive mode where supported.
+            return_error: If ``True``, also return an error estimate from
+                the extrapolation (or two-step) routine.
 
         Returns:
             The estimated derivative. Returns a float for scalar-valued

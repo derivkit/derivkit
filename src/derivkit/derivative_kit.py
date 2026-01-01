@@ -44,7 +44,7 @@ Notes:
       ``"adaptive-fit"`` or ``"finite_difference"`` are supported when
       registered.
     - For available canonical method names at runtime, call
-      ``available_methods()``.
+      :func:`derivkit.derivative_kit.available_methods`.
 """
 
 from __future__ import annotations
@@ -70,11 +70,12 @@ class DerivativeEngine(Protocol):
 
     This defines the minimal interface expected by DerivKit’s derivative
     backends. Any class registered as a derivative engine must be
-    constructible with a target function `function` and an expansion point `x0`,
-    and must provide a `.differentiate(...)` method that performs the actual
-    derivative computation. It serves only as a structural type check
-    (similar to an abstract base class) and carries no runtime behavior.
-    In other words, this is a template for derivative engine implementations.
+    constructible with a target function ``function`` and an expansion
+    point ``x0``, and must provide a ``.differentiate(...)`` method that
+    performs the actual derivative computation. It serves only as a
+    structural type check (similar to an abstract base class) and carries
+    no runtime behavior. In other words, this is a template for derivative
+    engine implementations.
     """
     def __init__(self, function: Callable[[float], Any], x0: float):
         """Initialize the engine with a target function and expansion point."""
@@ -114,7 +115,7 @@ def _method_maps() -> tuple[Mapping[str, Type[DerivativeEngine]], tuple[str, ...
     It also records the canonical method names used for display in help and
     error messages. The result is cached after the first call for efficiency.
     Caching means that any changes to the registered methods (via
-    `register_method`) will not be reflected until the cache is cleared.
+    ``register_method``) will not be reflected until the cache is cleared.
 
     Returns:
         A tuple containing:
@@ -142,15 +143,16 @@ def register_method(
     """Register a new derivative method.
 
     Adds a new derivative engine that can be referenced by name in
-    :class:`DerivativeKit`. This function can be called from anywhere in the
-    package (for example, inside a submodule’s ``__init__.py``) and is safe
-    regardless of import order. The internal cache is automatically cleared
-    and rebuilt on the next lookup.
+    :class:`derivkit.derivative_kit.DerivativeKit`. This function can be called
+    from anywhere in the package (for example, inside a submodule’s
+    ``__init__.py``) and is safe regardless of import order. The internal cache
+    is automatically cleared and rebuilt on the next lookup.
 
     Args:
-        name: Canonical public name of the method (e.g., "gp").
-        cls: Engine class implementing the DerivativeEngine protocol.
-        aliases: Additional accepted spellings (e.g., "gaussian-process").
+        name: Canonical public name of the method (e.g., ``"gp"``).
+        cls: Engine class implementing the
+            :class:`derivkit.derivative_kit.DerivativeEngine` protocol.
+        aliases: Additional accepted spellings (e.g., ``"gaussian-process"``).
 
     Example:
         >>> from derivkit.derivative_api import register_method
@@ -190,9 +192,10 @@ class DerivativeKit:
     The class provides a simple way to evaluate derivatives using any of
     DerivKit’s available backends (e.g., adaptive fit or finite difference).
     By default, the adaptive-fit method is used.
+
     You can supply either a function and x0, or tabulated tab_x/tab_y and x0
     in case you want to differentiate a tabulated function.
-    The chosen backend is invoked when you call the `.differentiate()` method.
+    The chosen backend is invoked when you call the ``.differentiate()`` method.
 
     Example:
         >>> import numpy as np
@@ -220,8 +223,10 @@ class DerivativeKit:
             function: The function to be differentiated. Must accept a single float
                       and return a scalar or array-like output.
             x0: Point or array of points at which to evaluate the derivative.
-            tab_x: Optional tabulated x values for creating a Tabulated1DModel.
-            tab_y: Optional tabulated y values for creating a Tabulated1DModel.
+            tab_x: Optional tabulated x values for creating a
+                :class:`tabulated_model.one_d.Tabulated1DModel`.
+            tab_y: Optional tabulated y values for creating a
+                :class:`tabulated_model.one_d.Tabulated1DModel`.
         """
         # Enforce "either function or tabulated", not both.
         if function is not None and (tab_x is not None or tab_y is not None):
@@ -252,10 +257,11 @@ class DerivativeKit:
     ) -> Any:
         """Compute derivatives using the chosen method.
 
-        Forwards all keyword arguments to the engine’s `.differentiate()`.
+        Forwards all keyword arguments to the engine’s ``.differentiate()``.
 
         Args:
-            method: Method name or alias (e.g., "adaptive", "finite", "fd"). Default is "adaptive".
+            method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``,
+                ``"fd"``). Default is ``"adaptive"``.
             **kwargs: Passed through to the chosen engine.
 
         Returns:
@@ -269,7 +275,7 @@ class DerivativeKit:
             shape ``(5, 2, 3)``.
 
         Raises:
-            ValueError: If `method` is not recognized.
+            ValueError: If ``method`` is not recognized.
         """
         chosen = method or self.default_method  # use default if None
         Engine = _resolve(chosen)

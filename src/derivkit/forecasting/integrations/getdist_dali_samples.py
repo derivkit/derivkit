@@ -1,13 +1,18 @@
-"""Conversion utilities for DALI posteriors and GetDist ``MCSamples``.
+"""Provides GetDist sampling helpers for DALI approximate posteriors.
 
-This module provides helpers to turn a DALI-approximated posterior into
-GetDist-compatible samples. Two sampling strategies are supported:
+This module converts DALI-expanded posteriors into GetDist-compatible
+:class:`getdist.MCSamples` for plotting and analysis.
 
-- Importance sampling from a Fisher-Gaussian proposal.
-- MCMC sampling using ``emcee``.
+Two backends are provided:
 
-The target posterior is evaluated via :func:`derivkit.forecasting.expansions.logposterior_dali`,
-optionally including user-specified priors and hard parameter bounds.
+- Importance sampling using a Fisher-Gaussian kernel centered on ``theta0``.
+- ``emcee`` ensemble MCMC targeting the same DALI log-posterior.
+
+The target log-posterior is evaluated with
+:func:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
+user-defined priors and parameter support bounds.
+
+Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihood)``.
 """
 
 from __future__ import annotations
@@ -22,10 +27,10 @@ from numpy.typing import NDArray
 
 from derivkit.forecasting.expansions import logposterior_dali
 from derivkit.forecasting.integrations.sampling_utils import (
-    apply_hard_bounds_mask,
+    apply_parameter_bounds,
     init_walkers_from_fisher,
-    log_gaussian_proposal,
-    proposal_samples_from_fisher,
+    kernel_samples_from_fisher,
+    log_gaussian_kernel,
 )
 from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import validate_dali_shapes
@@ -36,6 +41,69 @@ __all__ = [
 ]
 
 
+def _resolve_support_bounds(
+    *,
+    n_params: int,
+    prior_bounds: Sequence[tuple[float | None, float | None]] | None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None,
+) -> Sequence[tuple[float | None, float | None]] | None:
+    """Computes the effective parameter-support bounds used by the sampler.
+
+    This function combines two optional sources of support constraints:
+
+    - ``prior_bounds``, which truncate the prior (and therefore the posterior support).
+    - ``sampler_bounds``, restrict the sampling domain used for rejection/initialization.
+
+    When both are provided, the returned bounds are their intersection, computed
+    component-wise for each parameter. Each bound is a ``(low, high)`` pair where
+    either endpoint may be ``None`` to indicate no constraint.
+
+    Args:
+        n_params: Number of parameters (expected length of any provided bounds sequence).
+        prior_bounds: Optional per-parameter prior truncation bounds.
+        sampler_bounds: Optional per-parameter sampling-domain bounds.
+
+    Returns:
+        The effective per-parameter bounds to use for support filtering, or ``None``
+        if neither set of bounds is provided.
+
+    Raises:
+        ValueError: If a provided bounds sequence does not have length ``n_params``,
+            or if the intersection of ``prior_bounds`` and ``sampler_bounds`` is empty
+            for any parameter (i.e., the resulting lower bound exceeds the upper bound).
+    """
+    if sampler_bounds is not None and len(sampler_bounds) != n_params:
+        raise ValueError(
+            f"sampler_bounds must have length p={n_params}; got len(sampler_bounds)={len(sampler_bounds)}."
+        )
+
+    if prior_bounds is not None and len(prior_bounds) != n_params:
+        raise ValueError(
+            f"prior_bounds must have length p={n_params}; got len(prior_bounds)={len(prior_bounds)}."
+        )
+
+    if sampler_bounds is None:
+        return prior_bounds
+    if prior_bounds is None:
+        return sampler_bounds
+
+    bounds = []
+    for i, ((hlo, hhi), (plo, phi)) in enumerate(zip(sampler_bounds, prior_bounds, strict=True)):
+        lo = None if (hlo is None and plo is None) else max(x for x in (hlo, plo) if x is not None)
+        hi = None if (hhi is None and phi is None) else min(x for x in (hhi, phi) if x is not None)
+
+        if lo is not None and hi is not None and lo > hi:
+            raise ValueError(
+                f"Empty support for parameter index {i}: "
+                f"intersection gives ({lo}, {hi}). "
+                "Check prior_bounds and sampler_bounds."
+            )
+
+        bounds.append((lo, hi))
+
+    return bounds
+
+
 def dali_to_getdist_importance(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -44,148 +112,148 @@ def dali_to_getdist_importance(
     *,
     names: Sequence[str],
     labels: Sequence[str],
-    nsamp: int = 50_000,
-    proposal_scale: float = 1.5,
+    n_samples: int = 50_000,
+    kernel_scale: float = 1.5,
     convention: str = "delta_chi2",
     seed: int | None = None,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (importance)",
-):
-    """Draws GetDist ``MCSamples`` via importance sampling from a Fisher-Gaussian proposal.
+) -> MCSamples:
+    """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
-    Builds a weighted sample set for the DALI posterior using a multivariate normal
-    proposal centered at ``theta0`` with covariance proportional to the (pseudo-)inverse
-    Fisher matrix.
-
-    The workflow is:
-
-        1. Draw proposal samples ``theta ~ q(theta)`` where
-           ``q = N(theta0, proposal_scale^2 * pinv(fisher))``.
-        2. Optionally enforce hard bounds by rejecting samples outside ``hard_bounds``
-           (or ``prior_bounds`` if ``hard_bounds`` is ``None``).
-        3. Evaluate the target log-posterior ``log p(theta)`` using the DALI expansion and
-           any configured priors.
-        4. Compute importance weights ``w ~ exp(log p(theta) - log q(theta))``.
-        5. Return a GetDist ``MCSamples`` instance with associated importance ``weights`` and
-           a 1D ``loglikes`` array (GetDist convention: ``-log(posterior)`` up to an additive
-           constant).
+    The target log-posterior is evaluated with
+    :func:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
+    a Fisher–Gaussian kernel centered on ``theta0`` and reweighted by the difference
+    between the target log-posterior and the kernel log-density.
 
     Args:
-        theta0: Fiducial parameter vector (shape ``(p,)``) for ``p`` parameters.
-        fisher: Fisher matrix at ``theta0`` (shape ``(p, p)``).
-        g_tensor: DALI third-order tensor ``G`` (shape ``(p, p, p)``).
-        h_tensor: Optional DALI fourth-order tensor ``H`` (shape ``(p, p, p, p)``).
-        names: GetDist parameter names (length ``p``).
-        labels: GetDist parameter labels (length ``p``).
-        nsamp: Number of proposal samples to draw.
-        proposal_scale: Scale factor applied to the proposal covariance.
-        convention: DerivKit DALI convention passed through to :func:`logposterior_dali`.
-        seed: Random seed for proposal sampling.
-        prior_terms: Prior specification used to build a single ``logprior`` via
-            :func:`derivkit.forecasting.priors.core.build_prior` (only if ``logprior`` is None).
-        prior_bounds: Global hard bounds used to build ``logprior`` via
-            :func:`derivkit.forecasting.priors.core.build_prior` (only if ``logprior`` is None).
-        logprior: Optional custom log-prior ``logprior(theta)``; returns ``-np.inf`` to reject.
-        hard_bounds: Optional hard support bounds; samples outside are discarded.
-        label: Label string attached to the returned ``MCSamples``.
+        theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
+        fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
+        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
+        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
+        names: Parameter names used to label the returned samples (length ``p``).
+        labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
+        n_samples: Number of importance samples to draw.
+        kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
+        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
+        seed: Random seed for kernel sampling.
+        prior_terms: Optional prior term specifications used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+            Can be combined with ``prior_bounds`` to truncate prior support.
+        prior_bounds: Optional per-parameter bounds passed to
+            :func:`derivkit.forecasting.priors.core.build_prior` to truncate the prior support.
+            If provided with no ``prior_terms``, this corresponds to a bounded-uniform (top-hat) prior.
+            A bounded-uniform prior is proper (normalizable), unlike an unbounded flat prior which is improper.
+            Mutually exclusive with ``logprior``.
+        logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
+            prior is used.
+        sampler_bounds: Optional per-parameter sampling-domain bounds used for early rejection
+            and walker initialization.
+        label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
-        A GetDist ``MCSamples`` object containing weighted samples approximating the
-        DALI posterior, constructed from a single 2D sample array of shape ``(n, p)``
-        with associated importance ``weights`` and a 1D ``loglikes`` array
-        (GetDist convention: ``-log(posterior)`` up to an additive constant).
+        :class:`getdist.MCSamples` containing the importance ``weights``.
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        up to an additive constant, consistent with GetDist's convention.
 
     Raises:
-        ValueError: If tensor shapes or names/labels lengths are inconsistent, or if conflicting
-            prior/support options are provided (e.g. `logprior` together with `prior_terms`/`prior_bounds`,
-            or `hard_bounds` together with `prior_bounds`/`prior_terms`).
-        RuntimeError: If all proposal samples are rejected by bounds, or if all samples are rejected
-            after evaluating the DALI posterior and priors.
+        ValueError: If shapes are inconsistent, mutually exclusive options are provided,
+            or the effective support bounds are invalid (e.g., an empty intersection).
+        RuntimeError: If all samples are rejected by bounds or prior support.
     """
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+    fiducial = np.asarray(theta0, dtype=float)
+    fisher_matrix = np.asarray(fisher, dtype=float)
+    dali_g = np.asarray(g_tensor, dtype=float)
+    dali_h = None if h_tensor is None else np.asarray(h_tensor, dtype=float)
+    validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
 
-    p = theta0.size
-    if len(names) != p or len(labels) != p:
-        raise ValueError("names/labels must match number of parameters")
+    n_params = int(fiducial.size)
+    n_names = len(names)
+    n_labels = len(labels)
+    if n_names != n_params:
+        raise ValueError(f"names must have length p={n_params}; got len(names)={n_names}.")
+    if n_labels != n_params:
+        raise ValueError(f"labels must have length p={n_params}; got len(labels)={n_labels}.")
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
-
-    if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
-            "Ambiguous support: you passed `hard_bounds` and also `prior_bounds`/`prior_terms`.\n"
-            "Choose ONE support mechanism:\n"
-            "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
-            "  - encode support via the prior (set `hard_bounds=None`)."
+            "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
         )
 
-    effective_bounds = hard_bounds if hard_bounds is not None else prior_bounds
+    support_bounds = _resolve_support_bounds(
+        n_params=n_params,
+        prior_bounds=prior_bounds,
+        sampler_bounds=sampler_bounds,
+    )
 
-    # Compile prior once (prevents rebuilding inside logposterior_dali).
-    if logprior is None:
-        logprior = build_prior(terms=prior_terms, bounds=prior_bounds)
+    # Computing the prior once prevents rebuilding inside logposterior_dali
+    logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
 
-    samples = proposal_samples_from_fisher(
-        theta0,
-        fisher,
-        nsamp=int(nsamp),
-        proposal_scale=float(proposal_scale),
+    kernel_samples = kernel_samples_from_fisher(
+        fiducial,
+        fisher_matrix,
+        n_samples=int(n_samples),
+        kernel_scale=float(kernel_scale),
         seed=seed,
     )
 
-    samples = apply_hard_bounds_mask(samples, effective_bounds)
-    if samples.shape[0] == 0:
-        raise RuntimeError("All proposal samples rejected by bounds (no samples left).")
+    kernel_samples = apply_parameter_bounds(kernel_samples, support_bounds)
+    if kernel_samples.shape[0] == 0:
+        raise RuntimeError("All kernel samples rejected by bounds.")
 
-    logpost = np.array(
+    target_logpost = np.array(
         [
             logposterior_dali(
-                s,
-                theta0,
-                fisher,
-                g_tensor,
-                h_tensor,
+                theta,
+                fiducial,
+                fisher_matrix,
+                dali_g,
+                dali_h,
                 convention=convention,
-                logprior=logprior,
+                logprior=logprior_fn,
             )
-            for s in samples
+            for theta in kernel_samples
         ],
         dtype=float,
     )
 
-    finite = np.isfinite(logpost)
-    samples = samples[finite]
-    logpost = logpost[finite]
-    if samples.shape[0] == 0:
-        raise RuntimeError("All proposal samples rejected by the posterior/prior (logpost=-inf).")
+    keep = np.isfinite(target_logpost)
+    kernel_samples = kernel_samples[keep]
+    target_logpost = target_logpost[keep]
+    if kernel_samples.shape[0] == 0:
+        raise RuntimeError(
+            "All kernel samples were rejected: the target log-posterior was -inf for every sample "
+            "(outside prior/support bounds or invalid model evaluation)."
+        )
 
-    logq = log_gaussian_proposal(
-        samples,
-        theta0,
-        fisher,
-        proposal_scale=float(proposal_scale),
+    kernel_logpdf = log_gaussian_kernel(
+        kernel_samples,
+        fiducial,
+        fisher_matrix,
+        kernel_scale=float(kernel_scale),
     )
-    logw = logpost - logq
-    logw -= np.max(logw)
-    weights = np.exp(logw)
 
-    # GetDist: loglikes = -log(posterior) up to constant
-    loglikes = -logpost
-    loglikes -= np.min(loglikes)
+    log_weights = target_logpost - kernel_logpdf
+    log_weights -= np.max(log_weights)
+    weights = np.exp(log_weights)
+
+    loglikes = -target_logpost
+
+    ranges = None
+    if support_bounds is not None:
+        ranges = {n: [lo, hi] for n, (lo, hi) in zip(names, support_bounds, strict=True)}
 
     return MCSamples(
-        samples=samples,
+        samples=kernel_samples,
         weights=weights,
         loglikes=loglikes,
         names=list(names),
         labels=list(labels),
+        ranges=ranges,
         label=label,
     )
 
@@ -198,130 +266,142 @@ def dali_to_getdist_emcee(
     *,
     names: Sequence[str],
     labels: Sequence[str],
-    nsteps: int = 10_000,
+    n_steps: int = 10_000,
     burn: int = 2_000,
     thin: int = 2,
-    nwalkers: int | None = None,
+    n_walkers: int | None = None,
     init_scale: float = 0.5,
     convention: str = "delta_chi2",
     seed: int | None = None,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
-    hard_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+    sampler_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     label: str = "DALI (emcee)",
-):
-    """Runs ``emcee`` on the DALI posterior and returns GetDist ``MCSamples``.
+) -> MCSamples:
+    """Returns :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
 
-    Initializes walkers from a Fisher-based Gaussian around ``theta0`` and samples the
-    DALI log-posterior using an ``emcee.EnsembleSampler``. Hard bounds are enforced by
-    returning ``-np.inf`` outside ``hard_bounds``. Priors are applied through
-    :func:`derivkit.forecasting.expansions.logposterior_dali`.
-
-    The returned GetDist object is constructed as a list of chains, one per walker,
-    with ``loglikes`` set to the GetDist convention ``-log(posterior)`` (up to an additive
-    constant), not ``log L``.
+    The target log-posterior is evaluated with :func:`derivkit.forecasting.expansions.logposterior_dali`.
+    Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
+    :class:`emcee.EnsembleSampler`. Optional priors and support bounds are applied through the target log-posterior.
 
     Args:
-        theta0: Fiducial parameter vector (shape ``(p,)``) for ``p`` parameters.
-        fisher: Fisher matrix at ``theta0`` (shape ``(p, p)``).
-        g_tensor: DALI third-order tensor ``G`` (shape ``(p, p, p)``).
-        h_tensor: Optional DALI fourth-order tensor ``H`` (shape ``(p, p, p, p)``).
-        names: GetDist parameter names (length ``p``).
-        labels: GetDist parameter labels (length ``p``).
-        nsteps: Total number of MCMC steps to run.
-        burn: Number of initial steps to discard.
-        thin: Thinning factor applied after burn-in.
-        nwalkers: Number of walkers; defaults to ``max(32, 8 * p)``.
-        init_scale: Scale controlling the initial scatter of walkers around ``theta0``.
-        convention: DerivKit DALI convention passed through to :func:`logposterior_dali`.
+        theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
+        fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
+        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
+        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
+        names: Parameter names used to label the returned samples (length ``p``).
+        labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
+        n_steps: Total number of MCMC steps.
+        burn: Number of initial MCMC steps discarded as burn-in, allowing the chain to
+            forget its initial starting positions before samples are retained.
+        thin: Thinning factor applied after burn-in; only every ``thin``-th sample is kept
+            to reduce autocorrelation in the chain.
+        n_walkers: Number of walkers. Defaults to ``max(32, 8 * p)``.
+        init_scale: Initial scatter scale for walker initialization.
+        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for walker initialization.
-        prior_terms: Prior specification passed through to :func:`logposterior_dali`.
-        prior_bounds: Prior bounds passed through to :func:`logposterior_dali`.
-        logprior: Optional custom log-prior ``logprior(theta)``; returns ``-np.inf`` to reject.
-        hard_bounds: Optional hard support bounds; walkers outside are rejected.
-        label: Label string attached to the returned ``MCSamples``.
+        prior_terms: Optional prior term specifications used to build a prior via
+            :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
+            Can be combined with ``prior_bounds`` to truncate prior support.
+        prior_bounds: Optional per-parameter bounds passed to
+            :func:`derivkit.forecasting.priors.core.build_prior` to truncate the prior support.
+            If provided with no ``prior_terms``, this corresponds to a bounded-uniform (top-hat) prior.
+            A bounded-uniform prior is proper (normalizable), unlike an unbounded flat prior which is improper.
+            Mutually exclusive with ``logprior``.
+        logprior: Optional custom log-prior ``logprior(theta)``. Mutually exclusive with
+            ``prior_terms``/``prior_bounds``. If none of these are provided, a flat (typically improper)
+            prior is used.
+        sampler_bounds: Optional per-parameter sampling-domain bounds used for early rejection
+            and walker initialization.
+        label: Label attached to the returned samples output (e.g., used by GetDist in plot legends/titles).
 
     Returns:
-        A GetDist ``MCSamples`` object containing MCMC samples of the DALI posterior,
-        constructed from a list of chains (one per walker), where each chain has shape
-        ``(n, p)`` and ``loglikes`` is provided as a matching list of 1D arrays
-        (GetDist convention: ``-log(posterior)`` up to an additive constant).
+        :class:`getdist.MCSamples` containing MCMC chains.
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        up to an additive constant, consistent with GetDist's convention.
 
     Raises:
-        ValueError: If tensor shapes or names/labels lengths are inconsistent, or if conflicting
-            prior/support options are provided.
+        ValueError: If shapes are inconsistent, mutually exclusive options are provided,
+            or the effective support bounds are invalid (e.g., an empty intersection).
         RuntimeError: If walker initialization fails (no valid starting points).
     """
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+    fiducial = np.asarray(theta0, dtype=float)
+    fisher_matrix = np.asarray(fisher, dtype=float)
+    dali_g = np.asarray(g_tensor, dtype=float)
+    dali_h = None if h_tensor is None else np.asarray(h_tensor, dtype=float)
+    validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
 
-    p = theta0.size
-    if len(names) != p or len(labels) != p:
-        raise ValueError("names/labels must match number of parameters")
-    if nwalkers is None:
-        nwalkers = max(32, 8 * p)
+    n_params = int(fiducial.size)
+    n_names = len(names)
+    n_labels = len(labels)
+    if n_names != n_params:
+        raise ValueError(f"names must have length p={n_params}; got len(names)={n_names}.")
+    if n_labels != n_params:
+        raise ValueError(f"labels must have length p={n_params}; got len(labels)={n_labels}.")
+
+    if n_walkers is None:
+        n_walkers = max(32, 8 * n_params)
 
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
-        raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
-
-    if hard_bounds is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError(
-            "Ambiguous support: you passed `hard_bounds` and also `prior_bounds`/`prior_terms`.\n"
-            "Choose ONE support mechanism:\n"
-            "  - use `hard_bounds` (set prior_bounds/prior_terms to None), OR\n"
-            "  - encode support via the prior (set `hard_bounds=None`)."
+            "Ambiguous prior specification: pass either `logprior` or (`prior_terms` and/or `prior_bounds`), not both."
         )
 
-    effective_bounds = hard_bounds if hard_bounds is not None else prior_bounds
-
-    # Compile prior once (prevents rebuilding inside logposterior_dali).
-    if logprior is None:
-        logprior = build_prior(terms=prior_terms, bounds=prior_bounds)
-
-    p0 = init_walkers_from_fisher(
-        theta0,
-        fisher,
-        nwalkers=int(nwalkers),
-        init_scale=float(init_scale),
-        seed=seed,
-        hard_bounds=effective_bounds,
+    support_bounds = _resolve_support_bounds(
+        n_params=n_params,
+        prior_bounds=prior_bounds,
+        sampler_bounds=sampler_bounds,
     )
 
-    p0 = np.asarray(p0, dtype=float)
-    if p0.ndim != 2 or p0.shape[0] == 0 or p0.shape[1] != p:
+    # Compute prior once, as this prevents rebuilding inside logposterior_dali.
+    logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
+
+    walker_init = init_walkers_from_fisher(
+        fiducial,
+        fisher_matrix,
+        n_walkers=int(n_walkers),
+        init_scale=float(init_scale),
+        seed=seed,
+        sampler_bounds=support_bounds,
+    )
+
+    walker_init = np.asarray(walker_init, dtype=float)
+    if walker_init.ndim != 2 or walker_init.shape[0] == 0 or walker_init.shape[1] != n_params:
         raise RuntimeError(
             "Walker initialization failed: no valid starting points. "
-            "Your bounds/prior support likely exclude the Fisher proposal around theta0. "
+            "The provided bounds/prior support likely exclude the Fisher kernel around theta0. "
             "Try loosening bounds, increasing init_scale, or checking theta0 is inside support."
         )
 
     log_prob = partial(
         logposterior_dali,
-        theta0=theta0,
-        fisher=fisher,
-        g_tensor=g_tensor,
-        h_tensor=h_tensor,
+        theta0=fiducial,
+        fisher=fisher_matrix,
+        g_tensor=dali_g,
+        h_tensor=dali_h,
         convention=convention,
-        logprior=logprior,
+        logprior=logprior_fn,
     )
 
-    sampler = emcee.EnsembleSampler(int(nwalkers), int(p), log_prob)
-    sampler.run_mcmc(p0, int(nsteps), progress=True)
+    sampler = emcee.EnsembleSampler(int(n_walkers), n_params, log_prob)
+    sampler.run_mcmc(walker_init, int(n_steps), progress=True)
 
-    chain = sampler.get_chain(discard=int(burn), thin=int(thin))
-    logpost = sampler.get_log_prob(discard=int(burn), thin=int(thin))
+    chains = sampler.get_chain(discard=int(burn), thin=int(thin))
+    log_posteriors = sampler.get_log_prob(discard=int(burn), thin=int(thin))
 
-    chain_list = [chain[:, i, :] for i in range(chain.shape[1])]
-    loglikes_list = [-logpost[:, i] for i in range(logpost.shape[1])]
+    chain_list = [chains[:, walker_idx, :] for walker_idx in range(chains.shape[1])]
+    loglikes_list = [-log_posteriors[:, walker_idx] for walker_idx in range(log_posteriors.shape[1])]
+
+    ranges = None
+    if support_bounds is not None:
+        ranges = {n: [lo, hi] for n, (lo, hi) in zip(names, support_bounds, strict=True)}
 
     return MCSamples(
         samples=chain_list,
         loglikes=loglikes_list,
         names=list(names),
         labels=list(labels),
+        ranges=ranges,
         label=label,
     )

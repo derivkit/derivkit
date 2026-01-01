@@ -47,9 +47,12 @@ def fixed_richardson_fd(
         num_points: Number of points in the finite difference stencil.
         n_workers: Number of parallel workers to use.
         levels: Number of levels (m) for Richardson extrapolation.
-        p: The order of the leading error term in the finite difference approximation. Default is 2.
-        r: The step-size reduction factor between successive levels (default is 2.0).
-        return_error: Whether to return an error estimate along with the value (default is False).
+        p: The order of the leading error term in the finite difference
+            approximation. Default is ``2``.
+        r: The step-size reduction factor between successive levels
+            (default is ``2.0``).
+        return_error: Whether to return an error estimate along with the
+            value (default is ``False``).
 
     Returns:
         The Richardson-extrapolated finite difference estimate. If `return_error` is True,
@@ -114,11 +117,14 @@ def fixed_ridders_fd(
         levels:
             Number of levels (m) for Ridders extrapolation.
         p:
-            The order of the leading error term in the finite difference approximation (default is 2).
+            The order of the leading error term in the finite difference
+            approximation (default is ``2``).
         r:
-            The step-size reduction factor between successive levels (default is 2.0).
+            The step-size reduction factor between successive levels
+            (default is ``2.0``).
         return_error:
-            Whether to return an error estimate along with the value (default is False).
+            Whether to return an error estimate along with the value
+            (default is ``False``).
 
     Returns:
         The Ridders-extrapolated finite difference estimate. If `return_error` is True,
@@ -157,19 +163,24 @@ def adaptive_richardson_fd(
     based on specified tolerances.
 
     Args:
-        single_finite: Function that computes a single finite difference estimate.
+        single_finite: Function that computes a single finite difference
+            estimate.
         order: The order of the derivative to compute.
         stepsize: The initial step size h.
         num_points: Number of points in the finite difference stencil.
         n_workers: Number of parallel workers to use.
-        p: The order of the leading error term in the finite difference approximation.
-        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
-        min_levels: Minimum number of levels of extrapolation before checking for convergence.
-            Default is 2.
-        r: The step-size reduction factor between successive levels (default is 2.0).
-        rtol: Relative tolerance for convergence (default is 1e-8).
-        atol: Absolute tolerance for convergence (default is 1e-12).
-        return_error: Whether to return an error estimate along with the value (default is False).
+        p: The order of the leading error term in the finite difference
+            approximation.
+        max_levels: Maximum number of levels of extrapolation to perform
+            (default is ``6``).
+        min_levels: Minimum number of levels of extrapolation before checking
+            for convergence. Default is ``2``.
+        r: The step-size reduction factor between successive levels
+            (default is ``2.0``).
+        rtol: Relative tolerance for convergence (default is ``1e-8``).
+        atol: Absolute tolerance for convergence (default is ``1e-12``).
+        return_error: Whether to return an error estimate along with the value
+            (default is ``False``).
 
     Returns: The Richardson-extrapolated finite difference estimate.
     """
@@ -248,19 +259,25 @@ def adaptive_ridders_fd(
     extrapolation until convergence is achieved based on specified tolerances.
 
     Args:
-        single_finite: Function that computes a single finite difference estimate for a given
-            derivative order and step size ``single_finite(order, h, num_points, n_workers)``.
+        single_finite: Function that computes a single finite difference
+            estimate for a given derivative order and step size
+            ``single_finite(order, h, num_points, n_workers)``.
         order: The order of the derivative to compute.
         stepsize: The initial step size ``h``.
         num_points: Number of points in the finite difference stencil.
         n_workers: Number of parallel workers to use.
-        p: The order of the leading error term in the finite difference approximation.
-        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
-        min_levels: Minimum number of levels of extrapolation before checking for convergence (default is 2).
-        r: Step-size reduction factor between successive levels (default is 2.0).
+        p: The order of the leading error term in the finite difference
+            approximation.
+        max_levels: Maximum number of levels of extrapolation to perform
+            (default is ``6``).
+        min_levels: Minimum number of levels of extrapolation before checking
+            for convergence (default is ``2``).
+        r: Step-size reduction factor between successive levels
+            (default is ``2.0``).
         rtol: Relative tolerance for convergence (default is 1e-8).
         atol: Absolute tolerance for convergence (default is 1e-12).
-        return_error: Whether to return an error estimate along with the value (default is False).
+        return_error: Whether to return an error estimate along with the value
+            (default is ``False``).
 
     Returns:
         The Ridders-extrapolated finite difference estimate.
@@ -338,19 +355,23 @@ def fixed_gre_fd(
     and then apply Gauss–Richardson extrapolation to get the final estimate.
 
     Args:
-        single_finite: Function that computes a single finite difference estimate.
+        single_finite: Function that computes a single finite difference
+            estimate.
         order: The order of the derivative to compute.
         stepsize: The initial step size h.
         num_points: Number of points in the finite difference stencil.
         n_workers: Number of parallel workers to use.
-        p: The order of the leading error term in the finite difference approximation.
+        p: The order of the leading error term in the finite difference
+            approximation.
         levels: Number of levels (m) for Gauss–Richardson extrapolation.
-        r: The step-size reduction factor between successive levels (default is 2.0).
-        return_error: Whether to return an error estimate along with the value (default is False).
+        r: The step-size reduction factor between successive levels
+            (default is ``2.0``).
+        return_error: Whether to return an error estimate along with the
+            value (default is ``False``).
 
     Returns:
-        The Gauss–Richardson-extrapolated finite difference estimate. If `return_error` is True,
-        also returns an error estimate.
+        The Gauss–Richardson-extrapolated finite difference estimate. If
+        `return_error` is True, also returns an error estimate.
 
     Raises:
         ValueError: If the combination of ``num_points`` and ``order`` is not
@@ -395,19 +416,27 @@ def adaptive_gre_fd(
     change between successive estimates.
 
     Args:
-        single_finite: Function that computes a single finite-difference estimate for a given
-            derivative order and step size ``single_finite(order, h, num_points, n_workers)``.
+        single_finite: Function that computes a single finite-difference
+            estimate for a given derivative order and step size
+            ``single_finite(order, h, num_points, n_workers)``.
         order: The order of the derivative to compute.
         stepsize: The initial step size ``h``.
         num_points: Number of points in the finite-difference stencil.
         n_workers: Number of parallel workers to use.
-        p: The order of the leading error term in the finite difference approximation.
-        max_levels: Maximum number of levels of extrapolation to perform (default is 6).
-        min_levels: Minimum number of levels of extrapolation before checking for convergence (default is 2).
-        r: Step-size reduction factor between successive levels (default is 2.0).
-        rtol: Relative tolerance for convergence (default is 1e-8).
-        atol: Absolute tolerance for convergence (default is 1e-12).
-        return_error: Whether to return an error estimate along with the value (default is False).
+        p: The order of the leading error term in the finite difference
+            approximation.
+        max_levels: Maximum number of levels of extrapolation to perform
+            (default is ``6``).
+        min_levels: Minimum number of levels of extrapolation before checking
+            for convergence (default is ``2``).
+        r: Step-size reduction factor between successive levels
+            (default is ``2.0``).
+        rtol: Relative tolerance for convergence
+            (default is ``1e-8``).
+        atol: Absolute tolerance for convergence
+            (default is ``1e-12``).
+        return_error: Whether to return an error estimate along with the value
+            (default is ``False``).
 
     Returns:
         The Gauss–Richardson-extrapolated finite-difference estimate. If

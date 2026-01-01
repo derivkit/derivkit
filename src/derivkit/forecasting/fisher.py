@@ -36,14 +36,18 @@ def build_fisher_matrix(
         theta0: 1D array-like of fiducial parameters (single expansion point).
             This helper currently assumes a single expansion point; if you need
             multiple expansion points with different covariances, call this
-            function in a loop or work directly with ForecastKit.
+            function in a loop or work directly with
+            :class:`derivkit.forecast_kit.ForecastKit`.
         cov: Covariance matrix of the observables. Must be square with shape
             ``(n_observables, n_observables)``.
-        method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the DerivativeKit default is used.
-        n_workers: Number of workers for per-parameter parallelisation. Default is 1 (serial).
+        method: Derivative method name or alias (e.g., ``"adaptive"``,
+            ``"finite"``).
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default is used.
+        n_workers: Number of workers for per-parameter parallelisation.
+            Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to
-            :meth:`DerivativeKit.differentiate`.
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Fisher matrix with shape ``(n_parameters, n_parameters)``.
@@ -93,10 +97,12 @@ def build_fisher_bias(
         theta0: 1D array-like of fiducial parameters (single expansion point).
             This helper currently assumes a single expansion point; if you need
             multiple expansion points with different covariances, call this
-            function in a loop or work directly with ForecastKit.
+            function in a loop or work directly with
+            :class:`derivkit.forecast_kit.ForecastKit`.
         cov: The covariance matrix of the observables. Must be a square
-            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
-            is the number of observables returned by the function.
+            matrix with shape ``(n_observables, n_observables)``, where
+            ``n_observables`` is the number of observables returned by the
+            function.
         fisher_matrix: Square matrix describing information about the parameters.
             Its shape must be ``(p, p)``, where ``p`` is the number of parameters.
         delta_nu: Difference between a biased and an unbiased data vector,
@@ -108,9 +114,11 @@ def build_fisher_bias(
         n_workers: Number of workers used by the internal derivative routine when
             forming the Jacobian.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the DerivativeKit default (``"adaptive"``) is used.
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default (``"adaptive"``) is used.
         rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
-        **dk_kwargs: Additional keyword arguments passed to ``DerivativeKit.differentiate``.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,
@@ -120,7 +128,7 @@ def build_fisher_bias(
     Raises:
       ValueError: If input shapes are inconsistent with the stored model, covariance,
         or the Fisher matrix dimensions.
-      FloatingPointError: If the difference vector contains NaNs.
+      FloatingPointError: If the difference vector contains at least one ``NaN``.
     """
     n_workers = normalize_workers(n_workers)
 
@@ -222,14 +230,15 @@ def build_delta_nu(
 
     Args:
         cov: The covariance matrix of the observables. Should be a square
-            matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
-            is the number of observables returned by the function.
-        data_with: Data vector that includes the systematic effect. Can be 1D or 2D.
-            If 1D, it must follow the NumPy's row-major (“C”) flattening convention used
-            throughout the package.
-        data_without: Reference data vector without the systematic. Can be 1D or 2D. If 1D,
-            it must follow the NumPy's row-major (“C”) flattening convention used throughout
-            the package.
+            matrix with shape ``(n_observables, n_observables)``, where
+            ``n_observables`` is the number of observables returned by the
+            function.
+        data_with: Data vector that includes the systematic effect. Can be
+            1D or 2D. If 1D, it must follow the NumPy's row-major (“C”)
+            flattening convention used throughout the package.
+        data_without: Reference data vector without the systematic. Can be
+            1D or 2D. If 1D, it must follow the NumPy's row-major (“C”)
+            flattening convention used throughout the package.
         dtype: NumPy dtype for the output array (defaults to ``np.float64``,
             i.e. NumPy's default floating type).
 

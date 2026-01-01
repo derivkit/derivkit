@@ -19,9 +19,15 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
     "sphinx_design",
     "sphinx_multiversion",
 ]
+
+intersphinx_mapping = {
+    "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
+    "emcee": ("https://emcee.readthedocs.io/en/stable/", None),
+}
 
 autoclass_content = "both"
 
@@ -38,6 +44,12 @@ html_sidebar = {
         "sidebar/scroll-end.html",
     ],
 }
+
+# -- Sphinx Multiversion --------------------------------------------------
+# https://sphinx-contrib.github.io/multiversion/main/configuration.html
+
+smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
+smv_branch_whitelist = "main"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
