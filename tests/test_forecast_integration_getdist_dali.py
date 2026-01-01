@@ -31,8 +31,8 @@ def test_dali_to_getdist_importance_returns_mcsamples_and_shapes():
         h,
         names=names,
         labels=labels,
-        nsamp=2000,
-        proposal_scale=1.2,
+        n_samples=2000,
+        kernel_scale=1.2,
         seed=123,
     )
 
@@ -54,10 +54,10 @@ def test_dali_to_getdist_importance_reproducible_with_seed():
     labels = ["a", "b"]
 
     m1 = dali_to_getdist_importance(
-        theta0, fisher, g, h, names=names, labels=labels, nsamp=1500, seed=7
+        theta0, fisher, g, h, names=names, labels=labels, n_samples=1500, seed=7
     )
     m2 = dali_to_getdist_importance(
-        theta0, fisher, g, h, names=names, labels=labels, nsamp=1500, seed=7
+        theta0, fisher, g, h, names=names, labels=labels, n_samples=1500, seed=7
     )
 
     assert np.allclose(np.asarray(m1.samples), np.asarray(m2.samples))
@@ -66,19 +66,26 @@ def test_dali_to_getdist_importance_reproducible_with_seed():
 
 
 def test_dali_to_getdist_importance_raises_on_names_labels_mismatch():
-    """Tests that dali_to_getdist_importance raises if names/labels length != p."""
+    """Tests that dali_to_getdist_importance raises if names and/or labels length != p."""
     theta0, fisher, g, h = _toy_dali_inputs(2)
 
-    with pytest.raises(ValueError, match="names/labels must match number of parameters"):
-        dali_to_getdist_importance(theta0, fisher, g, h, names=["a"], labels=["a", "b"], nsamp=10)
+    with pytest.raises(ValueError, match=r"names must have length p=2"):
+        dali_to_getdist_importance(
+            theta0, fisher, g, h, names=["a"], labels=["a", "b"], n_samples=10
+        )
+
+    with pytest.raises(ValueError, match=r"labels must have length p=2"):
+        dali_to_getdist_importance(
+            theta0, fisher, g, h, names=["a", "b"], labels=["a"], n_samples=10
+        )
 
 
-def test_dali_to_getdist_importance_hard_bounds_filters_samples():
-    """Tests that hard_bounds filters proposal samples before posterior evaluation."""
+def test_dali_to_getdist_importance_sampler_bounds_filters_samples():
+    """Tests that sampler_bounds filters proposal samples before posterior evaluation."""
     theta0, fisher, g, h = _toy_dali_inputs(2)
     names = ["a", "b"]
     labels = ["a", "b"]
-    hard_bounds = [(-0.1, 0.1), (-0.1, 0.1)]
+    sampler_bounds = [(-0.1, 0.1), (-0.1, 0.1)]
 
     m = dali_to_getdist_importance(
         theta0,
@@ -87,9 +94,9 @@ def test_dali_to_getdist_importance_hard_bounds_filters_samples():
         h,
         names=names,
         labels=labels,
-        nsamp=5000,
+        n_samples=5000,
         seed=0,
-        hard_bounds=hard_bounds,
+        sampler_bounds=sampler_bounds,
     )
 
     s = np.asarray(m.samples)
@@ -98,16 +105,17 @@ def test_dali_to_getdist_importance_hard_bounds_filters_samples():
     assert np.all(s[:, 1] >= -0.1) and np.all(s[:, 1] <= 0.1)
 
 
-def test_dali_to_getdist_importance_raises_if_all_rejected_by_hard_bounds():
-    """Tests that dali_to_getdist_importance raises if hard_bounds reject all samples."""
+def test_dali_to_getdist_importance_raises_if_all_rejected_by_sampler_bounds():
+    """Tests that dali_to_getdist_importance raises if sampler_bounds reject all samples."""
     theta0, fisher, g, h = _toy_dali_inputs(2)
     names = ["a", "b"]
     labels = ["a", "b"]
-    hard_bounds = [(10.0, 11.0), (None, None)]  # impossible around theta0=0
+    sampler_bounds = [(10.0, 11.0), (None, None)]  # impossible around theta0=0
 
-    with pytest.raises(RuntimeError, match=r"All proposal samples rejected by bounds \(no samples left\)\."):
+    with pytest.raises(RuntimeError, match=r"All kernel samples rejected"):
         dali_to_getdist_importance(
-            theta0, fisher, g, h, names=names, labels=labels, nsamp=50, seed=0, hard_bounds=hard_bounds
+            theta0, fisher, g, h, names=names, labels=labels, n_samples=50,
+            seed=0, sampler_bounds=sampler_bounds
         )
 
 
@@ -121,7 +129,7 @@ def test_dali_to_getdist_importance_raises_if_all_rejected_by_logposterior():
         """A function that rejects all samples and returns -inf."""
         return -np.inf
 
-    with pytest.raises(RuntimeError, match=r"All proposal samples rejected by the posterior/prior"):
+    with pytest.raises(RuntimeError, match=r"All kernel samples were rejected"):
         dali_to_getdist_importance(
             theta0,
             fisher,
@@ -129,7 +137,7 @@ def test_dali_to_getdist_importance_raises_if_all_rejected_by_logposterior():
             h,
             names=names,
             labels=labels,
-            nsamp=200,
+            n_samples=200,
             seed=1,
             logprior=logprior,
         )
@@ -139,8 +147,33 @@ def test_dali_to_getdist_emcee_raises_on_names_labels_mismatch():
     """Tests that dali_to_getdist_emcee raises if names/labels length != p."""
     theta0, fisher, g, h = _toy_dali_inputs(2)
 
-    with pytest.raises(ValueError, match="names/labels must match number of parameters"):
-        dali_to_getdist_emcee(theta0, fisher, g, h, names=["a"], labels=["a", "b"], nsteps=20, burn=0, thin=1, nwalkers=8)
+    with pytest.raises(ValueError, match=r"names must have length p=2"):
+        dali_to_getdist_emcee(
+            theta0,
+            fisher,
+            g,
+            h,
+            names=["a"],
+            labels=["a", "b"],
+            n_steps=20,
+            burn=0,
+            thin=1,
+            n_walkers=8,
+        )
+
+    with pytest.raises(ValueError, match=r"labels must have length p=2"):
+        dali_to_getdist_emcee(
+            theta0,
+            fisher,
+            g,
+            h,
+            names=["a", "b"],
+            labels=["a"],
+            n_steps=20,
+            burn=0,
+            thin=1,
+            n_walkers=8,
+        )
 
 
 def test_dali_to_getdist_emcee_returns_mcsamples_and_loglikes_shapes():
@@ -156,10 +189,10 @@ def test_dali_to_getdist_emcee_returns_mcsamples_and_loglikes_shapes():
         h,
         names=names,
         labels=labels,
-        nsteps=60,
+        n_steps=60,
         burn=10,
         thin=2,
-        nwalkers=8,
+        n_walkers=8,
         init_scale=0.2,
         seed=0,
     )
@@ -173,12 +206,12 @@ def test_dali_to_getdist_emcee_returns_mcsamples_and_loglikes_shapes():
     assert np.all(np.isfinite(loglikes))
 
 
-def test_dali_to_getdist_emcee_hard_bounds_respected():
-    """Tests that dali_to_getdist_emcee runs with hard_bounds and returns valid samples."""
+def test_dali_to_getdist_emcee_sampler_bounds_respected():
+    """Tests that dali_to_getdist_emcee runs with sampler_bounds and returns valid samples."""
     theta0, fisher, g, h = _toy_dali_inputs(2)
     names = ["a", "b"]
     labels = ["a", "b"]
-    hard_bounds = [(-0.2, 0.2), (-0.2, 0.2)]
+    sampler_bounds = [(-0.2, 0.2), (-0.2, 0.2)]
 
     m = dali_to_getdist_emcee(
         theta0,
@@ -187,13 +220,13 @@ def test_dali_to_getdist_emcee_hard_bounds_respected():
         h,
         names=names,
         labels=labels,
-        nsteps=80,
+        n_steps=80,
         burn=10,
         thin=2,
-        nwalkers=10,
+        n_walkers=10,
         init_scale=0.3,
         seed=2,
-        hard_bounds=hard_bounds,
+        sampler_bounds=sampler_bounds,
     )
 
     s = np.asarray(m.samples)

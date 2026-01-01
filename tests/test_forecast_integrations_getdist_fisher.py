@@ -36,8 +36,11 @@ def test_fisher_to_getdist_gaussiannd_raises_on_names_labels_mismatch():
     theta0 = np.array([0.0, 0.0])
     fisher = np.eye(2)
 
-    with pytest.raises(ValueError, match="names/labels must match number of parameters"):
+    with pytest.raises(ValueError, match=r"`names` must have length 2"):
         fisher_to_getdist_gaussiannd(theta0, fisher, names=["a"], labels=["a", "b"])
+
+    with pytest.raises(ValueError, match=r"`labels` must have length 2"):
+        fisher_to_getdist_gaussiannd(theta0, fisher, names=["a", "b"], labels=["a"])
 
 
 def test_fisher_to_getdist_samples_returns_mcsamples_and_reproducible():
@@ -48,10 +51,10 @@ def test_fisher_to_getdist_samples_returns_mcsamples_and_reproducible():
     labels = ["x", "y"]
 
     m1 = fisher_to_getdist_samples(
-        theta0, fisher, names=names, labels=labels, nsamp=2000, seed=123, store_loglikes=True
+        theta0, fisher, names=names, labels=labels, n_samples=2000, seed=123, store_loglikes=True
     )
     m2 = fisher_to_getdist_samples(
-        theta0, fisher, names=names, labels=labels, nsamp=2000, seed=123, store_loglikes=True
+        theta0, fisher, names=names, labels=labels, n_samples=2000, seed=123, store_loglikes=True
     )
 
     s1 = np.asarray(m1.samples)
@@ -71,7 +74,7 @@ def test_fisher_to_getdist_samples_store_loglikes_false_sets_loglikes_none():
     labels = ["a", "b"]
 
     m = fisher_to_getdist_samples(
-        theta0, fisher, names=names, labels=labels, nsamp=100, seed=0, store_loglikes=False
+        theta0, fisher, names=names, labels=labels, n_samples=100, seed=0, store_loglikes=False
     )
     assert m.loglikes is None
 
@@ -90,7 +93,7 @@ def test_fisher_to_getdist_samples_hard_bounds_filters_samples():
         fisher,
         names=names,
         labels=labels,
-        nsamp=5000,
+        n_samples=5000,
         seed=0,
         hard_bounds=bounds,
         store_loglikes=True,
@@ -113,13 +116,13 @@ def test_fisher_to_getdist_samples_raises_when_both_logprior_and_prior_terms_giv
     def lp(_th: np.ndarray) -> float:
         return 0.0
 
-    with pytest.raises(ValueError, match=r"Use either `logprior` or \(`prior_terms`/`prior_bounds`\)"):
+    with pytest.raises(ValueError, match=r"Ambiguous prior specification"):
         fisher_to_getdist_samples(
             theta0,
             fisher,
             names=names,
             labels=labels,
-            nsamp=10,
+            n_samples=10,
             seed=0,
             logprior=lp,
             prior_bounds=[(None, None), (None, None)],
@@ -145,7 +148,7 @@ def test_fisher_to_getdist_samples_applies_logprior_and_rejects_outside_support(
         fisher,
         names=names,
         labels=labels,
-        nsamp=5000,
+        n_samples=5000,
         seed=1,
         logprior=logprior,
         store_loglikes=True,
@@ -169,13 +172,13 @@ def test_fisher_to_getdist_samples_raises_if_prior_rejects_all():
         """A function that rejects all samples and returns -inf."""
         return -np.inf
 
-    with pytest.raises(RuntimeError, match=r"All samples rejected by the prior"):
+    with pytest.raises(RuntimeError, match=r"All .* rejected"):
         fisher_to_getdist_samples(
             theta0,
             fisher,
             names=names,
             labels=labels,
-            nsamp=50,
+            n_samples=50,
             seed=0,
             logprior=logprior,
             store_loglikes=True,
@@ -187,8 +190,10 @@ def test_fisher_to_getdist_samples_raises_on_names_labels_mismatch():
     theta0 = np.array([0.0, 0.0])
     fisher = np.eye(2)
 
-    with pytest.raises(ValueError, match="names/labels must match number of parameters"):
-        fisher_to_getdist_samples(theta0, fisher, names=["a", "b"], labels=["a"], nsamp=10, seed=0)
+    with pytest.raises(ValueError, match=r"`labels` must have length 2"):
+        fisher_to_getdist_samples(
+            theta0, fisher, names=["a", "b"], labels=["a"], n_samples=10, seed=0
+        )
 
 
 def test_fisher_to_getdist_gaussiannd_tight_rcond_succeeds_and_matches_pinv():
