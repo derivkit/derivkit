@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use DerivKit, please cite it as below."
+title: "DerivKit"
+type: software
+authors:
+  - given-names: "Nikolina"
+    family-names: "Šarčević"
+    email: "nikolina.sarcevic@gmail.com"
+  - given-names: "Matthijs"
+    family-names: "van der Wild"
+    email: "matthijs@vanderwild.com"
+  - given-names: "Cynthia"
+    family-names: "Trendafilova"
+    email: "cyntrendafilova@gmail.com"
+license: "MIT"
+repository-code: "https://github.com/derivkit/derivkit"
