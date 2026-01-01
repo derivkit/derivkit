@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from derivkit.utils.sandbox import get_partial_function
 
@@ -19,9 +19,8 @@ __all__ = [
     "validate_fisher_shapes",
     "validate_dali_shapes",
     "validate_square_matrix",
-    "resolve_covariance_input",
-    "flatten_matrix_c_order",
-    "require_callable",
+    "ensure_finite",
+    "normalize_theta",
 ]
 
 def is_finite_and_differentiable(
@@ -66,6 +65,7 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
         TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
+    _ = n_workers
 
     probe = np.asarray(partial_vec(theta0[i]), dtype=float)
     if probe.size != 1:
@@ -76,9 +76,9 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
 
 
 def validate_tabulated_xy(
-    x: ArrayLike,
-    y: ArrayLike,
-) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    x: Any,
+    y: Any,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Validates and converts tabulated ``x`` and ``y`` arrays into NumPy arrays.
 
     Requirements:
@@ -112,7 +112,7 @@ def validate_tabulated_xy(
     return x_arr, y_arr
 
 
-def validate_covariance_matrix_shape(cov: ArrayLike) -> NDArray[np.floating]:
+def validate_covariance_matrix_shape(cov: Any) -> NDArray[np.float64]:
     """Validates covariance input shape: allows 0D/1D/2D; if 2D requires square."""
     cov_arr = np.asarray(cov, dtype=float)
     if cov_arr.ndim > 2:
@@ -123,11 +123,11 @@ def validate_covariance_matrix_shape(cov: ArrayLike) -> NDArray[np.floating]:
 
 
 def validate_symmetric_psd(
-    matrix: ArrayLike,
+    matrix: Any,
     *,
-    sym_atol: np.floating = np.float64(1e-12),
-    psd_atol: np.floating = np.float64(1e-12),
-) -> NDArray[np.floating]:
+    sym_atol: float = 1e-12,
+    psd_atol: float = 1e-12,
+) -> NDArray[np.float64]:
     """Validates that an input is a symmetric positive semidefinite (PSD) matrix.
 
     This is intended for strict validation (e.g., inputs passed to GetDist, or any
@@ -162,7 +162,7 @@ def validate_symmetric_psd(
             values, is not PSD within tolerance, if `max(|A - A.T|) > sym_atol``,
             if ``min_eig(0.5*(A + A.T)) < -psd_atol``, or if eigenvalue computation fails.
     """
-    a = np.asarray(matrix, dtype=float)
+    a = np.asarray(matrix, dtype=np.float64)
 
     if a.ndim != 2:
         raise ValueError(f"matrix must be 2D; got ndim={a.ndim}.")
@@ -268,9 +268,9 @@ def validate_dali_shapes(
             )
 
 
-def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
+def validate_square_matrix(a: Any, *, name: str = "matrix") -> NDArray[np.float64]:
     """Validates that the input is a 2D square matrix and return it as float array."""
-    arr = np.asarray(a, dtype=float)
+    arr = np.asarray(a, dtype=np.float64)
     if arr.ndim != 2:
         raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")
     if arr.shape[0] != arr.shape[1]:
@@ -278,111 +278,33 @@ def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.
     return arr
 
 
-def resolve_covariance_input(
-    cov: NDArray[np.float64]
-    | Callable[[NDArray[np.float64]], NDArray[np.float64]]
-    | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
-    *,
-    theta0: NDArray[np.float64],
-    validate: Callable[[Any], NDArray[np.float64]],
-) -> tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]] | None]:
-    """Resolves covariance input into ``(cov0, cov_fn)``.
-
-    Accepted forms for ``cov``:
-
-    - ``cov=C0``: fixed covariance array with shape ``(n_obs, n_obs)``.
-      In this case the covariance-derivative Fisher term is unavailable.
-    - ``cov=cov_fn``: callable returning ``C(theta)`` with shape ``(n_obs, n_obs)``.
-      In this case both the mean term and the covariance trace term can be computed.
-    - ``cov=(C0, cov_fn)``: provide both a fixed ``C0`` and a callable ``cov_fn``.
-      This avoids recomputing ``C(theta0)`` from ``cov_fn``.
+def ensure_finite(arr: Any, *, msg: str) -> None:
+    """Ensures that all values in an array are finite.
 
     Args:
-        cov: Covariance specification in one of the supported forms above.
-        theta0: Fiducial parameter vector used to evaluate ``cov_fn(theta0)`` when needed.
-        validate: Callable used to validate and coerce covariance arrays (e.g.
-            :func:`derivkit.utils.validate.validate_covariance_matrix_shape`).
-
-    Returns:
-        A tuple ``(cov0, cov_fn)`` where:
-
-        - ``cov0`` is the validated covariance at ``theta0`` (or the provided fixed covariance).
-        - ``cov_fn`` is the callable covariance function if provided, otherwise ``None``.
+        arr: Input array-like to check.
+        msg: Error message for the exception if non-finite values are found.
 
     Raises:
-        TypeError: If the tuple form is not exactly ``(cov0, cov_fn)`` or if ``cov_fn`` is not callable.
+        FloatingPointError: If any value in ``arr`` is non-finite.
     """
-    if isinstance(cov, tuple):
-        if len(cov) != 2:
-            raise TypeError("cov tuple form must be (cov0, cov_fn).")
-        cov0, cov_fn = cov
-        if not callable(cov_fn):
-            raise TypeError("cov tuple form must be (cov0, cov_fn) with cov_fn callable.")
-        return validate(cov0), cov_fn
-
-    if callable(cov):
-        cov0 = validate(cov(theta0))
-        return cov0, cov
-
-    return validate(cov), None
+    if not np.isfinite(np.asarray(arr)).all():
+        raise FloatingPointError(msg)
 
 
-def flatten_matrix_c_order(
-    cov_function: Callable[[NDArray[np.float64]], NDArray[np.float64]],
-    theta: NDArray[np.float64],
-    *,
-    n_observables: int,
-) -> NDArray[np.float64]:
-    """Validates the output of a covariance function and flattens it to 1D.
-
-    This function uses a DerivKit convention of flattening 2D arrays in row-major ("C") order.
-    The flattening is necessary when computing derivatives of covariance matrices with respect to
-    parameters, as the derivative routines typically operate on 1D arrays.
+def normalize_theta(theta0: Any) -> NDArray[np.float64]:
+    """Ensures that data vector is a non-empty 1D float array.
 
     Args:
-        cov_function: Callable that takes a parameter vector and returns a covariance matrix.
-        theta: Parameter vector at which to evaluate the covariance function.
-        n_observables: Number of observables, used to validate the shape of the covariance matrix.
+        theta0: Input array-like to validate and convert.
 
     Returns:
-        A 1D NumPy array representing the flattened covariance matrix.
+        1D float array.
 
     Raises:
-        ValueError: If the output of `cov_function` does not have the expected shape.
+        ValueError: if ``theta0`` is empty.
     """
-    cov = validate_covariance_matrix_shape(cov_function(theta))
-    if cov.shape != (n_observables, n_observables):
-        raise ValueError(
-            f"cov_function(theta) must return shape {(n_observables, n_observables)}; got {cov.shape}."
-        )
-    return np.asarray(cov, dtype=np.float64).ravel(order="C")
-
-
-def require_callable(
-    func: Callable[..., Any] | None,
-    *,
-    name: str = "function",
-    context: str | None = None,
-    hint: str | None = None,
-) -> Callable[..., Any]:
-    """Raises if a required callable dependency is missing.
-
-    Args:
-        func: Callable to validate.
-        name: Name shown in the error message.
-        context: Optional context prefix (e.g. "ForecastKit.fisher").
-        hint: Optional hint appended to the error message.
-
-    Returns:
-        The input callable.
-
-    Raises:
-        ValueError: If ``fn`` is None.
-    """
-    if func is None:
-        prefix = f"{context}: " if context else ""
-        msg = f"{prefix}{name} must be provided."
-        if hint:
-            msg += f" {hint}"
-        raise ValueError(msg)
-    return func
+    theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta.size == 0:
+        raise ValueError("theta0 must be a non-empty 1D array.")
+    return theta

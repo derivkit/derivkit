@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    derivkit.adaptive
+   derivkit.autodiff
    derivkit.calculus
    derivkit.forecasting
    derivkit.likelihoods
