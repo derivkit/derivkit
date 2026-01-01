@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 
 from derivkit.utils.validate import (
+    ensure_finite,
     is_finite_and_differentiable,
+    normalize_theta,
     validate_covariance_matrix_shape,
     validate_symmetric_psd,
 )
@@ -73,3 +75,44 @@ def test_validate_symmetric_psd_accepts_nearly_symmetric_matrix():
     # asymmetry ~1e-13 < sym_atol
     out = validate_symmetric_psd(a, sym_atol=1e-12)
     assert out.shape == (2, 2)
+
+
+def test_ensure_finite_accepts_finite_array():
+    """Tests that an array with all finite values is accepted."""
+    arr = np.array([0.0, 1.0, -3.5])
+    ensure_finite(arr, msg="should not fail")
+
+
+def test_ensure_finite_rejects_nan():
+    """Tests that an array with NaN values is rejected."""
+    arr = np.array([0.0, np.nan])
+    with pytest.raises(FloatingPointError, match="nan"):
+        ensure_finite(arr, msg="nan detected")
+
+
+def test_ensure_finite_rejects_inf():
+    """Tests that an array with Inf values is rejected."""
+    arr = np.array([1.0, np.inf])
+    with pytest.raises(FloatingPointError, match="inf"):
+        ensure_finite(arr, msg="inf detected")
+
+
+def test_normalize_theta_accepts_1d_array():
+    """Tests that a 1D array is accepted and returned as a float ndarray."""
+    theta = normalize_theta([1.0, 2.0, 3.0])
+    assert isinstance(theta, np.ndarray)
+    assert theta.shape == (3,)
+    assert theta.dtype == float
+
+
+def test_normalize_theta_flattens_nd_array():
+    """Tests that an N-D array is flattened to 1D."""
+    theta = normalize_theta([[1.0, 2.0], [3.0, 4.0]])
+    assert theta.shape == (4,)
+    assert np.all(theta == np.array([1.0, 2.0, 3.0, 4.0]))
+
+
+def test_normalize_theta_rejects_empty():
+    """Tests that an empty array raises ValueError."""
+    with pytest.raises(ValueError, match="non-empty"):
+        normalize_theta([])

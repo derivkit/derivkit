@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from derivkit.utils.sandbox import get_partial_function
 
@@ -19,6 +19,8 @@ __all__ = [
     "validate_fisher_shapes",
     "validate_dali_shapes",
     "validate_square_matrix",
+    "ensure_finite",
+    "normalize_theta",
 ]
 
 def is_finite_and_differentiable(
@@ -63,6 +65,7 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
         TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
+    _ = n_workers
 
     probe = np.asarray(partial_vec(theta0[i]), dtype=float)
     if probe.size != 1:
@@ -73,9 +76,9 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
 
 
 def validate_tabulated_xy(
-    x: ArrayLike,
-    y: ArrayLike,
-) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    x: Any,
+    y: Any,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Validates and converts tabulated ``x`` and ``y`` arrays into NumPy arrays.
 
     Requirements:
@@ -109,7 +112,7 @@ def validate_tabulated_xy(
     return x_arr, y_arr
 
 
-def validate_covariance_matrix_shape(cov: ArrayLike) -> NDArray[np.floating]:
+def validate_covariance_matrix_shape(cov: Any) -> NDArray[np.float64]:
     """Validates covariance input shape: allows 0D/1D/2D; if 2D requires square."""
     cov_arr = np.asarray(cov, dtype=float)
     if cov_arr.ndim > 2:
@@ -120,11 +123,11 @@ def validate_covariance_matrix_shape(cov: ArrayLike) -> NDArray[np.floating]:
 
 
 def validate_symmetric_psd(
-    matrix: ArrayLike,
+    matrix: Any,
     *,
-    sym_atol: np.floating = np.float64(1e-12),
-    psd_atol: np.floating = np.float64(1e-12),
-) -> NDArray[np.floating]:
+    sym_atol: float = 1e-12,
+    psd_atol: float = 1e-12,
+) -> NDArray[np.float64]:
     """Validates that an input is a symmetric positive semidefinite (PSD) matrix.
 
     This is intended for strict validation (e.g., inputs passed to GetDist, or any
@@ -159,7 +162,7 @@ def validate_symmetric_psd(
             values, is not PSD within tolerance, if `max(|A - A.T|) > sym_atol``,
             if ``min_eig(0.5*(A + A.T)) < -psd_atol``, or if eigenvalue computation fails.
     """
-    a = np.asarray(matrix, dtype=float)
+    a = np.asarray(matrix, dtype=np.float64)
 
     if a.ndim != 2:
         raise ValueError(f"matrix must be 2D; got ndim={a.ndim}.")
@@ -265,11 +268,43 @@ def validate_dali_shapes(
             )
 
 
-def validate_square_matrix(a: ArrayLike, *, name: str = "matrix") -> NDArray[np.floating]:
+def validate_square_matrix(a: Any, *, name: str = "matrix") -> NDArray[np.float64]:
     """Validates that the input is a 2D square matrix and return it as float array."""
-    arr = np.asarray(a, dtype=float)
+    arr = np.asarray(a, dtype=np.float64)
     if arr.ndim != 2:
         raise ValueError(f"{name} must be 2D; got ndim={arr.ndim}.")
     if arr.shape[0] != arr.shape[1]:
         raise ValueError(f"{name} must be square; got shape={arr.shape}.")
     return arr
+
+
+def ensure_finite(arr: Any, *, msg: str) -> None:
+    """Ensures that all values in an array are finite.
+
+    Args:
+        arr: Input array-like to check.
+        msg: Error message for the exception if non-finite values are found.
+
+    Raises:
+        FloatingPointError: If any value in ``arr`` is non-finite.
+    """
+    if not np.isfinite(np.asarray(arr)).all():
+        raise FloatingPointError(msg)
+
+
+def normalize_theta(theta0: Any) -> NDArray[np.float64]:
+    """Ensures that data vector is a non-empty 1D float array.
+
+    Args:
+        theta0: Input array-like to validate and convert.
+
+    Returns:
+        1D float array.
+
+    Raises:
+        ValueError: if ``theta0`` is empty.
+    """
+    theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta.size == 0:
+        raise ValueError("theta0 must be a non-empty 1D array.")
+    return theta
