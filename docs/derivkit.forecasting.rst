@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   derivkit.forecasting.integrations
    derivkit.forecasting.priors
 
 Submodules
