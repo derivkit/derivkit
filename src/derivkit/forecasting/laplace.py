@@ -1,7 +1,7 @@
 """Laplace approximation utilities.
 
-Implements a Gaussian approximation to a posterior around a point ``theta_map``
-(typically the maximum a posteriori, MAP). It uses a second-order Taylor expansion
+Implements a Gaussian approximation to a posterior around a point ``theta_map``.
+This is typically the *maximum a posteriori* (MAP). It uses a second-order Taylor expansion
 of the negative log-posterior:
 
     neg_logpost(theta) = -logposterior(theta)
