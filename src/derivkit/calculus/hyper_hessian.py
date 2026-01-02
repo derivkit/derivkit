@@ -274,7 +274,7 @@ def _compute_component_hyper_hessian(
 
     Args:
         idx: Index of the output component to differentiate.
-        theta: Parameter vector (1D).
+        theta: Parameter vector where the derivatives are evaluated.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
