@@ -37,9 +37,11 @@ def build_hyper_hessian(
 ) -> NDArray[np.float64]:
     """Returns the third-derivative tensor ("hyper-Hessian") of a function.
 
-    For scalar outputs, returns an array with shape ``(p, p, p)`` with ``p``
-    the number of parameters.
-    For tensor outputs with shape ``out_shape``, returns ``(*out_shape, p, p, p)``.
+    This function computes all third-order partial derivatives of a scalar- or
+    vector-valued function with respect to its parameters, evaluated at a single
+    point in parameter space. The resulting tensor generalizes the Hessian to
+    third order and is useful for higher-order Taylor expansions, non-Gaussian
+    approximations, and sensitivity analyses beyond quadratic order.
 
     Args:
         function: Function to differentiate.
@@ -51,7 +53,10 @@ def build_hyper_hessian(
             You may pass ``inner_workers=<int>`` here to override inner parallelism.
 
     Returns:
-        Third-derivative tensor as described above.
+        Third-derivative tensor. For scalar outputs, the result has shape
+        ``(p, p, p)``, where ``p`` is the number of parameters. For tensor-valued
+        outputs with shape ``out_shape``, the result has shape
+        ``(*out_shape, p, p, p)``.
 
     Raises:
         ValueError: If ``theta0`` is empty.
