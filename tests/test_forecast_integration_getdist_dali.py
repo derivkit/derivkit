@@ -3,14 +3,14 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.integrations.getdist_dali_samples import (
+from derivkit.forecasting.getdist_dali_samples import (
     dali_to_getdist_emcee,
     dali_to_getdist_importance,
 )
 
 
 def _toy_dali_inputs(p: int = 2):
-    """Small consistent (theta0, fisher, G, H) for testing."""
+    """Creates toy DALI inputs for testing."""
     theta0 = np.zeros(p)
     fisher = np.eye(p)
     g = np.zeros((p, p, p))

@@ -3,11 +3,11 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.integrations.getdist_fisher_samples import (
+from derivkit.forecasting.getdist_fisher_samples import (
     fisher_to_getdist_gaussiannd,
     fisher_to_getdist_samples,
 )
-from derivkit.forecasting.integrations.sampling_utils import fisher_to_cov
+from derivkit.forecasting.sampling_utils import fisher_to_cov
 
 
 def test_fisher_to_getdist_gaussiannd_mean_and_cov_and_names_and_label():
