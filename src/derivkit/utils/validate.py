@@ -327,29 +327,29 @@ def resolve_covariance_input(
     Accepts a fixed covariance array, a covariance function, or a tuple containing both,
     and returns the covariance at ``theta0`` together with the callable (if provided).
 
-    Accepted forms for ``cov``:
-
-    - ``cov=C0``: fixed covariance array with shape ``(n_obs, n_obs)``.
-      In this case the covariance-derivative Fisher term is unavailable.
-    - ``cov=cov_fn``: callable returning ``C(theta)`` with shape ``(n_obs, n_obs)``.
-      In this case both the mean term and the covariance trace term can be computed.
-    - ``cov=(C0, cov_fn)``: provide both a fixed ``C0`` and a callable ``cov_fn``.
-      This avoids recomputing ``C(theta0)`` from ``cov_fn``.
-
     Args:
-        cov: Covariance specification in one of the supported forms above.
+        cov: Covariance specification. You can pass:
+            - A fixed square covariance array (constant covariance). In this case the
+              returned callable is ``None``.
+            - A callable that takes ``theta`` and returns a square covariance array.
+              In this case the function evaluates it at ``theta0`` to get ``cov0`` and
+              returns the callable as ``cov_fn``.
+            - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
+              and ``cov_fn`` is the callable covariance function. This avoids evaluating
+              the callable at ``theta0`` again.
         theta0: Fiducial parameter vector used to evaluate ``cov_fn(theta0)`` when needed.
         validate: Callable used to validate and coerce covariance arrays (e.g.
             :func:`derivkit.utils.validate.validate_covariance_matrix_shape`).
 
     Returns:
-        A tuple ``(cov0, cov_fn)`` where:
+        A tuple with two items:
 
-        - ``cov0`` is the validated covariance at ``theta0`` (or the provided fixed covariance).
-        - ``cov_fn`` is the callable covariance function if provided, otherwise ``None``.
+        - ``cov0``: The validated covariance at ``theta0`` (or the provided fixed covariance).
+        - ``cov_fn``: The callable covariance function if provided, otherwise ``None``.
 
     Raises:
-        TypeError: If the tuple form is not exactly ``(cov0, cov_fn)`` or if ``cov_fn`` is not callable.
+        TypeError: If the tuple form does not have exactly two items, or if the
+            second item is not callable.
     """
     if isinstance(cov, tuple):
         if len(cov) != 2:
