@@ -11,6 +11,10 @@ Submodules
    derivkit.forecasting.expansions
    derivkit.forecasting.fisher
    derivkit.forecasting.forecast_core
+   derivkit.forecasting.getdist_dali_samples
+   derivkit.forecasting.getdist_fisher_samples
+   derivkit.forecasting.priors_core
+   derivkit.forecasting.sampling_utils
 
 Module contents
 ---------------

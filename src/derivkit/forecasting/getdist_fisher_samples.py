@@ -23,12 +23,12 @@ from getdist import MCSamples
 from getdist.gaussian_mixtures import GaussianND
 from numpy.typing import NDArray
 
-from derivkit.forecasting.integrations.sampling_utils import (
+from derivkit.forecasting.priors_core import build_prior
+from derivkit.forecasting.sampling_utils import (
     apply_parameter_bounds,
     fisher_to_cov,
     kernel_samples_from_fisher,
 )
-from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import validate_fisher_shapes
 
 __all__ = [
