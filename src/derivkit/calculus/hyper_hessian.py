@@ -111,7 +111,7 @@ def _build_hyper_hessian_scalar(
         function: Scalar-valued function to differentiate.
         theta: 1D parameter vector where the derivatives are evaluated..
         method: Derivative method name or alias.
-        inner_workers: Number of inner workers for DerivativeKit calls.
+        inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         outer_workers: Number of outer workers for parallelism over entries.
         **dk_kwargs: Extra keyword args forwarded to :meth:`DerivativeKit.differentiate`.
 
