@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.priors.core import (
+from derivkit.forecasting.priors_core import (
     build_prior,
     prior_beta,
     prior_gaussian,
