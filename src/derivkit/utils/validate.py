@@ -23,6 +23,9 @@ __all__ = [
     "normalize_theta",
     "validate_theta_1d_finite",
     "validate_square_matrix_finite",
+    "resolve_covariance_input",
+    "flatten_matrix_c_order",
+    "require_callable",
 ]
 
 def is_finite_and_differentiable(
@@ -358,3 +361,128 @@ def validate_square_matrix_finite(
     if not np.all(np.isfinite(m)):
         raise ValueError(f"{name} contains non-finite values.")
     return m.astype(np.float64, copy=False)
+
+
+def resolve_covariance_input(
+    cov: NDArray[np.float64]
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]]
+        | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
+    *,
+    theta0: NDArray[np.float64],
+    validate: Callable[[Any], NDArray[np.float64]],
+) -> tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]] | None]:
+    """Processes a covariance input and return a fixed covariance and an optional callable.
+
+    Accepts a fixed covariance array, a covariance function, or a tuple containing both,
+    and returns the covariance at ``theta0`` together with the callable (if provided).
+
+    Args:
+        cov: Covariance input.
+            You can pass:
+
+              - A fixed square covariance array (constant covariance). In this case the
+                returned callable is ``None``.
+              - A callable that takes ``theta`` and returns a square covariance array.
+                In this case the function evaluates it at ``theta0`` to get ``cov0`` and
+                returns the callable as ``cov_fn``.
+              - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
+                and ``cov_fn`` is the callable covariance function. This avoids evaluating
+                the callable at ``theta0`` again.
+        theta0: Fiducial parameter vector. Only used when ``cov`` is a callable covariance
+            function (or when a callable is provided in the tuple form). Ignored for fixed
+            covariance arrays.
+        validate: A function that converts a covariance-like input into a NumPy array and checks its
+            basic shape (and any other rules the caller wants). ``resolve_covariance_input`` exists
+            to handle the different input types for ``cov`` (array vs callable vs (array, callable))
+            and to consistently produce ``(cov0, cov_fn)``; ``validate`` is only used to check/coerce
+            the arrays that come out of that process.
+
+    Returns:
+        A tuple with two items:
+
+        - ``cov0``: The validated covariance at ``theta0`` (or the provided fixed covariance).
+        - ``cov_fn``: The callable covariance function if provided, otherwise ``None``.
+
+    Raises:
+        TypeError: If the tuple form does not have exactly two items, or if the
+            second item is not callable.
+    """
+    if isinstance(cov, tuple):
+        if len(cov) != 2:
+            raise TypeError("cov tuple form must be (cov0, cov_fn).")
+        cov0, cov_fn = cov
+        if not callable(cov_fn):
+            raise TypeError("cov tuple form must be (cov0, cov_fn) with cov_fn callable.")
+        return validate(cov0), cov_fn
+
+    if callable(cov):
+        cov0 = validate(cov(theta0))
+        return cov0, cov
+
+    return validate(cov), None
+
+
+def flatten_matrix_c_order(
+    cov_function: Callable[[NDArray[np.float64]], NDArray[np.float64]],
+    theta: NDArray[np.float64],
+    *,
+    n_observables: int,
+) -> NDArray[np.float64]:
+    """Validates the output of a covariance function and flattens it to 1D.
+
+    This function uses the convention of flattening 2D arrays in row-major ("C") order.
+    The flattening is necessary when computing derivatives of covariance matrices with respect to
+    parameters, as the derivative routines typically operate on 1D arrays.
+
+    Args:
+        cov_function: Callable that takes a parameter vector and returns a covariance matrix.
+        theta: Parameter vector at which to evaluate the covariance function.
+        n_observables: Number of observables, used to validate the shape of the covariance matrix.
+
+    Returns:
+        A 1D NumPy array representing the flattened covariance matrix.
+
+    Raises:
+        ValueError: If the output of ``cov_function`` does not have the expected shape.
+    """
+    cov = validate_covariance_matrix_shape(cov_function(theta))
+    if cov.shape != (n_observables, n_observables):
+        raise ValueError(
+            f"cov_function(theta) must return shape {(n_observables, n_observables)}; got {cov.shape}."
+        )
+    return np.asarray(cov, dtype=np.float64).ravel(order="C")
+
+
+def require_callable(
+    func: Callable[..., Any] | None,
+    *,
+    name: str = "function",
+    context: str | None = None,
+    hint: str | None = None,
+) -> Callable[..., Any]:
+    """Ensures a required callable is provided.
+
+    This is a small helper to validate inputs.
+    If ``func`` is ``None``, it raises a ``ValueError`` with a clear message (and an
+    optional context/hint to make debugging easier). If ``func`` is provided, it is
+    returned unchanged so the caller can use it directly.
+
+    Args:
+        func: Callable to validate.
+        name: Name shown in the error message.
+        context: Optional context prefix (e.g. "ForecastKit.fisher").
+        hint: Optional hint appended to the error message.
+
+    Returns:
+        The input callable.
+
+    Raises:
+        ValueError: If ``func`` is None.
+    """
+    if func is None:
+        prefix = f"{context}: " if context else ""
+        msg = f"{prefix}{name} must be provided."
+        if hint:
+            msg += f" {hint}"
+        raise ValueError(msg)
+    return func
