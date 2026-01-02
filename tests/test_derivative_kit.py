@@ -5,11 +5,13 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.derivative_kit import DerivativeKit
 from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
+from derivkit.derivative_kit import DerivativeKit, _resolve
 from derivkit.finite.finite_difference import FiniteDifferenceDerivative
 from derivkit.fornberg import FornbergDerivative
-from derivkit.local_polynomial_derivative.local_polynomial_derivative import LocalPolynomialDerivative
+from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
+    LocalPolynomialDerivative,
+)
 
 
 def quad(x, a=2.0, b=-3.0, c=1.5):
@@ -372,7 +374,5 @@ def test_tabulated_mode_linear_function_with_real_engines(method):
 )
 def test_method_aliases_resolve_to_expected_engine(alias, expected_class):
     """Tests that method aliases resolve to the correct engine class."""
-    from derivkit.derivative_kit import _resolve  # local import to avoid test coupling
-
     Engine = _resolve(alias)
     assert Engine is expected_class
