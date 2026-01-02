@@ -140,13 +140,14 @@ def laplace_covariance(
     log-posterior at the expansion point acts like a local precision matrix.
     The approximate posterior covariance is the matrix inverse of that Hessian.
 
-    This helper inverts the Hessian using DerivKit's robust linear-solve routine
-    (with a pseudoinverse fallback) and returns a symmetrized covariance matrix
-    suitable for downstream use (e.g., Gaussian approximations, uncertainty
-    summaries, or proposal covariances).
+    This helper inverts the Hessian using DerivKit's robust linear-solve routine.
+    It falls back to a pseudoinverse when the Hessian is ill-conditioned and returns
+    a symmetrized covariance matrix suitable for downstream use, such as Gaussian
+    approximations, uncertainty summaries, and proposal covariances.
 
     Args:
-        hessian: 2D square Hessian matrix (typically of the negative log-posterior).
+        hessian: 2D square Hessian matrix. This is usually the Hessian of the negative
+            log-posterior evaluated at the expansion point.
         rcond: Cutoff for small singular values used by the pseudoinverse fallback.
 
     Returns:
@@ -192,24 +193,28 @@ def laplace_approximation(
 
     This is useful when a fast, local summary of the posterior is needed without
     running a full MCMC sampler. The output includes the expansion point,
-    negative log-posterior value there, the Hessian (local precision), and
-    the covariance matrix (approximate inverse Hessian).
+    negative log-posterior value there, the Hessian, and the covariance matrix.
+    In this approximation the Hessian acts as a local precision matrix, and its
+    inverse is the approximate covariance.
 
     Args:
         neg_logposterior: Callable that accepts a 1D float64 parameter vector and
             returns a scalar negative log-posterior value.
-        theta_map: Expansion point for the approximation (typically the MAP).
+        theta_map: Expansion point for the approximation. This is often the *maximum a
+            posteriori estimate* (MAP), which is the parameter vector that maximizes the
+            posterior.
         method: Derivative method name/alias forwarded to the Hessian builder.
         n_workers: Outer parallelism forwarded to Hessian construction.
         dk_kwargs: Extra keyword arguments forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
-        ensure_spd: If True, attempt to regularize the Hessian to be SPD by adding
-            diagonal jitter (required for a valid Gaussian covariance).
+        ensure_spd: If True, attempt to regularize the Hessian to be symmetric positive definite
+            (SPD) by adding diagonal jitter. This ensures the Gaussian approximation has a valid
+            covariance matrix.
         rcond: Cutoff for small singular values used by the pseudoinverse fallback
             when computing the covariance.
 
     Returns:
         A dictionary with key-value pairs:
-        
+
         - "theta_map": 1D array of the expansion point (dtype ``float64``)).
         - "neg_logposterior_at_map": negative log-posterior at the expansion point (dtype ``float``).
         - "hessian": array containing the Hessian of the negative log-posterior with shape  ``(p, p)`` (local precision, dtype ``float64``).
