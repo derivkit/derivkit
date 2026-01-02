@@ -109,7 +109,7 @@ def _build_hyper_hessian_scalar(
 
     Args:
         function: Scalar-valued function to differentiate.
-        theta: Parameter vector (1D).
+        theta: 1D parameter vector where the derivatives are evaluated..
         method: Derivative method name or alias.
         inner_workers: Number of inner workers for DerivativeKit calls.
         outer_workers: Number of outer workers for parallelism over entries.
