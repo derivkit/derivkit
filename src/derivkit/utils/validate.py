@@ -371,7 +371,7 @@ def flatten_matrix_c_order(
 ) -> NDArray[np.float64]:
     """Validates the output of a covariance function and flattens it to 1D.
 
-    This function uses a DerivKit convention of flattening 2D arrays in row-major ("C") order.
+    This function uses the convention of flattening 2D arrays in row-major ("C") order.
     The flattening is necessary when computing derivatives of covariance matrices with respect to
     parameters, as the derivative routines typically operate on 1D arrays.
 
