@@ -322,7 +322,8 @@ def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.f
         name: Name used in error messages.
 
     Returns:
-        1D float64 NumPy array.
+        A 1D float64 NumPy array containing the validated parameter vector
+        at the expansion point.
 
     Raises:
         ValueError: If ``theta`` is not 1D, is empty, or contains non-finite values.
