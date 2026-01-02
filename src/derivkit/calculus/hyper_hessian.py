@@ -113,7 +113,7 @@ def _build_hyper_hessian_scalar(
         method: Derivative method name or alias.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         outer_workers: Number of outer workers for parallelism over entries.
-        **dk_kwargs: Extra keyword args forwarded to :meth:`DerivativeKit.differentiate`.
+        **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
     Returns:
         Hyper-Hessian array with shape ``(p, p, p)`` with ``p`` the number of parameters.
