@@ -56,7 +56,7 @@ from typing import Any, Callable, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.forecasting.priors.core import build_prior
+from derivkit.forecasting.priors_core import build_prior
 from derivkit.utils.validate import (
     validate_dali_shapes,
     validate_fisher_shapes,
