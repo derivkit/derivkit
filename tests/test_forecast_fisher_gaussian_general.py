@@ -11,7 +11,11 @@ from derivkit.forecasting.fisher_general import (
 
 
 def make_spd_matrix(n: int) -> np.ndarray:
-    """Returns a deterministic symmetric positive definite matrix."""
+    """Return a symmetric positive definite matrix with no randomness.
+
+    Constructed as ``A.T @ A + 1e-1 * I`` where ``A`` is built from
+    ``np.arange(1, n*n + 1).reshape(n, n)``.
+    """
     base = np.arange(1, n * n + 1, dtype=float).reshape(n, n)
     mat = base.T @ base
     mat += 1e-1 * np.eye(n)
