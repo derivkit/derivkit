@@ -208,12 +208,13 @@ def laplace_approximation(
             when computing the covariance.
 
     Returns:
-        A dictionary with keys:
-          - "theta_map": 1D float64 array of the expansion point.
-          - "neg_logposterior_at_map": float negative log-posterior at the expansion point.
-          - "hessian": (p, p) float64 Hessian of the negative log-posterior (local precision).
-          - "cov": (p, p) float64 covariance matrix (approximate inverse Hessian).
-          - "jitter": float amount of diagonal jitter added (0.0 if none).
+        A dictionary with key-value pairs:
+        
+        - "theta_map": 1D array of the expansion point (dtype ``float64``)).
+        - "neg_logposterior_at_map": negative log-posterior at the expansion point (dtype ``float``).
+        - "hessian": array containing the Hessian of the negative log-posterior with shape  ``(p, p)`` (local precision, dtype ``float64``).
+        - "cov": covariance matrix with shape ``(p, p)`` (approximate inverse Hessian).
+        - "jitter": amount of diagonal jitter added  (0.0 if ``None``, dtype ``float``).
 
     Raises:
         TypeError: If ``neg_logposterior`` is not scalar-valued.
