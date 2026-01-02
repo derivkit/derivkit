@@ -77,6 +77,10 @@ Code documentation is generated from docstrings, and can be generated automatica
 
 Newly created rST files may need to be added to the appropriate table of contents files by hand.
 
+The entire documentation for the head of the main branch and all release tags can be generated using::
+
+  tox -e docs-releases
+
 =======
 Testing
 =======
