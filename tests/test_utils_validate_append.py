@@ -112,11 +112,15 @@ def test_validate_fisher_shapes_accepts_valid_shapes() -> None:
 
 def test_validate_fisher_shapes_rejects_non_1d_theta0() -> None:
     """Tests that validate_fisher_shapes rejects non-1D theta0 arrays."""
-    theta0 = np.array([[0.1, 0.2]], dtype=float)  # 2D
     fisher = np.eye(2, dtype=float)
 
+    theta0_2d = np.array([[0.1, 0.2]], dtype=float)
     with pytest.raises(ValueError, match="theta0 must be 1D"):
-        validate_fisher_shapes(theta0, fisher)
+        validate_fisher_shapes(theta0_2d, fisher)
+
+    theta0_3d = np.zeros((1, 1, 2), dtype=float)
+    with pytest.raises(ValueError, match="theta0 must be 1D"):
+        validate_fisher_shapes(theta0_3d, fisher)
 
 
 def test_validate_fisher_shapes_rejects_wrong_fisher_shape() -> None:
