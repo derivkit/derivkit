@@ -88,6 +88,24 @@ class RecordingHessianDiag:
         return np.array([9.0, 8.0])
 
 
+class RecordingHyperHessian:
+    """Records inputs to hyper-Hessian builder."""
+    def __init__(self):
+        """Initialises recorder."""
+        self.func = None
+        self.x0 = None
+        self.args = None
+        self.kwargs = None
+
+    def __call__(self, func, x0, *args, **kwargs):
+        """Records inputs and returns dummy hyper-Hessian."""
+        self.func = func
+        self.x0 = np.asarray(x0, dtype=float)
+        self.args = args
+        self.kwargs = kwargs
+        return np.ones((3, 3, 3))
+
+
 def test_calculuskit_stores_function_and_x0():
     """Tests that CalculusKit stores the input function and x0 correctly."""
     x0 = [0.1, 0.2]
@@ -181,3 +199,24 @@ def test_hessian_diag_delegates_to_build_hessian_diag(monkeypatch):
     assert recorder.args == ()
     assert recorder.kwargs == {"eps": 1e-4}
     np.testing.assert_allclose(out, np.array([9.0, 8.0]))
+
+
+def test_hyper_hessian_delegates_to_build_hyper_hessian(monkeypatch):
+    """Tests that hyper_hessian() delegates to build_hyper_hessian()."""
+    recorder = RecordingHyperHessian()
+    monkeypatch.setattr(
+        "derivkit.calculus_kit.build_hyper_hessian",
+        recorder,
+        raising=True,
+    )
+
+    x0 = [0.0, 1.0, 2.0]
+    ck = CalculusKit(scalar_function, x0)
+
+    out = ck.hyper_hessian(ordering="ijk")
+
+    assert recorder.func is scalar_function
+    np.testing.assert_allclose(recorder.x0, np.asarray(x0, dtype=float))
+    assert recorder.args == ()
+    assert recorder.kwargs == {"ordering": "ijk"}
+    np.testing.assert_allclose(out, np.ones((3, 3, 3)))
