@@ -15,7 +15,7 @@ Examples:
         >>> import numpy as np
         >>> from derivkit.derivative_kit import DerivativeKit
         >>> dk = DerivativeKit(function=np.cos, x0=1.0)
-        >>> # First derivative via the adaptive-fit method:
+        >>> # First derivative via the adaptive fit method:
         >>> # dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
 
     Using tabulated data directly:
@@ -27,7 +27,7 @@ Examples:
         >>> y_tab = x_tab**2
         >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
         >>> # First derivative via the finite difference method:
-        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")
+        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
 
     Registering a new method:
 
@@ -85,12 +85,21 @@ class DerivativeEngine(Protocol):
         ...
 
 
-# These are the built-in methods available in the package by default.
-_METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
-    ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad"]),
-    ("finite",   FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd"]),
-    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp"]),
-    ("fornberg", FornbergDerivative, []),
+# These are the built-in derivative methods available by default.
+# For each method we allow up to five aliases:
+#   - 3 obvious spelling / punctuation variants
+#   - 2 common short-hands users are likely to type
+# This keeps the interface flexible without bloating the lookup table
+# or introducing ambiguous scheme-level names.
+_METHOD_SPECS = [
+    ("adaptive", AdaptiveFitDerivative,
+     ["adaptive-fit", "adaptive_fit", "ad", "adapt", "adaptive"]),
+    ("finite", FiniteDifferenceDerivative,
+     ["finite-difference", "finite_difference", "fd", "findiff", "finite_diff"]),
+    ("local_polynomial", LocalPolynomialDerivative,
+     ["local-polynomial", "local_polynomial", "lp", "localpoly", "local-poly"]),
+    ("fornberg", FornbergDerivative,
+     ["fb", "forn", "fornberg-fd", "fornberg_fd", "fornberg_weights"]),
 ]
 
 
