@@ -82,6 +82,7 @@ requires = ["tox>=4.22"]
 labels = { test = ["py310", "py311", "py312", "py313"] }
 envlist = [
   "docs",
+  "docs-releases",
   "lint",
   "py310",
   "py311",
@@ -105,7 +106,29 @@ commands = [
 PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
 [tool.tox.env.docs]
-description = "Build the HTML files using Sphinx"
+description = "Build the HTML files for the current state using Sphinx"
+extras = ["docs"]
+commands = [
+  [
+    "sphinx-apidoc",
+    "-o", "{tox_root}/docs",
+    "{tox_root}/src/derivkit",
+    "--separate",
+    "-f",
+  ],
+  [
+    "sphinx-build",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/html",
+    "--fail-on-warning",
+  ],
+]
+
+# This feels ugly because it mostly duplicates the docs environment.
+# However, it is the simplest way to allow a user to build the docs
+# for only their local working branch using the old `tox -e docs` rule.
+[tool.tox.env.docs-releases]
+description = "Build the documentation for derivkit releases using Sphinx"
 extras = ["docs"]
 allowlist_externals = ["cp"]
 commands = [
