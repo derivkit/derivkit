@@ -25,7 +25,7 @@ from derivkit.utils.linalg import (
     solve_or_pinv,
     symmetrize_matrix,
 )
-from derivkit.utils.validate_laplace import (
+from derivkit.utils.validate import (
     validate_square_matrix_finite,
     validate_theta_1d_finite,
 )
