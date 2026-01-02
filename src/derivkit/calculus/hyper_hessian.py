@@ -49,7 +49,7 @@ def build_hyper_hessian(
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Outer parallelism across output components (tensor outputs only).
-        **dk_kwargs: Extra keyword args forwarded to :meth:`DerivativeKit.differentiate`.
+        **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
             You may pass ``inner_workers=<int>`` here to override inner parallelism.
 
     Returns:
