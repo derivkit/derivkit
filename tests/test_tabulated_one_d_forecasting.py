@@ -129,9 +129,8 @@ def test_fisher_bias_from_tabulated_linear_model():
     delta_data[0] = 2.5
     data_biased = data_ref + delta_data
 
-
     fisher = fk.fisher(method="adaptive")
-    delta_nu = fk.delta_nu(data_with=data_biased, data_without=data_ref)
+    delta_nu = fk.delta_nu(data_unbiased=data_ref, data_biased=data_biased)
     bias_vec, dtheta = fk.fisher_bias(
         fisher_matrix=fisher,
         delta_nu=delta_nu,
