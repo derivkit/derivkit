@@ -79,8 +79,8 @@ You can include priors in three ways:
 - ``prior_terms`` and/or ``prior_bounds``: build a prior with
   :func:`derivkit.forecasting.priors.core.build_prior`.
 
-In addition, you may specify ``hard_bounds`` for explicit rejection /
-initialization bounds. If both ``prior_bounds`` and ``hard_bounds`` are given,
+In addition, you may specify ``sampler_bounds`` for explicit rejection /
+initialization bounds. If both ``prior_bounds`` and ``sampler_bounds`` are given,
 DerivKit uses their intersection as the effective support.
 
 .. code-block:: python

@@ -26,13 +26,13 @@ from getdist import MCSamples
 from numpy.typing import NDArray
 
 from derivkit.forecasting.expansions import logposterior_dali
-from derivkit.forecasting.integrations.sampling_utils import (
+from derivkit.forecasting.priors_core import build_prior
+from derivkit.forecasting.sampling_utils import (
     apply_parameter_bounds,
     init_walkers_from_fisher,
     kernel_samples_from_fisher,
     log_gaussian_kernel,
 )
-from derivkit.forecasting.priors.core import build_prior
 from derivkit.utils.validate import validate_dali_shapes
 
 __all__ = [

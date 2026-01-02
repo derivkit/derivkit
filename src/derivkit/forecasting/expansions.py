@@ -56,7 +56,7 @@ from typing import Any, Callable, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.forecasting.priors.core import build_prior
+from derivkit.forecasting.priors_core import build_prior
 from derivkit.utils.validate import (
     validate_dali_shapes,
     validate_fisher_shapes,
@@ -227,7 +227,7 @@ def _resolve_logprior(
     This helper allows callers to specify a prior in one of two ways: either by passing
     a pre-built ``logprior(theta)`` callable directly, or by providing a lightweight
     prior specification (``prior_terms`` and/or ``prior_bounds``) that is compiled
-    internally using :meth:`derivkit.forecasting.priors.core.build_prior`.
+    internally using :func:`derivkit.forecasting.priors.core.build_prior`.
 
     Only one of these input styles may be used at a time. Providing both results in a
     ``ValueError``. If neither is provided, the function returns ``None``, indicating
@@ -235,9 +235,9 @@ def _resolve_logprior(
 
     Args:
         prior_terms: Prior term specification passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. If it returns a non-finite value,
             the posterior is treated as zero at that point and the function returns ``-np.inf``.
 
@@ -283,7 +283,7 @@ def logposterior_fisher(
     This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI.
     In this interpretation, fixed ``delta_chi2`` values correspond to fixed probability content
     (e.g. 68%, 95%) in parameter space, as for a Gaussian likelihood.
-    See :meth:`derivkit.forecasting.expansions.delta_chi2_dali` for the corresponding
+    See :func:`derivkit.forecasting.expansions.delta_chi2_dali` for the corresponding
     DALI definition of ``delta_chi2`` and its supported conventions.
 
     Unlike the DALI case, there is no alternative normalization for the Fisher
@@ -298,9 +298,9 @@ def logposterior_fisher(
             expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
         prior_terms: prior term specification passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. If it returns a non-finite value,
             the posterior is treated as zero at that point and the function returns ``-np.inf``.
 
@@ -432,9 +432,9 @@ def logposterior_dali(
         convention: The normalization to use (``"delta_chi2"`` or
             ``"matplotlib_loglike"``).
         prior_terms: prior term specification passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
-            :meth:`derivkit.forecasting.priors.core.build_prior`.
+            :func:`derivkit.forecasting.priors.core.build_prior`.
         logprior: Optional custom log-prior callable. If it returns a non-finite value,
             the posterior is treated as zero at that point and the function returns ``-np.inf``.
 

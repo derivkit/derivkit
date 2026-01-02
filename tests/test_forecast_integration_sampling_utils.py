@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from derivkit.forecasting.integrations.sampling_utils import (
+from derivkit.forecasting.sampling_utils import (
     apply_parameter_bounds,
     fisher_to_cov,
     init_walkers_from_fisher,
