@@ -118,20 +118,19 @@ def build_generalized_gaussian_fisher_matrix(
         )
 
     if term in ("both", "mean"):
-        assert function is not None
-        mu0 = np.asarray(function(theta0), dtype=np.float64)
+        # Validate that function(theta0) matches the observable dimension implied by cov0.
+        _mu0 = np.asarray(function(theta0), dtype=np.float64)
 
-        if mu0.ndim == 0:
+        if _mu0.ndim == 0:
+            # Scalar mean is only valid for a single observable.
             if n_observables != 1:
                 raise ValueError(
                     f"function(theta0) returned a scalar, but cov implies n_observables={n_observables}. "
                     "Return a 1D mean vector with length n_observables."
                 )
-            mu0 = mu0.reshape(1, )  # make it 1D for consistency
-
-        elif mu0.ndim != 1 or mu0.shape[0] != n_observables:
+        elif _mu0.ndim != 1 or _mu0.shape[0] != n_observables:
             raise ValueError(
-                f"function(theta0) must return shape ({n_observables},); got {mu0.shape}."
+                f"function(theta0) must return shape ({n_observables},); got {_mu0.shape}."
             )
 
     # Mean term: mu_{,i}^T C^{-1} mu_{,j}
@@ -153,7 +152,6 @@ def build_generalized_gaussian_fisher_matrix(
     # Covariance term: (1/2) Tr[C^{-1} C_{,i} C^{-1} C_{,j}]
     fisher_cov = np.zeros((n_parameters, n_parameters), dtype=np.float64)
     if term in ("both", "cov"):
-        assert cov_fn is not None
 
         def cov_flat_function(th: NDArray[np.float64]) -> NDArray[np.float64]:
             """Flattened covariance function for derivative computation."""
