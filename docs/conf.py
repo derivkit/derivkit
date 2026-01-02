@@ -27,6 +27,7 @@ extensions = [
 intersphinx_mapping = {
     "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
     "emcee": ("https://emcee.readthedocs.io/en/stable/", None),
+    "jax": ("https://docs.jax.dev/en/latest/", None),
 }
 
 autoclass_content = "both"

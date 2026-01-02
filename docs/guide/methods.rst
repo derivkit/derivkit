@@ -133,7 +133,7 @@ and must be explicitly enabled by the user.
 
 This functionality is intended for quick, informal comparisons or sanity checks against
 DerivKit’s numerical methods when the model is smooth and already written in terms of
-``jax.numpy``. It is *not* designed for noisy, tabulated, or black-box functions, and should
+:mod:`jax.numpy`. It is *not* designed for noisy, tabulated, or black-box functions, and should
 not be relied upon for production inference or robustness studies.
 
 In most scientific use cases targeted by DerivKit, the adaptive or finite
