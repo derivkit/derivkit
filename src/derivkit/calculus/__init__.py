@@ -3,10 +3,10 @@
 Provides constructors for gradient, Jacobian, and Hessian computations.
 """
 
-from .gradient import build_gradient
-from .hessian import build_hessian, build_hessian_diag
-from .hyper_hessian import build_hyper_hessian
-from .jacobian import build_jacobian
+from derivkit.calculus.gradient import build_gradient
+from derivkit.calculus.hessian import build_hessian, build_hessian_diag
+from derivkit.calculus.hyper_hessian import build_hyper_hessian
+from derivkit.calculus.jacobian import build_jacobian
 
 __all__ = [
     "build_gradient",
