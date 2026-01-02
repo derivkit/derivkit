@@ -186,7 +186,7 @@ def _third_derivative_entry(
     n_workers: int,
     dk_kwargs: dict[str, Any],
 ) -> float:
-    """Computes the third order derivative of `function` at `theta0` with respect to parameters ``i``, ``j``, ``k``.
+    """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
 
     Args:
         function: Scalar-valued function to differentiate.
@@ -199,7 +199,7 @@ def _third_derivative_entry(
         dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
     Returns:
-        Value of the third order derivative of the function at theta0.
+        Value of the third order derivative of the function at ``theta0``.
     """
     i, j, k = int(i), int(j), int(k)
     ii, jj, kk = sorted((i, j, k))
