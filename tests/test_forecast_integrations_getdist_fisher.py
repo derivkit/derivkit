@@ -24,8 +24,6 @@ def test_fisher_to_getdist_gaussiannd_mean_and_cov_and_names_and_label():
     assert list(g.names) == names
     assert g.label == "X"
 
-    # Labels: GaussianND doesn't expose `.labels` in this getdist version.
-    # Check via the parameter names/labels container if present.
     if hasattr(g, "paramNames") and g.paramNames is not None:
         assert [p.name for p in g.paramNames.names] == names
         assert [p.label for p in g.paramNames.names] == labels
