@@ -24,8 +24,8 @@ __all__ = [
 def build_generalized_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     cov: NDArray[np.float64]
-    | Callable[[NDArray[np.float64]], NDArray[np.float64]]
-    | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]]
+        | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
     function: Callable[[NDArray[np.float64]], float | NDArray[np.float64]] | None,
     *,
     term: str = "both",
