@@ -34,17 +34,13 @@ def build_generalized_gaussian_fisher_matrix(
     symmetrize_dcov: bool = True,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
-    r"""Computes the generalized Gaussian Fisher matrix for data with parameter-dependent
-    mean and covariance.
+    r"""Computes the generalized Gaussian Fisher matrix.
 
     This implements the standard generalized Fisher matrix for a Gaussian likelihood
     with parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
+    For data ``d ~ N(mu(theta), C(theta))``, the generalized Fisher matrix at ``theta0`` is::
 
-    For data :math:`d \sim \mathcal{N}(\mu(\theta), C(\theta))`, the generalized Fisher matrix
-    evaluated at ``theta0`` is .. math::
-
-        F_{ij} = \mu_{,i}^{\mathsf{T}} C^{-1} \mu_{,j}
-                 + \frac{1}{2}\mathrm{Tr}\!\left[C^{-1} C_{,i} C^{-1} C_{,j}\right].
+        F_ij = mu_,i^T C^-1 mu_,j + 1/2 Tr[C^-1 C_,i C^-1 C_,j]
 
     Notes:
         ``function`` may be ``None`` if you only request the covariance term
@@ -70,9 +66,17 @@ def build_generalized_gaussian_fisher_matrix(
               ``cov_fn(theta0)`` internally.
             The callable form is evaluated at ``theta0`` to determine ``n_obs`` and (unless
             ``C0`` is provided) to define ``C0 = C(theta0)``.
-
         theta0: Fiducial parameter vector where the Fisher matrix is evaluated.
-        term: Which contribution(s) to return: ``"mean"``, ``"cov"``, or ``"both"``.
+        term: Which contribution(s) to return.
+            - ``"mean"``: returns only the mean-gradient term
+              :math:`\mu_{,i}^\mathsf{T} C^{-1} \mu_{,j}`. Requires ``function``.
+              A fixed covariance ``C0`` is sufficient.
+            - ``"cov"``: returns only the covariance-derivative trace term
+              :math:`\tfrac{1}{2}\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`. Requires a
+              parameter-dependent covariance callable (pass ``cov`` as ``cov_fn`` or
+              ``(C0, cov_fn)``). ``function`` may be ``None``.
+            - ``"both"``: returns the full Gaussian Fisher matrix combining both terms.
+            Requires both ``function`` and a covariance callable.
         method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelisation. Default is ``1`` (serial).
