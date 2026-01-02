@@ -1,4 +1,4 @@
-"""Gaussian Fisher matrix utilities for models with uncertainty in both inputs and outputs.
+r"""Gaussian Fisher matrix utilities for models with uncertainty in both inputs and outputs.
 
 This module implements the X–Y Gaussian Fisher formalism, where both the measured
 inputs and outputs are noisy and may be correlated. The key idea is to account for
@@ -9,42 +9,43 @@ latent input variables.
 
 Model and covariance structure
 ------------------------------
+
 The model provides a mean prediction ``mu_xy(x, theta)`` for the observed output
 ``y`` as a function of inputs ``x`` and parameters ``theta``. Measurement errors
 on ``x`` and ``y`` are described by a joint Gaussian covariance
 
 .. math::
 
-   C = \\begin{pmatrix}
-       C_{xx} & C_{xy} \\\\
-       C_{xy}^T & C_{yy}
-   \\end{pmatrix}.
+   C =
+   \begin{pmatrix}
+       C_{xx} & C_{xy} \\
+       C_{xy}^{\mathsf{T}} & C_{yy}
+   \end{pmatrix}.
 
 Linearizing the model mean in the inputs around the measured values ``x_obs``,
 
 .. math::
 
-   \\mu_{xy}(x, \\theta) \\approx \\mu_{xy}(x_{obs}, \\theta)
-   + T (x - x_{obs}),
+   \mu_{xy}(x, \theta) \approx \mu_{xy}(x_{\mathrm{obs}}, \theta) + T (x - x_{\mathrm{obs}}),
 
 with
 
 .. math::
 
-   T = \\left. \\frac{\\partial \\mu_{xy}}{\\partial x} \\right|_{(x_{obs}, \\theta)},
+   T = \left.\frac{\partial \mu_{xy}}{\partial x}\right|_{(x_{\mathrm{obs}}, \theta)},
 
 yields an effective output covariance
 
 .. math::
 
    R = C_{yy}
-       - C_{xy}^T T^T
+       - C_{xy}^{\mathsf{T}} T^{\mathsf{T}}
        - T C_{xy}
-       + T C_{xx} T^T.
+       + T C_{xx} T^{\mathsf{T}}.
 
-This effective covariance replaces ``C_{yy}`` in the Gaussian likelihood and
-Fisher matrix. The covariance blocks ``Cxx``, ``Cxy``, and ``Cyy`` are treated as
-fixed; parameter dependence enters only through the local sensitivity matrix ``T``.
+This effective covariance replaces ``C_{yy}`` in the Gaussian likelihood and Fisher
+matrix. The covariance blocks ``Cxx``, ``Cxy``, and ``Cyy`` are treated as fixed;
+parameter dependence enters only through the local sensitivity matrix ``T``.
 
 This formalism follows the generalized Fisher matrix treatment of
 Heavens et al. (2014), https://arxiv.org/abs/1404.2854.

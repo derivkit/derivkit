@@ -328,15 +328,17 @@ def resolve_covariance_input(
     and returns the covariance at ``theta0`` together with the callable (if provided).
 
     Args:
-        cov: Covariance input. You can pass:
-            - A fixed square covariance array (constant covariance). In this case the
-              returned callable is ``None``.
-            - A callable that takes ``theta`` and returns a square covariance array.
-              In this case the function evaluates it at ``theta0`` to get ``cov0`` and
-              returns the callable as ``cov_fn``.
-            - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
-              and ``cov_fn`` is the callable covariance function. This avoids evaluating
-              the callable at ``theta0`` again.
+        cov: Covariance input.
+            You can pass:
+
+              - A fixed square covariance array (constant covariance). In this case the
+                returned callable is ``None``.
+              - A callable that takes ``theta`` and returns a square covariance array.
+                In this case the function evaluates it at ``theta0`` to get ``cov0`` and
+                returns the callable as ``cov_fn``.
+              - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
+                and ``cov_fn`` is the callable covariance function. This avoids evaluating
+                the callable at ``theta0`` again.
         theta0: Fiducial parameter vector. Only used when ``cov`` is a callable covariance
             function (or when a callable is provided in the tuple form). Ignored for fixed
             covariance arrays.

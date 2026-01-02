@@ -34,55 +34,58 @@ def build_gaussian_fisher_matrix(
     symmetrize_dcov: bool = True,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
-    r"""Computes the Gaussian Fisher matrix.
+    """Computes the Gaussian Fisher matrix.
 
-    This implements the standard Fisher matrix for a Gaussian likelihood
-    with parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
-    For data ``d ~ N(mu(theta), C(theta))``, the generalized Fisher matrix at ``theta0`` is::
+    This implements the standard Fisher matrix for a Gaussian likelihood with
+    parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
+    For data ``d approx N(mu(theta), C(theta))``, the generalized Fisher matrix evaluated at
+    ``theta0`` is ``F_ij = mu_,i^T C^-1 mu_,j + 1/2 Tr[C^-1 C_,i C^-1 C_,j]``.
 
-        F_ij = mu_,i^T C^-1 mu_,j + 1/2 Tr[C^-1 C_,i C^-1 C_,j]
-
-    Notes:
-        ``function`` may be ``None`` if you only request the covariance term
-        (``term="cov"``). If ``term="both"`` or ``term="mean"``, ``function`` must be
-        provided.
+    ``function`` may be ``None`` if you only request the covariance term (``term="cov"``).
+    If ``term="both"`` or ``term="mean"``, ``function`` must be provided.
 
     Args:
-        function: Callable returning the model mean :math:`\mu(\theta)` as a scalar (only if
+        function: Callable returning the model mean ``mu(theta)`` as a scalar (only if
             ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``. Required if
             ``term`` is ``"mean"`` or ``"both"``.
         cov: Covariance input. Provide either a fixed covariance array,
-            a callable covariance function, or a tuple containing both. Supported forms are:
-            - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
-              ``(n_obs, n_obs)``. Here :math:`n_obs` is the number of observables.
+            a callable covariance function, or a tuple containing both.
+
+            Supported forms are:
+
+            - ``cov=C0``: fixed covariance matrix ``C(theta_0)`` with shape
+              ``(n_obs, n_obs)``. Here ``n_obs`` is the number of observables.
               In this case the covariance-derivative Fisher term cannot be computed, so
               ``term`` must be ``"mean"``.
             - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
-              matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``,
+              matrix ``C(theta)`` evaluated at the parameter vector ``theta``,
               with shape ``(n_obs, n_obs)``. This enables the covariance trace term
               (and the mean term if ``function`` is provided).
             - ``cov=(C0, cov_fn)``: provide both a fixed covariance ``C0 = C(theta0)``
               and a callable ``cov_fn(theta) -> C(theta)``. This avoids recomputing
               ``cov_fn(theta0)`` internally.
+
             The callable form is evaluated at ``theta0`` to determine ``n_obs`` and (unless
             ``C0`` is provided) to define ``C0 = C(theta0)``.
         theta0: Fiducial parameter vector where the Fisher matrix is evaluated.
-        term: Which contribution(s) to return.
-            - ``"mean"``: returns only the mean-gradient term
-              :math:`\mu_{,i}^\mathsf{T} C^{-1} \mu_{,j}`. Requires ``function``.
+        term: Which contribution(s) to return. Options are:
+
+            - ``"mean"``: returns only the mean-gradient term. Requires ``function``.
               A fixed covariance ``C0`` is sufficient.
-            - ``"cov"``: returns only the covariance-derivative trace term
-              :math:`\tfrac{1}{2}\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`. Requires a
+
+            - ``"cov"``: returns only the covariance-derivative trace term. Requires a
               parameter-dependent covariance callable (pass ``cov`` as ``cov_fn`` or
               ``(C0, cov_fn)``). ``function`` may be ``None``.
+
             - ``"both"``: returns the full Gaussian Fisher matrix combining both terms.
-            Requires both ``function`` and a covariance callable.
+              Requires both ``function`` and a covariance callable.
+
         method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelisation. Default is ``1`` (serial).
         rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
-            :math:`\tfrac{1}{2}(C_{,i} + C_{,i}^{\mathsf{T}})`. Default is ``True``.
+            ``0.5 * (C_i + C_i_T)``. Default is ``True``.
         **dk_kwargs: Additional keyword arguments forwarded to
             :meth:`derivkit.calculus_kit.CalculusKit.jacobian` and
             :func:`derivkit.forecasting.forecast_core.get_forecast_tensors`.

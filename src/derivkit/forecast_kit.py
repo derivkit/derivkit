@@ -1,4 +1,4 @@
-"""Provides the ForecastKit class.
+r"""Provides the ForecastKit class.
 
 A light wrapper around the core forecasting utilities
 (:func:`derivkit.forecasting.fisher.build_fisher_matrix`,
@@ -9,6 +9,7 @@ API for Fisher and DALI tensors.
 
 Typical usage example:
 
+>>> from derivkit import ForecastKit
 >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 >>> fisher_matrix = fk.fisher(method="adaptive", n_workers=2)
 >>> dali_g, dali_h = fk.dali(method="adaptive", n_workers=4)
@@ -57,7 +58,10 @@ class ForecastKit:
                 :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
             theta0: Fiducial parameter values (shape ``(p,)``), where ``p`` is the
                 number of parameters.
-            cov: Covariance specification. Supported forms are:
+            cov: Covariance specification.
+
+                Supported forms are:
+
                 - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
                   ``(n_obs, n_obs)``, where ``n_obs`` is the number of observables.
                 - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance

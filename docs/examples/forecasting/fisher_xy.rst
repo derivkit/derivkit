@@ -1,5 +1,5 @@
 X–Y Gaussian Fisher matrix
-=========================
+==========================
 
 In some forecasting problems, the model prediction for the observed data depends not
 only on the parameters of interest but also on *measured inputs* that carry
