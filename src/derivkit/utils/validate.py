@@ -316,8 +316,8 @@ def normalize_theta(theta0: Any) -> NDArray[np.float64]:
 
 def resolve_covariance_input(
     cov: NDArray[np.float64]
-    | Callable[[NDArray[np.float64]], NDArray[np.float64]]
-    | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]]
+        | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
     *,
     theta0: NDArray[np.float64],
     validate: Callable[[Any], NDArray[np.float64]],
