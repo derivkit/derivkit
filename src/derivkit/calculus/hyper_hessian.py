@@ -190,7 +190,7 @@ def _third_derivative_entry(
 
     Args:
         function: Scalar-valued function to differentiate.
-        theta0: Parameter vector (1D).
+        theta0: 1D parameter vector at which the derivative is evaluated.
         i: First parameter index.
         j: Second parameter index.
         k: Third parameter index.
