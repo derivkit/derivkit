@@ -384,7 +384,7 @@ def flatten_matrix_c_order(
         A 1D NumPy array representing the flattened covariance matrix.
 
     Raises:
-        ValueError: If the output of `cov_function` does not have the expected shape.
+        ValueError: If the output of ``cov_function`` does not have the expected shape.
     """
     cov = validate_covariance_matrix_shape(cov_function(theta))
     if cov.shape != (n_observables, n_observables):
