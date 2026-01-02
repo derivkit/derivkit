@@ -209,7 +209,7 @@ def laplace_approximation(
         method: Derivative method name/alias forwarded to the Hessian builder.
         n_workers: Outer parallelism forwarded to Hessian construction.
         dk_kwargs: Extra keyword arguments forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
-        ensure_spd: If True, attempt to regularize the Hessian to be symmetric positive definite
+        ensure_spd: If ``True``, attempt to regularize the Hessian to be symmetric positive definite
             (SPD) by adding diagonal jitter. This ensures the Gaussian approximation has a valid
             covariance matrix.
         rcond: Cutoff for small singular values used by the pseudoinverse fallback
