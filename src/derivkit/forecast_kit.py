@@ -27,7 +27,7 @@ from derivkit.forecasting.fisher import (
     build_fisher_bias,
     build_fisher_matrix,
 )
-from derivkit.forecasting.fisher_general import (
+from derivkit.forecasting.fisher_gaussian_general import (
     build_generalized_gaussian_fisher_matrix,
 )
 from derivkit.utils.validate import (

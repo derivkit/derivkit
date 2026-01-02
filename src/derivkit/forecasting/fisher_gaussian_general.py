@@ -34,12 +34,14 @@ def build_generalized_gaussian_fisher_matrix(
     symmetrize_dcov: bool = True,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
-    r"""Computes the generalized Gaussian Fisher matrix for data with parameter-dependent mean and covariance.
+    r"""Computes the generalized Gaussian Fisher matrix for data with parameter-dependent
+    mean and covariance.
+
+    This implements the standard generalized Fisher matrix for a Gaussian likelihood
+    with parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
 
     For data :math:`d \sim \mathcal{N}(\mu(\theta), C(\theta))`, the generalized Fisher matrix
-    evaluated at ``theta0`` is
-
-    .. math::
+    evaluated at ``theta0`` is .. math::
 
         F_{ij} = \mu_{,i}^{\mathsf{T}} C^{-1} \mu_{,j}
                  + \frac{1}{2}\mathrm{Tr}\!\left[C^{-1} C_{,i} C^{-1} C_{,j}\right].

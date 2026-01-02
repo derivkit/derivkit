@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.forecasting.fisher_general import (
+from derivkit.forecasting.fisher_gaussian_general import (
     build_generalized_gaussian_fisher_matrix as gg_fisher,
 )
 
