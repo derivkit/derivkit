@@ -43,7 +43,7 @@ def build_hyper_hessian(
 
     Args:
         function: Function to differentiate.
-        theta0: Parameter vector (1D).
+        theta0: 1D Parameter vector where the derivatives are evaluated.
         method: Derivative method name or alias. If ``None``, DerivativeKit default is used.
         n_workers: Outer parallelism across output components (tensor outputs only).
         **dk_kwargs: Extra keyword args forwarded to :meth:`DerivativeKit.differentiate`.
