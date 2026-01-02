@@ -325,7 +325,7 @@ def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.f
         1D float64 NumPy array.
 
     Raises:
-        ValueError: If not 1D, empty, or contains non-finite values.
+        ValueError: If ``theta`` is not 1D, is empty, or contains non-finite values.
     """
     t = np.asarray(theta, dtype=float)
     if t.ndim != 1:
