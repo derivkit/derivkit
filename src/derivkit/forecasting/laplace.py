@@ -94,7 +94,7 @@ def laplace_hessian(
         theta_map: Point where the curvature is evaluated (typically the MAP).
         method: Derivative method name/alias forwarded to the calculus machinery.
         n_workers: Outer parallelism forwarded to Hessian construction.
-        dk_kwargs: Extra keyword arguments forwarded to ``DerivativeKit.differentiate``.
+        dk_kwargs: Extra keyword arguments forwarded to :meth:`DerivativeKit.differentiate`.
 
     Returns:
         A symmetric 2D array with shape ``(p, p)`` giving the Hessian of
