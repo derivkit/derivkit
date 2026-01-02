@@ -6,6 +6,48 @@ uncertainty in the inputs by propagating it into an effective covariance for the
 outputs through a local linearization of the model. This allows standard Gaussian
 Fisher matrix techniques to be applied without explicitly marginalizing over the
 latent input variables.
+
+Model and covariance structure
+------------------------------
+The model provides a mean prediction ``mu_xy(x, theta)`` for the observed output
+``y`` as a function of inputs ``x`` and parameters ``theta``. Measurement errors
+on ``x`` and ``y`` are described by a joint Gaussian covariance
+
+.. math::
+
+   C = \\begin{pmatrix}
+       C_{xx} & C_{xy} \\\\
+       C_{xy}^T & C_{yy}
+   \\end{pmatrix}.
+
+Linearizing the model mean in the inputs around the measured values ``x_obs``,
+
+.. math::
+
+   \\mu_{xy}(x, \\theta) \\approx \\mu_{xy}(x_{obs}, \\theta)
+   + T (x - x_{obs}),
+
+with
+
+.. math::
+
+   T = \\left. \\frac{\\partial \\mu_{xy}}{\\partial x} \\right|_{(x_{obs}, \\theta)},
+
+yields an effective output covariance
+
+.. math::
+
+   R = C_{yy}
+       - C_{xy}^T T^T
+       - T C_{xy}
+       + T C_{xx} T^T.
+
+This effective covariance replaces ``C_{yy}`` in the Gaussian likelihood and
+Fisher matrix. The covariance blocks ``Cxx``, ``Cxy``, and ``Cyy`` are treated as
+fixed; parameter dependence enters only through the local sensitivity matrix ``T``.
+
+This formalism follows the generalized Fisher matrix treatment of
+Heavens et al. (2014), https://arxiv.org/abs/1404.2854.
 """
 
 from __future__ import annotations
@@ -21,6 +63,16 @@ from derivkit.forecasting.fisher_gaussian import build_gaussian_fisher_matrix
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 MuXY = Callable[[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64] | float]
+
+__all__ = [
+    "mu_xy_given_theta",
+    "mu_xy_given_x0",
+    "build_mu_theta_from_mu_xy",
+    "build_t_matrix",
+    "build_effective_covariance_r",
+    "effective_covariance_r_theta",
+    "build_xy_gaussian_fisher_matrix",
+]
 
 
 def _as_1d_mu_output(y: NDArray[np.float64] | float) -> NDArray[np.float64]:
