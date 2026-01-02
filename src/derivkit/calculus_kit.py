@@ -28,8 +28,13 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.calculus import build_gradient, build_hessian, build_jacobian
-from derivkit.calculus.hessian import build_hessian_diag
+from derivkit.calculus import (
+    build_gradient,
+    build_hessian,
+    build_hessian_diag,
+    build_hyper_hessian,
+    build_jacobian,
+)
 
 
 class CalculusKit:
@@ -90,3 +95,13 @@ class CalculusKit:
         arguments.
         """
         return build_hessian_diag(self.function, self.x0, *args, **kwargs)
+
+    def hyper_hessian(self, *args, **kwargs) -> NDArray[np.floating]:
+        """Returns the third-derivative tensor ("hyper-Hessian") of a function.
+
+        This function is a convenience wrapper around
+        :func:`derivkit.calculus.hyper_hessian.build_hyper_hessian`.
+        Refer to the documentation of that function for tunable optional
+        arguments.
+        """
+        return build_hyper_hessian(self.function, self.x0, *args, **kwargs)
