@@ -4,7 +4,14 @@ Provides constructors for gradient, Jacobian, and Hessian computations.
 """
 
 from .gradient import build_gradient
-from .hessian import build_hessian
+from .hessian import build_hessian, build_hessian_diag
+from .hyper_hessian import build_hyper_hessian
 from .jacobian import build_jacobian
 
-__all__ = ["build_gradient", "build_jacobian", "build_hessian"]
+__all__ = [
+    "build_gradient",
+    "build_jacobian",
+    "build_hessian",
+    "build_hessian_diag",
+    "build_hyper_hessian",
+]
