@@ -201,7 +201,7 @@ def laplace_approximation(
         theta_map: Expansion point for the approximation (typically the MAP).
         method: Derivative method name/alias forwarded to the Hessian builder.
         n_workers: Outer parallelism forwarded to Hessian construction.
-        dk_kwargs: Extra keyword arguments forwarded to ``DerivativeKit.differentiate``.
+        dk_kwargs: Extra keyword arguments forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
         ensure_spd: If True, attempt to regularize the Hessian to be SPD by adding
             diagonal jitter (required for a valid Gaussian covariance).
         rcond: Cutoff for small singular values used by the pseudoinverse fallback
