@@ -348,7 +348,7 @@ def validate_square_matrix_finite(
         A 2D float64 NumPy array containing the validated square matrix.
 
     Raises:
-        ValueError: If input matrix is not 2D, is not square, or contains non-finite values.
+        ValueError: If ``a`` is not 2D, is not square, or contains non-finite values.
     """
     m = np.asarray(a, dtype=float)
     if m.ndim != 2:
