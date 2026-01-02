@@ -1,6 +1,5 @@
 """Generalized Fisher matrix construction for parameter-dependent mean and covariance."""
 
-from functools import partial
 from typing import Any, Callable
 
 import numpy as np
@@ -55,14 +54,19 @@ def build_generalized_gaussian_fisher_matrix(
             ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``. Required if
             ``term`` is ``"mean"`` or ``"both"``.
         cov: Covariance specification. Supported forms are:
-
-            - ``cov=C0``: fixed covariance array with shape ``(n_obs, n_obs)``. In this case
-              only the mean term can be computed (``term="mean"``).
-            - ``cov=cov_fn``: callable returning :math:`C(\theta)` with shape ``(n_obs, n_obs)``.
-              In this case the covariance term can be computed (and the mean term if ``function``
-              is provided).
-            - ``cov=(C0, cov_fn)``: provide both a fixed :math:`C(\theta_0)` and a callable
-              :math:`C(\theta)`. This avoids recomputing ``cov_fn(theta0)``.
+            - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
+              ``(n_obs, n_obs)``. Here :math:`n_obs` is the number of observables.
+              In this case the covariance-derivative Fisher term cannot be computed, so
+              ``term`` must be ``"mean"``.
+            - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
+              matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``,
+              with shape ``(n_obs, n_obs)``. This enables the covariance trace term
+              (and the mean term if ``function`` is provided).
+            - ``cov=(C0, cov_fn)``: provide both a fixed covariance ``C0 = C(theta0)``
+              and a callable ``cov_fn(theta) -> C(theta)``. This avoids recomputing
+              ``cov_fn(theta0)`` internally.
+            The callable form is evaluated at ``theta0`` to determine ``n_obs`` and (unless
+            ``C0`` is provided) to define ``C0 = C(theta0)``.
 
         theta0: Fiducial parameter vector where the Fisher matrix is evaluated.
         term: Which contribution(s) to return: ``"mean"``, ``"cov"``, or ``"both"``.
@@ -144,13 +148,12 @@ def build_generalized_gaussian_fisher_matrix(
     if term in ("both", "cov"):
         assert cov_fn is not None
 
-        cov_flat_function = partial(
-            flatten_matrix_c_order,
-            cov_fn,
-            n_observables=n_observables,
-        )
+        def cov_flat_function(th: NDArray[np.float64]) -> NDArray[np.float64]:
+            """Flattened covariance function for derivative computation."""
+            return flatten_matrix_c_order(cov_fn, th, n_observables=n_observables)
 
         cov_ckit = CalculusKit(cov_flat_function, theta0)
+
         dcov_flat = np.asarray(
             cov_ckit.jacobian(method=method, n_workers=n_workers, **dk_kwargs),
             dtype=np.float64,
