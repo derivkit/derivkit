@@ -409,7 +409,12 @@ def require_callable(
     context: str | None = None,
     hint: str | None = None,
 ) -> Callable[..., Any]:
-    """Raises if a required callable dependency is missing.
+    """Ensures a required callable is provided.
+
+    This is a small helper to validate inputs.
+    If ``func`` is ``None``, it raises a ``ValueError`` with a clear message (and an
+    optional context/hint to make debugging easier). If ``func`` is provided, it is
+    returned unchanged so the caller can use it directly.
 
     Args:
         func: Callable to validate.
@@ -421,7 +426,7 @@ def require_callable(
         The input callable.
 
     Raises:
-        ValueError: If ``fn`` is None.
+        ValueError: If ``func`` is None.
     """
     if func is None:
         prefix = f"{context}: " if context else ""
