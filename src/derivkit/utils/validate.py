@@ -338,7 +338,7 @@ def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.f
 def validate_square_matrix_finite(
     a: Any, *, name: str = "matrix"
 ) -> NDArray[np.float64]:
-    """Validates that the input matrix is a finite 2D square matrix and returns it as a float64 NumPy array.
+    """Validates that the ``a`` is a finite 2D square matrix and returns it as a float64 NumPy array.
 
     Args:
         a: Array-like matrix.
