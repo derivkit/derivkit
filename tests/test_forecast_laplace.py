@@ -99,16 +99,27 @@ def test_laplace_covariance_inverts_hessian_and_symmetrizes():
     assert np.allclose(cov, cov_expected)
 
 
-def test_laplace_hessian_symmetrizes_and_validates_shape(monkeypatch):
+@pytest.mark.parametrize(
+    "raw_hessian, expected",
+    [
+        (HESS_RAW_2X2, 0.5 * (HESS_RAW_2X2 + HESS_RAW_2X2.T)),
+        (HESS_RAW_3X3, 0.5 * (HESS_RAW_3X3 + HESS_RAW_3X3.T)),
+    ],
+)
+def test_laplace_hessian_symmetrizes_and_validates_shape(monkeypatch, raw_hessian, expected):
     """Tests that laplace_hessian symmetrizes the Hessian and validates its shape."""
-    monkeypatch.setattr(
-        calculus_kit_mod.CalculusKit, "hessian", fake_hessian_returns_h_raw_2x2, raising=True
-    )
 
-    h = laplace_hessian(neg_logposterior=nlp_quadratic, theta_map=[0.1, -0.2])
+    def _fake_hessian(self, method=None, n_workers=1, **kwargs):
+        """A fake Hessian function that returns the provided raw Hessian matrix."""
+        return raw_hessian
+
+    monkeypatch.setattr(calculus_kit_mod.CalculusKit, "hessian", _fake_hessian, raising=True)
+
+    theta_map = np.zeros(raw_hessian.shape[0], dtype=np.float64)
+    h = laplace_hessian(neg_logposterior=nlp_quadratic, theta_map=theta_map)
 
     assert np.allclose(h, h.T)
-    assert np.allclose(h, 0.5 * (HESS_RAW_2X2 + HESS_RAW_2X2.T))
+    assert np.allclose(h, expected)
 
 
 def test_laplace_hessian_raises_if_hessian_ndim_not_2(monkeypatch):
