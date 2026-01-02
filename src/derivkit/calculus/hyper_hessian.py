@@ -195,8 +195,8 @@ def _third_derivative_entry(
         j: Second parameter index.
         k: Third parameter index.
         method: Derivative method name or alias.
-        n_workers: Number of workers for DerivativeKit calls.
-        dk_kwargs: Extra keyword args forwarded to :meth:`DerivativeKit.differentiate`.
+        n_workers: Number of workers for :class:`derivkit.DerivativeKit` calls.
+        dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
     Returns:
         Value of the third order derivative of the function at theta0.
