@@ -1,4 +1,4 @@
-"""Provides the ForecastKit class.
+r"""Provides the ForecastKit class.
 
 A light wrapper around the core forecasting utilities
 (:func:`derivkit.forecasting.fisher.build_fisher_matrix`,
@@ -52,30 +52,62 @@ from derivkit.forecasting.fisher import (
     build_fisher_bias,
     build_fisher_matrix,
 )
+from derivkit.forecasting.fisher_gaussian import (
+    build_gaussian_fisher_matrix,
+)
+from derivkit.utils.validate import (
+    require_callable,
+    resolve_covariance_input,
+    validate_covariance_matrix_shape,
+)
 
 
 class ForecastKit:
     """Provides access to Fisher and DALI likelihood-expansion tensors."""
 
     def __init__(
-        self,
-        function: Callable[[Sequence[float] | np.ndarray], np.ndarray],
-        theta0: Sequence[float] | np.ndarray,
-        cov: np.ndarray,
+            self,
+            function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
+            theta0: Sequence[float] | np.ndarray,
+            cov: np.ndarray
+                 | Callable[[np.ndarray], np.ndarray]
+                 | tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]],
     ):
-        """Initialises the forecaster with model, fiducials, and covariance.
+        r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
         Args:
-            function: Model mapping parameters to observables (1D array-like
-                in, 1D array out).
-            theta0: Fiducial parameter values (shape ``(P,)``). Here, ``P``
-                is the number of model parameters (``P == len(theta0)``)
-            cov: Observables covariance (shape ``(N, N)``). ``N`` is the number
-                of observables (``N == cov.shape[0]``)
+            function: Callable returning the model mean vector :math:`\\mu(\\theta)`.
+                May be ``None`` if you only plan to use covariance-only workflows
+                (e.g. generalized Fisher with ``term="cov"``). Required for
+                :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
+            theta0: Fiducial parameter values (shape ``(p,)``), where ``p`` is the
+                number of parameters.
+            cov: Covariance specification.
+
+                Supported forms are:
+
+                - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
+                  ``(n_obs, n_obs)``, where ``n_obs`` is the number of observables.
+                - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
+                  matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``
+                  (shape ``(n_obs, n_obs)``). The covariance at ``theta0`` is evaluated
+                  once and cached.
+                - ``cov=(C0, cov_fn)``: provide both a fixed covariance
+                  ``C0 = C(theta0)`` and a callable ``cov_fn(theta) -> C(theta)``.
+                  This avoids recomputing ``cov_fn(theta0)`` internally.
         """
         self.function = function
-        self.theta0 = theta0
-        self.cov = cov
+        self.theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
+
+        cov0, cov_fn = resolve_covariance_input(
+            cov,
+            theta0=self.theta0,
+            validate=validate_covariance_matrix_shape,
+        )
+
+        self.cov0 = np.asarray(cov0, dtype=np.float64)
+        self.cov_fn = cov_fn
+        self.n_observables = int(self.cov0.shape[0])
 
     def fisher(
         self,
@@ -98,10 +130,12 @@ class ForecastKit:
         Returns:
             Fisher matrix with shape ``(n_parameters, n_parameters)``.
         """
+        function = require_callable(self.function, context="ForecastKit.fisher")
+
         fisher_matrix = build_fisher_matrix(
-            function=self.function,
+            function=function,
             theta0=self.theta0,
-            cov=self.cov,
+            cov=self.cov0,
             method=method,
             n_workers=n_workers,
             **dk_kwargs,
@@ -161,10 +195,12 @@ class ForecastKit:
             covariance, or the Fisher matrix dimensions.
           FloatingPointError: If the difference vector contains ``NaN``.
         """
+        function = require_callable(self.function, context="ForecastKit.fisher_bias")
+
         bias = build_fisher_bias(
-            function=self.function,
+            function=function,
             theta0=self.theta0,
-            cov=self.cov,
+            cov=self.cov0,
             fisher_matrix=fisher_matrix,
             delta_nu=delta_nu,
             method=method,
@@ -175,8 +211,8 @@ class ForecastKit:
         return bias
 
     def delta_nu(self,
-                 data_biased: np.ndarray,
                  data_unbiased: np.ndarray,
+                 data_biased: np.ndarray,
                  ):
         """Computes the difference between two data vectors.
 
@@ -190,10 +226,10 @@ class ForecastKit:
         DerivKit package.
 
         Args:
-            data_biased: Data vector that includes the systematic effect.
+            data_unbiased: Reference data vector without the systematic.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
-            data_unbiased: Reference data vector without the systematic.
+            data_biased: Data vector that includes the systematic effect.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
 
@@ -236,16 +272,70 @@ class ForecastKit:
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
-            A tuple ``(G, H)`` where ``G`` has shape ``(P, P, P)`` and ``H``
-            has shape ``(P, P, P, P)``, with ``P`` being the number of model
+            A tuple ``(G, H)`` where ``G`` has shape ``(p, p, p)`` and ``H``
+            has shape ``(p, p, p, p)``, with ``p`` being the number of model
             parameters.
         """
+        function = require_callable(self.function, context="ForecastKit.dali")
+
         dali_tensors = build_dali(
-            function=self.function,
+            function=function,
             theta0=self.theta0,
-            cov=self.cov,
+            cov=self.cov0,
             method=method,
             n_workers=n_workers,
             **dk_kwargs,
         )
         return dali_tensors
+
+    def gaussian_fisher(
+            self,
+            *,
+            term: str = "both",
+            method: str | None = None,
+            n_workers: int = 1,
+            rcond: float = 1e-12,
+            symmetrize_dcov: bool = True,
+            **dk_kwargs: Any,
+    ) -> np.ndarray:
+        r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
+
+        This function computes the generalized Fisher matrix for a Gaussian
+        likelihood with parameter-dependent mean and/or covariance.
+        Uses :func:`derivkit.forecasting.fisher_general.build_generalized_fisher_matrix`.
+
+        Notes:
+            ``function`` may be ``None`` if ``term="cov"``. For ``term="mean"`` or
+            ``term="both"``, a mean model is required.
+
+        Args:
+            term: Which contribution(s) to return: ``"mean"``, ``"cov"``, or ``"both"``.
+            method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+            n_workers: Number of workers for per-parameter parallelisation.
+            rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
+            symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
+                :math:`\\tfrac{1}{2}(C_{,i} + C_{,i}^{\\mathsf{T}})`.
+            **dk_kwargs: Forwarded to the internal derivative calls.
+
+        Returns:
+            Fisher matrix with shape ``(p, p)``.
+        """
+        if self.cov_fn is None and term in ("cov", "both"):
+            raise ValueError(
+                "ForecastKit.generalized_fisher requires a parameter-dependent covariance callable "
+                "for term='cov' or term='both'. Initialize ForecastKit with cov=cov_fn or cov=(cov0, cov_fn)."
+            )
+
+        cov_spec = (self.cov0, self.cov_fn) if self.cov_fn is not None else self.cov0
+
+        return build_gaussian_fisher_matrix(
+            theta0=self.theta0,
+            cov=cov_spec,
+            function=self.function,
+            term=term,
+            method=method,
+            n_workers=n_workers,
+            rcond=rcond,
+            symmetrize_dcov=symmetrize_dcov,
+            **dk_kwargs,
+        )
