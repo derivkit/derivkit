@@ -322,9 +322,8 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
 
     cov0 = 2.0 * np.eye(3)
 
-    def cov_fn(theta):
+    def cov_fn(_theta):
         """Returns a mock covariance matrix."""
-        _ = np.asarray(theta)
         return np.eye(3)
 
     fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=(cov0, cov_fn))
