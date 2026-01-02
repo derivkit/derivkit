@@ -122,7 +122,7 @@ the Fisher Gaussian and return them as :class:`getdist.MCSamples`.
        fisher=fisher,
        names=["a", "b"],
        labels=[r"a", r"b"],
-       hard_bounds=[(0.0, None), (0.0, None)],
+       sampler_bounds=[(0.0, None), (0.0, None)],
        store_loglikes=True,
        label="Fisher (samples)",
    )
