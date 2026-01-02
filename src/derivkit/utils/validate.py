@@ -322,13 +322,13 @@ def resolve_covariance_input(
     theta0: NDArray[np.float64],
     validate: Callable[[Any], NDArray[np.float64]],
 ) -> tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]] | None]:
-    """Process a covariance specification and return a fixed covariance and an optional callable.
+    """Processes a covariance input and return a fixed covariance and an optional callable.
 
     Accepts a fixed covariance array, a covariance function, or a tuple containing both,
     and returns the covariance at ``theta0`` together with the callable (if provided).
 
     Args:
-        cov: Covariance specification. You can pass:
+        cov: Covariance input. You can pass:
             - A fixed square covariance array (constant covariance). In this case the
               returned callable is ``None``.
             - A callable that takes ``theta`` and returns a square covariance array.

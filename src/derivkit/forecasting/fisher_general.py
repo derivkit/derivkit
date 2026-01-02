@@ -53,7 +53,7 @@ def build_generalized_gaussian_fisher_matrix(
         function: Callable returning the model mean :math:`\mu(\theta)` as a scalar (only if
             ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``. Required if
             ``term`` is ``"mean"`` or ``"both"``.
-        cov: Covariance specification. Supported forms are:
+        cov: Covariance input. Supported forms are:
             - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
               ``(n_obs, n_obs)``. Here :math:`n_obs` is the number of observables.
               In this case the covariance-derivative Fisher term cannot be computed, so
