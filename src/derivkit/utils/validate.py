@@ -313,17 +313,14 @@ def normalize_theta(theta0: Any) -> NDArray[np.float64]:
 
 
 def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.float64]:
-    """Validate that ``a`` is a finite 2D square matrix.
-
-    The returned value is a 2D NumPy array with dtype ``float64``.
+    """Validates that ``theta`` is a finite, non-empty 1D parameter vector and returns it as a float64 NumPy array.
 
     Args:
         theta: Array-like parameter vector.
         name: Name used in error messages.
 
     Returns:
-        A 1D float64 NumPy array containing the validated parameter vector
-        at the expansion point.
+        A 1D float64 NumPy array containing the validated parameter vector.
 
     Raises:
         ValueError: If ``theta`` is not 1D, is empty, or contains non-finite values.
@@ -341,17 +338,17 @@ def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.f
 def validate_square_matrix_finite(
     a: Any, *, name: str = "matrix"
 ) -> NDArray[np.float64]:
-    """Validates a finite 2D square matrix and return as float64.
+    """Validates that the input matrix is a finite 2D square matrix and returns it as a float64 NumPy array.
 
     Args:
         a: Array-like matrix.
         name: Name used in error messages.
 
     Returns:
-        2D float64 NumPy array.
+        A 2D float64 NumPy array containing the validated square matrix.
 
     Raises:
-        ValueError: If not 2D square or contains non-finite values.
+        ValueError: If input matrix is not 2D, is not square, or contains non-finite values.
     """
     m = np.asarray(a, dtype=float)
     if m.ndim != 2:
