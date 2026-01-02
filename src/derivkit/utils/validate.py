@@ -337,7 +337,9 @@ def resolve_covariance_input(
             - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
               and ``cov_fn`` is the callable covariance function. This avoids evaluating
               the callable at ``theta0`` again.
-        theta0: Fiducial parameter vector used to evaluate ``cov_fn(theta0)`` when needed.
+        theta0: Fiducial parameter vector. Only used when ``cov`` is a callable covariance
+            function (or when a callable is provided in the tuple form). Ignored for fixed
+            covariance arrays.
         validate: Callable used to validate and coerce covariance arrays (e.g.
             :func:`derivkit.utils.validate.validate_covariance_matrix_shape`).
 
