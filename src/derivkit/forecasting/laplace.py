@@ -2,7 +2,7 @@
 
 Implements a Gaussian approximation to a posterior around a point ``theta_map``.
 This is typically the *maximum a posteriori* (MAP). It uses a second-order Taylor expansion
-of the negative log-posterior:
+of the negative log-posterior::
 
     neg_logpost(theta) = -logposterior(theta)
     neg_logpost(theta) ≈ neg_logpost(theta_map) + 0.5 * d^T H d
