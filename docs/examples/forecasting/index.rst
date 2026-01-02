@@ -9,3 +9,4 @@ Forecasting
    dali
    fisher_getdist
    dali_getdist
+   fisher_xy

@@ -137,7 +137,7 @@ Notes and conventions
   covariance. You can control regularization via ``rcond``.
 - ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an
   additive constant), following GetDist conventions.
-- Hard bounds and priors are **optional** and intended for light truncation,
+- Sampler bounds and priors are **optional** and intended for light truncation,
   not for defining complex posteriors.
 - For non-Gaussian posteriors or strong parameter degeneracies, use the
   DALI expansions or a full sampler instead.
