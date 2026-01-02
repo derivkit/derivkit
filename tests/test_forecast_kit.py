@@ -282,9 +282,9 @@ def test_generalized_fisher_raises_without_cov_fn_when_needed():
     fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(2))
 
     with pytest.raises(ValueError):
-        fk.generalized_fisher(term="cov")
+        fk.generalized_gaussian_fisher(term="cov")
     with pytest.raises(ValueError):
-        fk.generalized_fisher(term="both")
+        fk.generalized_gaussian_fisher(term="both")
 
 
 def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
@@ -316,7 +316,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         return np.full((2, 2), 9.0)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.build_generalized_fisher_matrix",
+        "derivkit.forecast_kit.build_generalized_gaussian_fisher_matrix",
         fake_build_generalized_fisher_matrix,
         raising=True,
     )
@@ -329,7 +329,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         return np.eye(3)
 
     fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=(cov0, cov_fn))
-    out = fk.generalized_fisher(
+    out = fk.generalized_gaussian_fisher(
         term="cov",
         method="finite",
         n_workers=5,

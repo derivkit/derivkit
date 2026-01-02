@@ -1,11 +1,13 @@
-"""Unit tests for derivkit.forecasting.fisher_general.build_generalized_fisher_matrix."""
+"""Unit tests for derivkit.forecasting.fisher_general.build_generalized_gaussian_fisher_matrix."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from derivkit.forecasting.fisher_general import build_generalized_fisher_matrix
+from derivkit.forecasting.fisher_general import (
+    build_generalized_gaussian_fisher_matrix as gg_fisher,
+)
 
 
 def make_spd_matrix(n: int) -> np.ndarray:
@@ -38,7 +40,7 @@ def test_build_generalized_fisher_invalid_term_raises(method: str) -> None:
     cov0 = make_spd_matrix(2)
 
     with pytest.raises(ValueError, match="term must be one of"):
-        build_generalized_fisher_matrix(theta0=theta0, cov=cov0, function=None, term="nope", method=method)
+        gg_fisher(theta0=theta0, cov=cov0, function=None, term="nope", method=method)
 
 
 @pytest.mark.parametrize("method", ["finite", "adaptive", "localpolynomial"])
@@ -48,10 +50,10 @@ def test_build_generalized_fisher_requires_function_for_mean_or_both(method: str
     cov0 = make_spd_matrix(2)
 
     with pytest.raises(ValueError, match="function must be provided"):
-        build_generalized_fisher_matrix(theta0=theta0, cov=cov0, function=None, term="mean", method=method)
+        gg_fisher(theta0=theta0, cov=cov0, function=None, term="mean", method=method)
 
     with pytest.raises(ValueError, match="function must be provided"):
-        build_generalized_fisher_matrix(theta0=theta0, cov=cov0, function=None, term="both", method=method)
+        gg_fisher(theta0=theta0, cov=cov0, function=None, term="both", method=method)
 
 
 @pytest.mark.parametrize("method", ["finite", "adaptive", "localpolynomial"])
@@ -61,7 +63,7 @@ def test_build_generalized_fisher_requires_cov_callable_for_cov_term(method: str
     cov0 = make_spd_matrix(2)
 
     with pytest.raises(ValueError, match="requires a parameter-dependent covariance callable"):
-        build_generalized_fisher_matrix(theta0=theta0, cov=cov0, function=None, term="cov", method=method)
+        gg_fisher(theta0=theta0, cov=cov0, function=None, term="cov", method=method)
 
 
 @pytest.mark.parametrize("method", ["finite", "adaptive", "localpolynomial"])
@@ -82,7 +84,7 @@ def test_build_generalized_fisher_mean_term_matches_analytic_linear_mean(method:
     expected = mean_matrix.T @ cov_inv @ mean_matrix
     expected = 0.5 * (expected + expected.T)
 
-    got = build_generalized_fisher_matrix(
+    got = gg_fisher(
         theta0=theta0,
         cov=cov0,
         function=lambda t: mean_linear_model(t, mean_matrix),
@@ -118,7 +120,7 @@ def test_build_generalized_fisher_cov_only_matches_analytic_linear_cov(method: s
             expected[i, j] = 0.5 * np.trace(cov_inv @ slopes[i] @ cov_inv @ slopes[j])
     expected = 0.5 * (expected + expected.T)
 
-    got = build_generalized_fisher_matrix(
+    got = gg_fisher(
         theta0=theta0,
         cov=(cov_at_theta0, lambda t: covariance_linear_model(t, cov_base, cov_slope_0, cov_slope_1)),
         function=None,
@@ -147,7 +149,7 @@ def test_build_generalized_fisher_both_equals_mean_plus_cov(method: str) -> None
 
     cov_at_theta0 = covariance_linear_model(theta0, cov_base, cov_slope_0, cov_slope_1)
 
-    fisher_mean = build_generalized_fisher_matrix(
+    fisher_mean = gg_fisher(
         theta0=theta0,
         cov=cov_at_theta0,
         function=lambda t: mean_linear_model(t, mean_matrix),
@@ -155,7 +157,7 @@ def test_build_generalized_fisher_both_equals_mean_plus_cov(method: str) -> None
         method=method,
         n_workers=1,
     )
-    fisher_cov = build_generalized_fisher_matrix(
+    fisher_cov = gg_fisher(
         theta0=theta0,
         cov=(cov_at_theta0, lambda t: covariance_linear_model(t, cov_base, cov_slope_0, cov_slope_1)),
         function=None,
@@ -163,7 +165,7 @@ def test_build_generalized_fisher_both_equals_mean_plus_cov(method: str) -> None
         method=method,
         n_workers=1,
     )
-    fisher_both = build_generalized_fisher_matrix(
+    fisher_both = gg_fisher(
         theta0=theta0,
         cov=(cov_at_theta0, lambda t: covariance_linear_model(t, cov_base, cov_slope_0, cov_slope_1)),
         function=lambda t: mean_linear_model(t, mean_matrix),
@@ -185,7 +187,7 @@ def test_build_generalized_fisher_scalar_mu_requires_nobs_1(method: str) -> None
         return float(theta[0] + theta[1])
 
     with pytest.raises(ValueError, match="returned a scalar, but cov implies n_observables=2"):
-        build_generalized_fisher_matrix(theta0=theta0, cov=cov0, function=mean_scalar, term="mean", method=method)
+        gg_fisher(theta0=theta0, cov=cov0, function=mean_scalar, term="mean", method=method)
 
 
 @pytest.mark.parametrize("method", ["finite", "adaptive", "localpolynomial"])
@@ -196,7 +198,7 @@ def test_build_generalized_fisher_output_is_symmetric(method: str) -> None:
 
     mean_matrix = np.array([[1.0, 2.0], [3.0, -1.0]], dtype=float)
 
-    fisher = build_generalized_fisher_matrix(
+    fisher = gg_fisher(
         theta0=theta0,
         cov=cov0,
         function=lambda t: mean_linear_model(t, mean_matrix),

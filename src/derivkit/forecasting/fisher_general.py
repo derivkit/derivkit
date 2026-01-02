@@ -17,11 +17,11 @@ from derivkit.utils.validate import (
 )
 
 __all__ = [
-    "build_generalized_fisher_matrix"
+    "build_generalized_gaussian_fisher_matrix"
 ]
 
 
-def build_generalized_fisher_matrix(
+def build_generalized_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     cov: NDArray[np.float64]
     | Callable[[NDArray[np.float64]], NDArray[np.float64]]
@@ -109,12 +109,15 @@ def build_generalized_fisher_matrix(
     if term in ("both", "mean"):
         assert function is not None
         mu0 = np.asarray(function(theta0), dtype=np.float64)
+
         if mu0.ndim == 0:
             if n_observables != 1:
                 raise ValueError(
                     f"function(theta0) returned a scalar, but cov implies n_observables={n_observables}. "
                     "Return a 1D mean vector with length n_observables."
                 )
+            mu0 = mu0.reshape(1, )  # make it 1D for consistency
+
         elif mu0.ndim != 1 or mu0.shape[0] != n_observables:
             raise ValueError(
                 f"function(theta0) must return shape ({n_observables},); got {mu0.shape}."
