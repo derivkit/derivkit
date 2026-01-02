@@ -115,7 +115,8 @@ def _build_hyper_hessian_scalar(
     Args:
         function: Scalar-valued function to differentiate.
         theta: 1D parameter vector where the derivatives are evaluated..
-        method: Derivative method name or alias.
+        method: Derivative method name or alias. If ``None``,
+            the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         outer_workers: Number of outer workers for parallelism over entries.
         **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
@@ -199,7 +200,8 @@ def _third_derivative_entry(
         i: First parameter index.
         j: Second parameter index.
         k: Third parameter index.
-        method: Derivative method name or alias.
+        method: Derivative method name or alias. If ``None``,
+            the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Number of workers for :class:`derivkit.DerivativeKit` calls.
         dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
@@ -273,7 +275,8 @@ def _compute_component_hyper_hessian(
     Args:
         idx: Index of the output component to differentiate.
         theta: Parameter vector (1D).
-        method: Derivative method name or alias.
+        method: Derivative method name or alias. If ``None``,
+            the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
         function: Original tensor-valued function.
