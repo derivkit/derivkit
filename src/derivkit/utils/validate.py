@@ -313,7 +313,9 @@ def normalize_theta(theta0: Any) -> NDArray[np.float64]:
 
 
 def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.float64]:
-    """Validates a 1D finite parameter vector and return as float64.
+    """Validate that ``a`` is a finite 2D square matrix.
+
+    The returned value is a 2D NumPy array with dtype ``float64``.
 
     Args:
         theta: Array-like parameter vector.
