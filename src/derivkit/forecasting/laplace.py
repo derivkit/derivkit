@@ -20,8 +20,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
-from derivkit.utils.linalg import solve_or_pinv
-from derivkit.utils.linalg_laplace import make_spd_by_jitter, symmetrize_matrix
+from derivkit.utils.linalg import (
+    make_spd_by_jitter,
+    solve_or_pinv,
+    symmetrize_matrix,
+)
 from derivkit.utils.validate_laplace import (
     validate_square_matrix_finite,
     validate_theta_1d_finite,
