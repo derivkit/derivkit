@@ -10,6 +10,7 @@ Submodules
    derivkit.calculus.calculus_core
    derivkit.calculus.gradient
    derivkit.calculus.hessian
+   derivkit.calculus.hyper_hessian
    derivkit.calculus.jacobian
 
 Module contents
