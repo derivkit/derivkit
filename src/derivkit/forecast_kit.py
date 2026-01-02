@@ -28,7 +28,7 @@ from derivkit.forecasting.fisher import (
     build_fisher_matrix,
 )
 from derivkit.forecasting.fisher_gaussian_general import (
-    build_generalized_gaussian_fisher_matrix,
+    build_gaussian_fisher_matrix,
 )
 from derivkit.utils.validate import (
     require_callable,
@@ -260,7 +260,7 @@ class ForecastKit:
         )
         return dali_tensors
 
-    def generalized_gaussian_fisher(
+    def gaussian_fisher(
             self,
             *,
             term: str = "both",
@@ -300,7 +300,7 @@ class ForecastKit:
 
         cov_spec = (self.cov0, self.cov_fn) if self.cov_fn is not None else self.cov0
 
-        return build_generalized_gaussian_fisher_matrix(
+        return build_gaussian_fisher_matrix(
             theta0=self.theta0,
             cov=cov_spec,
             function=self.function,

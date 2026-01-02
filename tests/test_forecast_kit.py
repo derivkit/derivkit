@@ -281,16 +281,16 @@ def test_generalized_fisher_raises_without_cov_fn_when_needed():
     fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(2))
 
     with pytest.raises(ValueError):
-        fk.generalized_gaussian_fisher(term="cov")
+        fk.gaussian_fisher(term="cov")
     with pytest.raises(ValueError):
-        fk.generalized_gaussian_fisher(term="both")
+        fk.gaussian_fisher(term="both")
 
 
 def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
-    """Tests that ForecastKit.generalized_fisher delegates to build_generalized_fisher_matrix."""
+    """Tests that ForecastKit.gaussian_fisher delegates to build_generalized_fisher_matrix."""
     seen = {}
 
-    def fake_build_generalized_fisher_matrix(
+    def fake_build_gaussian_fisher_matrix(
         *,
         theta0,
         cov,
@@ -302,7 +302,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         symmetrize_dcov=True,
         **dk_kwargs,
     ):
-        """Mock build_generalized_fisher_matrix that records inputs and returns fixed output."""
+        """Mock build_gaussian_fisher_matrix that records inputs and returns fixed output."""
         seen["theta0"] = np.asarray(theta0)
         seen["cov"] = cov
         seen["function"] = function
@@ -315,8 +315,8 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         return np.full((2, 2), 9.0)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.build_generalized_gaussian_fisher_matrix",
-        fake_build_generalized_fisher_matrix,
+        "derivkit.forecast_kit.build_gaussian_fisher_matrix",
+        fake_build_gaussian_fisher_matrix,
         raising=True,
     )
 
@@ -327,7 +327,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         return np.eye(3)
 
     fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=(cov0, cov_fn))
-    out = fk.generalized_gaussian_fisher(
+    out = fk.gaussian_fisher(
         term="cov",
         method="finite",
         n_workers=5,

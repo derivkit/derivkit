@@ -1,4 +1,4 @@
-"""Unit tests for derivkit.forecasting.fisher_general.build_generalized_gaussian_fisher_matrix."""
+"""Unit tests for derivkit.forecasting.fisher_general.build_gaussian_fisher_matrix."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from derivkit.forecasting.fisher_gaussian_general import (
-    build_generalized_gaussian_fisher_matrix as gg_fisher,
+    build_gaussian_fisher_matrix as gg_fisher,
 )
 
 

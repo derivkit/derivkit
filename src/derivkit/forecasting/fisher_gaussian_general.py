@@ -16,11 +16,11 @@ from derivkit.utils.validate import (
 )
 
 __all__ = [
-    "build_generalized_gaussian_fisher_matrix"
+    "build_gaussian_fisher_matrix"
 ]
 
 
-def build_generalized_gaussian_fisher_matrix(
+def build_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     cov: NDArray[np.float64]
         | Callable[[NDArray[np.float64]], NDArray[np.float64]]
@@ -34,9 +34,9 @@ def build_generalized_gaussian_fisher_matrix(
     symmetrize_dcov: bool = True,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
-    r"""Computes the generalized Gaussian Fisher matrix.
+    r"""Computes the Gaussian Fisher matrix.
 
-    This implements the standard generalized Fisher matrix for a Gaussian likelihood
+    This implements the standard Fisher matrix for a Gaussian likelihood
     with parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
     For data ``d ~ N(mu(theta), C(theta))``, the generalized Fisher matrix at ``theta0`` is::
 
