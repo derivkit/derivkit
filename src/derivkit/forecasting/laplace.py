@@ -46,7 +46,7 @@ def negative_logposterior(
     plus log-prior) into the objective most optimizers and curvature-based methods
     work with: the negative log-posterior.
 
-    In practice, this is the scalar function whose Hessian at the maximum a posteriori (MAP)
+    In practice, this is the scalar function whose Hessian at the *maximum a posteriori* (MAP)
     point defines the Laplace (Gaussian) approximation to the posterior, and it is also
     the quantity minimized by MAP estimation routines.
 
