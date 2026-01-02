@@ -340,8 +340,11 @@ def resolve_covariance_input(
         theta0: Fiducial parameter vector. Only used when ``cov`` is a callable covariance
             function (or when a callable is provided in the tuple form). Ignored for fixed
             covariance arrays.
-        validate: Callable used to validate and coerce covariance arrays (e.g.
-            :func:`derivkit.utils.validate.validate_covariance_matrix_shape`).
+        validate: A function that converts a covariance-like input into a NumPy array and checks its
+            basic shape (and any other rules the caller wants). ``resolve_covariance_input`` exists
+            to handle the different input types for ``cov`` (array vs callable vs (array, callable))
+            and to consistently produce ``(cov0, cov_fn)``; ``validate`` is only used to check/coerce
+            the arrays that come out of that process.
 
     Returns:
         A tuple with two items:
