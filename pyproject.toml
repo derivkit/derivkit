@@ -44,6 +44,9 @@ license-files = ["LICENSE*"]
     "sphinx-design",
     "sphinx-multiversion",
     "furo",
+    "sphinx-copybutton",
+    "sphinxawesome-theme",
+    "sphinx-book-theme",
 ]
 "lint" = [
     "ruff",

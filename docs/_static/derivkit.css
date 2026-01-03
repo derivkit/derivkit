@@ -1,12 +1,20 @@
 /* ==========================================================================
-   DerivKit — compact Furo overrides (light + dark)
+   DerivKit — compact theme overrides (Furo + fallbacks for other themes)
    ========================================================================== */
 
-/* --- Brand palette ------------------------------------------------------- */
+/* --- Brand palette + theme-agnostic mapping ------------------------------ */
 :root {
   --dk-blue:   #3b9ab2;
   --dk-yellow: #e1af00;
   --dk-red:    #f21901;
+
+  /* Theme-agnostic mapping (works across themes) */
+  --color-brand-primary: var(--dk-blue);
+  --color-brand-content: var(--dk-blue);
+
+  --color-link: var(--dk-blue);
+  --color-link--hover: var(--dk-red);
+  --color-link--visited: var(--dk-yellow);
 }
 
 /* --- Furo variable mapping (both themes) -------------------------------- */
@@ -21,21 +29,36 @@ html[data-theme="dark"] {
   --color-link--visited: var(--dk-yellow);
 }
 
+/* Theme-agnostic dark fallback (for themes not using html[data-theme]) */
+@media (prefers-color-scheme: dark) {
+  .highlight, pre, code {
+    background-color: #1b1b1b;
+    color: #e6e6e6;
+  }
+}
+
 /* ==========================================================================
    LINKS — one place to rule them all
    (covers content, sidebars, TOC, related, homepage toctree & tiles)
    ========================================================================== */
 
-/* Base colors (unvisited, visited, hover, active) */
+/* Theme-agnostic link colors (for themes that don't use html[data-theme]) */
+a:link    { color: var(--dk-blue)   !important; }
+a:visited { color: var(--dk-yellow) !important; }
+a:hover   { color: var(--dk-red)    !important; }
+a:active  { color: var(--dk-blue)   !important; }
+a { text-decoration-color: currentColor; }
+
+/* Base colors (Furo) */
 html[data-theme] a:link    { color: var(--dk-blue)   !important; }
 html[data-theme] a:visited { color: var(--dk-yellow) !important; }
 html[data-theme] a:hover   { color: var(--dk-red)    !important; }
 html[data-theme] a:active  { color: var(--dk-blue)   !important; }
 
-/* Keep underline matching text color */
+/* Keep underline matching text color (Furo) */
 html[data-theme] a { text-decoration-color: currentColor; }
 
-/* Stronger targets for common doc regions */
+/* Stronger targets for common doc regions (Furo) */
 html[data-theme]
   :is(.content, .sidebar-container, nav.toc, .related, .toc-tree,
       .toctree-wrapper, table.contentstable) a:link       { color: var(--dk-blue)   !important; }
@@ -55,7 +78,7 @@ html[data-theme] a.biglink:visited { color: var(--dk-yellow) !important; }
 html[data-theme] a.biglink:hover   { color: var(--dk-red)    !important; }
 html[data-theme] a.biglink:active  { color: var(--dk-blue)   !important; }
 
-/* FINAL hammer for the last offender: unvisited hover */
+/* FINAL hammer for the last offender: unvisited hover (Furo) */
 html[data-theme] a:link:hover { color: var(--dk-red) !important; }
 
 /* ==========================================================================
@@ -84,15 +107,18 @@ html[data-theme] a:link:hover { color: var(--dk-red) !important; }
 a.reference code { color: var(--dk-blue); }
 
 /* ==========================================================================
-   CODE (Pygments) — dark mode fixes (minimal, no duplication)
+   CODE (Pygments) — dark mode fixes (Furo + generic)
    ========================================================================== */
+
+/* Furo dark mode */
 html[data-theme="dark"] .highlight .k,
 html[data-theme="dark"] .highlight .kd,
 html[data-theme="dark"] .highlight .kn,
 html[data-theme="dark"] .highlight .kp,
 html[data-theme="dark"] .highlight .kr,
 html[data-theme="dark"] .highlight .kt {
-  color: var(--dk-blue) !important; font-weight: 600 !important;
+  color: var(--dk-blue) !important;
+  font-weight: 600 !important;
 }
 
 html[data-theme="dark"] .highlight .nf,
@@ -109,14 +135,16 @@ html[data-theme="dark"] .highlight .m {
 }
 
 html[data-theme="dark"] .highlight .c {
-  color: #8899aa !important; font-style: italic !important;
+  color: #8899aa !important;
+  font-style: italic !important;
 }
 
-/* Optional: unify code block background/foreground in dark */
+/* Optional: unify code block background/foreground in Furo dark */
 html[data-theme="dark"] .highlight,
 html[data-theme="dark"] pre,
 html[data-theme="dark"] code {
-  background-color: #1b1b1b; color: #e6e6e6;
+  background-color: #1b1b1b;
+  color: #e6e6e6;
 }
 
 /* ==========================================================================

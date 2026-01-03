@@ -25,6 +25,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_design",
     "sphinx_multiversion",
+    "sphinx_copybutton",
 ]
 
 doctest_global_setup = """
@@ -33,6 +34,10 @@ np.set_printoptions(precision=12, suppress=True)
 """
 
 doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
+copybutton_copy_empty_lines = False
 
 intersphinx_mapping = {
     "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
@@ -66,26 +71,30 @@ smv_branch_whitelist = "main"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
+# html_theme = "sphinxawesome_theme"
+# html_theme = "sphinx_book_theme"
+html_permalinks_icon = "<span>#</span>"
 
-html_theme_options = {
-    "light_css_variables": {
-        "color-brand-primary": "#3b9ab2",
-        "color-brand-content": "#3b9ab2",
+if html_theme == "furo":
+    html_theme_options = {
+        "light_css_variables": {
+            "color-brand-primary": "#3b9ab2",
+            "color-brand-content": "#3b9ab2",
+            "color-link": "#3b9ab2",
+            "color-link--hover": "#f21901",
+            "color-link--visited": "#e1af00",
+        },
+        "dark_css_variables": {
+            "color-brand-primary": "#3b9ab2",
+            "color-brand-content": "#3b9ab2",
+            "color-link": "#3b9ab2",
+            "color-link--hover": "#f21901",
+            "color-link--visited": "#e1af00",
+        },
+    }
+else:
+    html_theme_options = {}
 
-        # Link color vars that Furo uses
-        "color-link": "#3b9ab2",
-        "color-link--hover": "#f21901",
-        "color-link--visited": "#e1af00",
-    },
-    "dark_css_variables": {
-        "color-brand-primary": "#3b9ab2",
-        "color-brand-content": "#3b9ab2",
-
-        "color-link": "#3b9ab2",
-        "color-link--hover": "#f21901",
-        "color-link--visited": "#e1af00",
-    },
-}
 
 html_static_path = ["_static"]
 html_css_files = [
