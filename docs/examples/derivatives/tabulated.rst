@@ -1,18 +1,13 @@
 Tabulated derivatives
 =====================
 
-This section shows how to compute derivatives using
-:meth:`derivkit.derivative_kit.DerivativeKit.differentiate` when your model is
-available only as tabulated data on a one-dimensional grid, rather than as an
-explicit Python function.
+If you have samples of a 1D function on a grid (tabulated data without an
+explicit functional form), you can compute derivatives directly by passing
+``tab_x`` and ``tab_y`` to :class:`derivkit.derivative_kit.DerivativeKit`.
 
-In this case, DerivKit first constructs an interpolated representation of the
-tabulated values, and then applies the selected derivative backend to that
-interpolant.
-
-This is useful when working with simulation outputs, precomputed theory
-tables, or externally generated data products where the underlying function
-cannot be evaluated analytically.
+Internally, DerivKit wraps the data in a
+:class:`derivkit.tabulated_model.one_d.Tabulated1DModel`, which is then treated
+as a callable by the derivative engines.
 
 
 Basic usage
@@ -22,17 +17,23 @@ Basic usage
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> # Tabulate y = x^2 on a coarse grid
    >>> x_tab = np.linspace(0.0, 3.0, 7)
    >>> y_tab = x_tab**2
-   >>> x0 = 1.5  # point where to evaluate the derivative
-   >>> # Initialize DerivativeKit with tabulated data
+
+   >>> x0 = 1.5
    >>> dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
+
    >>> # First derivative (default method is "adaptive")
-   >>> deriv = dk.differentiate(order=1)
-   >>> err = abs(deriv - 2.0 * x0)  # reference: d/dx x^2 = 2x
-   >>> bool(np.isfinite(deriv) and (err < 1e-5))
-   True
+   >>> d1 = dk.differentiate(order=1)
+   >>> print(d1)
+   3.0
+   >>> print(2.0 * x0)  # reference: d/dx x^2 = 2x
+   3.0
+   >>> print(float(np.round(abs(d1 - 2.0 * x0), 12)))
+   0.0
 
 
 Finite differences on tabulated data
@@ -42,14 +43,15 @@ Finite differences on tabulated data
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
-   >>> # Tabulate y = sin(x) on a coarse grid
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> x_tab = np.linspace(0.0, 3.0, 21)
    >>> y_tab = np.sin(x_tab)
-   >>> x0 = 0.7  # derivative evaluation point
-   >>> # Initialize DerivativeKit with tabulated data
+
+   >>> x0 = 0.7
    >>> dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
-   >>> # First derivative using finite differences
-   >>> deriv = dk.differentiate(
+
+   >>> d1 = dk.differentiate(
    ...     method="finite",
    ...     order=1,
    ...     stepsize=1e-2,
@@ -57,8 +59,11 @@ Finite differences on tabulated data
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> err = abs(deriv - np.cos(x0))  # reference
-   >>> bool(np.isfinite(deriv) and (err < 0.1))
+   >>> print(d1)
+   0.76484219
+   >>> print(np.cos(x0))  # reference
+   0.76484219
+   >>> print(float(np.round(abs(d1 - np.cos(x0)), 10)) == 0.0)
    True
 
 
@@ -69,22 +74,26 @@ Adaptive fit on tabulated data
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
-   >>> # Tabulate y = sin(x) on a coarse grid
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> x_tab = np.linspace(0.0, 3.0, 21)
    >>> y_tab = np.sin(x_tab)
-   >>> x0 = 0.7  # point where to evaluate the derivative
-   >>> # Initialize DerivativeKit with tabulated data
+
+   >>> x0 = 0.7
    >>> dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
-   >>> # First derivative using adaptive polynomial fit
-   >>> deriv = dk.differentiate(
+
+   >>> d1 = dk.differentiate(
    ...     method="adaptive",
    ...     order=1,
    ...     n_points=12,
    ...     spacing="auto",
    ...     ridge=1e-10,
    ... )
-   >>> err = abs(deriv - np.cos(x0))  # reference
-   >>> bool(np.isfinite(deriv) and (err < 0.1))
+   >>> print(d1)
+   0.76484219
+   >>> print(np.cos(x0))  # reference
+   0.76484219
+   >>> print(float(np.round(abs(d1 - np.cos(x0)), 10)) == 0.0)
    True
 
 
