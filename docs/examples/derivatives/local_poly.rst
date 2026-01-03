@@ -4,22 +4,16 @@ Local polynomial fit
 This section shows how to compute derivatives using the local polynomial
 backend in DerivKit.
 
-With ``method="local_polynomial"`` (aliases: ``"local-polynomial"``, ``"lp"``),
-derivatives are estimated by sampling the function near the expansion point
-``x0`` and fitting a low-order polynomial locally. The desired derivative is
-then read off from the fitted polynomial coefficients.
+This backend (``method="local_polynomial"``; aliases: ``"local-polynomial"``,
+``"lp"``) estimates derivatives by sampling the function near ``x0``, fitting a
+local polynomial, and (optionally) trimming outlier samples before reading off
+the derivative from the fitted coefficients.
 
-This method is intended as a **simple and robust alternative to finite
-differences**, particularly when function evaluations are mildly noisy or when
-step-size tuning becomes fragile. Unlike the adaptive Chebyshev backend, the
-local polynomial method does not attempt to optimize the sampling grid or
-conditioning automatically, making it lightweight and predictable.
+Use this when finite differences are too sensitive to noise, but you still want
+a lightweight method without the full adaptive Chebyshev machinery.
 
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-You can select this backend via ``method="local_polynomial"`` (or ``"lp"``) and
-control the polynomial degree, trimming behavior, and diagnostics using keyword
-arguments.
 
 
 Basic usage (automatic degree)
@@ -32,16 +26,20 @@ the backend configuration).
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
-   >>> # Initialize DerivativeKit with the target function and expansion point
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
-   >>> # Compute the first derivative
-   >>> deriv = dk.differentiate(method="local_polynomial", order=1)
-   >>> # Print a stable reference-friendly value (rounding avoids tiny platform diffs)
-   >>> print(float(np.round(deriv, 8)))
-   0.76484218
-   >>> # Compare against the analytic derivative cos(x0)
-   >>> print(abs(deriv - np.cos(0.7)) < 1e-6)
-   True
+
+   >>> val = dk.differentiate(
+   ...     method="local_polynomial",
+   ...     order=1,
+   ... )
+   >>> print(val)
+   0.76484219
+   >>> print(np.cos(0.7))  # reference
+   0.76484219
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
 
 
 Specify polynomial degree
@@ -54,12 +52,19 @@ You can explicitly choose the polynomial degree (must satisfy
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
-   >>> deriv = dk.differentiate(method="lp", order=1, degree=5)
-   >>> print(f"{deriv:.8f}")
+
+   >>> val = dk.differentiate(
+   ...     method="lp",
+   ...     order=1,
+   ...     degree=5,
+   ... )
+   >>> print(val)
    0.76484219
-   >>> print(abs(deriv - np.cos(0.7)) < 1e-8)
-   True
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
 
 
 Return an internal error estimate
@@ -74,19 +79,22 @@ or fails).
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
-   >>> deriv, err = dk.differentiate(
+
+   >>> val, err = dk.differentiate(
    ...     method="local_polynomial",
    ...     order=1,
    ...     degree=5,
    ...     return_error=True,
    ... )
-   >>> print(f"{deriv:.8f}")
+   >>> print(val)
    0.76484219
-   >>> print("err_small:", err < 1e-8)
+   >>> print("err_small:", err < 1e-12)
    err_small: True
-   >>> print(abs(deriv - np.cos(0.7)) < 1e-8)
-   True
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
 
 
 Diagnostics (what was sampled / what got trimmed)
@@ -100,23 +108,23 @@ basic metadata about the fit.
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
-   >>> deriv, diagnostics = dk.differentiate(
+
+   >>> val, diag = dk.differentiate(
    ...     method="local_polynomial",
    ...     order=1,
    ...     diagnostics=True,
    ... )
-   >>> print(float(np.round(deriv, 8)))
-   0.76484218
-   >>> required = ["ok", "x0", "degree", "order", "n_all", "n_used", "x_used", "max_rel_err_used"]
-   >>> print("has_keys:", all(k in diagnostics for k in required))
+   >>> print(val)
+   0.76484219
+   >>> print("has_keys:", all(k in diag for k in ["x", "degree", "order", "used_mask"]))
    has_keys: True
-   >>> print("n_used_le_n_all:", diagnostics["n_used"] <= diagnostics["n_all"])
-   n_used_le_n_all: True
-   >>> print("x_used_len_matches_n_used:", len(diagnostics["x_used"]) == diagnostics["n_used"])
-   x_used_len_matches_n_used: True
-   >>> print("ok_is_bool:", isinstance(diagnostics["ok"], bool))
-   ok_is_bool: True
+   >>> print("n_samples:", len(diag["x"]))
+   n_samples: 8
+   >>> print("n_used:", int(np.sum(diag["used_mask"])))
+   n_used: 8
 
 
 Noisy function example
@@ -129,16 +137,21 @@ function evaluations are noisy.
 
    >>> import numpy as np
    >>> from derivkit.derivative_kit import DerivativeKit
-   >>> # Build a deterministic "noisy" function: noise is sampled once and interpolated
-   >>> rng = np.random.default_rng(42)
-   >>> x_noise = np.linspace(0.0, 2.0, 2049)  # dense grid for stable interpolation
-   >>> eps = 0.01 * rng.normal(size=x_noise.size)
+   >>> np.set_printoptions(precision=8, suppress=True)
+
+   >>> rng = np.random.default_rng(0)
+
    >>> def noisy_sin(x):
-   ...     return np.sin(x) + np.interp(x, x_noise, eps)
+   ...     return np.sin(x) + 0.01 * rng.normal()
+
    >>> dk = DerivativeKit(function=noisy_sin, x0=0.7)
-   >>> deriv = dk.differentiate(method="local_polynomial", order=1, degree=5)
-   >>> # Example-level check: derivative stays close to cos(x) despite mild noise
-   >>> print(abs(deriv - np.cos(0.7)) < 0.2)
+
+   >>> val = dk.differentiate(
+   ...     method="local_polynomial",
+   ...     order=1,
+   ...     degree=5,
+   ... )
+   >>> print(abs(val - np.cos(0.7)) < 0.1)
    True
 
 
@@ -146,10 +159,7 @@ Notes
 -----
 
 - This backend supports scalar and vector outputs (computed component-wise).
-- The polynomial degree must satisfy ``degree >= order``.
-- Internal error estimates are heuristic and intended for diagnostics, not
-  rigorous uncertainty quantification.
-- For strongly noisy functions or poorly conditioned local fits, consider the
-  ``adaptive`` backend.
+- ``n_workers`` can be used to parallelize sampling/evaluation.
+- For heavy noise or badly conditioned local fits, consider the ``adaptive`` backend.
 - If ``x0`` is an array, derivatives are computed independently at each point
   and stacked with leading shape ``x0.shape``.
