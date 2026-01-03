@@ -1,5 +1,7 @@
 """Sphinx configuration for the DerivKit documentation."""
 
+from sphinx.ext.doctest import doctest
+
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
@@ -20,9 +22,17 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
     "sphinx_design",
     "sphinx_multiversion",
 ]
+
+doctest_global_setup = """
+import numpy as np
+np.set_printoptions(precision=12, suppress=True)
+"""
+
+doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
 
 intersphinx_mapping = {
     "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
