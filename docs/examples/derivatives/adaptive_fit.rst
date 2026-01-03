@@ -1,192 +1,248 @@
 Adaptive polynomial fit (Chebyshev)
 ===================================
 
+This section shows how to compute derivatives using the adaptive polynomial
+(Chebyshev) backend in DerivKit.
+
 This backend (``method="adaptive"``) estimates derivatives by fitting a local
-polynomial to samples around ``x0`` on a symmetric Chebyshev grid. It is designed
-for robustness: stable scaling, optional ridge regularization, and rich
-diagnostics when a fit looks suspicious.
+polynomial to samples around the expansion point ``x0`` on a symmetric
+Chebyshev grid. It is designed for robustness, with stable scaling, optional
+ridge regularization, and diagnostics to detect poorly conditioned fits.
 
-Basic usage (defaults)
-----------------------
+The primary interface for this backend is
+:meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
-The default grid is Chebyshev-spaced around ``x0`` with automatically chosen
-half-width (``spacing="auto"``).
+You can select this backend via ``method="adaptive"`` and control its behavior
+using keyword arguments forwarded to the adaptive polynomial fitter.
 
-.. code-block:: python
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+Basic usage
+-----------
 
-   dk = DerivativeKit(function=np.sin, x0=0.7)
+By default, an adaptive Chebyshev grid is constructed automatically around
+``x0`` with an automatically chosen half-width (``spacing="auto"``).
 
-   val = dk.differentiate(
-       method="adaptive",
-       order=1,
-   )
-   print(val)  # ~ cos(0.7)
-   print(np.cos(0.7))  # reference
+.. doctest:: adaptive_basic
+
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
+   >>> dk = DerivativeKit(function=np.sin, x0=0.7)
+
+   >>> val = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ... )
+   >>> print(val)
+   0.76484219
+   >>> print(np.cos(0.7))  # reference
+   0.76484219
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
 
 
 Control sampling: number of points and spacing
 ----------------------------------------------
 
-Use ``n_points`` to control the number of samples, and ``spacing`` to set the
-grid half-width.
+You can control the number of sampling points and the grid half-width.
 
-- ``spacing=float`` means absolute half-width ``h`` (samples in ``[x0-h, x0+h]``)
-- ``spacing="auto"`` chooses a scale from ``x0`` (with a floor ``base_abs``)
-- ``spacing="<pct>%"`` uses a percentage of a local scale
+- ``n_points`` sets the number of samples used in the local fit
+- ``spacing`` controls the half-width of the sampling region
 
-.. code-block:: python
+Accepted forms for ``spacing`` are:
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+- ``float``: absolute half-width ``h`` (samples in ``[x0-h, x0+h]``)
+- ``"auto"``: scale inferred from ``x0`` with a floor ``base_abs``
+- ``"<pct>%"``: percentage of a local scale
 
-   dk = DerivativeKit(function=np.sin, x0=0.7)
+.. doctest:: adaptive_sampling_control
 
-   val = dk.differentiate(
-       method="adaptive",
-       order=1,
-       n_points=12,
-       spacing=1e-2,
-   )
-   print(val)
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
+   >>> dk = DerivativeKit(function=np.sin, x0=0.7)
+
+   >>> val = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ...     n_points=12,
+   ...     spacing=1e-2,
+   ... )
+   >>> print(val)
+   0.76484219
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
 
 
 Domain-aware sampling (stay inside bounds)
 ------------------------------------------
 
-If your function is only valid on a finite interval, pass ``domain=(lo, hi)``.
-The default grid is clipped/transformed to stay within bounds.
+If the function is only defined on a finite interval, you can specify a domain
+to ensure all samples remain valid.
 
-.. code-block:: python
+The adaptive grid is clipped or transformed as needed to stay inside bounds.
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+.. doctest:: adaptive_domain
 
-   f = np.log
-   x0 = 0.05
-   dk = DerivativeKit(function=f, x0=x0)
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
 
-   val = dk.differentiate(
-       method="adaptive",
-       order=1,
-       domain=(0.0, None),  # stay in x > 0
-       spacing="auto",
-       base_abs=1e-3,
-   )
-   print(val)  # ~ 1/x0
-   print(1.0 / x0)  # reference
+   >>> f = np.log
+   >>> x0 = 0.05
+   >>> dk = DerivativeKit(function=f, x0=x0)
+
+   >>> val = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ...     domain=(0.0, None),
+   ...     spacing="auto",
+   ...     base_abs=1e-3,
+   ... )
+   >>> print(val)
+   20.0
+   >>> print(1.0 / x0)  # reference
+   20.0
+   >>> print(float(np.round(abs(val - 1.0 / x0), 12)))
+   0.0
 
 
-User-supplied grids (offsets or absolute x)
--------------------------------------------
+User-supplied grids (offsets or absolute coordinates)
+-----------------------------------------------------
 
-You can override the sampling points with ``grid=...``:
+You can override the internally constructed grid by providing explicit sample
+locations.
 
-- ``grid=("offsets", offsets)`` samples at ``x = x0 + offsets`` (0 is inserted if missing)
-- ``grid=("absolute", x_values)`` samples directly at given ``x`` values
+Supported forms are:
 
-.. code-block:: python
+- ``grid=("offsets", offsets)``: samples at ``x = x0 + offsets``
+- ``grid=("absolute", x_values)``: samples directly at given coordinates
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+If zero is missing from an offsets grid, it is inserted automatically.
 
-   dk = DerivativeKit(function=np.sin, x0=0.7)
+.. doctest:: adaptive_custom_grid
 
-   # Explicit offsets around x0
-   offsets = np.array([-2e-2, -1e-2, 0.0, 1e-2, 2e-2])
-   val = dk.differentiate(
-       method="adaptive",
-       order=1,
-       grid=("offsets", offsets),
-   )
-   print(val)
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
+
+   >>> dk = DerivativeKit(function=np.sin, x0=0.7)
+
+   >>> offsets = np.array([-2e-2, -1e-2, 0.0, 1e-2, 2e-2])
+   >>> val = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ...     grid=("offsets", offsets),
+   ... )
+   >>> print(val)
+   0.76484219
+   >>> print(float(np.round(abs(val - np.cos(0.7)), 12)))
+   0.0
+   >>> print("n_grid:", len(offsets))
+   n_grid: 5
 
 
 Ridge regularization (stabilize ill-conditioned fits)
 -----------------------------------------------------
 
-If the Vandermonde system becomes ill-conditioned (e.g. tight spacing, high
-degree, or sensitive functions), a small ridge term can improve stability.
+If the polynomial fit becomes ill-conditioned (for example due to tight spacing,
+high degree, or noisy evaluations), a small ridge term can improve numerical
+stability.
 
-.. code-block:: python
+.. doctest:: adaptive_ridge
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
 
-   dk = DerivativeKit(function=np.sin, x0=0.7)
+   >>> dk = DerivativeKit(function=np.sin, x0=0.7)
 
-   val = dk.differentiate(
-       method="adaptive",
-       order=2,
-       n_points=14,
-       spacing=1e-2,
-       ridge=1e-10,
-   )
-   print(val)  # ~ -sin(0.7)
-   print(-np.sin(0.7))  # reference
+   >>> val = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=2,
+   ...     n_points=14,
+   ...     spacing=1e-2,
+   ...     ridge=1e-10,
+   ... )
+   >>> print(val)
+   -0.64421769
+   >>> print(-np.sin(0.7))  # reference
+   -0.64421769
+   >>> print(float(np.round(abs(val + np.sin(0.7)), 12)))
+   0.0
 
 
 Return an error proxy and diagnostics
 -------------------------------------
 
-- ``return_error=True`` returns an RMS residual proxy from the polynomial fit.
-- ``diagnostics=True`` returns a diagnostics dictionary (samples, scaling, fit metrics).
+You can request an error proxy and detailed diagnostics from the polynomial fit.
 
-.. code-block:: python
+- ``return_error=True`` returns an RMS residual proxy
+- ``diagnostics=True`` returns a dictionary with fit metadata
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+.. doctest:: adaptive_diagnostics
 
-   dk = DerivativeKit(function=np.sin, x0=0.7)
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
 
-   val, err, diag = dk.differentiate(
-       method="adaptive",
-       order=1,
-       return_error=True,
-       diagnostics=True,
-   )
+   >>> dk = DerivativeKit(function=np.sin, x0=0.7)
 
-   print(val, err)
-   print("keys:", sorted(diag.keys())[:10])
-   print("n_samples:", len(diag["x"]))
-   print("degree:", diag["degree"])
-   print("rrms:", diag["rrms"])
+   >>> val, err, diag = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ...     return_error=True,
+   ...     diagnostics=True,
+   ... )
+
+   >>> print(val)
+   0.76484219
+   >>> print("err:", float(np.round(err, 12)))
+   err: 0.0
+   >>> print("n_samples:", len(diag["x"]))
+   n_samples: 8
+   >>> print("has_keys:", all(k in diag for k in ["x", "degree", "rrms"]))
+   has_keys: True
 
 
-Noisy function example (where adaptive helps)
----------------------------------------------
+Noisy function example
+----------------------
 
-.. code-block:: python
+Adaptive polynomial fitting is often more stable than finite differences when
+function evaluations are noisy.
 
-   import numpy as np
-   from derivkit.derivative_kit import DerivativeKit
+.. doctest:: adaptive_noisy
 
-   rng = np.random.default_rng(0)
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> np.set_printoptions(precision=8, suppress=True)
 
-   def noisy_sin(x: float) -> float:
-       return np.sin(x) + 0.02 * rng.normal()
+   >>> rng = np.random.default_rng(0)
 
-   dk = DerivativeKit(function=noisy_sin, x0=0.7)
+   >>> def noisy_sin(x):
+   ...     return np.sin(x) + 0.02 * rng.normal()
 
-   val, err = dk.differentiate(
-       method="adaptive",
-       order=1,
-       n_points=16,
-       spacing="auto",
-       return_error=True,
-   )
-   print(val, err)
+   >>> dk = DerivativeKit(function=noisy_sin, x0=0.7)
+
+   >>> val, err = dk.differentiate(
+   ...     method="adaptive",
+   ...     order=1,
+   ...     n_points=16,
+   ...     spacing="auto",
+   ...     return_error=True,
+   ... )
+   >>> print(abs(val - np.cos(0.7)) < 0.1)
+   True
 
 
 Notes
 -----
 
 - This backend supports scalar and vector outputs (computed component-wise).
-- If you already know your function is smooth and clean, finite differences can be faster.
-- If you need explicit trimming/outlier handling, see the ``local_polynomial`` backend.
-- You can evaluate derivatives at multiple expansion points by passing an array to ``x0``.
-  The derivative is computed independently at each point and the results are stacked with
-  leading shape ``x0.shape``.
-
+- For smooth, noise-free functions, finite differences may be faster.
+- If you need explicit trimming or outlier handling, see the
+  ``local_polynomial`` backend.
+- If ``x0`` is an array, derivatives are computed independently at each point
+  and stacked with leading shape ``x0.shape``.
