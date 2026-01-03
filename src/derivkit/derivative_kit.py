@@ -160,7 +160,7 @@ def register_method(
         >>> register_method(
         ...     name="gp",
         ...     cls=GPDerivative,
-        ...     aliases=("gaussian-process", "gaussproc"),
+        ...     aliases=("gaussian-process", "gaussproc", "gp"),
         ... )
         >>> # After registration, it can be used via:
         >>> # DerivativeKit(f, x0).differentiate(method="gp")  # doctest: +SKIP
