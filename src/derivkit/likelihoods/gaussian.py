@@ -17,7 +17,7 @@ def build_gaussian_likelihood(
     data: ArrayLike,
     model_parameters: ArrayLike,
     cov: ArrayLike,
-    return_log: bool = False,
+    return_log: bool = True,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
     """Constructs the Gaussian likelihood function.
 

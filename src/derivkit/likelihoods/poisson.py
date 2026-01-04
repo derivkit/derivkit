@@ -13,7 +13,7 @@ __all__ = [
 def build_poissonian_likelihood(
     data: float | np.ndarray[float],
     model_parameters: float | np.ndarray[float],
-    return_log: bool = False,
+    return_log: bool = True,
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
     """Constructs the Poissonian likelihood function.
 
@@ -36,8 +36,7 @@ def build_poissonian_likelihood(
     Args:
         data: an array representing the given data values.
         model_parameters: an array representing the means of the data samples.
-        return_log: when set to ``True``, returns the log-likelihood. Defaults
-            to ``False``.
+        return_log: when set to ``True``, returns the log-likelihood.
 
     Returns:
         A tuple of arrays containing (in order):
