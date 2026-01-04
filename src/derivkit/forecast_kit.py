@@ -12,7 +12,7 @@ Typical usage example:
 >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 >>> fisher_matrix = fk.fisher(method="adaptive", n_workers=2)
 >>> dali_g, dali_h = fk.dali(method="adaptive", n_workers=4)
->>> dn = fk.delta_nu(data_with=data_with_systematics, data_without=data_without_systematics)
+>>> dn = fk.delta_nu(data_biased=data_biased, data_unbiased=data_unbiased)
 >>> bias, dtheta = fk.fisher_bias(fisher_matrix=fisher_matrix, delta_nu=dn, method="finite")
 """
 
@@ -150,8 +150,8 @@ class ForecastKit:
         return bias
 
     def delta_nu(self,
-                 data_with: np.ndarray,
-                 data_without: np.ndarray,
+                 data_biased: np.ndarray,
+                 data_unbiased: np.ndarray,
                  ):
         """Computes the difference between two data vectors.
 
@@ -165,10 +165,10 @@ class ForecastKit:
         DerivKit package.
 
         Args:
-            data_with: Data vector that includes the systematic effect.
+            data_biased: Data vector that includes the systematic effect.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
-            data_without: Reference data vector without the systematic.
+            data_unbiased: Reference data vector without the systematic.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
 
@@ -186,8 +186,8 @@ class ForecastKit:
         """
         nu = build_delta_nu(
             cov=self.cov,
-            data_with=data_with,
-            data_without=data_without,
+            data_biased=data_biased,
+            data_unbiased=data_unbiased,
         )
         return nu
 
