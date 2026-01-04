@@ -55,6 +55,7 @@ def build_gaussian_likelihood(
         A 1D Gaussian likelihood:
             >>> import numpy as np
             >>> import matplotlib.pyplot as plt
+            >>> from derivkit.likelihoods.gaussian import build_gaussian_likelihood
             >>> data = np.linspace(-10, 10, 100)[np.newaxis, :]
             >>> model_parameters = np.array([1.0])
             >>> cov = np.array([[2.0]])
@@ -66,9 +67,9 @@ def build_gaussian_likelihood(
             >>> data = np.asarray((np.linspace(-10, 10, 30), np.linspace(3, 6, 30)))
             >>> model_parameters = np.array([0.0, 4.0])
             >>> cov = np.array([[1.0, 0.2], [0.2, 0.3]])
-            # Build coordinate arrays and evaluate the probability density on their
-            # Cartesian product. The indexing ensures the coordinate order matches
-            # the order in ``data``.
+            >>> # Build coordinate arrays and evaluate the probability density on their
+            >>> # Cartesian product. The indexing ensures the coordinate order matches
+            >>> # the order in ``data``.
             >>> grid, probability_density = build_gaussian_likelihood(data, model_parameters, cov)
             >>> plt.contour(*grid, probability_density)  # doctest: +SKIP
     """

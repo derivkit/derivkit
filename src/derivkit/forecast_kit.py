@@ -9,11 +9,37 @@ API for Fisher and DALI tensors.
 
 Typical usage example:
 
+>>> import numpy as np
+>>> from derivkit.forecast_kit import ForecastKit
+>>>
+>>> # Toy linear model: 2 params -> 2 observables
+>>> def model(theta: np.ndarray) -> np.ndarray:
+...     theta = np.asarray(theta, dtype=float)
+...     return np.array([theta[0] + 2.0 * theta[1], 3.0 * theta[0] - theta[1]], dtype=float)
+>>>
+>>> theta0 = np.array([0.1, -0.2])
+>>> cov = np.eye(2)
+>>>
 >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
->>> fisher_matrix = fk.fisher(method="adaptive", n_workers=2)
->>> dali_g, dali_h = fk.dali(method="adaptive", n_workers=4)
->>> dn = fk.delta_nu(data_with=data_with_systematics, data_without=data_without_systematics)
->>> bias, dtheta = fk.fisher_bias(fisher_matrix=fisher_matrix, delta_nu=dn, method="finite")
+>>> fisher_matrix = fk.fisher(method="finite", n_workers=1, delta=1e-6)
+>>> fisher_matrix.shape
+(2, 2)
+>>>
+>>> data_unbiased = model(theta0)
+>>> data_biased = data_unbiased + np.array([1e-3, -2e-3])
+>>> dn = fk.delta_nu(data_biased=data_biased, data_unbiased=data_unbiased)
+>>> dn.shape
+(2,)
+>>>
+>>> bias_vec, delta_theta = fk.fisher_bias(
+...     fisher_matrix=fisher_matrix,
+...     delta_nu=dn,
+...     method="finite",
+...     n_workers=1,
+...     delta=1e-6,
+... )
+>>> bias_vec.shape, delta_theta.shape
+((2,), (2,))
 """
 
 from collections.abc import Callable
@@ -150,8 +176,8 @@ class ForecastKit:
         return bias
 
     def delta_nu(self,
-                 data_with: np.ndarray,
-                 data_without: np.ndarray,
+                 data_biased: np.ndarray,
+                 data_unbiased: np.ndarray,
                  ):
         """Computes the difference between two data vectors.
 
@@ -165,10 +191,10 @@ class ForecastKit:
         DerivKit package.
 
         Args:
-            data_with: Data vector that includes the systematic effect.
+            data_biased: Data vector that includes the systematic effect.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
-            data_without: Reference data vector without the systematic.
+            data_unbiased: Reference data vector without the systematic.
                 Can be 1D or 2D. If 1D, it must follow the NumPy's row-major
                 ("C") flattening convention used throughout the package.
 
@@ -186,8 +212,8 @@ class ForecastKit:
         """
         nu = build_delta_nu(
             cov=self.cov,
-            data_with=data_with,
-            data_without=data_without,
+            data_biased=data_biased,
+            data_unbiased=data_unbiased,
         )
         return nu
 
