@@ -89,10 +89,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 # To re-enable API docstring doctests later:
 #   - comment out the two lines below.
-exclude_patterns += [
-    "modules.rst",
-    "derivkit.*.rst",
-]
+# exclude_patterns += [
+ #   "modules.rst",
+ #   "derivkit.*.rst",
+# ]
 
 
 html_sidebar = {
