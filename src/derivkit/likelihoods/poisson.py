@@ -56,7 +56,7 @@ def build_poissonian_likelihood(
         >>> import numpy as np
         >>> from scipy.stats import poisson
         >>> from derivkit.likelihoods.poisson import build_poissonian_likelihood
-        >>> x, y = build_poissonian_likelihood(2, 1.4)
+        >>> x, y = build_poissonian_likelihood(2, 1.4, return_log=False)
         >>> x.shape, y.shape
         ((1,), (1,))
         >>> x[0].item()
@@ -68,7 +68,9 @@ def build_poissonian_likelihood(
 
         >>> data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         >>> model_parameters = 2.4
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
         >>> x.shape, y.shape
         ((10,), (10,))
         >>> np.array_equal(x, data)
@@ -80,7 +82,9 @@ def build_poissonian_likelihood(
 
         >>> data = np.array([1, 2])
         >>> model_parameters = np.array([3])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
         >>> x.shape, y.shape
         ((2, 1), (2, 1))
         >>> np.array_equal(x[:, 0], data)
@@ -92,7 +96,9 @@ def build_poissonian_likelihood(
 
         >>> model_parameters = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
         >>> data = np.array([1, 2, 3, 4, 5, 6])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
         >>> x.shape, y.shape
         ((1, 6), (1, 6))
         >>> np.array_equal(x[0], data)
@@ -104,7 +110,9 @@ def build_poissonian_likelihood(
 
         >>> data = np.array([[1, 2, 3], [4, 5, 6]])
         >>> model_parameters = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
         >>> x.shape, y.shape
         ((1, 2, 3), (1, 2, 3))
         >>> np.array_equal(x[0], data)
@@ -118,7 +126,9 @@ def build_poissonian_likelihood(
         >>> val2 = np.array([[7, 8, 9], [10, 11, 12]])
         >>> data = np.array([val1, val2])
         >>> model_parameters = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
         >>> x.shape, y.shape
         ((2, 2, 3), (2, 2, 3))
         >>> np.array_equal(x[0], val1) and np.array_equal(x[1], val2)
@@ -131,7 +141,9 @@ def build_poissonian_likelihood(
         Same result when supplying flattened data:
 
         >>> data_flat = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        >>> x2, y2 = build_poissonian_likelihood(data_flat, model_parameters)
+        >>> x2, y2 = build_poissonian_likelihood(
+        ...             data_flat, model_parameters, return_log=False
+        ... )
         >>> np.array_equal(x2, x) and np.allclose(y2, y)
         True
     """
