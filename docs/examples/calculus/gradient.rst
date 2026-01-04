@@ -53,7 +53,7 @@ Basic usage
    [0.87758256 4.        ]
 
 
-Finite differences (Ridders) via dk_kwargs
+Finite differences (Ridders) via ``dk_kwargs``
 ------------------------------------------
 
 .. doctest:: gradient_finite_ridders
