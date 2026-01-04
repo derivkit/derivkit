@@ -1,5 +1,5 @@
-Adaptive polynomial fit (Chebyshev)
-===================================
+Adaptive polynomial fit
+=======================
 
 This section shows how to compute derivatives using the adaptive polynomial
 (Chebyshev) method in DerivKit.
@@ -99,7 +99,6 @@ User-supplied grids (offsets or absolute coordinates)
 
 You can override the internally constructed grid by providing explicit sample
 locations.
-
 Supported forms are:
 
 - ``grid=("offsets", offsets)``: samples at ``x = x0 + offsets``
