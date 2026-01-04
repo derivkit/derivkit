@@ -36,7 +36,6 @@ Basic usage
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -59,7 +58,6 @@ Finite differences (Ridders) via ``dk_kwargs``
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -83,7 +81,6 @@ Adaptive backend via ``dk_kwargs``
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -109,7 +106,6 @@ The number of parallel processes can be tuned with the ``n_workers`` parameter.
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def f(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2 + np.cos(theta[2])

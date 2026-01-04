@@ -41,7 +41,6 @@ Basic usage (scalar-valued function)
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
@@ -99,7 +98,6 @@ The result is reshaped back to ``(*out_shape, p, p)``.
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a tensor-valued function
    >>> def func(theta):
    ...     return np.array([
@@ -134,7 +132,6 @@ Finite differences (Ridders) via ``dk_kwargs``
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2

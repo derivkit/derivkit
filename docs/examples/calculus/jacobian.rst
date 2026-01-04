@@ -39,7 +39,6 @@ Basic usage
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([
@@ -72,7 +71,6 @@ Finite differences (Ridders) via ``dk_kwargs``
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])
@@ -98,7 +96,6 @@ Adaptive backend via ``dk_kwargs``
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])
