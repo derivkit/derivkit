@@ -1,7 +1,8 @@
 """Sphinx configuration for the DerivKit documentation."""
 
-from sphinx.ext.doctest import doctest
 import matplotlib
+from sphinx.ext.doctest import doctest
+
 matplotlib.use("Agg")
 
 # For the full list of built-in configuration values, see the documentation:

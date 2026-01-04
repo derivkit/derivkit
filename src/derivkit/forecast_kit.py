@@ -21,7 +21,7 @@ Typical usage example:
 >>> cov = np.eye(2)
 >>>
 >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
->>> fisher_matrix = fk.fisher(method="finite", n_workers=1, delta=1e-6)
+>>> fisher_matrix = fk.fisher(method="finite", n_workers=1)
 >>> fisher_matrix.shape
 (2, 2)
 >>>
@@ -36,7 +36,6 @@ Typical usage example:
 ...     delta_nu=dn,
 ...     method="finite",
 ...     n_workers=1,
-...     delta=1e-6,
 ... )
 >>> bias_vec.shape, delta_theta.shape
 ((2,), (2,))
