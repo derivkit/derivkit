@@ -200,8 +200,8 @@ class DerivativeKit:
     Example:
         >>> import numpy as np
         >>> from derivkit.derivative_kit import DerivativeKit
-        >>> d = DerivativeKit(np.cos, x0=1.0)
-        >>> d.differentiate(order=1)  # uses the default "adaptive" method
+        >>> dk = DerivativeKit(np.cos, x0=1.0)
+        >>> deriv = dk.differentiate(order=1)  # uses the default "adaptive" method
 
     Attributes:
         function: The callable to differentiate.
