@@ -37,17 +37,16 @@ Basic usage
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Point at which to compute the gradient
    >>> x0 = np.array([0.5, 2.0])
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=x0)
-
    >>> grad = calc.gradient()
    >>> print(grad)  # shape (p,)
    [0.87758256 4.        ]
-
    >>> ref = np.array([np.cos(0.5), 4.0])
    >>> print(ref)
    [0.87758256 4.        ]
@@ -61,12 +60,11 @@ Finite differences (Ridders) via ``dk_kwargs``
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> grad = calc.gradient(
    ...     method="finite",
    ...     stepsize=1e-2,
@@ -86,12 +84,11 @@ Adaptive backend via ``dk_kwargs``
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> grad = calc.gradient(
    ...     method="adaptive",
    ...     n_points=12,
@@ -113,12 +110,11 @@ The number of parallel processes can be tuned with the ``n_workers`` parameter.
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def f(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2 + np.cos(theta[2])
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(f, x0=np.array([0.5, 2.0, 0.1]))
-
    >>> grad = calc.gradient(
    ...     method="finite",
    ...     n_workers=3,
