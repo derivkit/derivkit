@@ -78,7 +78,7 @@ Finite differences (Ridders) via ``dk_kwargs``
    [0.87758256 4.        ]
 
 
-Adaptive backend via dk_kwargs
+Adaptive backend via ``dk_kwargs``
 ------------------------------
 
 .. doctest:: gradient_adaptive
