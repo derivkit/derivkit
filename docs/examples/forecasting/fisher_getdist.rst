@@ -1,61 +1,96 @@
 Fisher forecasts and GetDist integration
 ========================================
 
-DerivKit provides lightweight helpers to turn Fisher-matrix forecasts into
-GetDist-ready objects for immediate visualization and exploratory analysis.
-This is intended for **fast inspection and plotting**, not as a replacement
-for full MCMC sampling.
+This page shows how to **visualize Fisher-matrix forecasts** using GetDist,
+starting from a Fisher matrix computed with
+:class:`derivkit.forecast_kit.ForecastKit`.
 
-Two complementary workflows are supported:
+The focus here is **what to do next** once you already have a Fisher matrix:
+how to turn it into confidence contours or samples for quick inspection,
+comparison, and plotting.
 
-1. **Analytic Gaussian forecasts** via a Fisher-derived covariance, returned as
-   :class:`getdist.gaussian_mixtures.GaussianND`.
-2. **Monte Carlo samples drawn from the Fisher Gaussian**, returned as
-   :class:`getdist.MCSamples`, optionally including parameter support bounds
-   and priors.
+This is intended for **fast exploration and visualization**, not as a
+replacement for full likelihood-based inference or MCMC sampling.
+
+If you are looking for:
+
+- how the Fisher matrix is defined and interpreted, see
+  :doc:`../../guide/forecasting`
+- how to compute a Fisher matrix with DerivKit, see
+  :doc:`fisher`
+
+Two complementary visualization workflows are supported:
+
+- conversion of a Fisher matrix into an **analytic Gaussian** for GetDist
+- **Monte Carlo samples** drawn from the Fisher Gaussian, returned as
+  :class:`getdist.MCSamples`
 
 Both outputs can be passed directly to GetDist plotting utilities
 (e.g. triangle / corner plots).
 
-Overview
---------
-
-Given a model :math:`\nu(\theta)`, a fiducial point :math:`\theta_0`, and a
-covariance matrix :math:`C`, DerivKit computes the Fisher matrix
-
-.. math::
-
-   F_{ij} = \frac{\partial \nu}{\partial \theta_i}^T C^{-1}
-            \frac{\partial \nu}{\partial \theta_j}
-
-From this Gaussian approximation, DerivKit can either:
-
-- construct an **analytic multivariate Gaussian** with covariance
-  :math:`F^{-1}`, or
-- **draw samples** from that Gaussian, optionally applying parameter bounds
-  or priors.
-
-These helpers are especially useful for:
-
-- quick sanity checks of forecasted constraints,
-- rapid comparison between different experimental setups,
-- producing publication-quality corner plots without running an MCMC.
 
 Analytic Gaussian (no sampling)
 -------------------------------
 
-The simplest option is to convert the Fisher matrix into an analytic Gaussian
-object compatible with GetDist.
+Convert the Fisher matrix into an analytic Gaussian object compatible with GetDist,
+then plot Fisher ellipses using GetDist.
 
-.. code-block:: python
+.. doctest:: fisher_getdist_gaussian
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
+   >>> # Define a simple toy model
+   >>> def model(theta):
+   ...     a, b = theta
+   ...     return np.array([a, b, a + 2.0 * b], dtype=float)
+   >>> # Fiducial parameters and covariance
+   >>> theta0 = np.array([1.0, 2.0])
+   >>> cov = np.eye(3)
+   >>> # Compute Fisher matrix
+   >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher(
+   ...     method="finite",
+   ...     stepsize=1e-2,
+   ...     num_points=5,
+   ...     extrapolation="ridders",
+   ...     levels=4,
+   ... )
+   >>> # Convert Fisher matrix to analytic GetDist Gaussian
+   >>> gnd = fisher_to_getdist_gaussiannd(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     names=["a", "b"],
+   ...     labels=[r"a", r"b"],
+   ...     label="Fisher (Gaussian)",
+   ... )
+   >>> # Plot Fisher ellipses in DerivKit red (rendered by the docs build)
+   >>> dk_blue = "#3b9ab2"
+   >>> dk_red = "#f21901"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.triangle_plot(
+   ...     [gnd],
+   ...     params=["a", "b"],
+   ...     filled=[False],
+   ...     contour_colors=[dk_red],
+   ...     contour_lws=[line_width],
+   ...     contour_ls=["-"],
+   ... )
+   >>> isinstance(gnd, object)
+   True
+
+.. plot::
+   :include-source: False
+   :width: 420
 
    import numpy as np
-   from getdist import plots
-
+   from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.integrations.getdist_fisher import (
-       fisher_to_getdist_gaussiannd,
-   )
+   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def model(theta):
        a, b = theta
@@ -81,25 +116,87 @@ object compatible with GetDist.
        label="Fisher (Gaussian)",
    )
 
-   g = plots.get_subplot_plotter()
-   g.triangle_plot([gnd], filled=True)
+   dk_blue = "#3b9ab2"
+   dk_red = "#f21901"
+   line_width = 1.5
+
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+
+   plotter.triangle_plot(
+       [gnd],
+       params=["a", "b"],
+       filled=[False],
+       contour_colors=[dk_red],
+       contour_lws=[line_width],
+       contour_ls=["-"],
+   )
+
 
 Sampling from the Fisher Gaussian
 ---------------------------------
 
-For more flexibility (e.g. plotting marginal histograms, applying sampler bounds,
-or combining with priors), DerivKit can draw Monte Carlo samples directly from
-the Fisher Gaussian and return them as :class:`getdist.MCSamples`.
+For more flexibility (e.g. marginal histograms, bounds, or combining with other
+samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with GetDist.
 
-.. code-block:: python
+.. doctest:: fisher_getdist_samples
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
+   >>> # Define a simple toy model
+   >>> def model(theta):
+   ...     a, b = theta
+   ...     return np.array([a, b, a + 2.0 * b], dtype=float)
+   >>> # Fiducial parameters and covariance
+   >>> theta0 = np.array([1.0, 2.0])
+   >>> cov = np.eye(3)
+   >>> # Compute Fisher matrix
+   >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher(
+   ...     method="finite",
+   ...     stepsize=1e-2,
+   ...     num_points=5,
+   ...     extrapolation="ridders",
+   ...     levels=4,
+   ... )
+   >>> # Draw samples from the Fisher Gaussian
+   >>> samples = fisher_to_getdist_samples(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     names=["a", "b"],
+   ...     labels=[r"a", r"b"],
+   ...     store_loglikes=True,
+   ...     label="Fisher (samples)",
+   ... )
+   >>> # Plot sample-based contours in DerivKit red (rendered by the docs build)
+   >>> dk_blue = "#3b9ab2"
+   >>> dk_red = "#f21901"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.triangle_plot(
+   ...     samples,
+   ...     params=["a", "b"],
+   ...     filled=False,
+   ...     contour_colors=[dk_red],
+   ...     contour_lws=[line_width],
+   ...     contour_ls=["-"],
+   ... )
+   >>> samples.numrows > 0
+   True
+
+.. plot::
+   :include-source: False
+   :width: 420
 
    import numpy as np
-   from getdist import plots
-
+   from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.integrations.getdist_fisher import (
-       fisher_to_getdist_samples,
-   )
+   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
 
    def model(theta):
        a, b = theta
@@ -122,30 +219,47 @@ the Fisher Gaussian and return them as :class:`getdist.MCSamples`.
        fisher=fisher,
        names=["a", "b"],
        labels=[r"a", r"b"],
-       sampler_bounds=[(0.0, None), (0.0, None)],
        store_loglikes=True,
        label="Fisher (samples)",
    )
 
-   g = plots.get_subplot_plotter()
-   g.triangle_plot(samples, filled=True)
+   dk_blue = "#3b9ab2"
+   dk_red = "#f21901"
+   line_width = 1.5
+
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+
+   plotter.triangle_plot(
+       samples,
+       params=["a", "b"],
+       filled=False,
+       contour_colors=[dk_red],
+       contour_lws=[line_width],
+       contour_ls=["-"],
+   )
+
 
 Notes and conventions
 ---------------------
 
 - The Fisher matrix is inverted using a pseudo-inverse to form the Gaussian
-  covariance. You can control regularization via ``rcond``.
+  covariance; regularization can be controlled via ``rcond``.
 - ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an
   additive constant), following GetDist conventions.
-- Hard bounds and priors are **optional** and intended for light truncation,
-  not for defining complex posteriors.
-- For non-Gaussian posteriors or strong parameter degeneracies, use the
-  DALI expansions or a full sampler instead.
+- Sampler bounds and priors are optional and intended for light truncation, not for
+  defining complex posteriors.
+- Sampling-based Fisher contours are estimated via kernel density methods and may
+  appear slightly irregular even for large sample sizes (e.g. ``n_samples=100_000``).
+  This is expected and does not indicate an issue with the Fisher matrix itself.
+- For strongly non-Gaussian posteriors or curved degeneracies, consider using
+  the DALI expansion or a full sampler instead.
 
 See also
 --------
 
 - :class:`derivkit.forecast_kit.ForecastKit`
 - :func:`derivkit.forecasting.fisher.build_fisher_matrix`
-- :func:`derivkit.forecasting.integrations.getdist_fisher.fisher_to_getdist_samples`
-- :func:`derivkit.forecasting.integrations.getdist_fisher.fisher_to_getdist_gaussiannd`
+- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
