@@ -45,7 +45,7 @@ Finite differences on tabulated data
    >>> # Tabulate y = sin(x) on a coarse grid
    >>> x_tab = np.linspace(0.0, 3.0, 21)
    >>> y_tab = np.sin(x_tab)
-   >>> x0 = 0.7  # point where to evaluate the derivative
+   >>> x0 = 0.7  # derivative evaluation point
    >>> # Initialize DerivativeKit with tabulated data
    >>> dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
    >>> # First derivative using finite differences
