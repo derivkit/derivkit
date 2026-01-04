@@ -9,7 +9,8 @@ to each model parameter.
 For a function :math:`\mathbf{f}(\theta)`, the Jacobian is the matrix of first
 derivatives of the outputs with respect to the parameters.
 
-**Notation**
+Notation
+--------
 
 - ``p`` denotes the number of model parameters (``theta`` has shape ``(p,)``).
 - ``n`` denotes the number of output components (``f(theta)`` has shape ``(n,)``).
