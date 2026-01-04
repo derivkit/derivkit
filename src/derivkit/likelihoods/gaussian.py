@@ -30,8 +30,8 @@ def build_gaussian_likelihood(
         cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
             or a full 2D covariance matrix. It will be symmetrised and normalized
             internally to ensure compatibility with the data and model_parameters.
-        return_log: when set to ``True``, the function will compute the
-            log-likelihood instead.
+        return_log: when set to ``True``, return the log-likelihood instead of
+            the probability density function.
 
     Returns:
         A tuple:

@@ -36,7 +36,8 @@ def build_poissonian_likelihood(
     Args:
         data: an array representing the given data values.
         model_parameters: an array representing the means of the data samples.
-        return_log: when set to ``True``, returns the log-likelihood.
+        return_log: when set to ``True``, returns the log-likelihood instead of
+                the probability mass function.
 
     Returns:
         A tuple of arrays containing (in order):
