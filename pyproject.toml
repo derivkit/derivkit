@@ -93,31 +93,6 @@ envlist = [
   "py313",
 ]
 
-[tool.tox.env.do]
-description = "Build docs and open the local HTML index"
-extras = ["docs"]
-allowlist_externals = ["open"]
-commands = [
-  [
-    "sphinx-apidoc",
-    "-o", "{tox_root}/docs",
-    "{tox_root}/src/derivkit",
-    "--separate",
-    "-f",
-  ],
-  [
-    "sphinx-build",
-    "{tox_root}/docs",
-    "{tox_root}/docs/_build/html",
-    "--fail-on-warning",
-  ],
-  [
-    "open",
-    "{tox_root}/docs/_build/html/index.html",
-  ],
-]
-
-
 [tool.tox.env_run_base]
 change_dir = "{tox_root}/tests"
 description = "Run tests under {base_python}"
