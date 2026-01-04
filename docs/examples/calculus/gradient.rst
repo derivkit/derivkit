@@ -52,7 +52,7 @@ Basic usage
 
 
 Finite differences (Ridders) via ``dk_kwargs``
-------------------------------------------
+----------------------------------------------
 
 .. doctest:: gradient_finite_ridders
 
@@ -75,7 +75,7 @@ Finite differences (Ridders) via ``dk_kwargs``
 
 
 Adaptive backend via ``dk_kwargs``
-------------------------------
+----------------------------------
 
 .. doctest:: gradient_adaptive
 
