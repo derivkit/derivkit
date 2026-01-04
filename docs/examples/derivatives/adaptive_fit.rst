@@ -73,7 +73,6 @@ Domain-aware sampling (stay inside bounds)
 
 If the function is only defined on a finite interval, you can specify a domain
 to ensure all samples remain valid.
-
 The adaptive grid is clipped or transformed as needed to stay inside bounds.
 
 .. doctest:: adaptive_domain
