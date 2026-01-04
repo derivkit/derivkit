@@ -40,23 +40,22 @@ Basic usage
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([
    ...         np.sin(theta[0]) + theta[1],
    ...         theta[0] * theta[1],
    ...     ])
-
+   >>> # Point at which to compute the Jacobian
    >>> x0 = np.array([0.5, 2.0])
+   >>> # Create CalculusKit instance and compute Jacobian
    >>> calc = CalculusKit(func, x0=x0)
-
    >>> jac = calc.jacobian()
    >>> print(jac)
    [[0.87758256 1.        ]
     [2.         0.5       ]]
    >>> print(jac.shape)  # (n, p) = (2, 2)
    (2, 2)
-
    >>> ref = np.array([
    ...     [np.cos(0.5), 1.0],
    ...     [2.0, 0.5],
@@ -74,12 +73,11 @@ Finite differences (Ridders) via ``dk_kwargs``
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])
-
+   >>> # Create CalculusKit instance and compute Jacobian
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> jac = calc.jacobian(
    ...     method="finite",
    ...     n_workers=2,
@@ -101,12 +99,11 @@ Adaptive backend via ``dk_kwargs``
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
    >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])
-
+   >>> # Create CalculusKit instance and compute Jacobian
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> jac = calc.jacobian(
    ...     method="adaptive",
    ...     n_workers=2,
