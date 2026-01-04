@@ -128,6 +128,7 @@ The number of parallel processes can be tuned with the ``n_workers`` parameter.
 Notes
 -----
 
-- ``n_workers`` parallelizes across parameters (gradient components).
+- ``n_workers`` can speed up expensive functions by parallelizing gradient components.
+  For cheap functions, overhead may dominate.
 - The function must return a **scalar**. If it returns a vector or higher-rank
-  tensor, ``build_gradient`` raises ``TypeError``.
+  tensor, :meth:`derivkit.CalculusKit.gradient` raises ``TypeError``.
