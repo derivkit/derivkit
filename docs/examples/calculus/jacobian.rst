@@ -93,7 +93,7 @@ Finite differences (Ridders) via ``dk_kwargs``
     [2.         0.5       ]]
 
 
-Adaptive backend via dk_kwargs
+Adaptive backend via ``dk_kwargs``
 ------------------------------
 
 .. doctest:: jacobian_adaptive
