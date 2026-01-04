@@ -86,9 +86,6 @@ def build_gaussian_fisher_matrix(
     cov0, cov_fn = resolve_covariance_input(
         cov, theta0=theta0, validate=validate_covariance_matrix_shape
     )
-    # At this point either cov0 or cov_fn is not None. cov0 is needed
-    # in either case, so we need to ensure it is defined.
-    cov0 = cov0 if cov0 != None else cov_fn(theta)
     n_observables = int(cov0.shape[0])
 
     # Validate that function(theta0) matches the

@@ -365,59 +365,43 @@ def validate_square_matrix_finite(
 
 def resolve_covariance_input(
     cov: NDArray[np.float64]
-        | Callable[[NDArray[np.float64]], NDArray[np.float64]]
-        | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]],
     *,
     theta0: NDArray[np.float64],
     validate: Callable[[Any], NDArray[np.float64]],
 ) -> tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]] | None]:
-    """Processes a covariance input and return a fixed covariance and an optional callable.
-
-    Accepts a fixed covariance array, a covariance function, or a tuple containing both,
-    and returns the covariance at ``theta0`` together with the callable (if provided).
+    """Returns the covariance-like input after validation.
 
     Args:
-        cov: Covariance input.
-            You can pass:
+        cov: Covariance input. You can pass:
 
-              - A fixed square covariance array (constant covariance). In this case the
-                returned callable is ``None``.
-              - A callable that takes ``theta`` and returns a square covariance array.
-                In this case the function evaluates it at ``theta0`` to get ``cov0`` and
-                returns the callable as ``cov_fn``.
-              - A tuple ``(cov0, cov_fn)`` where ``cov0`` is the covariance at ``theta0``
-                and ``cov_fn`` is the callable covariance function. This avoids evaluating
-                the callable at ``theta0`` again.
-        theta0: Fiducial parameter vector. Only used when ``cov`` is a callable covariance
-            function (or when a callable is provided in the tuple form). Ignored for fixed
-            covariance arrays.
-        validate: A function that converts a covariance-like input into a NumPy array and checks its
-            basic shape (and any other rules the caller wants). ``resolve_covariance_input`` exists
-            to handle the different input types for ``cov`` (array vs callable vs (array, callable))
-            and to consistently produce ``(cov0, cov_fn)``; ``validate`` is only used to check/coerce
-            the arrays that come out of that process.
+              - A fixed square covariance array (constant covariance).
+                In this case the returned callable is ``None``.
+              - A callable that takes ``theta`` and returns a square
+                covariance array. In this case the function evaluates
+                it at ``theta0`` to get ``cov0`` and returns the callable
+                as ``cov_fn``.
+
+        theta0: Fiducial parameter vector. Only used when ``cov`` is a callable
+            covariance function (or when a callable is provided in the tuple
+            form). Ignored for fixed covariance arrays.
+        validate: A function that converts a covariance-like input into a NumPy
+            array and checks its basic shape (and any other rules the caller
+            wants). ``resolve_covariance_input`` exists to handle the different
+            input types for ``cov`` (array vs callable) and to consistently
+            produce ``(cov0, cov_fn)``; ``validate`` is only used to check or
+            coerce the arrays that come out of that process.
 
     Returns:
         A tuple with two items:
 
-        - ``cov0``: The validated covariance at ``theta0`` (or the provided fixed covariance).
-        - ``cov_fn``: The callable covariance function if provided, otherwise ``None``.
-
-    Raises:
-        TypeError: If the tuple form does not have exactly two items, or if the
-            second item is not callable.
+        - ``cov0``: The validated covariance at ``theta0`` (or the provided
+          fixed covariance).
+        - ``cov_fn``: The callable covariance function if provided,
+          otherwise ``None``.
     """
-    if isinstance(cov, tuple):
-        if len(cov) != 2:
-            raise TypeError("cov tuple form must be (cov0, cov_fn).")
-        cov0, cov_fn = cov
-        if not callable(cov_fn):
-            raise TypeError("cov tuple form must be (cov0, cov_fn) with cov_fn callable.")
-        return validate(cov0), cov_fn
-
     if callable(cov):
-        cov0 = validate(cov(theta0))
-        return cov0, cov
+        return validate(cov(theta0)), cov
 
     return validate(cov), None
 
