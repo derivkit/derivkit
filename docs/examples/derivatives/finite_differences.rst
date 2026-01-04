@@ -16,7 +16,6 @@ scaled problems.
 
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-
 You can select this backend via ``method="finite"`` and control the stencil,
 step size, and extrapolation behavior using keyword arguments forwarded to the
 finite-difference engine.

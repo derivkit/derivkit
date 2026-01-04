@@ -17,7 +17,6 @@ conditioning automatically, making it lightweight and predictable.
 
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-
 You can select this backend via ``method="local_polynomial"`` (or ``"lp"``) and
 control the polynomial degree, trimming behavior, and diagnostics using keyword
 arguments.
