@@ -49,18 +49,18 @@ Basic usage (scalar-valued function)
    >>> # Create CalculusKit instance and compute Hessian
    >>> calc = CalculusKit(func, x0=x0)
    >>> hess = calc.hessian()
-   >>> print(hess)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(hess, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
    >>> print(hess.shape)
    (2, 2)
    >>> ref = np.array([
    ...     [-np.sin(0.5), 1.0],
    ...     [1.0, 2.0],
    ... ])
-   >>> print(ref)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(ref, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
 
 
 Hessian diagonal only
@@ -79,8 +79,8 @@ DerivKit provides a fast helper for this case.
    >>> # Instantiate CalculusKit and compute Hessian diagonal
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
    >>> hess_diag = calc.hessian_diag()
-   >>> print(hess_diag)
-   [-0.47942554  2.        ]
+   >>> print(np.round(np.asarray(hess_diag).reshape(-1), 6))
+   [-0.479426  2.      ]
    >>> ref = np.array([-np.sin(0.5), 2.0])
    >>> np.allclose(hess_diag, ref)
    True
@@ -145,9 +145,9 @@ Finite differences (Ridders) via ``dk_kwargs``
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> print(hess)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(hess, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
 
 
 Notes

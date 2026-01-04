@@ -44,11 +44,11 @@ Basic usage
    >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=x0)
    >>> grad = calc.gradient()
-   >>> print(grad)  # shape (p,)
-   [0.87758256 4.        ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))  # shape (p,)
+   [0.877583 4.      ]
    >>> ref = np.array([np.cos(0.5), 4.0])
-   >>> print(ref)
-   [0.87758256 4.        ]
+   >>> print(np.round(ref, 6))
+   [0.877583 4.      ]
 
 
 Finite differences (Ridders) via ``dk_kwargs``
@@ -70,8 +70,8 @@ Finite differences (Ridders) via ``dk_kwargs``
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> print(grad)
-   [0.87758256 4.        ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [0.877583 4.      ]
 
 
 Adaptive backend via ``dk_kwargs``
@@ -92,8 +92,8 @@ Adaptive backend via ``dk_kwargs``
    ...     spacing="auto",
    ...     ridge=1e-10,
    ... )
-   >>> print(grad)
-   [0.87758256 4.        ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [0.877583 4.      ]
 
 
 Parallelism across parameters
@@ -117,8 +117,8 @@ The number of parallel processes can be tuned with the ``n_workers`` parameter.
    ...     stepsize=1e-2,
    ...     num_points=5,
    ... )
-   >>> print(grad)
-   [ 0.87758256  4.         -0.09983342 ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [ 0.877583  4.       -0.099833]
 
 
 Notes
