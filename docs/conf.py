@@ -1,6 +1,6 @@
 """Sphinx configuration for the DerivKit documentation."""
 
-from sphinx.ext.doctest import doctest
+from sphinx.ext.doctest import doctest.ELLIPSIS, doctest.NORMALIZE_WHITESPACE
 
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
