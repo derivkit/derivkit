@@ -1,197 +1,292 @@
-Laplace approximation
-=====================
+Laplace contours
+================
 
-The Laplace approximation replaces a posterior near its peak with a Gaussian.
-It expands the negative log-posterior around an expansion point
-:math:`\theta_{\mathrm{MAP}}` (typically the maximum a posteriori estimate)
-and uses the local Hessian as a precision matrix:
+This page shows how to **visualize Laplace-approximation posteriors** using GetDist,
+starting from a Laplace approximation computed with DerivKit.
 
-.. math::
+The focus here is **what to do next** once you already have a Laplace approximation:
+how to turn it into confidence contours or samples for quick inspection,
+comparison, and plotting.
 
-   p(\theta \mid d)
-   \approx \mathcal{N}\,\left(\theta_{\mathrm{MAP}}, H^{-1}\right),
+This is intended for **fast exploration and visualization**, not as a
+replacement for full likelihood-based inference or full MCMC sampling.
 
-   H
-   =
-   \left.
-   \nabla^{2}\,\mathrm{neg\_logposterior}(\theta)
-   \right|_{\theta=\theta_{\mathrm{MAP}}}.
+If you are looking for:
 
-This example uses the public utilities in :mod:`derivkit.forecasting.laplace`.
+- how the Laplace approximation is defined and interpreted, see
+  :doc:`../../guide/forecasting`
+- how to compute a Laplace approximation with DerivKit, see
+  :doc:`laplace_approx`
 
-Basic usage (2 parameters)
---------------------------
+Two complementary visualization workflows are supported:
 
-We use a simple two-dimensional Gaussian–Gaussian model:
+- conversion of the Laplace Gaussian into an **analytic Gaussian** for GetDist
+- **Monte Carlo samples** drawn from the Laplace Gaussian, returned as
+  :class:`getdist.MCSamples`
 
-.. math::
+Both outputs can be passed directly to GetDist plotting utilities
+(e.g. triangle / corner plots).
 
-   y = A\,\theta + \varepsilon, \qquad
-   \varepsilon \sim \mathcal{N}(0, \Sigma_{\mathrm{data}}),
 
-   \theta \sim \mathcal{N}(\mu_0, \Sigma_0),
+Notes and conventions
+---------------------
 
-   \theta = (\theta_0, \theta_1).
+- The Laplace approximation is a *local Gaussian* centered on the MAP point
+  ``theta_map``. In other words, the Laplace mean is ``theta_map`` by construction.
+- The Laplace covariance is the inverse Hessian of the negative log-posterior at
+  ``theta_map`` (up to numerical regularization).
+- ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an
+  additive constant), following GetDist conventions.
+- For strongly non-Gaussian posteriors or curved degeneracies far from the MAP,
+  consider using DALI or a full sampler instead.
 
-.. code-block:: python
+
+Analytic Gaussian (no sampling)
+-------------------------------
+
+Convert the Laplace approximation into an analytic Gaussian object compatible with GetDist,
+then plot contours using GetDist.
+
+.. doctest:: laplace_getdist_gaussian
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
+   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> # Linear–Gaussian likelihood with Gaussian prior (posterior is exactly Gaussian)
+   >>> observed_y = np.array([1.2, -0.4], dtype=float)
+   >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
+   >>> data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)
+   >>> data_prec = np.linalg.inv(data_cov)
+   >>> prior_mean = np.array([0.0, 0.0], dtype=float)
+   >>> prior_cov = np.array([[1.0**2, 0.0], [0.0, 1.5**2]], dtype=float)
+   >>> prior_prec = np.linalg.inv(prior_cov)
+   >>> def neg_logposterior(theta):
+   ...     theta = np.asarray(theta, dtype=float)
+   ...     r = observed_y - design_matrix @ theta
+   ...     nll = 0.5 * (r @ data_prec @ r)
+   ...     d = theta - prior_mean
+   ...     nlp = 0.5 * (d @ prior_prec @ d)
+   ...     return float(nll + nlp)
+   >>> # Expansion point (can be an initial guess; Laplace returns the MAP it finds/uses)
+   >>> theta_map0 = np.array([0.0, 0.0], dtype=float)
+   >>> out = laplace_approximation(
+   ...     neg_logposterior=neg_logposterior,
+   ...     theta_map=theta_map0,
+   ...     method="finite",
+   ...     dk_kwargs={"stepsize": 1e-3, "num_points": 5, "extrapolation": "ridders", "levels": 4},
+   ... )
+   >>> theta_map = np.asarray(out["theta_map"], dtype=float)
+   >>> cov = np.asarray(out["cov"], dtype=float)
+   >>> theta_map.shape == (2,) and cov.shape == (2, 2)
+   True
+   >>> # Convert Laplace (mean+cov) into a GetDist analytic Gaussian via Fisher precision
+   >>> fisher = np.linalg.pinv(cov)
+   >>> gnd = fisher_to_getdist_gaussiannd(
+   ...     theta0=theta_map,
+   ...     fisher=fisher,
+   ...     names=["theta1", "theta2"],
+   ...     labels=[r"\theta_1", r"\theta_2"],
+   ...     label="Laplace (Gaussian)",
+   ... )
+   >>> isinstance(gnd, object)
+   True
+
+
+.. plot::
+   :include-source: False
+   :width: 420
 
    import numpy as np
+   from getdist import plots as getdist_plots
 
+   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    from derivkit.forecasting.laplace import laplace_approximation
 
-   observed_y = np.array([1.2, -0.4], dtype=np.float64)
+   observed_y = np.array([1.2, -0.4], dtype=float)
+   design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
 
-   design_matrix = np.array(
-       [
-           [1.0, 0.5],
-           [0.2, 1.3],
-       ],
-       dtype=np.float64,
-   )
-
-   data_cov = np.array(
-       [
-           [0.30**2, 0.0],
-           [0.0, 0.25**2],
-       ],
-       dtype=np.float64,
-   )
+   data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)
    data_prec = np.linalg.inv(data_cov)
 
-   prior_mean = np.array([0.0, 0.0], dtype=np.float64)
-   prior_cov = np.array(
-       [
-           [1.0**2, 0.0],
-           [0.0, 1.5**2],
-       ],
-       dtype=np.float64,
-   )
+   prior_mean = np.array([0.0, 0.0], dtype=float)
+   prior_cov = np.array([[1.0**2, 0.0], [0.0, 1.5**2]], dtype=float)
    prior_prec = np.linalg.inv(prior_cov)
 
-   def neg_logposterior(theta: np.ndarray) -> float:
-       theta = np.asarray(theta, dtype=np.float64)
+   def neg_logposterior(theta):
+       theta = np.asarray(theta, dtype=float)
+       r = observed_y - design_matrix @ theta
+       nll = 0.5 * (r @ data_prec @ r)
+       d = theta - prior_mean
+       nlp = 0.5 * (d @ prior_prec @ d)
+       return float(nll + nlp)
 
-       residual = observed_y - design_matrix @ theta
-       neg_loglike = 0.5 * (residual @ data_prec @ residual)
+   theta_map0 = np.array([0.0, 0.0], dtype=float)
 
-       delta_theta = theta - prior_mean
-       neg_logprior = 0.5 * (delta_theta @ prior_prec @ delta_theta)
-
-       return float(neg_loglike + neg_logprior)
-
-   # Expansion point (ideally the MAP; using a placeholder here)
-   theta_map = np.array([0.0, 0.0], dtype=np.float64)
-
-   result = laplace_approximation(
+   out = laplace_approximation(
        neg_logposterior=neg_logposterior,
-       theta_map=theta_map,
+       theta_map=theta_map0,
        method="finite",
-       dk_kwargs={"stepsize": 1e-3},
+       dk_kwargs={"stepsize": 1e-3, "num_points": 5, "extrapolation": "ridders", "levels": 4},
    )
 
-   print("theta_map:", result["theta_map"])
-   print("cov:\n", result["cov"])
-   print("jitter:", result["jitter"])
+   theta_map = np.asarray(out["theta_map"], dtype=float)
+   cov = np.asarray(out["cov"], dtype=float)
+   fisher = np.linalg.pinv(cov)
 
-Analytic sanity check (Gaussian–Gaussian)
------------------------------------------
-
-For a Gaussian likelihood with a Gaussian prior, the posterior is exactly Gaussian.
-For the linear–Gaussian model above, the exact posterior is given by
-
-.. math::
-
-   \Sigma_{\mathrm{post}}^{-1}
-   = A^{\mathsf T}\Sigma_{\mathrm{data}}^{-1}A + \Sigma_0^{-1},
-
-   \Sigma_{\mathrm{post}}
-   = \left(\Sigma_{\mathrm{post}}^{-1}\right)^{-1},
-
-   \mu_{\mathrm{post}}
-   = \Sigma_{\mathrm{post}}
-     \left(A^{\mathsf T}\Sigma_{\mathrm{data}}^{-1}y
-     + \Sigma_0^{-1}\mu_0\right).
-
-.. code-block:: python
-
-   posterior_precision = design_matrix.T @ data_prec @ design_matrix + prior_prec
-   posterior_cov = np.linalg.inv(posterior_precision)
-
-   posterior_mean = posterior_cov @ (
-       design_matrix.T @ data_prec @ observed_y + prior_prec @ prior_mean
-   )
-
-   print("Laplace mean:", result["theta_map"])
-   print("Exact mean:", posterior_mean)
-   print("Laplace covariance:\n", result["cov"])
-   print("Exact covariance:\n", posterior_cov)
-
-GetDist contour plot (Laplace Gaussian)
----------------------------------------
-
-Since the Laplace result is already a Gaussian approximation (mean + covariance),
-we can plot its 2D contours directly with GetDist using an analytic Gaussian.
-
-.. code-block:: python
-
-   import numpy as np
-   from getdist import plots
-
-   from derivkit.forecasting.fisher_gaussian import fisher_to_getdist_gaussiannd
-
-   laplace_mean = np.asarray(result["theta_map"], dtype=np.float64)
-   laplace_cov = np.asarray(result["cov"], dtype=np.float64)
-   laplace_precision = np.linalg.pinv(laplace_cov)
-
-   laplace_gaussian = fisher_to_getdist_gaussiannd(
-       theta0=laplace_mean,
-       fisher=laplace_precision,
-       names=["theta0", "theta1"],
-       labels=[r"\theta_0", r"\theta_1"],
+   gnd = fisher_to_getdist_gaussiannd(
+       theta0=theta_map,
+       fisher=fisher,
+       names=["theta1", "theta2"],
+       labels=[r"\theta_1", r"\theta_2"],
        label="Laplace (Gaussian)",
    )
 
-   plotter = plots.get_subplot_plotter()
-   plotter.triangle_plot([laplace_gaussian], params=["theta0", "theta1"], filled=True)
+   dk_red = "#f21901"
+   line_width = 1.5
 
-Optional: sampled contours (Monte Carlo)
-----------------------------------------
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
 
-If you prefer sample-based plots, you can draw samples from the Laplace Gaussian
-and wrap them as :class:`getdist.MCSamples`.
+   plotter.triangle_plot(
+       [gnd],
+       params=["theta1", "theta2"],
+       filled=[False],
+       contour_colors=[dk_red],
+       contour_lws=[line_width],
+       contour_ls=["-"],
+   )
 
-.. code-block:: python
+
+Sampling from the Laplace Gaussian
+----------------------------------
+
+For more flexibility (e.g. marginal histograms, bounds, or combining with other
+samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with GetDist.
+
+.. doctest:: laplace_getdist_samples
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
+   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> observed_y = np.array([1.2, -0.4], dtype=float)
+   >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
+   >>> data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)
+   >>> data_prec = np.linalg.inv(data_cov)
+   >>> prior_mean = np.array([0.0, 0.0], dtype=float)
+   >>> prior_cov = np.array([[1.0**2, 0.0], [0.0, 1.5**2]], dtype=float)
+   >>> prior_prec = np.linalg.inv(prior_cov)
+   >>> def neg_logposterior(theta):
+   ...     theta = np.asarray(theta, dtype=float)
+   ...     r = observed_y - design_matrix @ theta
+   ...     nll = 0.5 * (r @ data_prec @ r)
+   ...     d = theta - prior_mean
+   ...     nlp = 0.5 * (d @ prior_prec @ d)
+   ...     return float(nll + nlp)
+   >>> out = laplace_approximation(
+   ...     neg_logposterior=neg_logposterior,
+   ...     theta_map=np.array([0.0, 0.0], dtype=float),
+   ...     method="finite",
+   ...     dk_kwargs={"stepsize": 1e-3, "num_points": 5, "extrapolation": "ridders", "levels": 4},
+   ... )
+   >>> theta_map = np.asarray(out["theta_map"], dtype=float)
+   >>> cov = np.asarray(out["cov"], dtype=float)
+   >>> fisher = np.linalg.pinv(cov)
+   >>> samples = fisher_to_getdist_samples(
+   ...     theta0=theta_map,
+   ...     fisher=fisher,
+   ...     names=["theta1", "theta2"],
+   ...     labels=[r"\theta_1", r"\theta_2"],
+   ...     store_loglikes=True,
+   ...     label="Laplace (samples)",
+   ... )
+   >>> dk_yellow = "#e1af00"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.triangle_plot(
+   ...     samples,
+   ...     params=["theta1", "theta2"],
+   ...     filled=False,
+   ...     contour_colors=[dk_yellow],
+   ...     contour_lws=[line_width],
+   ...     contour_ls=["-"],
+   ... )
+   >>> samples.numrows > 0
+   True
+
+
+.. plot::
+   :include-source: False
+   :width: 420
 
    import numpy as np
-   from getdist import plots
+   from getdist import plots as getdist_plots
 
-   from derivkit.forecasting.fisher_gaussian import fisher_to_getdist_samples
+   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
+   from derivkit.forecasting.laplace import laplace_approximation
 
-   laplace_mean = np.asarray(result["theta_map"], dtype=np.float64)
-   laplace_cov = np.asarray(result["cov"], dtype=np.float64)
-   laplace_precision = np.linalg.pinv(laplace_cov)
+   observed_y = np.array([1.2, -0.4], dtype=float)
+   design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
 
-   laplace_mc_samples = fisher_to_getdist_samples(
-       theta0=laplace_mean,
-       fisher=laplace_precision,
-       names=["theta0", "theta1"],
-       labels=[r"\theta_0", r"\theta_1"],
-       n_samples=30_000,
-       seed=0,
-       kernel_scale=1.0,
+   data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)
+   data_prec = np.linalg.inv(data_cov)
+
+   prior_mean = np.array([0.0, 0.0], dtype=float)
+   prior_cov = np.array([[1.0**2, 0.0], [0.0, 1.5**2]], dtype=float)
+   prior_prec = np.linalg.inv(prior_cov)
+
+   def neg_logposterior(theta):
+       theta = np.asarray(theta, dtype=float)
+       r = observed_y - design_matrix @ theta
+       nll = 0.5 * (r @ data_prec @ r)
+       d = theta - prior_mean
+       nlp = 0.5 * (d @ prior_prec @ d)
+       return float(nll + nlp)
+
+   out = laplace_approximation(
+       neg_logposterior=neg_logposterior,
+       theta_map=np.array([0.0, 0.0], dtype=float),
+       method="finite",
+       dk_kwargs={"stepsize": 1e-3, "num_points": 5, "extrapolation": "ridders", "levels": 4},
+   )
+
+   theta_map = np.asarray(out["theta_map"], dtype=float)
+   cov = np.asarray(out["cov"], dtype=float)
+   fisher = np.linalg.pinv(cov)
+
+   samples = fisher_to_getdist_samples(
+       theta0=theta_map,
+       fisher=fisher,
+       names=["theta1", "theta2"],
+       labels=[r"\theta_1", r"\theta_2"],
+       store_loglikes=True,
        label="Laplace (samples)",
    )
 
-   plotter = plots.get_subplot_plotter()
-   plotter.triangle_plot([laplace_mc_samples], params=["theta0", "theta1"], filled=False)
+   dk_yellow = "#e1af00"
+   line_width = 1.5
 
-Notes
------
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
 
-- ``theta_map`` should be the MAP when possible. If you only have an initial guess,
-  you can still use it as an expansion point, but approximation quality depends
-  on how close it is to the posterior peak.
-- ``ensure_spd=True`` (default) adds diagonal jitter if needed so that the covariance
-  is valid.
-- ``method`` and ``dk_kwargs`` are forwarded to the Hessian construction through
-  :class:`derivkit.calculus_kit.CalculusKit`.
+   plotter.triangle_plot(
+       samples,
+       params=["theta1", "theta2"],
+       filled=False,
+       contour_colors=[dk_yellow],
+       contour_lws=[line_width],
+       contour_ls=["-"],
+   )
+
+
+See also
+--------
+
+- :func:`derivkit.forecasting.laplace.laplace_approximation`
+- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
