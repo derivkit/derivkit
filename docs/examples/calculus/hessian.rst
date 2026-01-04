@@ -133,7 +133,7 @@ The result is reshaped back to ``(*out_shape, p, p)``.
    True
 
 
-Finite differences (Ridders) via dk_kwargs
+Finite differences (Ridders) via ``dk_kwargs``
 ------------------------------------------
 
 .. doctest:: hessian_finite_ridders

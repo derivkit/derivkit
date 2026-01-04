@@ -9,7 +9,8 @@ to each model parameter.
 For a function :math:`\mathbf{f}(\theta)`, the Jacobian is the matrix of first
 derivatives of the outputs with respect to the parameters.
 
-**Notation**
+Notation
+--------
 
 - ``p`` denotes the number of model parameters (``theta`` has shape ``(p,)``).
 - ``n`` denotes the number of output components (``f(theta)`` has shape ``(n,)``).
@@ -65,7 +66,7 @@ Basic usage
     [2.         0.5       ]]
 
 
-Finite differences (Ridders) via dk_kwargs
+Finite differences (Ridders) via ``dk_kwargs``
 ------------------------------------------
 
 .. doctest:: jacobian_finite_ridders
@@ -92,7 +93,7 @@ Finite differences (Ridders) via dk_kwargs
     [2.         0.5       ]]
 
 
-Adaptive backend via dk_kwargs
+Adaptive backend via ``dk_kwargs``
 ------------------------------
 
 .. doctest:: jacobian_adaptive

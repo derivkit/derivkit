@@ -6,8 +6,8 @@ This section shows how to compute the gradient of a scalar-valued function using
 The gradient describes how a scalar output changes with respect to each model
 parameter.
 
-For a scalar-valued function :math:`f(\theta)`, the gradient is the vector of
-first derivatives of the output with respect to the parameters.
+For a set of parameters :math:`\theta` and a scalar-valued function :math:`f(\theta)`,
+the gradient is the vector of first derivatives of :math:`f` with respect :math:`\theta`.
 
 **Notation**
 
@@ -53,7 +53,7 @@ Basic usage
    [0.87758256 4.        ]
 
 
-Finite differences (Ridders) via dk_kwargs
+Finite differences (Ridders) via ``dk_kwargs``
 ------------------------------------------
 
 .. doctest:: gradient_finite_ridders
@@ -78,7 +78,7 @@ Finite differences (Ridders) via dk_kwargs
    [0.87758256 4.        ]
 
 
-Adaptive backend via dk_kwargs
+Adaptive backend via ``dk_kwargs``
 ------------------------------
 
 .. doctest:: gradient_adaptive
@@ -105,7 +105,8 @@ Adaptive backend via dk_kwargs
 Parallelism across parameters
 -----------------------------
 
-``n_workers`` parallelizes across gradient components (across parameters).
+Different gradient components can be computed in parallel.
+The number of parallel processes can be tuned with the ``n_workers`` parameter.
 
 .. doctest:: gradient_parallel
 
