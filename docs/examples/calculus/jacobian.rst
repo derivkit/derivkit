@@ -66,7 +66,7 @@ Basic usage
     [2.         0.5       ]]
 
 
-Finite differences (Ridders) via dk_kwargs
+Finite differences (Ridders) via ``dk_kwargs``
 ------------------------------------------
 
 .. doctest:: jacobian_finite_ridders
