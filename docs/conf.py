@@ -2,6 +2,8 @@
 
 import matplotlib
 from sphinx.ext.doctest import doctest
+import matplotlib
+matplotlib.use("Agg")
 
 matplotlib.use("Agg")
 
