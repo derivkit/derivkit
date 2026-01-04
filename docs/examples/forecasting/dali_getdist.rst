@@ -1,160 +1,420 @@
 DALI sampling and GetDist integration
 =====================================
 
-DerivKit can convert a DALI-expanded posterior into GetDist-ready objects for
-plotting (triangle/corner plots) and lightweight downstream analysis.
+This page shows how to **visualize DALI-expanded posteriors** using GetDist,
+starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).
 
-The public entry points are:
+The focus here is **what to do next** once you already have a DALI expansion:
+how to draw samples for inspection, comparison, and posterior analysis.
 
-- :func:`derivkit.forecasting.getdist.dali_to_getdist_emcee` (MCMC sampling with ``emcee``)
-- :func:`derivkit.forecasting.getdist.dali_to_getdist_importance` (fast importance sampling)
+All posterior quantities shown here refer to the DALI-expanded approximation.
 
-Both functions return a :class:`getdist.MCSamples` instance.
+If you are looking for:
 
-What is being sampled?
-----------------------
+- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecasting`
+- how to compute DALI tensors with DerivKit, see :doc:`dali`
 
-DALI approximates the log-posterior around a fiducial point ``theta0`` using
-the Fisher matrix ``F`` and higher-order tensors ``G`` (and optionally ``H``).
-The target log-posterior is evaluated with
-:func:`derivkit.forecasting.expansions.logposterior_dali`.
+Two lightweight workflows are supported:
 
-You provide:
+- sampling the DALI log-posterior (``emcee``)
+- fast importance sampling using a Fisher–Gaussian proposal
 
-- ``theta0``: fiducial parameters, shape ``(p,)``
-- ``fisher``: Fisher matrix, shape ``(p, p)``
-- ``g_tensor``: DALI ``G`` tensor, shape ``(p, p, p)``
-- ``h_tensor``: optional DALI ``H`` tensor, shape ``(p, p, p, p)``
+Both workflows return a :class:`getdist.MCSamples` object.
 
-The returned GetDist object stores log-likelihoods in GetDist convention,
-i.e. :attr:`getdist.MCSamples.loglikes` contains ``-log(posterior)`` up to
-an additive constant.
 
-MCMC sampling with emcee
-------------------------
+Sampling the DALI posterior with emcee
+--------------------------------------
 
-You can sample the DALI log-posterior with ``emcee`` and return the result as
-GetDist :class:`getdist.MCSamples`.
+.. doctest:: dali_getdist_emcee
 
-Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and then
-evolved with :class:`emcee.EnsembleSampler`. Optional priors and support bounds
-are applied through the target log-posterior.
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
+   >>> def model_2d(theta):
+   ...     # Nonlinear forward model with a curved parameter degeneracy
+   ...     # (informally referred to as a "banana"-shaped posterior).
+   ...     x, eps = float(theta[0]), float(theta[1])
+   ...     k = 3.0
+   ...     a = 4.0
+   ...     c = 6.0
+   ...     o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+   ...     o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+   ...     return np.array([o1, o2], dtype=float)
+   >>> theta0 = np.array([0.18, 0.02], dtype=float)
+   >>> cov = np.array([[1.0, 0.95],
+   ...                 [0.95, 1.0]], dtype=float)
+   >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher()
+   >>> g_tensor, h_tensor = fk.dali()
+   >>> samples = dali_to_getdist_emcee(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     g_tensor=g_tensor,
+   ...     h_tensor=h_tensor,
+   ...     names=["x", "eps"],
+   ...     labels=[r"x", r"\epsilon"],
+   ...     label="DALI (emcee)",
+   ... )
+   >>> dk_red = "#f21901"
+   >>> dk_yellow = "#e0b700"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.settings.figure_legend_frame = False
+   >>> plotter.settings.legend_rect_border = False
+   >>> plotter.triangle_plot(
+   ...     [samples],
+   ...     params=["x", "eps"],
+   ...     filled=False,
+   ...     contour_colors=[dk_red],
+   ...     contour_lws=[line_width],
+   ...     contour_ls=["-"],
+   ... )
+   >>> samples.numrows > 0
+   True
 
-.. code-block:: python
+.. plot::
+   :include-source: False
+   :width: 520
 
    import numpy as np
-   from getdist import plots
+   from getdist import plots as getdist_plots
 
-   from derivkit.forecasting.getdist import dali_to_getdist_emcee
+   from derivkit.forecast_kit import ForecastKit
+   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
 
-   # Example inputs (replace with your outputs from ForecastKit / build_dali)
-   theta0 = np.array([0.3, 0.8])
-   fisher = np.array([[100.0, 10.0],
-                      [10.0,  50.0]])
-   g = np.zeros((2, 2, 2))
-   h = None
+   def model_2d(theta):
+       # Nonlinear forward model with a curved parameter degeneracy
+       # (informally referred to as a "banana"-shaped posterior).
+       x, eps = float(theta[0]), float(theta[1])
+       k = 3.0
+       a = 4.0
+       c = 6.0
+       o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+       o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+       return np.array([o1, o2], dtype=float)
 
-   names = ["Om", "s8"]
-   labels = [r"\Omega_m", r"\sigma_8"]
+   theta0 = np.array([0.18, 0.02], dtype=float)
+
+   cov = np.array([[1.0, 0.95],
+                   [0.95, 1.0]], dtype=float)
+
+   fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+
+   fisher = fk.fisher()
+   g_tensor, h_tensor = fk.dali()
 
    samples = dali_to_getdist_emcee(
        theta0=theta0,
        fisher=fisher,
-       g_tensor=g,
-       h_tensor=h,
-       names=names,
-       labels=labels,
+       g_tensor=g_tensor,
+       h_tensor=h_tensor,
+       names=["x", "eps"],
+       labels=[r"x", r"\epsilon"],
        label="DALI (emcee)",
    )
 
-   gplot = plots.get_subplot_plotter()
-   gplot.triangle_plot([samples], params=names, filled=True)
+   dk_red = "#f21901"
+   dk_yellow = "#e0b700"
+   line_width = 1.5
 
-Priors and parameter support
-----------------------------
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+   plotter.settings.figure_legend_frame = False
+   plotter.settings.legend_rect_border = False
 
-You can include priors in three ways:
-
-- ``logprior(theta)``: provide a custom callable, OR
-- ``prior_terms`` and/or ``prior_bounds``: build a prior with
-  :func:`derivkit.forecasting.priors.core.build_prior`.
-
-In addition, you may specify ``sampler_bounds`` for explicit rejection /
-initialization bounds. If both ``prior_bounds`` and ``sampler_bounds`` are given,
-DerivKit uses their intersection as the effective support.
-
-.. code-block:: python
-
-   import numpy as np
-   from derivkit.forecasting.getdist import dali_to_getdist_emcee
-
-   theta0 = np.array([0.3, 0.8])
-   fisher = np.array([[100.0, 10.0],
-                      [10.0,  50.0]])
-   g = np.zeros((2, 2, 2))
-   h = None
-
-   names = ["Om", "s8"]
-   labels = [r"\Omega_m", r"\sigma_8"]
-
-   prior_bounds = [(0.05, 0.6), (0.4, 1.4)]  # top-hat support
-
-   samples = dali_to_getdist_emcee(
-       theta0=theta0,
-       fisher=fisher,
-       g_tensor=g,
-       h_tensor=h,
-       names=names,
-       labels=labels,
-       prior_bounds=prior_bounds,
+   plotter.triangle_plot(
+       [samples],
+       params=["x", "eps"],
+       filled=False,
+       contour_colors=[dk_red],
+       contour_lws=[line_width],
+       contour_ls=["-"],
    )
 
-   gplot = plots.get_subplot_plotter()
-   gplot.triangle_plot([samples], params=names, filled=True)
 
-Importance sampling (quick plots)
----------------------------------
+Fast importance sampling with a Fisher–Gaussian proposal
+--------------------------------------------------------
 
-Importance sampling draws a cloud of samples from a Fisher–Gaussian proposal
-(kernel) centered on ``theta0`` and reweights them to match the DALI posterior.
-This is typically the fastest route to a usable triangle plot.
+.. doctest:: dali_getdist_importance
 
-.. code-block:: python
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_importance
+   >>> def model_2d(theta):
+   ...     # Nonlinear forward model with a curved parameter degeneracy
+   ...     # (informally referred to as a "banana"-shaped posterior).
+   ...     x, eps = float(theta[0]), float(theta[1])
+   ...     k = 3.0
+   ...     a = 4.0
+   ...     c = 6.0
+   ...     o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+   ...     o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+   ...     return np.array([o1, o2], dtype=float)
+   >>> theta0 = np.array([0.18, 0.02], dtype=float)
+   >>> cov = np.array([[1.0, 0.95],
+   ...                 [0.95, 1.0]], dtype=float)
+   >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher()
+   >>> g_tensor, h_tensor = fk.dali()
+   >>> samples = dali_to_getdist_importance(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     g_tensor=g_tensor,
+   ...     h_tensor=h_tensor,
+   ...     names=["x", "eps"],
+   ...     labels=[r"x", r"\epsilon"],
+   ...     label="DALI (importance)",
+   ...     n_samples=80_000,
+   ...     seed=0,
+   ...     kernel_scale=1.3,
+   ... )
+   >>> dk_yellow = "#e0b700"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.settings.figure_legend_frame = False
+   >>> plotter.settings.legend_rect_border = False
+   >>> plotter.triangle_plot(
+   ...     [samples],
+   ...     params=["x", "eps"],
+   ...     filled=False,
+   ...     contour_colors=[dk_yellow],
+   ...     contour_lws=[line_width],
+   ...     contour_ls=["-"],
+   ... )
+   >>> samples.numrows > 0
+   True
+
+.. plot::
+   :include-source: False
+   :width: 520
 
    import numpy as np
-   from getdist import plots
+   from getdist import plots as getdist_plots
 
-   from derivkit.forecasting.getdist import dali_to_getdist_importance
+   from derivkit.forecast_kit import ForecastKit
+   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_importance
 
-   theta0 = np.array([0.3, 0.8])
-   fisher = np.array([[100.0, 10.0],
-                      [10.0,  50.0]])
-   g = np.zeros((2, 2, 2))
-   h = np.zeros((2, 2, 2, 2))
+   def model_2d(theta):
+       # Nonlinear forward model with a curved parameter degeneracy
+       # (informally referred to as a "banana"-shaped posterior).
+       x, eps = float(theta[0]), float(theta[1])
+       k = 3.0
+       a = 4.0
+       c = 6.0
+       o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+       o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+       return np.array([o1, o2], dtype=float)
 
-   names = ["Om", "s8"]
-   labels = [r"\Omega_m", r"\sigma_8"]
+   theta0 = np.array([0.18, 0.02], dtype=float)
+
+   cov = np.array([[1.0, 0.95],
+                   [0.95, 1.0]], dtype=float)
+
+   fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+
+   fisher = fk.fisher()
+   g_tensor, h_tensor = fk.dali()
 
    samples = dali_to_getdist_importance(
        theta0=theta0,
        fisher=fisher,
-       g_tensor=g,
-       h_tensor=h,
-       names=names,
-       labels=labels,
+       g_tensor=g_tensor,
+       h_tensor=h_tensor,
+       names=["x", "eps"],
+       labels=[r"x", r"\epsilon"],
        label="DALI (importance)",
+       n_samples=80_000,
+       seed=0,
+       kernel_scale=1.3,
    )
 
-   gplot = plots.get_subplot_plotter()
-   gplot.triangle_plot([samples], params=names, filled=True)
+   dk_yellow = "#e0b700"
+   line_width = 1.5
 
-Notes and tips
---------------
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+   plotter.settings.figure_legend_frame = False
+   plotter.settings.legend_rect_border = False
 
-- ``kernel_scale`` (importance sampling) controls the width of the Fisher–Gaussian
-  proposal. If weights become extremely uneven, try increasing the scale slightly.
-- When using bounds, make sure ``theta0`` lies inside the effective support; otherwise
-  walker initialization or importance sampling rejection may remove everything.
-- If you do not provide ``prior_terms``/``prior_bounds``/``logprior``, the default prior
-  is flat (often improper). For plotting, it is usually better to specify at least
-  bounded support via ``prior_bounds``.
+   plotter.triangle_plot(
+       [samples],
+       params=["x", "eps"],
+       filled=False,
+       contour_colors=[dk_yellow],
+       contour_lws=[line_width],
+       contour_ls=["-"],
+   )
+
+Three-parameter nonlinear example (emcee)
+-----------------------------------------
+
+This section extends the 2D example to three parameters
+``theta = [x, eps, y]``. The forward model is constructed to produce a
+nonlinear posterior with pronounced parameter degeneracies.
+An additional coupling to ``y`` introduces further structure
+while preserving the dominant nonlinear features.
+
+- ``o1`` uses ``(x - k*eps - q*y)^2`` to preserve the curved ridge in ``(x, eps)``
+  while introducing structure in ``(x, y)`` and ``(eps, y)``.
+- ``o2`` adds a mild dependence on ``y`` through an exponential prefactor.
+
+.. doctest:: dali_getdist_emcee_3d
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
+   >>> def model_3d(theta):
+   ...     # A nonlinear model with 3 parameters:
+   ...     x, eps, y = float(theta[0]), float(theta[1]), float(theta[2])
+   ...     k = 3.0
+   ...     q = 0.7
+   ...     a = 4.0
+   ...     c = 6.0
+   ...     r = 0.25
+   ...     o1 = 1e2 * np.exp((x - k * eps - q * y) ** 2) * np.exp(a * eps)
+   ...     o2 = 4e1 * np.exp(0.5 * (x + r * y)) * (1.0 + 0.3 * eps + c * (eps**3))
+   ...     return np.array([o1, o2], dtype=float)
+   >>> theta0 = np.array([0.18, 0.02, 0.00], dtype=float)
+   >>> cov = np.array([[1.0, 0.95],
+   ...                 [0.95, 1.0]], dtype=float)
+   >>> prior_bounds = [(-0.4, 0.8), (-0.25, 0.25), (-0.4, 0.4)]
+   >>> fk = ForecastKit(function=model_3d, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher()
+   >>> g_tensor, h_tensor = fk.dali()
+   >>> samples = dali_to_getdist_emcee(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     g_tensor=g_tensor,
+   ...     h_tensor=h_tensor,
+   ...     names=["x", "eps", "y"],
+   ...     labels=[r"x", r"\epsilon", r"y"],
+   ...     label="DALI (emcee, 3D)",
+   ...     prior_bounds=prior_bounds,
+   ... )
+   >>> dk_red = "#f21901"
+   >>> dk_yellow = "#e0b700"
+   >>> dk_blue = "#3b9ab2"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=4.3)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.settings.figure_legend_frame = False
+   >>> plotter.settings.legend_rect_border = False
+   >>> plotter.triangle_plot(
+   ...     [samples],
+   ...     params=["x", "eps", "y"],
+   ...     filled=False,
+   ...     contour_colors=[dk_red, dk_blue, dk_yellow],
+   ...     contour_lws=[line_width, line_width, line_width],
+   ...     contour_ls=["-", "-", "-"],
+   ... )
+   >>> samples.numrows > 0
+   True
+
+.. plot::
+   :include-source: False
+   :width: 520
+
+   import numpy as np
+   from getdist import plots as getdist_plots
+
+   from derivkit.forecast_kit import ForecastKit
+   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
+
+   def model_3d(theta):
+       # A nonlinear model with 3 parameters:
+       x, eps, y = float(theta[0]), float(theta[1]), float(theta[2])
+       k = 3.0
+       q = 0.7
+       a = 4.0
+       c = 6.0
+       r = 0.25
+       o1 = 1e2 * np.exp((x - k * eps - q * y) ** 2) * np.exp(a * eps)
+       o2 = 4e1 * np.exp(0.5 * (x + r * y)) * (1.0 + 0.3 * eps + c * (eps**3))
+       return np.array([o1, o2], dtype=float)
+
+   theta0 = np.array([0.18, 0.02, 0.00], dtype=float)
+
+   cov = np.array([[1.0, 0.95],
+                   [0.95, 1.0]], dtype=float)
+
+   prior_bounds = [(-0.4, 0.8), (-0.25, 0.25), (-0.4, 0.4)]
+
+   fk = ForecastKit(function=model_3d, theta0=theta0, cov=cov)
+   fisher = fk.fisher()
+   g_tensor, h_tensor = fk.dali()
+
+   samples = dali_to_getdist_emcee(
+       theta0=theta0,
+       fisher=fisher,
+       g_tensor=g_tensor,
+       h_tensor=h_tensor,
+       names=["x", "eps", "y"],
+       labels=[r"x", r"\epsilon", r"y"],
+       label="DALI (emcee, 3D)",
+       prior_bounds=prior_bounds,
+   )
+
+   dk_red = "#f21901"
+   dk_yellow = "#e0b700"
+   dk_blue = "#3b9ab2"
+   line_width = 1.5
+
+   plotter = getdist_plots.get_subplot_plotter(width_inch=4.3)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+   plotter.settings.figure_legend_frame = False
+   plotter.settings.legend_rect_border = False
+
+   plotter.triangle_plot(
+       [samples],
+       params=["x", "eps", "y"],
+       filled=False,
+       contour_colors=[dk_red, dk_blue, dk_yellow],
+       contour_lws=[line_width, line_width, line_width],
+       contour_ls=["-", "-", "-"],
+   )
+
+
+Notes and conventions
+---------------------
+
+- The non-Gaussianity here comes from the **nonlinear forward model**.
+- ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an additive constant),
+  following GetDist conventions.
+- Importance sampling uses a Fisher–Gaussian proposal; ``kernel_scale`` controls its width.
+  If weights become extremely uneven, try increasing the scale slightly.
+- Importance sampling is intended for fast visualization and exploratory work,
+  and is reliable when the Fisher–Gaussian proposal closely matches the
+  DALI posterior.
+- For science analyses requiring a robust exploration of the posterior,
+  including non-Gaussian structure and tails, we recommend using **emcee**
+  to sample the DALI-expanded posterior.
+
+Typical workflow
+----------------
+
+1. Compute Fisher ``F`` and higher-order tensors ``(G, H)`` with :class:`ForecastKit`.
+2. Use **importance sampling** for fast visualization and iteration.
+3. Switch to **emcee** when robustness is required or strong non-Gaussianity
+   leads to unstable importance weights.
+4. Visualize and compare results using GetDist triangle plots.
+
+
+See also
+--------
+
+- :class:`derivkit.forecast_kit.ForecastKit`
+- :func:`derivkit.forecasting.dali.build_dali`
+- :func:`derivkit.forecasting.expansions.logposterior_dali`
+- :func:`derivkit.forecasting.getdist.dali_to_getdist_emcee`
+- :func:`derivkit.forecasting.getdist.dali_to_getdist_importance`
