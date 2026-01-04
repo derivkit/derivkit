@@ -9,11 +9,36 @@ API for Fisher and DALI tensors.
 
 Typical usage example:
 
+>>> import numpy as np
+>>> from derivkit.forecast_kit import ForecastKit
+>>>
+>>> # Toy linear model: 2 params -> 2 observables
+>>> def model(theta: np.ndarray) -> np.ndarray:
+...     theta = np.asarray(theta, dtype=float)
+...     return np.array([theta[0] + 2.0 * theta[1], 3.0 * theta[0] - theta[1]], dtype=float)
+>>>
+>>> theta0 = np.array([0.1, -0.2])
+>>> cov = np.eye(2)
+>>>
 >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
->>> fisher_matrix = fk.fisher(method="adaptive", n_workers=2)
->>> dali_g, dali_h = fk.dali(method="adaptive", n_workers=4)
+>>> fisher_matrix = fk.fisher(method="finite", n_workers=1)
+>>> fisher_matrix.shape
+(2, 2)
+>>>
+>>> data_unbiased = model(theta0)
+>>> data_biased = data_unbiased + np.array([1e-3, -2e-3])
 >>> dn = fk.delta_nu(data_biased=data_biased, data_unbiased=data_unbiased)
->>> bias, dtheta = fk.fisher_bias(fisher_matrix=fisher_matrix, delta_nu=dn, method="finite")
+>>> dn.shape
+(2,)
+>>>
+>>> bias_vec, delta_theta = fk.fisher_bias(
+...     fisher_matrix=fisher_matrix,
+...     delta_nu=dn,
+...     method="finite",
+...     n_workers=1,
+... )
+>>> bias_vec.shape, delta_theta.shape
+((2,), (2,))
 """
 
 from collections.abc import Callable

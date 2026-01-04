@@ -42,7 +42,7 @@ def build_hessian(
     Returns:
         Always returns the full Hessian with shape:
 
-        - (p, p) if ``function(theta0)`` is scalar.
+        - (p, p) if ``function(theta0)`` is scalar with ``p`` the number of parameters.
         - (``*out_shape``, p, p) if ``function(theta0)`` has shape ``out_shape``.
 
         The output shape is fixed; use ``build_hessian_diag()`` if only the diagonal is needed.
@@ -334,7 +334,7 @@ def _hessian_component(
         i: Index of the first parameter.
         j: Index of the second parameter.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:derivkit.derivative_kit.DerivativeKit`
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         n_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments passed to
@@ -397,7 +397,7 @@ def _mixed_partial_value(
         i: Index of the first parameter.
         j: Index of the second parameter.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:derivkit.derivative_kit.DerivativeKit` default
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default
             (``"adaptive"``) is used.
         n_workers: Optional inner parallelism for the differentiation engine.
         dk_kwargs: Additional keyword arguments passed to

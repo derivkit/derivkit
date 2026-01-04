@@ -49,25 +49,28 @@ class Tabulated1DModel:
 
     Example:
         >>> import numpy as np
-        >>> from derivkit.tabulated_model import Tabulated1DModel
+        >>> from derivkit.tabulated_model.one_d import Tabulated1DModel
         >>>
         >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
         >>> y_tab = np.array([[0.0, 0.0],
         ...                   [1.0, 1.0],
         ...                   [4.0, 8.0],
         ...                   [9.0, 27.0]])  # shape (4, 2)
-        >>>
+        >>> # Create model with extrapolation disabled and fill_value = -1.0
         >>> model = Tabulated1DModel(x_tab, y_tab,
         ...                          extrapolate=False, fill_value=-1.0)
-        >>>
+        >>> # Evaluate at new points
         >>> x_new = np.array([-1.0, 0.5, 1.5, 2.5, 4.0])
         >>> y_new = model(x_new)
-        >>> print(y_new)
-        [[-1.   -1.  ]
-         [ 0.5  0.5 ]
-         [ 2.5  4.5 ]
-         [ 6.5 17.5 ]
-         [-1.   -1.  ]]
+        >>> expected = np.array([
+        ...     [-1.0, -1.0],
+        ...     [0.5, 0.5],
+        ...     [2.5, 4.5],
+        ...     [6.5, 17.5],
+        ...     [-1.0, -1.0],
+        ... ])
+        >>> np.allclose(y_new, expected)
+        True
     """
     def __init__(
         self,
