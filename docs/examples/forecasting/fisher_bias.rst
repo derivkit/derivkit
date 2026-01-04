@@ -212,7 +212,7 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
 
    data_unbiased = model(theta0)
    data_biased = data_unbiased + np.array([0.5, -0.8, 0.3])
-   dn = fk.delta_nu(data_without=data_unbiased, data_with=data_biased)
+   dn = fk.delta_nu(data_unbiased=data_unbiased, data_biased=data_biased)
 
    bias_vec, delta_theta = fk.fisher_bias(fisher_matrix=fisher, delta_nu=dn)
 

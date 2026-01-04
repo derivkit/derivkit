@@ -1,5 +1,5 @@
-Fisher forecasts and GetDist integration
-========================================
+Fisher contours
+===============
 
 This page shows how to **visualize Fisher-matrix forecasts** using GetDist,
 starting from a Fisher matrix computed with

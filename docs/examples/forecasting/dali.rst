@@ -1,5 +1,5 @@
-DALI tensors (G, H)
-===================
+DALI tensors
+============
 
 This section shows how to construct the DALI (Derivative Approximation for
 LIkelihoods) tensors using :class:`derivkit.forecast_kit.ForecastKit`.

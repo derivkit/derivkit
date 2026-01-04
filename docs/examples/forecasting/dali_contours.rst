@@ -1,5 +1,5 @@
-DALI sampling and GetDist integration
-=====================================
+DALI contours
+=============
 
 This page shows how to **visualize DALI-expanded posteriors** using GetDist,
 starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).
@@ -14,7 +14,7 @@ If you are looking for:
 - how DALI tensors are defined and interpreted, see :doc:`../../guide/forecasting`
 - how to compute DALI tensors with DerivKit, see :doc:`dali`
 
-Two lightweight workflows are supported:
+Two workflows are supported:
 
 - sampling the DALI log-posterior (``emcee``)
 - fast importance sampling using a Fisher–Gaussian proposal
@@ -57,7 +57,7 @@ Sampling the DALI posterior with emcee
    ...     label="DALI (emcee)",
    ... )
    >>> dk_red = "#f21901"
-   >>> dk_yellow = "#e0b700"
+   >>> dk_yellow = "#e1af00"
    >>> line_width = 1.5
    >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
    >>> plotter.settings.linewidth_contour = line_width
@@ -117,7 +117,7 @@ Sampling the DALI posterior with emcee
    )
 
    dk_red = "#f21901"
-   dk_yellow = "#e0b700"
+   dk_yellow = "#e1af00"
    line_width = 1.5
 
    plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
@@ -136,8 +136,8 @@ Sampling the DALI posterior with emcee
    )
 
 
-Fast importance sampling with a Fisher–Gaussian proposal
---------------------------------------------------------
+Sampling the DALI posterior with importance sampling
+----------------------------------------------------
 
 .. doctest:: dali_getdist_importance
 
@@ -173,7 +173,7 @@ Fast importance sampling with a Fisher–Gaussian proposal
    ...     seed=0,
    ...     kernel_scale=1.3,
    ... )
-   >>> dk_yellow = "#e0b700"
+   >>> dk_yellow = "#e1af00"
    >>> line_width = 1.5
    >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
    >>> plotter.settings.linewidth_contour = line_width
@@ -235,7 +235,7 @@ Fast importance sampling with a Fisher–Gaussian proposal
        kernel_scale=1.3,
    )
 
-   dk_yellow = "#e0b700"
+   dk_yellow = "#e1af00"
    line_width = 1.5
 
    plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
@@ -301,7 +301,7 @@ while preserving the dominant nonlinear features.
    ...     prior_bounds=prior_bounds,
    ... )
    >>> dk_red = "#f21901"
-   >>> dk_yellow = "#e0b700"
+   >>> dk_yellow = "#e1af00"
    >>> dk_blue = "#3b9ab2"
    >>> line_width = 1.5
    >>> plotter = getdist_plots.get_subplot_plotter(width_inch=4.3)
@@ -365,7 +365,7 @@ while preserving the dominant nonlinear features.
    )
 
    dk_red = "#f21901"
-   dk_yellow = "#e0b700"
+   dk_yellow = "#e1af00"
    dk_blue = "#3b9ab2"
    line_width = 1.5
 
