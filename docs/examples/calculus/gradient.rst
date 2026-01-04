@@ -6,8 +6,8 @@ This section shows how to compute the gradient of a scalar-valued function using
 The gradient describes how a scalar output changes with respect to each model
 parameter.
 
-For a scalar-valued function :math:`f(\theta)`, the gradient is the vector of
-first derivatives of the output with respect to the parameters.
+For a set of parameters :math:`\theta` and a scalar-valued function :math:`f(\theta)`,
+the gradient is the vector of first derivatives of :math:`f` with respect :math:`\theta`.
 
 **Notation**
 
