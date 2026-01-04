@@ -102,7 +102,7 @@ def fisher_to_getdist_samples(
     *,
     names: Sequence[str],
     labels: Sequence[str],
-    n_samples: int = 30_000,
+    n_samples: int = 100_000,
     seed: int | None = None,
     kernel_scale: float = 1.0,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
