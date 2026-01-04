@@ -6,8 +6,8 @@ This section shows how to compute the gradient of a scalar-valued function using
 The gradient describes how a scalar output changes with respect to each model
 parameter.
 
-For a scalar-valued function :math:`f(\theta)`, the gradient is the vector of
-first derivatives of the output with respect to the parameters.
+For a set of parameters :math:`\theta` and a scalar-valued function :math:`f(\theta)`,
+the gradient is the vector of first derivatives of :math:`f` with respect :math:`\theta`.
 
 **Notation**
 
@@ -36,37 +36,33 @@ Basic usage
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Point at which to compute the gradient
    >>> x0 = np.array([0.5, 2.0])
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=x0)
-
    >>> grad = calc.gradient()
-   >>> print(grad)  # shape (p,)
-   [0.87758256 4.        ]
-
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))  # shape (p,)
+   [0.877583 4.      ]
    >>> ref = np.array([np.cos(0.5), 4.0])
-   >>> print(ref)
-   [0.87758256 4.        ]
+   >>> print(np.round(ref, 6))
+   [0.877583 4.      ]
 
 
-Finite differences (Ridders) via dk_kwargs
-------------------------------------------
+Finite differences (Ridders) via ``dk_kwargs``
+----------------------------------------------
 
 .. doctest:: gradient_finite_ridders
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> grad = calc.gradient(
    ...     method="finite",
    ...     stepsize=1e-2,
@@ -74,63 +70,61 @@ Finite differences (Ridders) via dk_kwargs
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> print(grad)
-   [0.87758256 4.        ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [0.877583 4.      ]
 
 
-Adaptive backend via dk_kwargs
-------------------------------
+Adaptive backend via ``dk_kwargs``
+----------------------------------
 
 .. doctest:: gradient_adaptive
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> grad = calc.gradient(
    ...     method="adaptive",
    ...     n_points=12,
    ...     spacing="auto",
    ...     ridge=1e-10,
    ... )
-   >>> print(grad)
-   [0.87758256 4.        ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [0.877583 4.      ]
 
 
 Parallelism across parameters
 -----------------------------
 
-``n_workers`` parallelizes across gradient components (across parameters).
+Different gradient components can be computed in parallel.
+The number of parallel processes can be tuned with the ``n_workers`` parameter.
 
 .. doctest:: gradient_parallel
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def f(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2 + np.cos(theta[2])
-
+   >>> # Create CalculusKit instance and compute gradient
    >>> calc = CalculusKit(f, x0=np.array([0.5, 2.0, 0.1]))
-
    >>> grad = calc.gradient(
    ...     method="finite",
    ...     n_workers=3,
    ...     stepsize=1e-2,
    ...     num_points=5,
    ... )
-   >>> print(grad)
-   [ 0.87758256  4.         -0.09983342 ]
+   >>> print(np.round(np.asarray(grad).reshape(-1), 6))
+   [ 0.877583  4.       -0.099833]
 
 
 Notes
 -----
 
-- ``n_workers`` parallelizes across parameters (gradient components).
+- ``n_workers`` can speed up expensive functions by parallelizing gradient components.
+  For cheap functions, overhead may dominate.
 - The function must return a **scalar**. If it returns a vector or higher-rank
-  tensor, ``build_gradient`` raises ``TypeError``.
+  tensor, :meth:`derivkit.CalculusKit.gradient` raises ``TypeError``.

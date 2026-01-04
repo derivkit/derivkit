@@ -319,11 +319,11 @@ def test_build_delta_nu_validation_errors():
 
     with pytest.raises(ValueError):
         # incompatible lengths
-        build_delta_nu(cov=cov, data_with=np.array([1.0, 2.0]), data_without=np.array([1.0]))
+        build_delta_nu(cov=cov, data_biased=np.array([1.0, 2.0]), data_unbiased=np.array([1.0]))
 
     with pytest.raises(FloatingPointError):
-        # NaN in data_with
-        build_delta_nu(cov=cov, data_with=np.array([np.nan, 1.0]), data_without=np.array([0.0, 0.0]))
+        # NaN in data_biased
+        build_delta_nu(cov=cov, data_biased=np.array([np.nan, 1.0]), data_unbiased=np.array([0.0, 0.0]))
 
 
 def _linear_model(design_matrix, theta):
@@ -336,10 +336,10 @@ def test_build_delta_nu_1d_and_2d_row_major():
     """Tests that build_delta_nu returns correct shapes and values."""
     # 1D case
     cov_2 = np.eye(2)
-    data_with = np.array([3.0, -1.0], dtype=float)
-    data_without = np.array([2.5, -2.0], dtype=float)
+    data_biased = np.array([3.0, -1.0], dtype=float)
+    data_unbiased = np.array([2.5, -2.0], dtype=float)
 
-    delta_1d = build_delta_nu(cov=cov_2, data_with=data_with, data_without=data_without)
+    delta_1d = build_delta_nu(cov=cov_2, data_biased=data_biased, data_unbiased=data_unbiased)
     np.testing.assert_allclose(delta_1d, np.array([0.5, 1.0], dtype=float))
     assert delta_1d.shape == (cov_2.shape[0],)
 
@@ -348,7 +348,7 @@ def test_build_delta_nu_1d_and_2d_row_major():
     a2 = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
     b2 = np.array([[0, 1, 1], [1, 1, 1]], dtype=float)
 
-    delta_2d = build_delta_nu(cov=cov_6, data_with=a2, data_without=b2)
+    delta_2d = build_delta_nu(cov=cov_6, data_biased=a2, data_unbiased=b2)
     np.testing.assert_allclose(delta_2d, (a2 - b2).ravel(order="C"))
     assert delta_2d.ndim == 1
     assert delta_2d.size == 6
@@ -451,8 +451,8 @@ def test_fisher_bias_accepts_2d_delta_row_major_consistency():
 
     delta_1d = build_delta_nu(
         cov=cov,
-        data_with=delta_2d,
-        data_without=np.zeros_like(delta_2d),
+        data_biased=delta_2d,
+        data_unbiased=np.zeros_like(delta_2d),
     ).ravel(order="C")
     bias_b, dtheta_b = build_fisher_bias(
         function=model,
@@ -574,7 +574,7 @@ def test_fisher_bias_linear_ground_truth_end_to_end():
     s = np.array([0.3, -0.1, 0.05, 0.2], float)
     d_with, d_without = y + s, y
 
-    delta = build_delta_nu(cov=cov, data_with=d_with, data_without=d_without)
+    delta = build_delta_nu(cov=cov, data_biased=d_with, data_unbiased=d_without)
     fisher_matrix = get_forecast_tensors(model, theta0, cov, forecast_order=1)
 
     bias, dtheta = build_fisher_bias(

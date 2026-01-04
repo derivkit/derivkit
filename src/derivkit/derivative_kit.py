@@ -15,8 +15,7 @@ Examples:
         >>> import numpy as np
         >>> from derivkit.derivative_kit import DerivativeKit
         >>> dk = DerivativeKit(function=np.cos, x0=1.0)
-        >>> # First derivative via the adaptive-fit method:
-        >>> # dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
+        >>> dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
 
     Using tabulated data directly:
 
@@ -26,18 +25,17 @@ Examples:
         >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
         >>> y_tab = x_tab**2
         >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
-        >>> # First derivative via the finite difference method:
-        >>> # dk.differentiate(order=1, method="finite", extrapolation="ridders")
+        >>> dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
 
     Registering a new method:
 
-        >>> from derivkit.derivative_kit import register_method
-        >>> from derivkit.some_new_method import NewMethodDerivative
-        >>> register_method(
+        >>> from derivkit.derivative_kit import register_method  # doctest: +SKIP
+        >>> from derivkit.some_new_method import NewMethodDerivative  # doctest: +SKIP
+        >>> register_method(  # doctest: +SKIP
         ...     name="new-method",
         ...     cls=NewMethodDerivative,
         ...     aliases=("new_method", "nm"),
-        ... )
+        ... )  # doctest: +SKIP
 
 Notes:
     - Method names are case/spacing/punctuation insensitive; aliases like
@@ -154,16 +152,15 @@ def register_method(
             :class:`derivkit.derivative_kit.DerivativeEngine` protocol.
         aliases: Additional accepted spellings (e.g., ``"gaussian-process"``).
 
-    Example:
-        >>> from derivkit.derivative_api import register_method
-        >>> from derivkit.gp.gp_derivative import GPDerivative
-        >>> register_method(
-        ...     name="gp",
-        ...     cls=GPDerivative,
-        ...     aliases=("gaussian-process", "gaussproc", "gp"),
-        ... )
-        >>> # After registration, it can be used via:
-        >>> # DerivativeKit(f, x0).differentiate(method="gp")  # doctest: +SKIP
+    Registering a new method:
+
+        >>> from derivkit.derivative_kit import register_method  # doctest: +SKIP
+        >>> from derivkit.some_new_method import NewMethodDerivative  # doctest: +SKIP
+        >>> register_method(  # doctest: +SKIP
+        ...     name="new-method",
+        ...     cls=NewMethodDerivative,
+        ...     aliases=("new_method", "nm"),
+        ... )  # doctest: +SKIP
     """
     _METHOD_SPECS.append((name, cls, list(aliases)))
     _method_maps.cache_clear()
@@ -200,8 +197,8 @@ class DerivativeKit:
     Example:
         >>> import numpy as np
         >>> from derivkit.derivative_kit import DerivativeKit
-        >>> d = DerivativeKit(np.cos, x0=1.0)
-        >>> d.differentiate(order=1)  # uses the default "adaptive" method
+        >>> dk = DerivativeKit(np.cos, x0=1.0)
+        >>> deriv = dk.differentiate(order=1)  # uses the default "adaptive" method
 
     Attributes:
         function: The callable to differentiate.

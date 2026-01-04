@@ -41,28 +41,26 @@ Basic usage (scalar-valued function)
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
-
+   >>> # Point at which to compute the Hessian
    >>> x0 = np.array([0.5, 2.0])
+   >>> # Create CalculusKit instance and compute Hessian
    >>> calc = CalculusKit(func, x0=x0)
-
    >>> hess = calc.hessian()
-   >>> print(hess)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(hess, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
    >>> print(hess.shape)
    (2, 2)
-
    >>> ref = np.array([
    ...     [-np.sin(0.5), 1.0],
    ...     [1.0, 2.0],
    ... ])
-   >>> print(ref)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(ref, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
 
 
 Hessian diagonal only
@@ -75,16 +73,14 @@ DerivKit provides a fast helper for this case.
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
-
+   >>> # Instantiate CalculusKit and compute Hessian diagonal
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> hess_diag = calc.hessian_diag()
-   >>> print(hess_diag)
-   [-0.47942554  2.        ]
-
+   >>> print(np.round(np.asarray(hess_diag).reshape(-1), 6))
+   [-0.479426  2.      ]
    >>> ref = np.array([-np.sin(0.5), 2.0])
    >>> np.allclose(hess_diag, ref)
    True
@@ -102,51 +98,45 @@ The result is reshaped back to ``(*out_shape, p, p)``.
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a tensor-valued function
    >>> def func(theta):
    ...     return np.array([
    ...         np.sin(theta[0]),
    ...         theta[0] * theta[1] + theta[1] ** 2,
    ...     ])
-
+   >>> # Point at which to compute the Hessian
    >>> x0 = np.array([0.5, 2.0])
+   >>> # Create CalculusKit instance and compute Hessian
    >>> calc = CalculusKit(func, x0=x0)
-
    >>> hess = calc.hessian()
    >>> print(hess.shape)
    (2, 2, 2)
-
    >>> hess0_ref = np.array([
    ...     [-np.sin(0.5), 0.0],
    ...     [0.0, 0.0],
    ... ])
-
    >>> hess1_ref = np.array([
    ...     [0.0, 1.0],
    ...     [1.0, 2.0],
    ... ])
-
    >>> np.allclose(hess[0], hess0_ref)
    True
    >>> np.allclose(hess[1], hess1_ref)
    True
 
 
-Finite differences (Ridders) via dk_kwargs
-------------------------------------------
+Finite differences (Ridders) via ``dk_kwargs``
+----------------------------------------------
 
 .. doctest:: hessian_finite_ridders
 
    >>> import numpy as np
    >>> from derivkit.calculus_kit import CalculusKit
-   >>> np.set_printoptions(precision=8, suppress=True)
-
+   >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
-
+   >>> # Create CalculusKit instance and compute Hessian
    >>> calc = CalculusKit(func, x0=np.array([0.5, 2.0]))
-
    >>> hess = calc.hessian(
    ...     method="finite",
    ...     n_workers=4,
@@ -155,9 +145,9 @@ Finite differences (Ridders) via dk_kwargs
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> print(hess)
-   [[-0.47942554  1.        ]
-    [ 1.          2.        ]]
+   >>> print(np.round(hess, 6))
+   [[-0.479426  1.      ]
+    [ 1.        2.      ]]
 
 
 Notes

@@ -214,8 +214,8 @@ def build_fisher_bias(
 def build_delta_nu(
         cov: ArrayLike,
         *,
-        data_with: NDArray[np.floating],
-        data_without: NDArray[np.floating],
+        data_biased: NDArray[np.floating],
+        data_unbiased: NDArray[np.floating],
         dtype: DTypeLike = np.float64,
 ) -> NDArray[np.floating]:
     """Computes the difference between two data vectors.
@@ -233,10 +233,10 @@ def build_delta_nu(
             matrix with shape ``(n_observables, n_observables)``, where
             ``n_observables`` is the number of observables returned by the
             function.
-        data_with: Data vector that includes the systematic effect. Can be
+        data_biased: Data vector that includes the systematic effect. Can be
             1D or 2D. If 1D, it must follow the NumPy's row-major (“C”)
             flattening convention used throughout the package.
-        data_without: Reference data vector without the systematic. Can be
+        data_unbiased: Reference data vector without the systematic. Can be
             1D or 2D. If 1D, it must follow the NumPy's row-major (“C”)
             flattening convention used throughout the package.
         dtype: NumPy dtype for the output array (defaults to ``np.float64``,
@@ -255,8 +255,8 @@ def build_delta_nu(
     """
     n_observables = cov.shape[0]
 
-    a = np.asarray(data_with, dtype=dtype)
-    b = np.asarray(data_without, dtype=dtype)
+    a = np.asarray(data_biased, dtype=dtype)
+    b = np.asarray(data_unbiased, dtype=dtype)
 
     if a.shape != b.shape:
         raise ValueError(f"Shapes must match: got {a.shape} vs {b.shape}.")

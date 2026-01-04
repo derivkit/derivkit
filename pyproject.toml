@@ -133,8 +133,16 @@ commands = [
 [tool.tox.env_run_base.setenv]
 PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
+
 [tool.tox.env.docs]
-description = "Build the HTML files for the current state using Sphinx"
+# NOTE:
+#   For now we EXCLUDE sphinx-apidoc-generated API pages from the doctest run
+#   via `exclude_patterns` in docs/conf.py (see conf.py comments).
+#   This avoids executing >>> snippets in source docstrings during CI.
+#
+# To re-enable doctests for API docstrings later:
+#   - comment out the "modules.rst" / "derivkit.*.rst" exclude_patterns in docs/conf.py
+description = "Build docs with Sphinx; doctest runs on docs/ (API pages excluded via conf.py for now)"
 extras = ["docs"]
 commands = [
   [
@@ -146,11 +154,59 @@ commands = [
   ],
   [
     "sphinx-build",
+    "-b", "doctest",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/doctest",
+    "--fail-on-warning",
+  ],
+  [
+    "sphinx-build",
+    "-b", "html",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/html",
     "--fail-on-warning",
   ],
 ]
+
+
+
+
+[tool.tox.env.do]
+# Same policy as `tox -e docs`, but also opens the built HTML.
+# API doctests are currently disabled via docs/conf.py exclude_patterns.
+description = "Build docs (doctest + html) and open local HTML index"
+extras = ["docs"]
+allowlist_externals = ["open"]
+commands = [
+  [
+    "sphinx-apidoc",
+    "-o", "{tox_root}/docs",
+    "{tox_root}/src/derivkit",
+    "--separate",
+    "-f",
+  ],
+  [
+    "sphinx-build",
+    "-b", "doctest",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/doctest",
+    "--fail-on-warning",
+  ],
+  [
+    "sphinx-build",
+    "-b", "html",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/html",
+    "--fail-on-warning",
+  ],
+  [
+    "open",
+    "{tox_root}/docs/_build/html/index.html",
+  ],
+]
+
+
+
 
 # This feels ugly because it mostly duplicates the docs environment.
 # However, it is the simplest way to allow a user to build the docs
