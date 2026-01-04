@@ -105,7 +105,8 @@ Adaptive backend via ``dk_kwargs``
 Parallelism across parameters
 -----------------------------
 
-``n_workers`` parallelizes across gradient components (across parameters).
+Different gradient components can be computed in parallel.
+The number of parallel processes can be tuned with the ``n_workers`` parameter.
 
 .. doctest:: gradient_parallel
 
