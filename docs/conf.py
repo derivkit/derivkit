@@ -32,7 +32,7 @@ import numpy as np
 np.set_printoptions(precision=12, suppress=True)
 """
 
-doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+doctest_default_flags = ELLIPSIS | NORMALIZE_WHITESPACE
 
 intersphinx_mapping = {
     "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
