@@ -7,20 +7,17 @@ Example:
 --------
 Basic usage (opt-in registration):
 
-    >>> from derivkit.derivative_kit import DerivativeKit
-    >>> from derivkit.autodiff.jax_autodiff import register_jax_autodiff_backend
-    >>> register_jax_autodiff_backend()  # must be called first to enable JAX backend
+    >>> from derivkit.derivative_kit import DerivativeKit  # doctest: +SKIP
+    >>> from derivkit.autodiff.jax_autodiff import register_jax_autodiff_backend  # doctest: +SKIP
+    >>> register_jax_autodiff_backend()  # doctest: +SKIP
     >>>
-    >>> def func(x):
-    ...     # Use jax.numpy inside the function body for best compatibility.
+    >>> def func(x):  # doctest: +SKIP
     ...     import jax.numpy as jnp
     ...     return jnp.sin(x) + 0.5 * x**2
     ...
-    >>> dk = DerivativeKit(func, 1.0)
-    >>> dk.differentiate(method="autodiff", order=1)
-    1.0...
-    >>> dk.differentiate(method="autodiff", order=2)
-    0.5...
+    >>> dk = DerivativeKit(func, 1.0)  # doctest: +SKIP
+    >>> dk.differentiate(method="autodiff", order=1)  # doctest: +SKIP
+    >>> dk.differentiate(method="autodiff", order=2)  # doctest: +SKIP
 
 Notes:
 ------

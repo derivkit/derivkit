@@ -13,7 +13,7 @@ __all__ = [
 def build_poissonian_likelihood(
     data: float | np.ndarray[float],
     model_parameters: float | np.ndarray[float],
-    return_log: bool = False,
+    return_log: bool = True,
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
     """Constructs the Poissonian likelihood function.
 
@@ -36,8 +36,8 @@ def build_poissonian_likelihood(
     Args:
         data: an array representing the given data values.
         model_parameters: an array representing the means of the data samples.
-        return_log: when set to ``True``, returns the log-likelihood. Defaults
-            to ``False``.
+        return_log: when set to ``True``, returns the log-likelihood instead of
+                the probability mass function.
 
     Returns:
         A tuple of arrays containing (in order):
@@ -52,103 +52,101 @@ def build_poissonian_likelihood(
             model_parameters.
 
     Examples:
-        The Poissonian probability of 2 events, given that the mean is
-        1.4 events per unit interval, shows that the output is reshaped
-        as a 2D array:
+        Scalar mean + scalar data:
 
-        >>> x, y = build_poissonian_likelihood(2, 1.4)
-        >>> print(x, y)
-        [2] [0.24166502]
+        >>> import numpy as np
+        >>> from scipy.stats import poisson
+        >>> from derivkit.likelihoods.poisson import build_poissonian_likelihood
+        >>> x, y = build_poissonian_likelihood(2, 1.4, return_log=False)
+        >>> x.shape, y.shape
+        ((1,), (1,))
+        >>> x[0].item()
+        2
+        >>> np.allclose(y[0], poisson.pmf(2, 1.4))
+        True
 
-        A Poisson-distributed sample can be computed for a given
-        expectation value:
+        Vector data + scalar mean (data are flattened):
 
         >>> data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         >>> model_parameters = 2.4
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [ 1  2  3  4  5  6  7  8  9 10]
-        >>> print(y)
-        [2.17723088e-01 2.61267705e-01 2.09014164e-01 1.25408499e-01
-         6.01960793e-02 2.40784317e-02 8.25546231e-03 2.47663869e-03
-         6.60436985e-04 1.58504876e-04]
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
+        >>> x.shape, y.shape
+        ((10,), (10,))
+        >>> np.array_equal(x, data)
+        True
+        >>> np.allclose(y, poisson.pmf(data, 2.4))
+        True
 
-        Note that the shape of the results are determined by the shape of
-        ``model_parameters``:
+        Shape follows ``model_parameters``:
 
         >>> data = np.array([1, 2])
         >>> model_parameters = np.array([3])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [[1]
-         [2]]
-        >>> print(y)
-        [[0.14936121]
-         [0.22404181]]
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
+        >>> x.shape, y.shape
+        ((2, 1), (2, 1))
+        >>> np.array_equal(x[:, 0], data)
+        True
+        >>> np.allclose(y[:, 0], poisson.pmf(data, 3))
+        True
 
-        Probabilities computed from values and parameters distributed along
-        a 1D grid of bins:
+        1D grid of bins produces a row-major 2D output:
 
         >>> model_parameters = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
         >>> data = np.array([1, 2, 3, 4, 5, 6])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [[1 2 3 4 5 6]]
-        >>> print(y)
-        [[9.04837418e-02 1.63746151e-02 3.33368199e-03 7.15008049e-04
-          1.57950693e-04 3.55629940e-05]]
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
+        >>> x.shape, y.shape
+        ((1, 6), (1, 6))
+        >>> np.array_equal(x[0], data)
+        True
+        >>> np.allclose(y[0], poisson.pmf(data, model_parameters))
+        True
 
-        Probabilities computed from values and parameters distributed across
-        a 2D grid of bins:
+        2D grid:
 
         >>> data = np.array([[1, 2, 3], [4, 5, 6]])
         >>> model_parameters = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [[[1 2 3]
-          [4 5 6]]]
-        >>> print(y)
-        [[[9.04837418e-02 1.63746151e-02 3.33368199e-03]
-          [7.15008049e-04 1.57950693e-04 3.55629940e-05]]]
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
+        >>> x.shape, y.shape
+        ((1, 2, 3), (1, 2, 3))
+        >>> np.array_equal(x[0], data)
+        True
+        >>> np.allclose(y[0], poisson.pmf(data, model_parameters))
+        True
 
-        Combining multiple data values on the same grid with the same
-        Poissonian means:
+        Stacked data on the same grid:
 
         >>> val1 = np.array([[1, 2, 3], [4, 5, 6]])
         >>> val2 = np.array([[7, 8, 9], [10, 11, 12]])
         >>> data = np.array([val1, val2])
-        >>> model_parameters = np.array([[0.1, 0.2, 0.3,], [0.4, 0.5, 0.6]])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [[[ 1  2  3]
-          [ 4  5  6]]
-        <BLANKLINE>
-         [[ 7  8  9]
-          [10 11 12]]]
-        >>> print(y)
-         [[[9.04837418e-02 1.63746151e-02 3.33368199e-03]
-          [7.15008049e-04 1.57950693e-04 3.55629940e-05]]
-        <BLANKLINE>
-         [[1.79531234e-11 5.19829050e-11 4.01827740e-11]
-          [1.93695302e-11 7.41937101e-12 2.49402815e-12]]]
+        >>> model_parameters = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+        >>> x, y = build_poissonian_likelihood(
+        ...             data, model_parameters, return_log=False
+        ... )
+        >>> x.shape, y.shape
+        ((2, 2, 3), (2, 2, 3))
+        >>> np.array_equal(x[0], val1) and np.array_equal(x[1], val2)
+        True
+        >>> np.allclose(y[0], poisson.pmf(val1, model_parameters))
+        True
+        >>> np.allclose(y[1], poisson.pmf(val2, model_parameters))
+        True
 
-        The same result can be obtained by supplying the data in a flattened
-        array:
+        Same result when supplying flattened data:
 
-        >>> data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        >>> x, y = build_poissonian_likelihood(data, model_parameters)
-        >>> print(x)
-        [[[ 1  2  3]
-          [ 4  5  6]]
-        <BLANKLINE>
-         [[ 7  8  9]
-          [10 11 12]]]
-        >>> print(y)
-         [[[9.04837418e-02 1.63746151e-02 3.33368199e-03]
-          [7.15008049e-04 1.57950693e-04 3.55629940e-05]]
-        <BLANKLINE>
-         [[1.79531234e-11 5.19829050e-11 4.01827740e-11]
-          [1.93695302e-11 7.41937101e-12 2.49402815e-12]]]
+        >>> data_flat = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        >>> x2, y2 = build_poissonian_likelihood(
+        ...             data_flat, model_parameters, return_log=False
+        ... )
+        >>> np.array_equal(x2, x) and np.allclose(y2, y)
+        True
     """
     values_to_reshape = np.asarray(data)
     parameters = np.asarray(model_parameters)

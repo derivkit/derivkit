@@ -11,8 +11,13 @@ Typical usage example:
 >>> x0 = np.pi/4
 >>> grid = x0 + np.array([-0.3, -0.25, -0.1, 0, 0.12])
 >>> fornberg = FornbergDerivative(lambda x: np.tan(x), x0)
->>> fornberg.differentiate(grid=grid, order=1)
-np.float64(2.0022106298738143)
+>>> bool(np.isclose(
+...     fornberg.differentiate(grid=grid, order=1),
+...     2.0022106298738143,
+...     rtol=1e-14,
+...     atol=0.0,
+... ))
+True
 """
 
 from __future__ import annotations

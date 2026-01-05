@@ -60,7 +60,7 @@ class LikelihoodKit:
         self,
         cov: ArrayLike,
         *,
-        return_log: bool = False,
+        return_log: bool = True,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
         """Evaluates a Gaussian likelihood for the stored data and parameters.
 
@@ -90,7 +90,7 @@ class LikelihoodKit:
     def poissonian(
         self,
         *,
-        return_log: bool = False,
+        return_log: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Evaluates a Poissonian likelihood for the stored data and parameters.
 
