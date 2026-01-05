@@ -80,7 +80,7 @@ class ForecastKit:
                 May be ``None`` if you only plan to use covariance-only workflows
                 (e.g. generalized Fisher with ``term="cov"``). Required for
                 :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
-            theta0: Fiducial parameter values (shape ``(p,)``), where ``p`` is the
+            theta0: Fiducial parameter values of shape ``(p,)`` where ``p`` is the
                 number of parameters.
             cov: Covariance specification.
 
