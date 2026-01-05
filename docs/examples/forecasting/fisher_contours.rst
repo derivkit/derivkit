@@ -241,6 +241,128 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
    )
 
 
+Gaussian priors
+---------------
+
+Gaussian priors can be included by adding their **precision matrix**
+(the inverse prior covariance) to the Fisher matrix before converting to GetDist
+objects. Below we overlay the original Fisher contours (red) with the
+Fisher+prior contours (yellow).
+
+.. doctest:: fisher_with_gaussian_prior_overlay
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
+   >>> np.set_printoptions(precision=8, suppress=True)
+   >>> # Same toy model as above
+   >>> def model(theta):
+   ...     a, b = theta
+   ...     return np.array([a, b, a + 2.0 * b], dtype=float)
+   >>> theta0 = np.array([1.0, 2.0])
+   >>> cov = np.eye(3)
+   >>> # Fisher from the example above
+   >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+   >>> fisher_like = fk.fisher()
+   >>> # Gaussian prior: sigma_a = 0.2, sigma_b = 0.5  (diagonal prior covariance)
+   >>> sigma_prior = np.array([0.2, 0.5], dtype=float)
+   >>> fisher_prior = np.diag(1.0 / sigma_prior**2)
+   >>> fisher_post = fisher_like + fisher_prior
+   >>> # Convert both to analytic GetDist Gaussians
+   >>> g_like = fisher_to_getdist_gaussiannd(
+   ...     theta0=theta0,
+   ...     fisher=fisher_like,
+   ...     names=["a", "b"],
+   ...     labels=[r"a", r"b"],
+   ...     label="Fisher",
+   ... )
+   >>> g_post = fisher_to_getdist_gaussiannd(
+   ...     theta0=theta0,
+   ...     fisher=fisher_post,
+   ...     names=["a", "b"],
+   ...     labels=[r"a", r"b"],
+   ...     label="Fisher + Gaussian prior",
+   ... )
+   >>> # Overlay contours: red (likelihood-only) and yellow (with prior)
+   >>> dk_red = "#f21901"
+   >>> dk_yellow = "#f2b701"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.settings.figure_legend_frame = False
+   >>> plotter.settings.legend_rect_border = False
+   >>> plotter.triangle_plot(
+   ...     [g_like, g_post],
+   ...     params=["a", "b"],
+   ...     filled=[False, False],
+   ...     contour_colors=[dk_yellow, dk_red],
+   ...     contour_lws=[line_width, line_width],
+   ...     contour_ls=["-", "-"],
+   ... )
+   >>> (g_like is not None) and (g_post is not None)
+   True
+
+
+.. plot::
+   :include-source: False
+   :width: 420
+
+   import numpy as np
+   from getdist import plots as getdist_plots
+   from derivkit.forecast_kit import ForecastKit
+   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
+
+   def model(theta):
+       a, b = theta
+       return np.array([a, b, a + 2.0 * b], dtype=float)
+
+   theta0 = np.array([1.0, 2.0])
+   cov = np.eye(3)
+
+   fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+   fisher_like = fk.fisher()
+
+   sigma_prior = np.array([0.2, 0.5], dtype=float)
+   fisher_prior = np.diag(1.0 / sigma_prior**2)
+   fisher_post = fisher_like + fisher_prior
+
+   g_like = fisher_to_getdist_gaussiannd(
+       theta0=theta0,
+       fisher=fisher_like,
+       names=["a", "b"],
+       labels=[r"a", r"b"],
+       label="Fisher",
+   )
+   g_post = fisher_to_getdist_gaussiannd(
+       theta0=theta0,
+       fisher=fisher_post,
+       names=["a", "b"],
+       labels=[r"a", r"b"],
+       label="Fisher + Gaussian prior",
+   )
+
+   dk_red = "#f21901"
+   dk_yellow = "#f2b701"
+   line_width = 1.5
+
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+   plotter.settings.figure_legend_frame = False
+   plotter.settings.legend_rect_border = False
+
+   plotter.triangle_plot(
+       [g_like, g_post],
+       params=["a", "b"],
+       filled=[False, False],
+       contour_colors=[dk_yellow, dk_red],
+       contour_lws=[line_width, line_width],
+       contour_ls=["-", "-"],
+   )
+
+
 Notes and conventions
 ---------------------
 
