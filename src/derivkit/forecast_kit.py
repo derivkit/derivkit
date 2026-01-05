@@ -70,8 +70,7 @@ class ForecastKit:
             function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
             theta0: Sequence[float] | np.ndarray,
             cov: np.ndarray
-                 | Callable[[np.ndarray], np.ndarray]
-                 | tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]],
+                 | Callable[[np.ndarray], np.ndarray],
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
@@ -90,9 +89,6 @@ class ForecastKit:
                   matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``,
                   with shape ``(n_obs, n_obs)``. The covariance at ``theta0`` is evaluated
                   once and cached.
-                - ``cov=(C0, cov_fn)``: provide both a fixed covariance
-                  ``C0 = C(theta0)`` and a callable ``cov_fn(theta) -> C(theta)``.
-                  This avoids recomputing ``cov_fn(theta0)`` internally.
         """
         self.function = function
         self.theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
@@ -103,7 +99,7 @@ class ForecastKit:
             validate=validate_covariance_matrix_shape,
         )
 
-        self.cov0 = np.asarray(cov0, dtype=np.float64)
+        self.cov0 = cov0
         self.cov_fn = cov_fn
         self.n_observables = int(self.cov0.shape[0])
 
@@ -244,7 +240,7 @@ class ForecastKit:
           FloatingPointError: If non-finite values are detected in the result.
         """
         nu = build_delta_nu(
-            cov=self.cov,
+            cov=self.cov0,
             data_biased=data_biased,
             data_unbiased=data_unbiased,
         )
@@ -289,7 +285,6 @@ class ForecastKit:
     def gaussian_fisher(
             self,
             *,
-            term: str = "both",
             method: str | None = None,
             n_workers: int = 1,
             rcond: float = 1e-12,
@@ -302,12 +297,7 @@ class ForecastKit:
         likelihood with parameter-dependent mean and/or covariance.
         Uses :func:`derivkit.forecasting.fisher_general.build_generalized_fisher_matrix`.
 
-        Notes:
-            ``function`` may be ``None`` if ``term="cov"``. For ``term="mean"`` or
-            ``term="both"``, a mean model is required.
-
         Args:
-            term: Which contribution(s) to return: ``"mean"``, ``"cov"``, or ``"both"``.
             method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             n_workers: Number of workers for per-parameter parallelisation.
             rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
@@ -318,19 +308,12 @@ class ForecastKit:
         Returns:
             Fisher matrix with shape ``(p, p)``.
         """
-        if self.cov_fn is None and term in ("cov", "both"):
-            raise ValueError(
-                "ForecastKit.generalized_fisher requires a parameter-dependent covariance callable "
-                "for term='cov' or term='both'. Initialize ForecastKit with cov=cov_fn or cov=(cov0, cov_fn)."
-            )
-
-        cov_spec = (self.cov0, self.cov_fn) if self.cov_fn is not None else self.cov0
+        cov_spec = self.cov_fn if self.cov_fn is not None else self.cov0
 
         return build_gaussian_fisher_matrix(
             theta0=self.theta0,
             cov=cov_spec,
             function=self.function,
-            term=term,
             method=method,
             n_workers=n_workers,
             rcond=rcond,

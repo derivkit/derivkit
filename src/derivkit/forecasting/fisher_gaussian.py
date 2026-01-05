@@ -24,9 +24,8 @@ def build_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     cov: NDArray[np.float64]
         | Callable[[NDArray[np.float64]], NDArray[np.float64]],
-    function: Callable[[NDArray[np.float64]], float | NDArray[np.float64]] | None,
+    function: Callable[[NDArray[np.float64]], float | NDArray[np.float64]],
     *,
-    term: str = "both",
     method: str | None = None,
     n_workers: int = 1,
     rcond: float = 1e-12,
@@ -43,14 +42,9 @@ def build_gaussian_fisher_matrix(
     :math:`F_{ij} = \\mu_{,i}^T C^{-1} \\mu_{,j} \
         + \\frac{1}{2} \\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`.
 
-    ``function`` may be ``None`` if you only request the covariance term
-    (``term="cov"``). If ``term="both"`` or ``term="mean"``, ``function`` must
-    be provided.
-
     Args:
         function: Callable returning the model mean ``mu(theta)`` as a scalar (only if
-            ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``. Required if
-            ``term`` is ``"mean"`` or ``"both"``.
+            ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``.
         cov: Covariance matrix. Provide either a fixed covariance array or
             a callable covariance function. Supported forms are:
 
@@ -59,8 +53,7 @@ def build_gaussian_fisher_matrix(
               In this case the covariance-derivative Fisher term will not be computed.
             - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
               matrix ``C(theta)`` evaluated at the parameter vector ``theta``,
-              with shape ``(n_obs, n_obs)``. This enables the covariance trace term
-              (and the mean term if ``function`` is provided).
+              with shape ``(n_obs, n_obs)``.
 
             The callable form is evaluated at ``theta0`` to determine ``n_obs`` and (unless
             ``C0`` is provided) to define ``C0 = C(theta0)``.
@@ -79,9 +72,7 @@ def build_gaussian_fisher_matrix(
         Fisher matrix with shape ``(p, p)`` where ``p`` is the number of parameters.
 
     Raises:
-        ValueError: If ``term`` is invalid; if ``term`` requires ``function`` but it is missing;
-            if ``term`` requires a covariance function but only a fixed covariance was provided;
-            or if ``function(theta0)`` does not match the implied observable dimension.
+        ValueError: If ``function(theta0)`` does not match the implied observable dimension.
     """
     n_workers = normalize_workers(n_workers)
     theta0 = np.atleast_1d(theta0).astype(np.float64)
