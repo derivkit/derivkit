@@ -32,7 +32,7 @@ For advanced usage, see :func:`derivkit.likelihoods.poisson.build_poisson_likeli
 Poisson log-likelihood
 ----------------------
 
-For inference, you should almost always work with the **log-likelihood**
+For inference, you should almost always work with the log-likelihood
 for numerical stability.
 
 .. doctest:: poisson_loglike
