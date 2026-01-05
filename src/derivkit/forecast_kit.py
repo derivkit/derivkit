@@ -76,7 +76,7 @@ class ForecastKit:
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
         Args:
-            function: Callable returning the model mean vector :math:`\\mu(\\theta)`.
+            function: Callable returning the model mean vector :math:`\mu(\theta)`.
                 May be ``None`` if you only plan to use covariance-only workflows
                 (e.g. generalized Fisher with ``term="cov"``). Required for
                 :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
@@ -168,7 +168,7 @@ class ForecastKit:
                 the parameters. Its shape must be ``(p, p)``, where ``p``
                 is the number of parameters.
             delta_nu: Difference between a biased and an unbiased data vector,
-                for example :math:`\\Delta\nu = \nu_{\\mathrm{with\\,sys}} - \nu_{\\mathrm{without\\,sys}}`.
+                for example :math:`\Delta\nu = \nu_{\mathrm{with\,sys}} - \nu_{\mathrm{without\,sys}}`.
                 Accepts a 1D array of length n or a 2D array that will be
                 flattened in row-major order ("C") to length n, where n is
                 the number of observables. If supplied as a 1D array, it must
@@ -312,7 +312,7 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter parallelisation.
             rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
             symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
-                :math:`\\tfrac{1}{2}(C_{,i} + C_{,i}^{\\mathsf{T}})`.
+                :math:`\tfrac{1}{2}(C_{,i} + C_{,i}^{\mathsf{T}})`.
             **dk_kwargs: Forwarded to the internal derivative calls.
 
         Returns:

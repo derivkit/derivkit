@@ -37,12 +37,15 @@ def build_gaussian_fisher_matrix(
 
     This implements the standard Fisher matrix for a Gaussian likelihood with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
-    For Gaussian-distributed data :math:`d` with mean :math:`\mu` and covariance :math:`C` such that
-    :math:`d \approx N(\mu(\theta), C(\theta))`, the generalized Fisher matrix :math:`F_{ij}` evaluated at
-    :math:`\theta_0` is :math:`F_{ij} = mu_,i^T C^-1 mu_,j + 1/2 \mathrm{Tr}[C^-1 C_,i C^-1 C_,j]`.
+    For Gaussian-distributed data :math:`d` with mean :math:`\\mu` and
+    covariance :math:`C` such that :math:`d \\approx N(\\mu(\\theta), C(\\theta))`,
+    the generalized Fisher matrix :math:`F_{ij}` evaluated at :math:`\\theta_0` is
+    :math:`F_{ij} = \\mu_{,i}^T C^{-1} \\mu_{,j} \
+        + \\frac{1}{2} \\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`.
 
-    ``function`` may be ``None`` if you only request the covariance term (``term="cov"``).
-    If ``term="both"`` or ``term="mean"``, ``function`` must be provided.
+    ``function`` may be ``None`` if you only request the covariance term
+    (``term="cov"``). If ``term="both"`` or ``term="mean"``, ``function`` must
+    be provided.
 
     Args:
         function: Callable returning the model mean ``mu(theta)`` as a scalar (only if
