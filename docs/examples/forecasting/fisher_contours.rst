@@ -1,15 +1,15 @@
 Fisher contours
 ===============
 
-This page shows how to **visualize Fisher-matrix forecasts** using GetDist,
+This page shows how to visualize Fisher-matrix forecasts using GetDist,
 starting from a Fisher matrix computed with
 :class:`derivkit.forecast_kit.ForecastKit`.
 
-The focus here is **what to do next** once you already have a Fisher matrix:
+The focus here is what to do next once you already have a Fisher matrix:
 how to turn it into confidence contours or samples for quick inspection,
 comparison, and plotting.
 
-This is intended for **fast exploration and visualization**, not as a
+This is intended for fast exploration and visualization, not as a
 replacement for full likelihood-based inference or MCMC sampling.
 
 If you are looking for:
@@ -21,8 +21,8 @@ If you are looking for:
 
 Two complementary visualization workflows are supported:
 
-- conversion of a Fisher matrix into an **analytic Gaussian** for GetDist
-- **Monte Carlo samples** drawn from the Fisher Gaussian, returned as
+- conversion of a Fisher matrix into an analytic Gaussian for GetDist
+- Monte Carlo samples drawn from the Fisher Gaussian, returned as
   :class:`getdist.MCSamples`
 
 Both outputs can be passed directly to GetDist plotting utilities
