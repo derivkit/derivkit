@@ -7,5 +7,7 @@ Forecasting
    fisher
    fisher_bias
    dali
-   fisher_getdist
-   dali_getdist
+   fisher_contours
+   dali_contours
+   laplace_approx
+   laplace_contours
