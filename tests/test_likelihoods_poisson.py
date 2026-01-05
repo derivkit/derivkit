@@ -145,7 +145,7 @@ class  TestPoissonOutput:
         Test cases were originally made for examples in the build_poissonian docstring.
         """
         test_output, test_likelihood \
-            = poiss.build_poissonian_likelihood(input_data, input_parameters)
+            = poiss.build_poissonian_likelihood(input_data, input_parameters, return_log=False)
 
         assert_allclose(test_output, expected_output_data)
         assert_allclose(test_likelihood, expected_output_likelihood)
