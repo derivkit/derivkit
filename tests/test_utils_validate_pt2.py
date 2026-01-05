@@ -224,30 +224,6 @@ def test_resolve_covariance_input_callable_cov_evaluates_at_theta0() -> None:
     assert out_cov0.shape == (2, 2)
 
 
-def test_resolve_covariance_input_tuple_requires_len_2() -> None:
-    """Tests that resolve_covariance_input raises for tuple covariance input of wrong length."""
-    theta0 = np.array([0.1, 0.2], dtype=float)
-    cov0 = np.eye(2, dtype=float)
-
-    with pytest.raises(TypeError, match="tuple form must be \\(cov0, cov_fn\\)"):
-        resolve_covariance_input((
-            cov0,),
-            theta0=theta0,
-            validate=validate_covariance_matrix_shape)
-
-
-def test_resolve_covariance_input_tuple_requires_callable() -> None:
-    """Tests that resolve_covariance_input raises for tuple covariance input with non-callable second element."""
-    theta0 = np.array([0.1, 0.2], dtype=float)
-    cov0 = np.eye(2, dtype=float)
-
-    with pytest.raises(TypeError, match="cov_fn callable"):
-        resolve_covariance_input(
-            (cov0, 123),
-            theta0=theta0,
-            validate=validate_covariance_matrix_shape)
-
-
 def test_flatten_matrix_c_order_returns_row_major_flattening() -> None:
     """Tests that flatten_matrix_c_order returns C-order flattened matrix."""
     theta = np.array([0.0, 0.0], dtype=float)
@@ -275,3 +251,16 @@ def test_require_callable_raises_with_context_and_hint() -> None:
     """Tests that require_callable raises ValueError with context and hint when None is provided."""
     with pytest.raises(ValueError, match="SomeContext: function must be provided\\. Add one\\."):
         require_callable(None, name="function", context="SomeContext", hint="Add one.")
+
+
+def test_resolve_covariance_input_rejects_tuple_input() -> None:
+    """Tests that resolve_covariance_input raises Exception for tuple covariance input."""
+    theta0 = np.array([0.1, 0.2], dtype=float)
+    cov0 = np.eye(2, dtype=float)
+
+    with pytest.raises(Exception):
+        resolve_covariance_input(
+            (cov0, cov_fn),
+            theta0=theta0,
+            validate=validate_covariance_matrix_shape,
+        )

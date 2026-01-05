@@ -154,22 +154,6 @@ def test_init_resolves_covariance_callable_caches_cov0():
     assert fk.n_observables == 3
 
 
-def test_init_resolves_covariance_tuple_keeps_cov0_and_cov_fn():
-    """Tests that ForecastKit accepts cov=(cov0, cov_fn) and caches both."""
-    cov0 = 2.0 * np.eye(4)
-
-    def cov_fn(theta):
-        """Returns a mock covariance matrix."""
-        _ = np.asarray(theta)
-        return np.eye(4)
-
-    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=(cov0, cov_fn))
-
-    np.testing.assert_allclose(fk.cov0, cov0)
-    assert fk.cov_fn is cov_fn
-    assert fk.n_observables == 4
-
-
 def test_fisher_raises_if_function_is_none():
     """Tests that ForecastKit.fisher requires a mean model."""
     fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(1))
@@ -255,10 +239,11 @@ def test_delta_nu_delegates(monkeypatch):
     """Tests that ForecastKit.delta_nu delegates to build_delta_nu."""
     seen = {}
 
-    def fake_build_delta_nu(*, cov, data_with, data_without):
+    def fake_build_delta_nu(*, cov, data_biased, data_unbiased):
+        """Mock build_delta_nu that records inputs and returns fixed output."""
         seen["cov"] = np.asarray(cov)
-        seen["with"] = np.asarray(data_with)
-        seen["without"] = np.asarray(data_without)
+        seen["biased"] = np.asarray(data_biased)
+        seen["unbiased"] = np.asarray(data_unbiased)
         return np.array([1.0, 2.0, 3.0])
 
     monkeypatch.setattr(
@@ -272,22 +257,12 @@ def test_delta_nu_delegates(monkeypatch):
 
     np.testing.assert_allclose(out, np.array([1.0, 2.0, 3.0]))
     np.testing.assert_allclose(seen["cov"], np.eye(3))
-    np.testing.assert_allclose(seen["with"], np.ones(3))
-    np.testing.assert_allclose(seen["without"], np.zeros(3))
-
-
-def test_generalized_fisher_raises_without_cov_fn_when_needed():
-    """Tests that ForecastKit.generalized_fisher raises ValueError if cov_fn is needed but missing."""
-    fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(2))
-
-    with pytest.raises(ValueError):
-        fk.gaussian_fisher(term="cov")
-    with pytest.raises(ValueError):
-        fk.gaussian_fisher(term="both")
+    np.testing.assert_allclose(seen["biased"], np.ones(3))
+    np.testing.assert_allclose(seen["unbiased"], np.zeros(3))
 
 
 def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
-    """Tests that ForecastKit.gaussian_fisher delegates to build_generalized_fisher_matrix."""
+    """Tests that ForecastKit.gaussian_fisher delegates to build_gaussian_fisher_matrix."""
     seen = {}
 
     def fake_build_gaussian_fisher_matrix(
@@ -295,7 +270,6 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         theta0,
         cov,
         function,
-        term="both",
         method=None,
         n_workers=1,
         rcond=1e-12,
@@ -306,7 +280,6 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         seen["theta0"] = np.asarray(theta0)
         seen["cov"] = cov
         seen["function"] = function
-        seen["term"] = term
         seen["method"] = method
         seen["n_workers"] = n_workers
         seen["rcond"] = rcond
@@ -320,15 +293,13 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         raising=True,
     )
 
-    cov0 = 2.0 * np.eye(3)
-
     def cov_fn(_theta):
-        """Returns a mock covariance matrix."""
+        """Mock covariance function."""
         return np.eye(3)
 
-    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=(cov0, cov_fn))
+    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=cov_fn)
+
     out = fk.gaussian_fisher(
-        term="cov",
         method="finite",
         n_workers=5,
         rcond=1e-8,
@@ -337,11 +308,8 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     )
 
     np.testing.assert_allclose(out, np.full((2, 2), 9.0))
-    assert isinstance(seen["cov"], tuple) and len(seen["cov"]) == 2
-    np.testing.assert_allclose(seen["cov"][0], cov0)
-    assert seen["cov"][1] is cov_fn
+    assert callable(seen["cov"])
     assert seen["function"] is None
-    assert seen["term"] == "cov"
     assert seen["method"] == "finite"
     assert seen["n_workers"] == 5
     assert seen["rcond"] == 1e-8
