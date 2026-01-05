@@ -385,6 +385,172 @@ while preserving the dominant nonlinear features.
    )
 
 
+Including priors in DALI contours
+---------------------------------
+
+Priors can be included in DALI sampling by passing them directly to the
+DerivKit GetDist helpers via ``prior_terms`` and/or ``prior_bounds``.
+These are evaluated as part of the DALI log-posterior during sampling.
+
+Sampler bounds mainly truncate the sampled region, while informative priors
+(especially correlated multivariate priors) can change the shape and orientation
+of the contours.
+
+
+.. doctest:: dali_with_priors_overlay_emcee
+
+   >>> import numpy as np
+   >>> from getdist import plots as getdist_plots
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
+   >>> def model_2d(theta):
+   ...     x, eps = float(theta[0]), float(theta[1])
+   ...     k = 3.0
+   ...     a = 4.0
+   ...     c = 6.0
+   ...     o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+   ...     o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+   ...     return np.array([o1, o2], dtype=float)
+   >>> theta0 = np.array([0.18, 0.02], dtype=float)
+   >>> cov = np.array([[1.0, 0.95],
+   ...                 [0.95, 1.0]], dtype=float)
+   >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+   >>> fisher = fk.fisher()
+   >>> g_tensor, h_tensor = fk.dali()
+   >>> # Baseline: no priors
+   >>> samples_base = dali_to_getdist_emcee(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     g_tensor=g_tensor,
+   ...     h_tensor=h_tensor,
+   ...     names=["x", "eps"],
+   ...     labels=[r"x", r"\epsilon"],
+   ...     label="DALI",
+   ... )
+   >>> # With priors: wide bounds + a correlated multivariate Gaussian prior
+   >>> prior_bounds = [(-1.5, 1.5), (-0.8, 0.8)]
+   >>> # Strong correlated prior centered near theta0
+   >>> mu = np.array([0.18, 0.02], dtype=float)
+   >>> sx, seps, rho = 0.03, 0.006, -0.95
+   >>> cov_prior = np.array(
+   ...     [[sx * sx,        rho * sx * seps],
+   ...      [rho * sx * seps, seps * seps]],
+   ...     dtype=float,
+   ... )
+   >>> prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
+   >>> samples_prior = dali_to_getdist_emcee(
+   ...     theta0=theta0,
+   ...     fisher=fisher,
+   ...     g_tensor=g_tensor,
+   ...     h_tensor=h_tensor,
+   ...     names=["x", "eps"],
+   ...     labels=[r"x", r"\epsilon"],
+   ...     label="DALI + correlated prior",
+   ...     prior_bounds=prior_bounds,
+   ...     prior_terms=prior_terms,
+   ... )
+   >>> dk_red = "#f21901"
+   >>> dk_yellow = "#f2b701"
+   >>> line_width = 1.5
+   >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   >>> plotter.settings.linewidth_contour = line_width
+   >>> plotter.settings.linewidth = line_width
+   >>> plotter.settings.figure_legend_frame = False
+   >>> plotter.settings.legend_rect_border = False
+   >>> plotter.triangle_plot(
+   ...     [samples_base, samples_prior],
+   ...     params=["x", "eps"],
+   ...     filled=[False, False],
+   ...     contour_colors=[dk_yellow, dk_red],
+   ...     contour_lws=[line_width, line_width],
+   ...     contour_ls=["-", "-"],
+   ... )
+   >>> (samples_base.numrows > 0) and (samples_prior.numrows > 0)
+   True
+
+
+.. plot::
+   :include-source: False
+   :width: 520
+
+   import numpy as np
+   from getdist import plots as getdist_plots
+
+   from derivkit.forecast_kit import ForecastKit
+   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
+
+   def model_2d(theta):
+       x, eps = float(theta[0]), float(theta[1])
+       k = 3.0
+       a = 4.0
+       c = 6.0
+       o1 = 1e2 * np.exp((x - k * eps) ** 2) * np.exp(a * eps)
+       o2 = 4e1 * np.exp(0.5 * x) * (1.0 + 0.3 * eps + c * (eps**3))
+       return np.array([o1, o2], dtype=float)
+
+   theta0 = np.array([0.18, 0.02], dtype=float)
+   cov = np.array([[1.0, 0.95],
+                   [0.95, 1.0]], dtype=float)
+
+   fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
+   fisher = fk.fisher()
+   g_tensor, h_tensor = fk.dali()
+
+   samples_base = dali_to_getdist_emcee(
+       theta0=theta0,
+       fisher=fisher,
+       g_tensor=g_tensor,
+       h_tensor=h_tensor,
+       names=["x", "eps"],
+       labels=[r"x", r"\epsilon"],
+       label="DALI",
+   )
+
+   # Wide bounds: keep sampling sensible without dominating the shape
+   prior_bounds = [(-1.5, 1.5), (-0.8, 0.8)]
+
+   # Correlated multivariate Gaussian prior (shape-changing)
+   mu = np.array([0.18, 0.02], dtype=float)
+   sx, seps, rho = 0.03, 0.006, -0.95
+   cov_prior = np.array(
+       [[sx * sx,        rho * sx * seps],
+        [rho * sx * seps, seps * seps]],
+       dtype=float,
+   )
+   prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
+
+   samples_prior = dali_to_getdist_emcee(
+       theta0=theta0,
+       fisher=fisher,
+       g_tensor=g_tensor,
+       h_tensor=h_tensor,
+       names=["x", "eps"],
+       labels=[r"x", r"\epsilon"],
+       label="DALI + correlated prior",
+       prior_bounds=prior_bounds,
+       prior_terms=prior_terms,
+   )
+
+   dk_red = "#f21901"
+   dk_yellow = "#f2b701"
+   line_width = 1.5
+
+   plotter = getdist_plots.get_subplot_plotter(width_inch=3.9)
+   plotter.settings.linewidth_contour = line_width
+   plotter.settings.linewidth = line_width
+   plotter.settings.figure_legend_frame = False
+   plotter.settings.legend_rect_border = False
+
+   plotter.triangle_plot(
+       [samples_base, samples_prior],
+       params=["x", "eps"],
+       filled=[False, False],
+       contour_colors=[dk_yellow, dk_red],
+       contour_lws=[line_width, line_width],
+       contour_ls=["-", "-"],
+   )
+
+
 Notes and conventions
 ---------------------
 
@@ -416,5 +582,5 @@ See also
 - :class:`derivkit.forecast_kit.ForecastKit`
 - :func:`derivkit.forecasting.dali.build_dali`
 - :func:`derivkit.forecasting.expansions.logposterior_dali`
-- :func:`derivkit.forecasting.getdist.dali_to_getdist_emcee`
-- :func:`derivkit.forecasting.getdist.dali_to_getdist_importance`
+- :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
+- :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
