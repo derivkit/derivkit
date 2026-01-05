@@ -37,8 +37,9 @@ def build_gaussian_fisher_matrix(
 
     This implements the standard Fisher matrix for a Gaussian likelihood with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
-    For data ``d approx N(mu(theta), C(theta))``, the generalized Fisher matrix evaluated at
-    ``theta0`` is ``F_ij = mu_,i^T C^-1 mu_,j + 1/2 Tr[C^-1 C_,i C^-1 C_,j]``.
+    For Gaussian-distributed data :math:`d` with mean :math:`\mu` and covariance :math:`C` such that
+    :math:`d \approx N(\mu(\theta), C(\theta))`, the generalized Fisher matrix :math:`F_{ij}` evaluated at
+    :math:`\theta_0` is :math:`F_{ij} = mu_,i^T C^-1 mu_,j + 1/2 \mathrm{Tr}[C^-1 C_,i C^-1 C_,j]`.
 
     ``function`` may be ``None`` if you only request the covariance term (``term="cov"``).
     If ``term="both"`` or ``term="mean"``, ``function`` must be provided.
@@ -66,7 +67,7 @@ def build_gaussian_fisher_matrix(
         n_workers: Number of workers for per-parameter parallelisation. Default is ``1`` (serial).
         rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
-            ``0.5 * (C_i + C_i_T)``. Default is ``True``.
+            ``0.5 * (C_i + C_i.T)``. Default is ``True``.
         **dk_kwargs: Additional keyword arguments forwarded to
             :meth:`derivkit.calculus_kit.CalculusKit.jacobian` and
             :func:`derivkit.forecasting.forecast_core.get_forecast_tensors`.

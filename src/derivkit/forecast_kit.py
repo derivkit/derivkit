@@ -86,9 +86,9 @@ class ForecastKit:
 
                 - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
                   ``(n_obs, n_obs)``, where ``n_obs`` is the number of observables.
-                - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
-                  matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``
-                  (shape ``(n_obs, n_obs)``). The covariance at ``theta0`` is evaluated
+                - ``cov=cov_fn``: callable with ``cov_fn(theta)`` returning the covariance
+                  matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``,
+                  with shape ``(n_obs, n_obs)``. The covariance at ``theta0`` is evaluated
                   once and cached.
                 - ``cov=(C0, cov_fn)``: provide both a fixed covariance
                   ``C0 = C(theta0)`` and a callable ``cov_fn(theta) -> C(theta)``.

@@ -204,6 +204,8 @@ def build_t_matrix(
         x0: Reference input values at which the sensitivity is evaluated.
         theta: Parameter values at which the sensitivity is evaluated.
         method: Optional derivative method name passed to the derivative engine.
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
+
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
 
