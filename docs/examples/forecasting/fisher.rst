@@ -123,7 +123,8 @@ Parallel execution
 
 Fisher matrix elements can be computed in parallel using ``n_workers``.
 
-This parallelizes derivative evaluations across parameters and model outputs.
+This becomes important in practical forecasting applications
+with many parameters and costly model evaluations.
 
 .. doctest:: fisher_parallel
 
