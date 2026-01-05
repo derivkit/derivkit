@@ -1,4 +1,4 @@
-Fisher Matrix
+Fisher matrix
 =============
 
 This section shows how to construct a Fisher information matrix using
