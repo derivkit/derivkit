@@ -83,12 +83,17 @@ class DerivativeEngine(Protocol):
         ...
 
 
-# These are the built-in methods available in the package by default.
+# These are the built-in derivative methods available by default.
+# For each method we allow up to five aliases:
+#   - 3 obvious spelling / punctuation variants
+#   - 2 common short-hands users are likely to type
+# This keeps the interface flexible without bloating the lookup table
+# or introducing ambiguous scheme-level names.
 _METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
-    ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad"]),
-    ("finite",   FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd"]),
-    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp"]),
-    ("fornberg", FornbergDerivative, []),
+    ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad", "adapt"]),
+    ("finite", FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd", "findiff", "finite_diff"]),
+    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp", "localpoly", "local-poly"]),
+    ("fornberg", FornbergDerivative, ["fb", "forn", "fornberg-fd", "fornberg_fd", "fornberg_weights"]),
 ]
 
 
