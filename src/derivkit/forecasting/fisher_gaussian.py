@@ -36,11 +36,11 @@ def build_gaussian_fisher_matrix(
 
     This implements the standard Fisher matrix for a Gaussian likelihood with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
-    For Gaussian-distributed data :math:`d` with mean :math:`\\mu` and
-    covariance :math:`C` such that :math:`d \\approx N(\\mu(\\theta), C(\\theta))`,
-    the generalized Fisher matrix :math:`F_{ij}` evaluated at :math:`\\theta_0` is
-    :math:`F_{ij} = \\mu_{,i}^T C^{-1} \\mu_{,j} \
-        + \\frac{1}{2} \\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`.
+
+    For Gaussian-distributed data ``d`` with mean ``mu(theta)`` and covariance ``C(theta)``,
+    the generalized Fisher matrix evaluated at `theta0` is::
+
+        F_ij = mu_i^T C^{-1} mu_j + 0.5 * Tr[C^{-1} C_i C^{-1} C_j].
 
     Args:
         function: Callable returning the model mean ``mu(theta)`` as a scalar (only if
@@ -89,7 +89,7 @@ def build_gaussian_fisher_matrix(
         # Scalar mean is only valid for a single observable.
         if n_observables != 1:
             raise ValueError(
-                f"function(theta0) returned a scalar, "
+                "function(theta0) returned a scalar, "
                 "but cov implies n_observables={n_observables}. "
                 "Return a 1D mean vector with length n_observables."
             )
@@ -102,7 +102,7 @@ def build_gaussian_fisher_matrix(
     # Term with derivatives of covariance matrices:
     # (1/2) Tr[C^{-1} C_{,i} C^{-1} C_{,j}]
     fisher_cov = np.zeros((n_parameters, n_parameters), dtype=np.float64)
-    if cov_fn != None:
+    if cov_fn is not None:
 
         def cov_flat_function(th: NDArray[np.float64]) -> NDArray[np.float64]:
             """Flattened covariance function for derivative computation."""
@@ -131,16 +131,15 @@ def build_gaussian_fisher_matrix(
         if symmetrize_dcov:
             dcov = 0.5 * (dcov + np.swapaxes(dcov, -1, -2))
 
-        covinv_dcov = np.empty_like(dcov)
+        covinv_dcov = np.empty_like(dcov)  # (p, n_obs, n_obs)
         for i in range(n_parameters):
-            covinv_dcov[:, i] = solve_or_pinv(
+            covinv_dcov[i] = solve_or_pinv(
                 cov0,
-                dcov[:, i],
+                dcov[i],
                 rcond=rcond,
                 assume_symmetric=True,
                 warn_context=f"C^{-1} dC solve (i={i})",
             )
-
         fisher_cov = 0.5 * np.einsum("iab,jba->ij", covinv_dcov, covinv_dcov)
 
     # Term with derivatives of model mean functions:
