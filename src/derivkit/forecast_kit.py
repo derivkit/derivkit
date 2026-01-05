@@ -82,9 +82,7 @@ class ForecastKit:
                 :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
             theta0: Fiducial parameter values of shape ``(p,)`` where ``p`` is the
                 number of parameters.
-            cov: Covariance specification.
-
-                Supported forms are:
+            cov: Covariance specification. Supported forms are:
 
                 - ``cov=C0``: fixed covariance matrix :math:`C(\theta_0)` with shape
                   ``(n_obs, n_obs)``, where ``n_obs`` is the number of observables.
