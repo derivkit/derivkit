@@ -89,7 +89,7 @@ def build_gaussian_fisher_matrix(
         # Scalar mean is only valid for a single observable.
         if n_observables != 1:
             raise ValueError(
-                f"function(theta0) returned a scalar, "
+                "function(theta0) returned a scalar, "
                 "but cov implies n_observables={n_observables}. "
                 "Return a 1D mean vector with length n_observables."
             )

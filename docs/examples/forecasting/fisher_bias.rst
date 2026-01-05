@@ -188,7 +188,7 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
    ...     contour_lws=[line_width, line_width],
    ...     contour_ls=["-", "-"],
    ... )
-   >>> np.all(np.isfinite(delta_theta))
+   >>> bool(np.all(np.isfinite(delta_theta)))
    True
 
 .. plot::
