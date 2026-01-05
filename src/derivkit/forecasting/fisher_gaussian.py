@@ -64,9 +64,8 @@ def build_gaussian_fisher_matrix(
         rcond: Regularization cutoff for pseudoinverse fallback.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
             ``0.5 * (C_i + C_i.T)``. Default is ``True``.
-        **dk_kwargs: Additional keyword arguments forwarded to
-            :meth:`derivkit.calculus_kit.CalculusKit.jacobian` and
-            :func:`derivkit.forecasting.forecast_core.get_forecast_tensors`.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Fisher matrix with shape ``(p, p)`` where ``p`` is the number of parameters.
