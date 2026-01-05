@@ -21,8 +21,8 @@ step size, and extrapolation behavior using keyword arguments forwarded to the
 finite-difference engine.
 
 
-Basic usage (plain finite difference)
--------------------------------------
+Basic usage
+-----------
 
 A single central-difference stencil evaluation (no extrapolation).
 
@@ -101,8 +101,8 @@ sizes. Use ``levels`` for a fixed number of extrapolation steps.
    True
 
 
-Richardson extrapolation (adaptive)
------------------------------------
+Richardson extrapolation (adaptive levels)
+------------------------------------------
 
 If ``levels=None`` (default), Richardson runs in adaptive mode.
 
@@ -184,8 +184,8 @@ Finite differences support vector outputs; derivatives are computed component-wi
    True
 
 
-Multiple expansion points (array ``x0``)
-----------------------------------------
+Multiple expansion points
+-------------------------
 
 If ``x0`` is an array, the derivative is computed independently at each point
 and stacked with leading shape ``x0.shape``.
