@@ -1,4 +1,4 @@
-r"""Provides the ForecastKit class.
+"""Provides the ForecastKit class.
 
 A light wrapper around the core forecasting utilities
 (:func:`derivkit.forecasting.fisher.build_fisher_matrix`,
