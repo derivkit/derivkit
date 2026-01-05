@@ -119,7 +119,7 @@ If you use ``derivkit`` in your research, please cite it as follows:
 ::
 
   @software{sarcevic2025derivkit,
-    author       = {Nikolina Šarčević and Matthijs van der Wild and Cynthia Trendafilova and Bastien Carreres},
+    author       = {Nikolina Šarčević and Matthijs van der Wild and Cynthia Trendafilova},
     title        = {derivkit: A Python Toolkit for Numerical Derivatives},
     year         = {2025},
     publisher    = {GitHub},
