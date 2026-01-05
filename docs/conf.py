@@ -5,6 +5,12 @@ from sphinx.ext.doctest import doctest
 
 matplotlib.use("Agg")
 
+# --- Silence emcee progress-bar warnings during Sphinx build ----------------
+import logging
+
+logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
+logging.getLogger("emcee").setLevel(logging.ERROR)
+
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
@@ -32,9 +38,38 @@ extensions = [
     "sphinx_copybutton",
 ]
 
-doctest_global_setup = """
+doctest_global_setup = r"""
 import numpy as np
 np.set_printoptions(precision=12, suppress=True)
+
+# --- Silence noisy libraries during doctest execution -----------------------
+# Some helper utilities (e.g. GetDist sampling wrappers) may print status lines
+# like "Removed no burn in" and certain libraries (e.g. emcee) may emit warnings
+# to stderr. These break doctests that expect no output.
+import io
+import contextlib
+import warnings
+import logging
+
+# Silence GetDist informational prints like "Removed no burn in"
+try:
+    from getdist import chains as _getdist_chains
+    _getdist_chains.print_load_details = False
+except Exception:
+    pass
+
+# Redirect stdout/stderr to avoid doctest failures due to unexpected prints.
+_doctest_stdout = io.StringIO()
+_doctest_stderr = io.StringIO()
+_doctest_redirect = contextlib.ExitStack()
+_doctest_redirect.enter_context(contextlib.redirect_stdout(_doctest_stdout))
+_doctest_redirect.enter_context(contextlib.redirect_stderr(_doctest_stderr))
+
+# Optional: silence warnings and logger chatter (helps with emcee/tqdm messages).
+warnings.filterwarnings("ignore")
+logging.getLogger().setLevel(logging.ERROR)
+logging.getLogger("emcee").setLevel(logging.ERROR)
+logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
 """
 
 doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
@@ -91,8 +126,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # To re-enable API docstring doctests later:
 #   - comment out the two lines below.
 # exclude_patterns += [
- #   "modules.rst",
- #   "derivkit.*.rst",
+#   "modules.rst",
+#   "derivkit.*.rst",
 # ]
 
 
