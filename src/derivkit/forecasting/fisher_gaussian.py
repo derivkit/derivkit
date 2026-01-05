@@ -68,7 +68,7 @@ def build_gaussian_fisher_matrix(
         method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelisation. Default is ``1`` (serial).
-        rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
+        rcond: Regularization cutoff for pseudoinverse fallback.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
             ``0.5 * (C_i + C_i.T)``. Default is ``True``.
         **dk_kwargs: Additional keyword arguments forwarded to
