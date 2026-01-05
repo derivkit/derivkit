@@ -1,4 +1,4 @@
-Laplace Approximation
+Laplace approximation
 =====================
 
 This section shows how to construct a Laplace approximation to a posterior using

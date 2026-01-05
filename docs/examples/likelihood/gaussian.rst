@@ -16,7 +16,8 @@ log-likelihood is
    = -\frac{1}{2}\left[(\mathrm{data}-\mu)^{T}\,\mathrm{cov}^{-1}\,(\mathrm{data}-\mu)
    + \ln\det(2\pi\,\mathrm{cov})\right].
 
-**Notation**
+Notation
+~~~~~~~~
 
 - ``n`` denotes the number of data samples.
 - ``data`` contains ``n`` samples (internally treated as a column of samples).
@@ -31,7 +32,7 @@ For advanced usage, see :func:`derivkit.likelihoods.gaussian.build_gaussian_like
 Gaussian log-likelihood
 -----------------------
 
-For inference, you should almost always work with the **log-likelihood**
+For inference, you should almost always work with the log-likelihood
 for numerical stability.
 
 .. doctest:: gaussian_loglikelihood

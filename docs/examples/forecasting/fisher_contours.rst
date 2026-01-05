@@ -244,7 +244,7 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
 Gaussian priors
 ---------------
 
-Gaussian priors can be included by adding their **precision matrix**
+Gaussian priors can be included by adding their precision matrix
 (the inverse prior covariance) to the Fisher matrix before converting to GetDist
 objects. Below we overlay the original Fisher contours (red) with the
 Fisher+prior contours (yellow).
@@ -368,7 +368,7 @@ Notes and conventions
 
 - The Fisher matrix is inverted using a pseudo-inverse to form the Gaussian
   covariance; regularization can be controlled via ``rcond``.
-- ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an
+- ``getdist.MCSamples.loglikes`` stores minus the log-posterior (up to an
   additive constant), following GetDist conventions.
 - Sampler bounds and priors are optional and intended for light truncation, not for
   defining complex posteriors.

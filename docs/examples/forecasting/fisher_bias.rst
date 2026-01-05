@@ -1,4 +1,4 @@
-Fisher Bias
+Fisher bias
 ===========
 
 This section shows how to map a systematic-induced shift in the data vector
@@ -130,7 +130,7 @@ derivative control across Fisher and Fisher-bias calculations.
 Fisher bias contours with GetDist
 ---------------------------------
 
-You can visualize the impact of a systematic as a *shift* of the Fisher forecast
+You can visualize the impact of a systematic as a shift of the Fisher forecast
 contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
 ``theta0 + delta_theta`` (same covariance, shifted mean).
 
@@ -262,7 +262,7 @@ Notes
 - The Fisher bias approximation is local: derivatives are evaluated at ``theta0``.
 - The returned ``delta_theta`` is the first-order parameter shift implied by the
   systematic difference vector.
-- All examples in this section use **mock data and toy systematics** for
+- All examples in this section use mock data and toy systematics for
   illustration only. The injected ``delta_nu`` and the resulting Fisher bias
   are *arbitrary* and chosen to produce a visible parameter shift. In a real
   analysis, ``delta_nu`` should be derived from a physically motivated

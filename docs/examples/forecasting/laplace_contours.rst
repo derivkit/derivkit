@@ -20,8 +20,8 @@ If you are looking for:
 
 Two complementary visualization workflows are supported:
 
-- conversion of the Laplace Gaussian into an **analytic Gaussian** for GetDist
-- **Monte Carlo samples** drawn from the Laplace Gaussian, returned as
+- conversion of the Laplace Gaussian into an analytic Gaussian for GetDist
+- Monte Carlo samples drawn from the Laplace Gaussian, returned as
   :class:`getdist.MCSamples`
 
 Both outputs can be passed directly to GetDist plotting utilities
@@ -31,11 +31,11 @@ Both outputs can be passed directly to GetDist plotting utilities
 Notes and conventions
 ---------------------
 
-- The Laplace approximation is a *local Gaussian* centered on the MAP point
+- The Laplace approximation is a local Gaussian centered on the MAP point
   ``theta_map``. In other words, the Laplace mean is ``theta_map`` by construction.
 - The Laplace covariance is the inverse Hessian of the negative log-posterior at
   ``theta_map`` (up to numerical regularization).
-- ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an
+- ``getdist.MCSamples.loglikes`` stores minus the log-posterior (up to an
   additive constant), following GetDist conventions.
 - For strongly non-Gaussian posteriors or curved degeneracies far from the MAP,
   consider using DALI or a full sampler instead.

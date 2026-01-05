@@ -15,7 +15,8 @@ log-likelihood is
    \ln p(\mathrm{data}\mid \mu)
    = \sum_i \left[ d_i \ln \mu_i - \mu_i - \ln(d_i!) \right].
 
-**Notation**
+Notation
+~~~~~~~~
 
 - ``n`` denotes the number of count observations.
 - ``data`` contains ``n`` observed non-negative integer counts.
