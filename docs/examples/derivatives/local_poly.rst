@@ -22,8 +22,8 @@ control the polynomial degree, trimming behavior, and diagnostics using keyword
 arguments.
 
 
-Basic usage (automatic degree)
-------------------------------
+Basic usage
+-----------
 
 By default, the polynomial degree is chosen as ``max(order + 2, 3)`` (capped by
 the backend configuration).
