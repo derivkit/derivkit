@@ -4,45 +4,44 @@ This class is a lightweight front end over DerivKit’s derivative engines.
 You provide the function to differentiate and the expansion point `x0`,
 then choose a backend by name (e.g., ``"adaptive"`` or ``"finite"``).
 
-Adding methods
---------------
-New engines can be registered without modifying this class by calling
-``register_method`` (see example below).
-
 Examples:
-    Basic usage:
+---------
+Basic usage:
 
-        >>> import numpy as np
-        >>> from derivkit.derivative_kit import DerivativeKit
-        >>> dk = DerivativeKit(function=np.cos, x0=1.0)
-        >>> dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
+    >>> import numpy as np
+    >>> from derivkit.derivative_kit import DerivativeKit
+    >>> dk = DerivativeKit(function=np.cos, x0=1.0)
+    >>> dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
 
-    Using tabulated data directly:
+Using tabulated data directly:
 
-        >>> import numpy as np
-        >>> from derivkit.derivative_kit import DerivativeKit
-        >>>
-        >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
-        >>> y_tab = x_tab**2
-        >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
-        >>> dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
+    >>> import numpy as np
+    >>> from derivkit.derivative_kit import DerivativeKit
+    >>>
+    >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
+    >>> y_tab = x_tab**2
+    >>> dk = DerivativeKit(x0=0.5, tab_x=x_tab, tab_y=y_tab)
+    >>> dk.differentiate(order=1, method="finite", extrapolation="ridders")  # doctest: +SKIP
 
-    Registering a new method:
+Listing built-in aliases:
 
-        >>> from derivkit.derivative_kit import register_method  # doctest: +SKIP
-        >>> from derivkit.some_new_method import NewMethodDerivative  # doctest: +SKIP
-        >>> register_method(  # doctest: +SKIP
-        ...     name="new-method",
-        ...     cls=NewMethodDerivative,
-        ...     aliases=("new_method", "nm"),
-        ... )  # doctest: +SKIP
+    >>> from derivkit.derivative_kit import available_methods
+    >>> available_methods()  # doctest: +SKIP
 
-Notes:
-    - Method names are case/spacing/punctuation insensitive; aliases like
-      ``"adaptive-fit"`` or ``"finite_difference"`` are supported when
-      registered.
-    - For available canonical method names at runtime, call
-      :func:`derivkit.derivative_kit.available_methods`.
+Adding methods:
+---------------
+New engines can be registered without modifying this class by calling
+:func:`derivkit.derivative_kit.register_method` (see example below).
+
+Registering a new method:
+
+    >>> from derivkit.derivative_kit import register_method  # doctest: +SKIP
+    >>> from derivkit.some_new_method import NewMethodDerivative  # doctest: +SKIP
+    >>> register_method(  # doctest: +SKIP
+    ...     name="new-method",
+    ...     cls=NewMethodDerivative,
+    ...     aliases=("new_method", "nm"),
+    ... )  # doctest: +SKIP
 """
 
 from __future__ import annotations
@@ -92,7 +91,7 @@ class DerivativeEngine(Protocol):
 _METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
     ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad", "adapt"]),
     ("finite", FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd", "findiff", "finite_diff"]),
-    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp", "localpoly", "local-poly"]),
+    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp", "localpoly", "local_poly"]),
     ("fornberg", FornbergDerivative, ["fb", "forn", "fornberg-fd", "fornberg_fd", "fornberg_weights"]),
 ]
 
@@ -299,11 +298,10 @@ class DerivativeKit:
         )
 
 
-def available_methods() -> list[str]:
-    """List canonical method names exposed by this API.
+def available_methods() -> dict[str, list[str]]:
+    """Lists derivative methods exposed by this API, including aliases.
 
     Returns:
-        List of method names.
+        Dict mapping canonical method name -> list of accepted aliases.
     """
-    _, canon = _method_maps()
-    return list(canon)
+    return {name: list(aliases) for name, _, aliases in _METHOD_SPECS}
