@@ -21,7 +21,7 @@ Fisher bias, and higher-order (DALI) extensions, see
 :doc:`../../guide/forecasting`.
 
 If you want to generate parameter samples or visualize confidence contours
-from the Fisher matrix, see the example :doc:`fisher_getdist`, which shows how
+from the Fisher matrix, see the example :doc:`fisher_contours`, which shows how
 to construct GetDist samples and plot Fisher ellipses.
 
 

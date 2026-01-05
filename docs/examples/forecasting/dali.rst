@@ -19,7 +19,7 @@ For a conceptual overview of DALI forecasting and its interpretation, see
 :doc:`../../guide/forecasting`.
 
 If you want to visualize parameter contours from the DALI tensors, see the
-example :doc:`dali_getdist`, which shows how to generate GetDist samples and
+example :doc:`dali_contours`, which shows how to generate GetDist samples and
 plot confidence regions from ``(G, H)``.
 
 
