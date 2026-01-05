@@ -1,10 +1,10 @@
 DALI contours
 =============
 
-This page shows how to **visualize DALI-expanded posteriors** using GetDist,
+This page shows how to visualize DALI-expanded posteriors using GetDist,
 starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).
 
-The focus here is **what to do next** once you already have a DALI expansion:
+The focus here is what to do next once you already have a DALI expansion:
 how to draw samples for inspection, comparison, and posterior analysis.
 
 All posterior quantities shown here refer to the DALI-expanded approximation.
