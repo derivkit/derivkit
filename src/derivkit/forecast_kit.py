@@ -168,7 +168,7 @@ class ForecastKit:
                 the parameters. Its shape must be ``(p, p)``, where ``p``
                 is the number of parameters.
             delta_nu: Difference between a biased and an unbiased data vector,
-                for example :math:`\Delta\nu = \nu_{\mathrm{with\,sys}} - \nu_{\mathrm{without\,sys}}`.
+                for example :math:`\Delta\nu = \nu_{\mathrm{biased}} - \nu_{\mathrm{unbiased}}`.
                 Accepts a 1D array of length n or a 2D array that will be
                 flattened in row-major order ("C") to length n, where n is
                 the number of observables. If supplied as a 1D array, it must
