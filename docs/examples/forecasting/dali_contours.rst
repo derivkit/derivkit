@@ -554,8 +554,8 @@ of the contours.
 Notes and conventions
 ---------------------
 
-- The non-Gaussianity here comes from the **nonlinear forward model**.
-- ``getdist.MCSamples.loglikes`` stores **minus the log-posterior** (up to an additive constant),
+- The non-Gaussianity here comes from the nonlinear forward model.
+- ``getdist.MCSamples.loglikes`` stores minus the log-posterior (up to an additive constant),
   following GetDist conventions.
 - Importance sampling uses a Fisher–Gaussian proposal; ``kernel_scale`` controls its width.
   If weights become extremely uneven, try increasing the scale slightly.
