@@ -17,7 +17,7 @@ def build_gaussian_likelihood(
     data: ArrayLike,
     model_parameters: ArrayLike,
     cov: ArrayLike,
-    return_log: bool = False,
+    return_log: bool = True,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
     """Constructs the Gaussian likelihood function.
 
@@ -30,8 +30,8 @@ def build_gaussian_likelihood(
         cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
             or a full 2D covariance matrix. It will be symmetrised and normalized
             internally to ensure compatibility with the data and model_parameters.
-        return_log: when set to ``True``, the function will compute the
-            log-likelihood instead.
+        return_log: when set to ``True``, return the log-likelihood instead of
+            the probability density function.
 
     Returns:
         A tuple:
@@ -55,6 +55,7 @@ def build_gaussian_likelihood(
         A 1D Gaussian likelihood:
             >>> import numpy as np
             >>> import matplotlib.pyplot as plt
+            >>> from derivkit.likelihoods.gaussian import build_gaussian_likelihood
             >>> data = np.linspace(-10, 10, 100)[np.newaxis, :]
             >>> model_parameters = np.array([1.0])
             >>> cov = np.array([[2.0]])
@@ -66,9 +67,9 @@ def build_gaussian_likelihood(
             >>> data = np.asarray((np.linspace(-10, 10, 30), np.linspace(3, 6, 30)))
             >>> model_parameters = np.array([0.0, 4.0])
             >>> cov = np.array([[1.0, 0.2], [0.2, 0.3]])
-            # Build coordinate arrays and evaluate the probability density on their
-            # Cartesian product. The indexing ensures the coordinate order matches
-            # the order in ``data``.
+            >>> # Build coordinate arrays and evaluate the probability density on their
+            >>> # Cartesian product. The indexing ensures the coordinate order matches
+            >>> # the order in ``data``.
             >>> grid, probability_density = build_gaussian_likelihood(data, model_parameters, cov)
             >>> plt.contour(*grid, probability_density)  # doctest: +SKIP
     """

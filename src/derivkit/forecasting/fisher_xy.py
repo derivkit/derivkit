@@ -204,6 +204,11 @@ def build_t_matrix(
         x0: Reference input values at which the sensitivity is evaluated.
         theta: Parameter values at which the sensitivity is evaluated.
         method: Optional derivative method name passed to the derivative engine.
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
+
+            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
+            default (``"adaptive"``) is used.
+
         n_workers: Number of workers used for derivative evaluations.
         **dk_kwargs: Additional keyword arguments forwarded to the derivative engine.
 
@@ -327,7 +332,6 @@ def build_xy_gaussian_fisher_matrix(
     cxx: NDArray[np.float64],
     cxy: NDArray[np.float64],
     cyy: NDArray[np.float64],
-    term: str = "both",
     method: str | None = None,
     n_workers: int = 1,
     rcond: float = 1e-12,
@@ -352,8 +356,6 @@ def build_xy_gaussian_fisher_matrix(
         cxx: Covariance matrix of the input measurements.
         cxy: Cross-covariance between input and output measurement errors.
         cyy: Covariance matrix of the output measurements.
-        term: Which contributions to include in the Fisher matrix. Supported values
-            are ``"mean"``, ``"cov"``, and ``"both"``.
         method: Optional derivative method name passed to the derivative engine.
         n_workers: Number of workers used for derivative evaluations.
         rcond: Cutoff used when solving linear systems involving the covariance.
@@ -380,13 +382,10 @@ def build_xy_gaussian_fisher_matrix(
         dk_kwargs=dict(dk_kwargs),
     )
 
-    r0 = np.asarray(r_fn(theta0), dtype=np.float64)
-
     return build_gaussian_fisher_matrix(
         theta0=theta0,
-        cov=(r0, r_fn),
-        function=None if term == "cov" else mu_theta,
-        term=term,
+        cov=r_fn,
+        function=mu_theta,
         method=method,
         n_workers=n_workers,
         rcond=rcond,

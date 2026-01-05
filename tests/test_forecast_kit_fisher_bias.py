@@ -143,16 +143,16 @@ def test_build_delta_nu_1d_ok():
     """Tests that build_delta_nu works for 1D inputs."""
     cov = np.eye(4)
 
-    data_with = np.array([1.0, 2.0, 3.0, 4.0])
-    data_without = np.array([0.5, 1.0, 1.5, 2.0])
+    data_biased = np.array([1.0, 2.0, 3.0, 4.0])
+    data_unbiased = np.array([0.5, 1.0, 1.5, 2.0])
 
     delta = build_delta_nu(
         cov=cov,
-        data_with=data_with,
-        data_without=data_without,
+        data_biased=data_biased,
+        data_unbiased=data_unbiased,
     )
 
-    expected = data_with - data_without
+    expected = data_biased - data_unbiased
     assert delta.shape == (4,)
     np.testing.assert_allclose(delta, expected)
 
@@ -161,16 +161,16 @@ def test_build_delta_nu_2d_flattens_row_major():
     """Tests that build_delta_nu works for 2D inputs, flattening in row-major order."""
     cov = np.eye(4)
 
-    data_with = np.array([[1.0, 2.0], [3.0, 4.0]])
-    data_without = np.array([[0.5, 1.5], [2.0, 2.5]])
+    data_biased = np.array([[1.0, 2.0], [3.0, 4.0]])
+    data_unbiased = np.array([[0.5, 1.5], [2.0, 2.5]])
 
     delta = build_delta_nu(
         cov=cov,
-        data_with=data_with,
-        data_without=data_without,
+        data_biased=data_biased,
+        data_unbiased=data_unbiased,
     )
 
-    expected_2d = data_with - data_without
+    expected_2d = data_biased - data_unbiased
     expected_flat = expected_2d.ravel(order="C")
 
     assert delta.shape == (4,)
@@ -178,7 +178,7 @@ def test_build_delta_nu_2d_flattens_row_major():
 
 
 @pytest.mark.parametrize(
-    "data_with, data_without, cov, expected_exception",
+    "data_biased, data_unbiased, cov, expected_exception",
     [
         # shape mismatch between with/without
         (np.zeros(3), np.zeros(4), np.eye(3), ValueError),
@@ -190,13 +190,13 @@ def test_build_delta_nu_2d_flattens_row_major():
         (np.array([0.0, np.nan, 1.0]), np.zeros(3), np.eye(3), FloatingPointError),
     ],
 )
-def test_build_delta_nu_exceptions(data_with, data_without, cov, expected_exception):
+def test_build_delta_nu_exceptions(data_biased, data_unbiased, cov, expected_exception):
     """Tests that invalid inputs to build_delta_nu raise appropriate errors."""
     with pytest.raises(expected_exception):
         build_delta_nu(
             cov=cov,
-            data_with=data_with,
-            data_without=data_without,
+            data_biased=data_biased,
+            data_unbiased=data_unbiased,
         )
 
 

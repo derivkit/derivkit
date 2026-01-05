@@ -23,11 +23,9 @@ __all__ = [
 def build_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     cov: NDArray[np.float64]
-        | Callable[[NDArray[np.float64]], NDArray[np.float64]]
-        | tuple[NDArray[np.float64], Callable[[NDArray[np.float64]], NDArray[np.float64]]],
-    function: Callable[[NDArray[np.float64]], float | NDArray[np.float64]] | None,
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]],
+    function: Callable[[NDArray[np.float64]], float | NDArray[np.float64]],
     *,
-    term: str = "both",
     method: str | None = None,
     n_workers: int = 1,
     rcond: float = 1e-12,
@@ -38,69 +36,43 @@ def build_gaussian_fisher_matrix(
 
     This implements the standard Fisher matrix for a Gaussian likelihood with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
-    For data ``d approx N(mu(theta), C(theta))``, the generalized Fisher matrix evaluated at
-    ``theta0`` is ``F_ij = mu_,i^T C^-1 mu_,j + 1/2 Tr[C^-1 C_,i C^-1 C_,j]``.
-
-    ``function`` may be ``None`` if you only request the covariance term (``term="cov"``).
-    If ``term="both"`` or ``term="mean"``, ``function`` must be provided.
+    For Gaussian-distributed data :math:`d` with mean :math:`\\mu` and
+    covariance :math:`C` such that :math:`d \\approx N(\\mu(\\theta), C(\\theta))`,
+    the generalized Fisher matrix :math:`F_{ij}` evaluated at :math:`\\theta_0` is
+    :math:`F_{ij} = \\mu_{,i}^T C^{-1} \\mu_{,j} \
+        + \\frac{1}{2} \\mathrm{Tr}[C^{-1} C_{,i} C^{-1} C_{,j}]`.
 
     Args:
         function: Callable returning the model mean ``mu(theta)`` as a scalar (only if
-            ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``. Required if
-            ``term`` is ``"mean"`` or ``"both"``.
-        cov: Covariance input. Provide either a fixed covariance array,
-            a callable covariance function, or a tuple containing both.
-
-            Supported forms are:
+            ``n_obs == 1``) or 1D array of observables with shape ``(n_obs,)``.
+        cov: Covariance matrix. Provide either a fixed covariance array or
+            a callable covariance function. Supported forms are:
 
             - ``cov=C0``: fixed covariance matrix ``C(theta_0)`` with shape
               ``(n_obs, n_obs)``. Here ``n_obs`` is the number of observables.
-              In this case the covariance-derivative Fisher term cannot be computed, so
-              ``term`` must be ``"mean"``.
+              In this case the covariance-derivative Fisher term will not be computed.
             - ``cov=cov_fn``: callable ``cov_fn(theta)`` returning the covariance
               matrix ``C(theta)`` evaluated at the parameter vector ``theta``,
-              with shape ``(n_obs, n_obs)``. This enables the covariance trace term
-              (and the mean term if ``function`` is provided).
-            - ``cov=(C0, cov_fn)``: provide both a fixed covariance ``C0 = C(theta0)``
-              and a callable ``cov_fn(theta) -> C(theta)``. This avoids recomputing
-              ``cov_fn(theta0)`` internally.
+              with shape ``(n_obs, n_obs)``.
 
             The callable form is evaluated at ``theta0`` to determine ``n_obs`` and (unless
             ``C0`` is provided) to define ``C0 = C(theta0)``.
         theta0: Fiducial parameter vector where the Fisher matrix is evaluated.
-        term: Which contribution(s) to return. Options are:
-
-            - ``"mean"``: returns only the mean-gradient term. Requires ``function``.
-              A fixed covariance ``C0`` is sufficient.
-
-            - ``"cov"``: returns only the covariance-derivative trace term. Requires a
-              parameter-dependent covariance callable (pass ``cov`` as ``cov_fn`` or
-              ``(C0, cov_fn)``). ``function`` may be ``None``.
-
-            - ``"both"``: returns the full Gaussian Fisher matrix combining both terms.
-              Requires both ``function`` and a covariance callable.
-
         method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelisation. Default is ``1`` (serial).
-        rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
+        rcond: Regularization cutoff for pseudoinverse fallback.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
-            ``0.5 * (C_i + C_i_T)``. Default is ``True``.
-        **dk_kwargs: Additional keyword arguments forwarded to
-            :meth:`derivkit.calculus_kit.CalculusKit.jacobian` and
-            :func:`derivkit.forecasting.forecast_core.get_forecast_tensors`.
+            ``0.5 * (C_i + C_i.T)``. Default is ``True``.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Fisher matrix with shape ``(p, p)`` where ``p`` is the number of parameters.
 
     Raises:
-        ValueError: If ``term`` is invalid; if ``term`` requires ``function`` but it is missing;
-            if ``term`` requires a covariance function but only a fixed covariance was provided;
-            or if ``function(theta0)`` does not match the implied observable dimension.
+        ValueError: If ``function(theta0)`` does not match the implied observable dimension.
     """
-    if term not in ("both", "mean", "cov"):
-        raise ValueError(f"term must be one of 'both', 'mean', 'cov'; got {term!r}.")
-
     n_workers = normalize_workers(n_workers)
     theta0 = np.atleast_1d(theta0).astype(np.float64)
     n_parameters = int(theta0.size)
@@ -110,55 +82,33 @@ def build_gaussian_fisher_matrix(
     )
     n_observables = int(cov0.shape[0])
 
-    # Requirements by term
-    if term in ("both", "mean") and function is None:
-        raise ValueError("function must be provided when term is 'mean' or 'both'.")
-
-    if term in ("both", "cov") and cov_fn is None:
-        raise ValueError(
-            "term='cov' (or 'both') requires a parameter-dependent covariance callable. "
-            "Pass cov as cov_fn(theta) or as (cov0, cov_fn)."
-        )
-
-    if term in ("both", "mean"):
-        # Validate that function(theta0) matches the observable dimension implied by cov0.
-        _mu0 = np.asarray(function(theta0), dtype=np.float64)
-
-        if _mu0.ndim == 0:
-            # Scalar mean is only valid for a single observable.
-            if n_observables != 1:
-                raise ValueError(
-                    f"function(theta0) returned a scalar, but cov implies n_observables={n_observables}. "
-                    "Return a 1D mean vector with length n_observables."
-                )
-        elif _mu0.ndim != 1 or _mu0.shape[0] != n_observables:
+    # Validate that function(theta0) matches the
+    # observable dimension implied by cov0.
+    _mu0 = np.asarray(function(theta0), dtype=np.float64)
+    if _mu0.ndim == 0:
+        # Scalar mean is only valid for a single observable.
+        if n_observables != 1:
             raise ValueError(
-                f"function(theta0) must return shape ({n_observables},); got {_mu0.shape}."
+                f"function(theta0) returned a scalar, "
+                "but cov implies n_observables={n_observables}. "
+                "Return a 1D mean vector with length n_observables."
             )
-
-    # Mean term: mu_{,i}^T C^{-1} mu_{,j}
-    fisher_mean = np.zeros((n_parameters, n_parameters), dtype=np.float64)
-    if term in ("both", "mean"):
-        fisher_mean = np.asarray(
-            get_forecast_tensors(
-                function=function,
-                theta0=theta0,
-                cov=cov0,
-                forecast_order=1,
-                method=method,
-                n_workers=n_workers,
-                **dk_kwargs,
-            ),
-            dtype=np.float64,
+    elif _mu0.ndim != 1 or _mu0.shape[0] != n_observables:
+        raise ValueError(
+            f"function(theta0) must return shape ({n_observables},); "
+            "got {_mu0.shape}."
         )
 
-    # Covariance term: (1/2) Tr[C^{-1} C_{,i} C^{-1} C_{,j}]
+    # Term with derivatives of covariance matrices:
+    # (1/2) Tr[C^{-1} C_{,i} C^{-1} C_{,j}]
     fisher_cov = np.zeros((n_parameters, n_parameters), dtype=np.float64)
-    if term in ("both", "cov"):
+    if cov_fn != None:
 
         def cov_flat_function(th: NDArray[np.float64]) -> NDArray[np.float64]:
             """Flattened covariance function for derivative computation."""
-            return flatten_matrix_c_order(cov_fn, th, n_observables=n_observables)
+            return flatten_matrix_c_order(cov_fn,
+                                          th,
+                                          n_observables=n_observables)
 
         cov_ckit = CalculusKit(cov_flat_function, theta0)
 
@@ -169,23 +119,45 @@ def build_gaussian_fisher_matrix(
 
         expected_shape = (n_observables * n_observables, n_parameters)
         if dcov_flat.shape != expected_shape:
-            raise ValueError(f"dcov_flat must have shape {expected_shape}; got {dcov_flat.shape}.")
+            raise ValueError(
+                f"dcov_flat must have shape {expected_shape}; "
+                "got {dcov_flat.shape}."
+            )
 
-        dcov = dcov_flat.T.reshape(n_parameters, n_observables, n_observables, order="C")
+        dcov = dcov_flat.T.reshape(n_parameters,
+                                   n_observables,
+                                   n_observables,
+                                   order="C")
         if symmetrize_dcov:
             dcov = 0.5 * (dcov + np.swapaxes(dcov, -1, -2))
 
         covinv_dcov = np.empty_like(dcov)
         for i in range(n_parameters):
-            covinv_dcov[i] = solve_or_pinv(
+            covinv_dcov[:, i] = solve_or_pinv(
                 cov0,
-                dcov[i],
+                dcov[:, i],
                 rcond=rcond,
                 assume_symmetric=True,
                 warn_context=f"C^{-1} dC solve (i={i})",
             )
 
         fisher_cov = 0.5 * np.einsum("iab,jba->ij", covinv_dcov, covinv_dcov)
+
+    # Term with derivatives of model mean functions:
+    # mu_{,i}^T C^{-1} mu_{,j}
+    fisher_mean = np.zeros((n_parameters, n_parameters), dtype=np.float64)
+    fisher_mean = np.asarray(
+        get_forecast_tensors(
+            function=function,
+            theta0=theta0,
+            cov=cov0,
+            forecast_order=1,
+            method=method,
+            n_workers=n_workers,
+            **dk_kwargs,
+        ),
+        dtype=np.float64,
+    )
 
     fisher = fisher_mean + fisher_cov
     return 0.5 * (fisher + fisher.T)
