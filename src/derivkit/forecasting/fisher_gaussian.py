@@ -37,7 +37,7 @@ def build_gaussian_fisher_matrix(
     This implements the standard Fisher matrix for a Gaussian likelihood with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
 
-    For Gaussian-distributed data `d` with mean `mu(theta)` and covariance `C(theta)`,
+    For Gaussian-distributed data ``d`` with mean ``mu(theta)`` and covariance ``C(theta)``,
     the generalized Fisher matrix evaluated at `theta0` is::
 
         F_ij = mu_i^T C^{-1} mu_j + 0.5 * Tr[C^{-1} C_i C^{-1} C_j].
