@@ -1,14 +1,14 @@
 Laplace contours
 ================
 
-This page shows how to **visualize Laplace-approximation posteriors** using GetDist,
+This page shows how to visualize Laplace-approximation posteriors using GetDist,
 starting from a Laplace approximation computed with DerivKit.
 
-The focus here is **what to do next** once you already have a Laplace approximation:
+The focus here is what to do next once you already have a Laplace approximation:
 how to turn it into confidence contours or samples for quick inspection,
 comparison, and plotting.
 
-This is intended for **fast exploration and visualization**, not as a
+This is intended for fast exploration and visualization, not as a
 replacement for full likelihood-based inference or full MCMC sampling.
 
 If you are looking for:
@@ -201,7 +201,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
    ...     labels=[r"\theta_1", r"\theta_2"],
    ...     store_loglikes=True,
    ...     label="Laplace (samples)",
-   ... )
+   ...     )
    >>> dk_yellow = "#e1af00"
    >>> line_width = 1.5
    >>> plotter = getdist_plots.get_subplot_plotter(width_inch=3.6)
