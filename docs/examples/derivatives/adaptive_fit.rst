@@ -1,5 +1,5 @@
-Adaptive polynomial fit (Chebyshev)
-===================================
+Adaptive polynomial fit
+=======================
 
 This section shows how to compute derivatives using the adaptive polynomial
 (Chebyshev) method in DerivKit.
@@ -73,7 +73,6 @@ Domain-aware sampling (stay inside bounds)
 
 If the function is only defined on a finite interval, you can specify a domain
 to ensure all samples remain valid.
-
 The adaptive grid is clipped or transformed as needed to stay inside bounds.
 
 .. doctest:: adaptive_domain
@@ -100,7 +99,6 @@ User-supplied grids (offsets or absolute coordinates)
 
 You can override the internally constructed grid by providing explicit sample
 locations.
-
 Supported forms are:
 
 - ``grid=("offsets", offsets)``: samples at ``x = x0 + offsets``

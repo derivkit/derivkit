@@ -69,7 +69,8 @@ If the function returns a vector, the stacked output has shape
 
 .. doctest:: multi_vector_output
 
-   >>> import numpy as np; from derivkit.derivative_kit import DerivativeKit
+   >>> import numpy as np
+   >>> from derivkit.derivative_kit import DerivativeKit
    >>> # Define a vector-valued function
    >>> def vec_func(x): return np.array([np.sin(x), np.cos(x)])
    >>> # Multiple expansion points
