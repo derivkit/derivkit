@@ -173,7 +173,7 @@ class TestGaussOutput:
    ):
         """Tests that build_gaussian_likelihood produces the expected output."""
         test_output, test_likelihood = gauss.build_gaussian_likelihood(
-            input_data, input_parameters, input_cov
+            input_data, input_parameters, input_cov, return_log=False
         )
 
         assert_allclose(test_output, expected_output_data, rtol=2e-6)
