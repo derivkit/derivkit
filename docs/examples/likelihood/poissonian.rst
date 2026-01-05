@@ -35,7 +35,7 @@ Poisson log-likelihood
 For inference, you should almost always work with the **log-likelihood**
 for numerical stability.
 
-.. doctest:: poisson_logpmf
+.. doctest:: poisson_loglike
 
    >>> import numpy as np
    >>> from derivkit.likelihood_kit import LikelihoodKit
@@ -46,10 +46,10 @@ for numerical stability.
    >>> # Create LikelihoodKit instance
    >>> lkit = LikelihoodKit(data=counts, model_parameters=mu)
    >>> # Evaluate Poisson log-PMF
-   >>> counts_aligned, logpmf = lkit.poissonian(return_log=True)
-   >>> print(np.size(logpmf) == np.size(counts_aligned))
+   >>> counts_aligned, loglike = lkit.poissonian()
+   >>> print(np.size(loglike) == np.size(counts_aligned))
    True
-   >>> print(np.all(np.isfinite(logpmf)))
+   >>> print(np.all(np.isfinite(loglike)))
    True
    >>> print(np.array_equal(np.ravel(counts_aligned), counts))
    True
@@ -58,8 +58,7 @@ for numerical stability.
 Poisson PMF
 -----------
 
-If you explicitly need probability mass values, set ``return_log=False``
-(default).
+If you explicitly need probability mass values, set ``return_log=False``.
 
 .. doctest:: poisson_pmf
 
@@ -89,9 +88,9 @@ Log/linear consistency
    >>> counts = np.array([0, 1, 2, 3])
    >>> mu = np.array([0.5, 0.8, 1.6, 2.4])
    >>> lkit = LikelihoodKit(data=counts, model_parameters=mu)
-   >>> _, logpmf = lkit.poissonian(return_log=True)
+   >>> _, loglike = lkit.poissonian()
    >>> _, pmf = lkit.poissonian(return_log=False)
-   >>> print(np.allclose(np.exp(logpmf), pmf))
+   >>> print(np.allclose(np.exp(loglike), pmf))
    True
 
 
@@ -103,7 +102,7 @@ Notes
 - ``data`` must contain non-negative integers.
 - ``mu`` must be strictly positive to ensure a valid likelihood.
 - The Poisson likelihood assumes observations are conditionally independent.
-- ``return_log=True`` is recommended for numerical stability.
+- By default, the Poisson likelihood returns the log-likelihood (``return_log=True``).
 - For large count values, working with the PMF directly can lead to numerical
   underflow; prefer log-likelihoods.
 - When combining multiple Poisson likelihood terms, sum log-likelihoods rather

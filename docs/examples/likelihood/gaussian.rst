@@ -46,9 +46,9 @@ for numerical stability.
    >>> cov = np.array([0.1**2, 0.1**2, 0.1**2])
    >>> # Create LikelihoodKit instance
    >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
-   >>> # Evaluate Gaussian log-PDF
-   >>> grid, logpdf = lkit.gaussian(cov=cov, return_log=True)
-   >>> print(bool(np.isfinite(logpdf)))
+   >>> # Evaluate Gaussian log-likelihood
+   >>> grid, loglike = lkit.gaussian(cov=cov)
+   >>> print(bool(np.isfinite(loglike)))
    True
 
 
@@ -85,16 +85,16 @@ The covariance can be provided in several equivalent forms.
    >>> mu = np.array([0.0, 0.0])
    >>> # Initialize LikelihoodKit
    >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
-   >>> _, logpdf1 = lkit.gaussian(cov=0.05**2, return_log=True)
+   >>> _, loglike1 = lkit.gaussian(cov=0.05**2)
    >>> # Diagonal variances (1D array)
-   >>> _, logpdf2 = lkit.gaussian(cov=np.array([0.05**2, 0.05**2]), return_log=True)
+   >>> _, loglike2 = lkit.gaussian(cov=np.array([0.05**2, 0.05**2]))
    >>> # Full covariance matrix (2D)
    >>> cov2d = np.array([
    ...     [0.0025, 0.0],
    ...     [0.0,    0.0025],
    ... ])
-   >>> _, logpdf3 = lkit.gaussian(cov=cov2d, return_log=True)
-   >>> print(np.allclose(logpdf1, logpdf2) and np.allclose(logpdf2, logpdf3))
+   >>> _, loglike3 = lkit.gaussian(cov=cov2d)
+   >>> print(np.allclose(loglike1, loglike2) and np.allclose(loglike2, loglike3))
    True
 
 
@@ -114,17 +114,17 @@ The Gaussian likelihood returns a tuple ``(coordinate_grids, values)``.
    >>> mu = np.array([0.0, 0.0])
    >>> cov = np.array([0.05**2, 0.05**2])
    >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
-   >>> grid, logpdf = lkit.gaussian(cov=cov, return_log=True)
+   >>> grid, loglike = lkit.gaussian(cov=cov)
    >>> print(isinstance(grid, tuple))
    True
-   >>> print(bool(np.isfinite(logpdf)))
+   >>> print(bool(np.isfinite(loglike)))
    True
 
 
 Notes
 -----
 
-- ``return_log=True`` is recommended for numerical stability.
+- By default, the Gaussian likelihood returns the log-likelihood (``return_log=True``).
 - ``model_parameters`` must provide one mean value per data sample (``mu`` has shape ``(n,)``).
 - ``cov`` can be provided as a scalar variance, a 1D array of diagonal variances, or a full 2D covariance matrix.
 - For high-dimensional data, working with the PDF directly can lead to numerical underflow; prefer log-likelihoods.
