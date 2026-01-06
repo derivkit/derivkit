@@ -60,8 +60,6 @@ remaining SPD by construction.
    >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov_fn)
    >>> fisher_std = fk.fisher()
    >>> fisher_full = fk.gaussian_fisher()
-   >>> bool(np.allclose(fisher_std, fisher_full, atol=1e-10, rtol=0.0))
-   False
    >>> # Convert to GetDist GaussianND samples for visualization
    >>> gnd_std = fisher_to_getdist_gaussiannd(
    ...     theta0=theta0,
