@@ -77,7 +77,7 @@ Tensor-valued outputs
 ---------------------
 
 If the function returns a tensor, the hyper-Hessian is computed independently
-for each output component and reshaped back to ``(*out_shape, p, p, p)``.
+for each output component and afterwards reshaped back to ``(*out_shape, p, p, p)``.
 
 .. doctest:: hyper_hessian_tensor
 
