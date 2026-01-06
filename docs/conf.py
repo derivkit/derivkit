@@ -1,29 +1,35 @@
 """Sphinx configuration for the DerivKit documentation."""
 
+# -----------------------------------------------------------------------------
+# Standard library imports
+# -----------------------------------------------------------------------------
+import logging
+
+# -----------------------------------------------------------------------------
+# Third-party imports
+# -----------------------------------------------------------------------------
 import matplotlib
 from sphinx.ext.doctest import doctest
 
+# -----------------------------------------------------------------------------
+# Global setup
+# -----------------------------------------------------------------------------
 matplotlib.use("Agg")
 
-# --- Silence emcee progress-bar warnings during Sphinx build ----------------
-import logging
-
-logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
+# Silence emcee progress-bar / logging noise during Sphinx builds
 logging.getLogger("emcee").setLevel(logging.ERROR)
+logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
 
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
+# -----------------------------------------------------------------------------
+# Project information
+# -----------------------------------------------------------------------------
 project = "DerivKit"
 copyright = "2025, Nikolina Šarčević, Matthijs van der Wild, Cynthia Trendafilova"
 author = "Nikolina Šarčević et al."
 
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
+# -----------------------------------------------------------------------------
+# General configuration
+# -----------------------------------------------------------------------------
 html_favicon = "assets/favicon.png"
 
 extensions = [
@@ -38,34 +44,34 @@ extensions = [
     "sphinx_copybutton",
 ]
 
+# -----------------------------------------------------------------------------
+# Doctest configuration
+# -----------------------------------------------------------------------------
 doctest_global_setup = r"""
 import numpy as np
 np.set_printoptions(precision=12, suppress=True)
 
-# --- Silence noisy libraries during doctest execution -----------------------
-# Some helper utilities (e.g. GetDist sampling wrappers) may print status lines
-# like "Removed no burn in" and certain libraries (e.g. emcee) may emit warnings
-# to stderr. These break doctests that expect no output.
+# Silence noisy libraries during doctest execution.
 import io
 import contextlib
 import warnings
 import logging
 
-# Silence GetDist informational prints like "Removed no burn in"
+# Silence GetDist informational prints (e.g. "Removed no burn in")
 try:
     from getdist import chains as _getdist_chains
     _getdist_chains.print_load_details = False
 except Exception:
     pass
 
-# Redirect stdout/stderr to avoid doctest failures due to unexpected prints.
+# Redirect stdout/stderr to avoid doctest failures from unexpected prints.
 _doctest_stdout = io.StringIO()
 _doctest_stderr = io.StringIO()
 _doctest_redirect = contextlib.ExitStack()
 _doctest_redirect.enter_context(contextlib.redirect_stdout(_doctest_stdout))
 _doctest_redirect.enter_context(contextlib.redirect_stderr(_doctest_stderr))
 
-# Optional: silence warnings and logger chatter (helps with emcee/tqdm messages).
+# Silence warnings and logger chatter (emcee, tqdm, etc.).
 warnings.filterwarnings("ignore")
 logging.getLogger().setLevel(logging.ERROR)
 logging.getLogger("emcee").setLevel(logging.ERROR)
@@ -74,19 +80,25 @@ logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
 
 doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
 
+# -----------------------------------------------------------------------------
+# Copybutton configuration
+# -----------------------------------------------------------------------------
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 copybutton_copy_empty_lines = False
 
+# -----------------------------------------------------------------------------
+# Matplotlib / plot directive configuration
+# -----------------------------------------------------------------------------
 plot_html_show_source_link = False
 plot_formats = [("png", 300)]
 plot_rcparams = {
-    # --- general figure defaults (optional) ---
+    # Figure defaults
     "figure.figsize": (4.5, 4.5),
     "figure.dpi": 150,
     "savefig.dpi": 150,
 
-    # --- make axes + text DK blue ---
+    # DerivKit color scheme
     "axes.edgecolor": "#3b9ab2",
     "axes.labelcolor": "#3b9ab2",
     "axes.titlecolor": "#3b9ab2",
@@ -94,43 +106,46 @@ plot_rcparams = {
     "ytick.color": "#3b9ab2",
     "text.color": "#3b9ab2",
 
-    # --- make the plotted curves/contours default to red first ---
+    # Default color cycle
     "axes.prop_cycle": "cycler(color=['#f21901', '#3b9ab2', '#e1af00'])",
 
-    # Optional: spines thickness etc.
+    # Styling tweaks
     "axes.linewidth": 1.0,
-
-    # Optional: slightly smaller defaults for docs
     "font.size": 10,
 }
 
-
+# -----------------------------------------------------------------------------
+# Intersphinx configuration
+# -----------------------------------------------------------------------------
 intersphinx_mapping = {
     "getdist": ("https://getdist.readthedocs.io/en/stable/", None),
     "emcee": ("https://emcee.readthedocs.io/en/stable/", None),
     "jax": ("https://docs.jax.dev/en/latest/", None),
 }
 
+# -----------------------------------------------------------------------------
+# Autodoc / templates
+# -----------------------------------------------------------------------------
 autoclass_content = "both"
-
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -----------------------------------------------------------------------------
 # TEMP: Skip doctesting autogenerated API reference pages (sphinx-apidoc output)
 # -----------------------------------------------------------------------------
-# These pages pull in source-code docstrings, and Sphinx doctest will execute any
-# ">>> ..." snippets it finds there. While we stabilize docstring examples,
-# exclude the apidoc-generated .rst files from the doctest/HTML build.
+# These pages may contain >>> snippets in docstrings that are not yet stable.
 #
 # To re-enable API docstring doctests later:
 #   - comment out the two lines below.
+#
 # exclude_patterns += [
-#   "modules.rst",
-#   "derivkit.*.rst",
+#     "modules.rst",
+#     "derivkit.*.rst",
 # ]
 
-
+# -----------------------------------------------------------------------------
+# Sidebar layout
+# -----------------------------------------------------------------------------
 html_sidebar = {
     "**": [
         "sidebar/brand.html",
@@ -142,18 +157,16 @@ html_sidebar = {
     ],
 }
 
-# -- Sphinx Multiversion --------------------------------------------------
-# https://sphinx-contrib.github.io/multiversion/main/configuration.html
-
+# -----------------------------------------------------------------------------
+# Sphinx Multiversion
+# -----------------------------------------------------------------------------
 smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
 smv_branch_whitelist = "main"
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
+# -----------------------------------------------------------------------------
+# HTML output
+# -----------------------------------------------------------------------------
 html_theme = "furo"
-# html_theme = "sphinxawesome_theme"
-# html_theme = "sphinx_book_theme"
 html_permalinks_icon = "<span>#</span>"
 
 if html_theme == "furo":
@@ -176,8 +189,7 @@ if html_theme == "furo":
 else:
     html_theme_options = {}
 
-
 html_static_path = ["_static"]
 html_css_files = [
-    "derivkit.css",  # keep LAST; bump v to bust cache
+    "derivkit.css",  # keep LAST; bump version to bust cache
 ]
