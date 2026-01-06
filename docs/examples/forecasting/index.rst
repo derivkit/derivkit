@@ -11,3 +11,5 @@ Forecasting
    dali_contours
    laplace_approx
    laplace_contours
+   fisher_gauss
+   fisher_xy
