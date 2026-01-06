@@ -8,7 +8,8 @@ The hyper-Hessian generalizes the Hessian to third order. For a function
 ``f(theta)``, it contains all third-order partial derivatives evaluated at a
 single point in parameter space.
 
-**Notation**
+Notation
+--------
 
 - ``p`` denotes the number of model parameters (``theta`` has shape ``(p,)``).
 
