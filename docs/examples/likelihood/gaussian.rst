@@ -1,63 +1,136 @@
 Gaussian Likelihood
 ===================
 
-Minimal, task-oriented examples for evaluating a Gaussian likelihood with
+This section shows how to evaluate a Gaussian likelihood using
 :class:`derivkit.likelihood_kit.LikelihoodKit`.
 
-Gaussian log-likelihood (recommended)
--------------------------------------
+A Gaussian likelihood describes the probability of observed data under a normal
+noise model with mean ``mu`` and covariance ``cov``.
 
-Use ``return_log=True`` for numerical stability (this is what you usually want
-for inference).
+For a set of samples ``data`` and a model prediction ``mu``, the Gaussian
+log-likelihood is
 
-.. code-block:: python
+.. math::
 
-   import numpy as np
-   from derivkit.likelihood_kit import LikelihoodKit
+   \ln p(\mathrm{data}\mid \mu, \mathrm{cov})
+   = -\frac{1}{2}\left[(\mathrm{data}-\mu)^{T}\,\mathrm{cov}^{-1}\,(\mathrm{data}-\mu)
+   + \ln\det(2\pi\,\mathrm{cov})\right].
 
-   # Observed data vector
-   data = np.array([0.2, -0.1, 0.05])
+Notation
+~~~~~~~~
 
-   # Model prediction (Gaussian mean)
-   mu = np.array([0.0, 0.0, 0.0])
+- ``n`` denotes the number of data samples.
+- ``data`` contains ``n`` samples (internally treated as a column of samples).
+- ``mu`` is the Gaussian mean at each sample (``model_parameters`` has shape ``(n,)``).
 
-   # Diagonal covariance specified as variances (1D)
-   cov = np.array([0.1**2, 0.1**2, 0.1**2])
+The primary interface for evaluating the Gaussian likelihood is
+:meth:`derivkit.likelihood_kit.LikelihoodKit.gaussian`.
 
-   lkit = LikelihoodKit(data=data, model_parameters=mu)
-   grid, logpdf = lkit.gaussian(cov=cov, return_log=True)
+For advanced usage, see :func:`derivkit.likelihoods.gaussian.build_gaussian_likelihood`.
 
-   print(logpdf)
 
-Gaussian PDF (small problems)
------------------------------
+Gaussian log-likelihood
+-----------------------
 
-If you need probability density values instead of log-density, set
-``return_log=False`` (default).
+For inference, you should almost always work with the log-likelihood
+for numerical stability.
 
-.. code-block:: python
+.. doctest:: gaussian_loglikelihood
 
-   import numpy as np
-   from derivkit.likelihood_kit import LikelihoodKit
+   >>> import numpy as np
+   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> # Observed data samples
+   >>> data = np.array([[0.2], [-0.1], [0.05]])
+   >>> # Model prediction (Gaussian mean at each sample)
+   >>> mu = np.array([0.0, 0.0, 0.0])
+   >>> # Diagonal covariance given as variances
+   >>> cov = np.array([0.1**2, 0.1**2, 0.1**2])
+   >>> # Create LikelihoodKit instance
+   >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
+   >>> # Evaluate Gaussian log-likelihood
+   >>> grid, loglike = lkit.gaussian(cov=cov)
+   >>> print(bool(np.isfinite(loglike)))
+   True
 
-   data = np.array([0.2, -0.1, 0.05])
-   mu = np.array([0.0, 0.0, 0.0])
 
-   # Full covariance matrix (2D)
-   cov = np.array([
-       [0.01, 0.00, 0.00],
-       [0.00, 0.01, 0.00],
-       [0.00, 0.00, 0.01],
-   ])
+Gaussian PDF (small problems only)
+----------------------------------
 
-   lkit = LikelihoodKit(data=data, model_parameters=mu)
-   grid, pdf = lkit.gaussian(cov=cov)
+If you explicitly need probability density values (not recommended for large
+or high-dimensional problems), set ``return_log=False``.
 
-   print(pdf)
+.. doctest:: gaussian_pdf
+
+   >>> import numpy as np
+   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> data = np.array([[0.2], [-0.1], [0.05]])
+   >>> mu = np.array([0.0, 0.0, 0.0])
+   >>> cov = np.array([0.1**2, 0.1**2, 0.1**2])
+   >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
+   >>> grid, pdf = lkit.gaussian(cov=cov, return_log=False)
+   >>> print(bool(np.isfinite(pdf) and (pdf >= 0.0)))
+   True
+
+
+Covariance input forms
+----------------------
+
+The covariance can be provided in several equivalent forms.
+
+.. doctest:: gaussian_covariance_forms
+
+   >>> import numpy as np
+   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> # Observed data samples and model prediction
+   >>> data = np.array([[0.1], [-0.2]])
+   >>> mu = np.array([0.0, 0.0])
+   >>> # Initialize LikelihoodKit
+   >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
+   >>> _, loglike1 = lkit.gaussian(cov=0.05**2)
+   >>> # Diagonal variances (1D array)
+   >>> _, loglike2 = lkit.gaussian(cov=np.array([0.05**2, 0.05**2]))
+   >>> # Full covariance matrix (2D)
+   >>> cov2d = np.array([
+   ...     [0.0025, 0.0],
+   ...     [0.0,    0.0025],
+   ... ])
+   >>> _, loglike3 = lkit.gaussian(cov=cov2d)
+   >>> print(np.allclose(loglike1, loglike2) and np.allclose(loglike2, loglike3))
+   True
+
+
+Returned objects
+----------------
+
+The Gaussian likelihood returns a tuple ``(coordinate_grids, values)``.
+
+- ``coordinate_grids`` is a tuple of 1D arrays, one per data dimension
+- ``values`` is either the PDF or log-PDF evaluated on the grid
+
+.. doctest:: gaussian_return_shapes
+
+   >>> import numpy as np
+   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> data = np.array([[0.1], [-0.1]])
+   >>> mu = np.array([0.0, 0.0])
+   >>> cov = np.array([0.05**2, 0.05**2])
+   >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
+   >>> grid, loglike = lkit.gaussian(cov=cov)
+   >>> print(isinstance(grid, tuple))
+   True
+   >>> print(bool(np.isfinite(loglike)))
+   True
+
 
 Notes
 -----
 
-- ``cov`` may be a scalar, a 1D diagonal (variances), or a full 2D covariance.
-- The return value is ``(coordinate_grids, probabilities)`` where
-  ``coordinate_grids`` is a tuple of 1D arrays (one per dimension).
+- By default, the Gaussian likelihood returns the log-likelihood (``return_log=True``).
+- ``model_parameters`` must provide one mean value per data sample (``mu`` has shape ``(n,)``).
+- ``cov`` can be provided as a scalar variance, a 1D array of diagonal variances, or a full 2D covariance matrix.
+- For high-dimensional data, working with the PDF directly can lead to numerical underflow; prefer log-likelihoods.
+- The covariance matrix must be positive definite to ensure a valid likelihood.
+- The Gaussian likelihood assumes samples are conditionally independent given the model parameters.
+- For correlated data, provide the full covariance matrix to capture dependencies.
+- The Gaussian likelihood is appropriate for continuous data; for discrete data, use a Poisson or multinomial likelihood.
+- When combining multiple likelihood terms, sum log-likelihoods rather than multiplying PDFs.
