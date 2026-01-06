@@ -570,7 +570,7 @@ Typical workflow
 ----------------
 
 1. Compute Fisher ``F`` and higher-order tensors ``(G, H)`` with :class:`ForecastKit`.
-2. Use importance sampling`` for fast visualization and iteration.
+2. Use importance sampling for fast visualization and iteration.
 3. Switch to ``emcee`` when robustness is required or strong non-Gaussianity
    leads to unstable importance weights.
 4. Visualize and compare results using GetDist triangle plots.
