@@ -31,6 +31,7 @@ automatic differentiation may be unavailable or inappropriate.
    about/index
    installation
    examples/index
+   workflows
    modules
    citation
    contributing
