@@ -1,19 +1,46 @@
-Derivative Methods
-==================
+DerivativeKit
+=============
 
 DerivKit implements several complementary derivative engines. Each has different
 strengths depending on smoothness, noise level, and computational cost.
 
-This page gives an overview of the main methods, how they work, and when to use
-which one.
+This page gives an overview of the main methods featured in ``DerivativeKit``,
+how they work, and when to use which one.
+
+All methods are accessed through the same DerivativeKit interface and can be swapped
+without changing downstream code.
+
+Runnable examples illustrating these methods are collected in
+:doc:`../examples/index`.
+
 
 Finite Differences
 ------------------
-**Status:** Implemented
 
 **Idea:**
-Estimate the slope by evaluating the function at points around ``x0`` and forming
-a central-difference stencil [#fdiff]_.
+
+Estimate derivatives by evaluating the function at points around ``x0`` and
+combining them into a central-difference stencil [#fdiff]_.
+
+In general, a central finite-difference approximation to the first derivative
+can be written as a weighted sum over function evaluations at symmetric offsets
+around ``x0``:
+
+.. math::
+
+   f'(x_0) \approx \frac{1}{h} \sum_{k=-m}^{m} c_k\, f(x_0 + k h),
+
+where ``h`` is the step size (the spacing between adjacent stencil points),
+and the stencil coefficients ``c_k`` satisfy symmetry conditions
+(``c_{-k} = -c_k``) and are chosen to cancel low-order truncation errors.
+The integer ``m`` determines the stencil width (e.g. ``m=1`` for a 3-point
+stencil, ``m=2`` for a 5-point stencil). The coefficients ``c_k`` are computed
+using standard algorithms (such as Fornberg’s method), which construct
+finite-difference weights by enforcing the desired order of accuracy for a given stencil.
+
+Higher-order stencils improve accuracy by cancelling additional error terms,
+at the cost of more function evaluations.
+
 
 **Features:**
 
@@ -22,47 +49,109 @@ a central-difference stencil [#fdiff]_.
 - Ridders extrapolation [#ridderswiki]_ (adaptive error control)
 - Gauss–Richardson (GRE) [#gre]_ (noise-robust variant)
 
-**Use When:**
+
+**Use when**:
 
 - The function is smooth and cheap to evaluate
 - Noise is low or moderate
-- You want fast, reliable derivatives
+- You want fast derivatives with minimal overhead
 
-**Pros:** Fast, simple, accurate for smooth functions
-**Cons:** Sensitive to noise; step-size tuning matters
+
+**Avoid when**:
+
+- The function is noisy or discontinuous
+- Step-size tuning is difficult or unstable
+- Function evaluations are expensive
+
+
+**Examples:**
+
+A basic finite-difference example is shown in
+:doc:`../examples/derivatives/finite_differences`.
 
 
 Simple Polynomial Fit
 ---------------------
-**Status:** Implemented
 
 **Idea:**
+
 Sample points in a small, user-controlled window around ``x0`` and fit a
 fixed-order polynomial (e.g. quadratic or cubic) on a simple grid. The
-derivative at ``x0`` is taken from the analytic derivative of that polynomial
+derivative at ``x0`` is taken from the analytic derivative of the fitted polynomial
 [#fornberg]_.
 
-**Features**
+The expression for a first derivative from a centered quadratic fit
+
+.. math::
+
+   p(x) = a_0 + a_1 (x - x_0) + a_2 (x - x_0)^2
+
+is:
+
+.. math::
+
+   p'(x_0) = a_1,
+
+where ``a_1`` is the fitted linear coefficient of the polynomial.
+
+
+**Features:**
 
 - User-chosen window and polynomial degree
 - Low overhead and easy to reason about
-- No diagnostics beyond basic failures
-
-**Best for:** smooth functions, light noise, quick approximations
-**Pros:** smoother than raw finite differences, cheap
-**Cons:** not designed to handle strong noise or badly conditioned fits
+- Includes diagnostics on fit quality and conditioning
 
 
-Adaptive Polynomial Fit (Chebyshev)
------------------------------------
-**Status:** Implemented
+**Use when**:
+
+- The function is smooth but mildly noisy
+- You want a simple, local smoothing method
+- A fixed window and polynomial degree are sufficient
+
+
+**Avoid when**:
+
+- Noise is strong or highly irregular
+- The fit becomes ill-conditioned in the chosen window
+
+
+**Examples:**
+
+A basic polyfit example is shown in
+:doc:`../examples/derivatives/local_poly`.
+
+
+Adaptive Polynomial Fit
+-----------------------
 
 **Idea:**
+
 Build a Chebyshev-spaced grid around ``x0`` (optionally domain-aware), rescale
 offsets to a stable interval, and fit a local polynomial with optional ridge
 regularisation. The method can enlarge the grid if there are too few samples,
 adjust the effective polynomial degree, and reports detailed diagnostics
 [#fornberg]_.
+
+For a centered polynomial fit of degree ``d``,
+
+.. math::
+
+   p(x) = \sum_{k=0}^{d} a_k (x - x_0)^k,
+
+the first derivative is
+
+.. math::
+
+   p'(x) = \sum_{k=1}^{d} k\, a_k (x - x_0)^{k-1},
+
+and in particular
+
+.. math::
+
+   p'(x_0) = a_1,
+
+where ``a_k`` are the fitted polynomial coefficients.
+
 
 **Sampling strategy**
 
@@ -71,6 +160,14 @@ adjust the effective polynomial degree, and reports detailed diagnostics
 - Domain-aware: interval is clipped to stay inside a given ``(lo, hi)`` domain
 - Custom grids: user can supply explicit offsets or absolute sample locations
 
+Below is a visual example of the :py:mod:`derivkit.adaptive_fit` module estimating
+the first derivative of a nonlinear function in the presence of noise. The method
+selectively discards outlier points before fitting a polynomial, resulting in a
+robust and smooth estimate.
+
+.. image:: ../../assets/plots/adaptive_demo_linear_noisy_order1.png
+
+
 **Stability / diagnostics**
 
 - Scales offsets before fitting to reduce conditioning
@@ -78,70 +175,107 @@ adjust the effective polynomial degree, and reports detailed diagnostics
 - Checks fit quality and flags “obviously bad” derivatives with suggestions
 - Optional diagnostics dict with sampled points, fit metrics, and metadata
 
-**Best for:** noisy, irregular, or delicate functions where naive finite
-differences misbehave
 
-**Pros:**
+**Use when**:
 
-- Chebyshev nodes + scaling give numerically stable fits
-- Adaptive behaviour (grid rebuild, degree reduction) avoids catastrophic failures
-- Rich diagnostics for debugging bad derivatives
-
-**Cons:**
-
-- More overhead than finite differences or simple polyfit
-- Slightly more configuration (spacing, ridge, domain) if you want fine control
+- The function is noisy, irregular, or numerically delicate
+- Finite differences or simple polyfits fail
+- You want diagnostics to understand derivative quality
 
 
-Cheat Sheet: Choosing the Right Method
---------------------------------------
+**Avoid when**:
 
-+------------------------------+------------------------------+--------------------------------------------------------+
-| **Situation**                | **Recommended Method**       | **Why**                                                |
-+==============================+==============================+========================================================+
-| Smooth, cheap function       | Finite Difference            | Fast and accurate for clean functions                  |
-+------------------------------+------------------------------+--------------------------------------------------------+
-| Slightly noisy function      | Ridders Finite Difference    | Richardson + error control stabilises noise            |
-+------------------------------+------------------------------+--------------------------------------------------------+
-| Moderate or structured noise | Simple Polynomial Fit        | Local regression smooths noise better than FD          |
-+------------------------------+------------------------------+--------------------------------------------------------+
-| High noise / messy signal    | Adaptive PolyFit (Chebyshev) | Robust trimming, Chebyshev grid, diagnostics           |
-+------------------------------+------------------------------+--------------------------------------------------------+
-| Expensive function           | Adaptive PolyFit (Chebyshev) | Fewer evaluations and stable fit around ``x0``         |
-+------------------------------+------------------------------+--------------------------------------------------------+
-| Need robustness + diagnostics| Adaptive PolyFit (Chebyshev) | Fit quality metrics, degree adjustment, suggestions    |
-+------------------------------+------------------------------+--------------------------------------------------------+
+- The function is extremely smooth and cheap to evaluate
+- Minimal overhead is a priority
+- You want a fully adaptive, robust method
 
 
-Example: Adaptive Fit on a Noisy Function
------------------------------------------
+**Examples:**
 
-Below is a visual example of the :py:mod:`derivkit.adaptive_fit` module estimating
-the first derivative of a nonlinear function in the presence of noise. The method
-selectively discards outlier points before fitting a polynomial, resulting in a
-robust and smooth estimate.
-
-.. image:: ../assets/plots/adaptive_demo_linear_noisy_order1.png
+A basic adaptive polyfit example is shown in
+:doc:`../examples/derivatives/adaptive_fit`.
 
 
-Experimental: JAX autodiff (opt-in)
------------------------------------
+Tabulated Functions
+-------------------
 
-DerivKit also exposes optional JAX-based automatic differentiation utilities.
-These are **not registered as an official DerivKit derivative method by default**
-and must be explicitly enabled by the user.
+**Idea:**
 
-This functionality is intended for quick, informal comparisons or sanity checks against
-DerivKit’s numerical methods when the model is smooth and already written in terms of
-:mod:`jax.numpy`. It is *not* designed for noisy, tabulated, or black-box functions, and should
-not be relied upon for production inference or robustness studies.
+When the target function is provided as tabulated data ``(x, y)``, DerivKit first
+wraps the table in a lightweight interpolator and then applies any of the
+available derivative engines to the interpolated function.
 
-In most scientific use cases targeted by DerivKit, the adaptive or finite
-difference methods above are more appropriate.
+Internally, tabulated data are represented by
+:class:`derivkit.tabulated_model.one_d.Tabulated1DModel`, which exposes a callable
+interface compatible with all derivative methods.
 
-Installation and usage details are described in :doc:`installation`.
-Usage examples are collected in :doc:`../examples/index`.
 
+**Features:**
+
+- Supports scalar-, vector-, and tensor-valued tabulated outputs
+- Uses fast linear interpolation via ``numpy.interp``
+- Seamlessly integrates with finite differences, adaptive fit, local polynomial,
+  and Fornberg methods
+- Identical API to function-based differentiation via :class:`DerivativeKit`
+
+
+**Use when:**
+
+- The function is only available as discrete samples
+- Evaluating the function on demand is expensive or impossible
+- You want to reuse DerivKit’s derivative engines on interpolated data
+
+
+**Avoid when:**
+
+- The tabulation is too coarse to resolve derivatives
+- The function has sharp features not captured by interpolation
+- Exact derivatives are required
+
+
+**Examples:**
+
+See :doc:`../examples/derivatives/tabulated_functions` for a basic example using
+tabulated data.
+
+
+JAX Autodiff
+------------
+
+**Idea:**
+
+Use JAX’s automatic differentiation to compute exact derivatives of
+Python-defined functions that are compatible with ``jax.numpy``.
+
+This functionality is exposed for convenience and experimentation and is
+*not* registered as a standard DerivKit derivative method by default.
+
+
+**Features:**
+
+- Exact derivatives via reverse- and forward-mode autodiff
+- No step-size tuning or numerical differencing
+- Useful for quick sanity checks against numerical methods
+
+
+**Use when:**
+
+- The function is analytic and fully JAX-compatible
+- You want an exact reference derivative for validation
+- You are experimenting or debugging numerical methods
+
+
+**Avoid when:**
+
+- The function is noisy, tabulated, or a black box
+- You need production robustness or broad applicability
+- JAX compatibility cannot be guaranteed
+
+In most scientific workflows targeted by DerivKit, the adaptive polynomial fit
+or finite-difference methods above are more appropriate.
+
+Installation details are described in :doc:`installation`.
+We do not recommend JAX for production use within DerivKit at this time.
 
 
 References
