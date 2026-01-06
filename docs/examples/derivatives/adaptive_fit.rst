@@ -10,9 +10,11 @@ Chebyshev grid. This approach is designed for robustness, with stable scaling,
 optional ridge regularization, and diagnostics to detect poorly conditioned
 fits.
 
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
+
 The primary interface for this method is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-
 You can select this backend via ``method="adaptive"`` and control its behavior
 using keyword arguments forwarded to the adaptive polynomial fitter.
 

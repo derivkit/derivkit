@@ -15,8 +15,8 @@ The model must map parameters ``theta`` to a 1D data vector, and the observable
 covariance matrix must have shape ``(n, n)``, where ``n`` is the length of the
 data vector.
 
-For a conceptual overview of DALI forecasting and its interpretation, see
-:doc:`../../guide/forecasting`.
+For a conceptual overview of DALI forecasting, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 If you want to visualize parameter contours from the DALI tensors, see the
 example :doc:`dali_contours`, which shows how to generate GetDist samples and

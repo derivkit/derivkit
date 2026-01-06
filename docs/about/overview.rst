@@ -1,6 +1,11 @@
 What is DerivKit?
 =================
 
+.. image:: ../assets/favicon.png
+   :alt: DerivKit logo
+   :width: 120px
+   :align: right
+
 **DerivKit** is a modular, derivative-centric toolkit for scientific computing.
 It provides a common foundation for reliable numerical differentiation and a
 collection of higher-level tools that are built on top of that foundation.
@@ -10,7 +15,7 @@ explicitly and robustly. All other components in the package rely on this base
 layer for computing and propagating derivatives in a controlled way.
 
 DerivKit is designed for scientific and engineering workflows (including physics,
-astronomy, cosmology, and related fields) where functions are often noisy, expensive,
+astronomy, cosmology, and related fields) where functions are often noisy, computationally expensive,
 or non-smooth, and where standard automatic differentiation may be unavailable or
 inappropriate.
 

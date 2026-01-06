@@ -63,7 +63,7 @@ from derivkit.utils.validate import (
 
 
 class ForecastKit:
-    """Provides access to Fisher and DALI likelihood-expansion tensors."""
+    """Provides access to Fisher and DALI likelihoods-expansion tensors."""
 
     def __init__(
             self,
@@ -294,7 +294,7 @@ class ForecastKit:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
-        likelihood with parameter-dependent mean and/or covariance.
+        likelihoods with parameter-dependent mean and/or covariance.
         Uses :func:`derivkit.forecasting.fisher_general.build_generalized_fisher_matrix`.
 
         Args:

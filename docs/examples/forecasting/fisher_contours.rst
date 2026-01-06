@@ -9,15 +9,13 @@ The focus here is what to do next once you already have a Fisher matrix:
 how to turn it into confidence contours or samples for quick inspection,
 comparison, and plotting.
 
-This is intended for fast exploration and visualization, not as a
-replacement for full likelihood-based inference or MCMC sampling.
-
 If you are looking for:
 
 - how the Fisher matrix is defined and interpreted, see
-  :doc:`../../guide/forecasting`
+  :doc:`../../about/kits/forecast_kit`
 - how to compute a Fisher matrix with DerivKit, see
   :doc:`fisher`
+
 
 Two complementary visualization workflows are supported:
 
@@ -284,7 +282,7 @@ Fisher+prior contours (yellow).
    ...     labels=[r"a", r"b"],
    ...     label="Fisher + Gaussian prior",
    ... )
-   >>> # Overlay contours: red (likelihood-only) and yellow (with prior)
+   >>> # Overlay contours: red (likelihoods-only) and yellow (with prior)
    >>> dk_red = "#f21901"
    >>> dk_yellow = "#f2b701"
    >>> line_width = 1.5

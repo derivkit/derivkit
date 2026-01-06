@@ -15,8 +15,8 @@ and returns:
 - the corresponding first-order parameter shift
   :math:`\Delta \theta_a`.
 
-For a conceptual overview of Fisher bias and its interpretation, see
-:doc:`../../guide/forecasting`.
+For a conceptual overview of Fisher bias, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 
 Compute ``delta_nu``

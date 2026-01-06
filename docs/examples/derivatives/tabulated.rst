@@ -14,6 +14,9 @@ This is useful when working with simulation outputs, precomputed theory
 tables, or externally generated data products where the underlying function
 cannot be evaluated analytically.
 
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
+
 
 Basic usage
 -----------

@@ -16,14 +16,12 @@ In DerivKit, the Fisher matrix is built from:
 The primary interface for Fisher forecasting is
 :meth:`derivkit.forecast_kit.ForecastKit.fisher`.
 
-For a conceptual overview of Fisher forecasting, including interpretation,
-Fisher bias, and higher-order (DALI) extensions, see
-:doc:`../../guide/forecasting`.
-
 If you want to generate parameter samples or visualize confidence contours
 from the Fisher matrix, see the example :doc:`fisher_contours`, which shows how
 to construct GetDist samples and plot Fisher ellipses.
 
+For a conceptual overview of Fisher forecasting, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 Basic usage
 -----------

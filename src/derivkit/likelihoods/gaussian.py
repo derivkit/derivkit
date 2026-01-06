@@ -1,4 +1,4 @@
-"""Gaussian likelihood function module."""
+"""Gaussian likelihoods function module."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def build_gaussian_likelihood(
     cov: ArrayLike,
     return_log: bool = True,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
-    """Constructs the Gaussian likelihood function.
+    """Constructs the Gaussian likelihoods function.
 
     Args:
         data: a 1D or 2D array representing the given data values. It is
@@ -30,7 +30,7 @@ def build_gaussian_likelihood(
         cov: covariance matrix. May be a scalar, a 1D vector of diagonal variances,
             or a full 2D covariance matrix. It will be symmetrised and normalized
             internally to ensure compatibility with the data and model_parameters.
-        return_log: when set to ``True``, return the log-likelihood instead of
+        return_log: when set to ``True``, return the log-likelihoods instead of
             the probability density function.
 
     Returns:
@@ -52,7 +52,7 @@ def build_gaussian_likelihood(
             - cov cannot be normalized to a valid covariance matrix.
 
     Examples:
-        A 1D Gaussian likelihood:
+        A 1D Gaussian likelihoods:
             >>> import numpy as np
             >>> import matplotlib.pyplot as plt
             >>> from derivkit.likelihoods.gaussian import build_gaussian_likelihood
@@ -61,7 +61,7 @@ def build_gaussian_likelihood(
             >>> cov = np.array([[2.0]])
             >>> x_grid, pdf = build_gaussian_likelihood(data, model_parameters, cov)
             >>> plt.plot(x_grid[0], pdf[0])  # doctest: +SKIP
-        A 2D Gaussian likelihood:
+        A 2D Gaussian likelihoods:
             >>> import numpy as np
             >>> import matplotlib.pyplot as plt
             >>> data = np.asarray((np.linspace(-10, 10, 30), np.linspace(3, 6, 30)))

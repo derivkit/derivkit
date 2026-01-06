@@ -14,9 +14,10 @@ replacement for full likelihood-based inference or full MCMC sampling.
 If you are looking for:
 
 - how the Laplace approximation is defined and interpreted, see
-  :doc:`../../guide/forecasting`
+  :doc:`../../about/kits/forecast_kit`
 - how to compute a Laplace approximation with DerivKit, see
   :doc:`laplace_approx`
+
 
 Two complementary visualization workflows are supported:
 
@@ -53,7 +54,7 @@ then plot contours using GetDist.
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> from derivkit.forecasting.laplace import laplace_approximation
-   >>> # Linear–Gaussian likelihood with Gaussian prior (posterior is exactly Gaussian)
+   >>> # Linear–Gaussian likelihoods with Gaussian prior (posterior is exactly Gaussian)
    >>> observed_y = np.array([1.2, -0.4], dtype=float)
    >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
    >>> data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)

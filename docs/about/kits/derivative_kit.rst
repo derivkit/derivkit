@@ -11,13 +11,13 @@ All methods are accessed through the same DerivativeKit interface and can be swa
 without changing downstream code.
 
 Runnable examples illustrating these methods are collected in
-:doc:`../examples/index`.
+:doc:`../../examples/index`.
 
 
 Finite Differences
 ------------------
 
-**Idea:**
+**How it works:**
 
 Estimate derivatives by evaluating the function at points around ``x0`` and
 combining them into a central-difference stencil [#fdiff]_.
@@ -42,7 +42,7 @@ Higher-order stencils improve accuracy by cancelling additional error terms,
 at the cost of more function evaluations.
 
 
-**Features:**
+**DerivKit implementation:**
 
 - 3, 5, 7, 9-point central stencils
 - Richardson extrapolation [#richardsonwiki]_ (reduces truncation error)
@@ -67,13 +67,13 @@ at the cost of more function evaluations.
 **Examples:**
 
 A basic finite-difference example is shown in
-:doc:`../examples/derivatives/finite_differences`.
+:doc:`../../examples/derivatives/finite_differences`.
 
 
 Simple Polynomial Fit
 ---------------------
 
-**Idea:**
+**How it works:**
 
 Sample points in a small, user-controlled window around ``x0`` and fit a
 fixed-order polynomial (e.g. quadratic or cubic) on a simple grid. The
@@ -95,7 +95,7 @@ is:
 where ``a_1`` is the fitted linear coefficient of the polynomial.
 
 
-**Features:**
+**DerivKit implementation:**
 
 - User-chosen window and polynomial degree
 - Low overhead and easy to reason about
@@ -124,7 +124,7 @@ A basic polyfit example is shown in
 Adaptive Polynomial Fit
 -----------------------
 
-**Idea:**
+**How it works:**
 
 Build a Chebyshev-spaced grid around ``x0`` (optionally domain-aware), rescale
 offsets to a stable interval, and fit a local polynomial with optional ridge
@@ -153,7 +153,7 @@ and in particular
 where ``a_k`` are the fitted polynomial coefficients.
 
 
-**Sampling strategy**
+Sampling strategy:
 
 - Default: symmetric Chebyshev nodes around ``x0`` with automatic half-width
   (via ``spacing="auto"`` and ``base_abs``)
@@ -168,12 +168,12 @@ robust and smooth estimate.
 .. image:: ../../assets/plots/adaptive_demo_linear_noisy_order1.png
 
 
-**Stability / diagnostics**
+**DerivKit implementation:**
 
 - Scales offsets before fitting to reduce conditioning
 - Optional ridge term to stabilise ill-conditioned Vandermonde systems
 - Checks fit quality and flags “obviously bad” derivatives with suggestions
-- Optional diagnostics dict with sampled points, fit metrics, and metadata
+- Optional diagnostics dictionary with sampled points, fit metrics, and metadata
 
 
 **Use when**:
@@ -199,7 +199,7 @@ A basic adaptive polyfit example is shown in
 Tabulated Functions
 -------------------
 
-**Idea:**
+**How it works:**
 
 When the target function is provided as tabulated data ``(x, y)``, DerivKit first
 wraps the table in a lightweight interpolator and then applies any of the
@@ -210,7 +210,7 @@ Internally, tabulated data are represented by
 interface compatible with all derivative methods.
 
 
-**Features:**
+**DerivKit implementation:**
 
 - Supports scalar-, vector-, and tensor-valued tabulated outputs
 - Uses fast linear interpolation via ``numpy.interp``
@@ -242,7 +242,7 @@ tabulated data.
 JAX Autodiff
 ------------
 
-**Idea:**
+**How it works:**
 
 Use JAX’s automatic differentiation to compute exact derivatives of
 Python-defined functions that are compatible with ``jax.numpy``.
@@ -251,7 +251,7 @@ This functionality is exposed for convenience and experimentation and is
 *not* registered as a standard DerivKit derivative method by default.
 
 
-**Features:**
+**DerivKit implementation:**
 
 - Exact derivatives via reverse- and forward-mode autodiff
 - No step-size tuning or numerical differencing

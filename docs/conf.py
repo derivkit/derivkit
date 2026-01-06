@@ -163,6 +163,11 @@ html_permalinks_icon = "<span>#</span>"
 
 if html_theme == "furo":
     html_theme_options = {
+        "light_logo": "logos/logo-black.png",
+        "dark_logo": "logos/logo-blue.png",  # or logo-black.png if you prefer
+        # keep the project name visible (logo + text)
+        # "sidebar_hide_name": True,  # <- remove this
+
         "light_css_variables": {
             "color-brand-primary": "#3b9ab2",
             "color-brand-content": "#3b9ab2",
@@ -178,8 +183,6 @@ if html_theme == "furo":
             "color-link--visited": "#e1af00",
         },
     }
-else:
-    html_theme_options = {}
 
 html_static_path = ["_static"]
 html_css_files = [

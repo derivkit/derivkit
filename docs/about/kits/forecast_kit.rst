@@ -52,7 +52,7 @@ The Fisher matrix provides a fast, local forecast of expected parameter constrai
 under a Gaussian likelihood approximation.
 
 **Example:**
-A basic Fisher matrix computation is shown in :doc:`../examples/forecasting/fisher`
+A basic Fisher matrix computation is shown in :doc:`../../examples/forecasting/fisher`
 
 
 
@@ -198,7 +198,7 @@ into shifts in best-fit parameters.
 .. image:: ../../assets/plots/fisher_bias_demo_1and2sigma.png
 
 **Example:**
-A worked example is provided in :doc:`../examples/forecasting/fisher_bias`.
+A worked example is provided in :doc:`../../examples/forecasting/fisher_bias`.
 
 
 Laplace Approximation
@@ -336,7 +336,7 @@ reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
 
 
 **Example:**
-A worked example is provided in :doc:`../examples/forecasting/dali`.
+A worked example is provided in :doc:`../../examples/forecasting/dali`.
 
 
 Posterior Sampling and Visualization
@@ -359,9 +359,9 @@ requiring full likelihood evaluations with MCMC or nested sampling methods.
 
 **Examples:**
 Worked examples are provided in:
-- :doc:`../examples/forecasting/fisher_contours` for Fisher-based GetDist samples
-- :doc:`../examples/forecasting/dali_contours` for DALI-based posterior sampling
-- :doc:`../examples/forecasting/laplace_contours` for Laplace approximations
+- :doc:`../../examples/forecasting/fisher_contours` for Fisher-based GetDist samples
+- :doc:`../../examples/forecasting/dali_contours` for DALI-based posterior sampling
+- :doc:`../../examples/forecasting/laplace_contours` for Laplace approximations
 
 
 Backend Notes

@@ -20,13 +20,13 @@ Jacobian has shape ``(n, p)``, where each column is the derivative with respect
 to one parameter.
 
 See also :doc:`gradient` for scalar-valued outputs and :doc:`hessian` for second derivatives.
+For more information on jacobian, see :doc:`../../about/kits/calculus_kit`.
+
 
 The primary interface for computing the Jacobian is
 :meth:`derivkit.calculus_kit.CalculusKit.jacobian`.
-
 For advanced usage and backend-specific keyword arguments, see
 :func:`derivkit.calculus.jacobian.build_jacobian`.
-
 You can choose the derivative backend via ``method`` and pass backend-specific
 options via ``**dk_kwargs`` (forwarded to
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`).

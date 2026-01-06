@@ -11,7 +11,7 @@ All posterior quantities shown here refer to the DALI-expanded approximation.
 
 If you are looking for:
 
-- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecasting`
+- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecast_kit`
 - how to compute DALI tensors with DerivKit, see :doc:`dali`
 
 Two workflows are supported:
@@ -20,6 +20,9 @@ Two workflows are supported:
 - fast importance sampling using a Fisher–Gaussian proposal
 
 Both workflows return a :class:`getdist.MCSamples` object.
+
+For a conceptual overview of DALI forecasting, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 
 Sampling the DALI posterior with emcee

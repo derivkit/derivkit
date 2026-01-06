@@ -1,4 +1,4 @@
-"""Core utilities for likelihood-based forecasts.
+"""Core utilities for likelihoods-based forecasts.
 
 This module provides functional helpers to
 

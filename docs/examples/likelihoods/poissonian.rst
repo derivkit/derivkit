@@ -1,5 +1,5 @@
-Poisson Likelihood
-==================
+Poissonian Likelihood
+=====================
 
 This section shows how to evaluate a Poisson likelihood using
 :class:`derivkit.likelihood_kit.LikelihoodKit`.
@@ -26,8 +26,9 @@ Notation
 
 The primary interface for evaluating the Poisson likelihood is
 :meth:`derivkit.likelihood_kit.LikelihoodKit.poissonian`.
-
 For advanced usage, see :func:`derivkit.likelihoods.poisson.build_poisson_likelihood`.
+
+For a conceptual overview of likelihoods, see :doc:`../../about/kits/likelihood_kit`.
 
 
 Poisson log-likelihood

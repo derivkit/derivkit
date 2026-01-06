@@ -122,7 +122,7 @@ Hyper-Hessian
 
 The hyper-Hessian refers to third- and higher-order derivative tensors
 (often called higher-order Hessians or hyper-Hessians) of a scalar-valued function.
- These tensors encode departures from purely quadratic
+These tensors encode departures from purely quadratic
 behaviour and capture local non-Gaussian structure.
 
 Such higher-order derivatives are required for systematic likelihood expansions

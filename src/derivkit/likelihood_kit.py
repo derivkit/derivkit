@@ -40,17 +40,17 @@ class LikelihoodKit:
         data: ArrayLike,
         model_parameters: ArrayLike,
     ) -> None:
-        """Initialises the likelihood object.
+        """Initialises the likelihoods object.
 
         Args:
             data: Observed data values. The expected shape depends on the
-                particular likelihood. For the Gaussian likelihood, ``data``
+                particular likelihoods. For the Gaussian likelihoods, ``data``
                 is 1D or 2D, where axis 0 represents different samples and
-                axis 1 the values. For the Poissonian likelihood, ``data`` is
+                axis 1 the values. For the Poissonian likelihoods, ``data`` is
                 reshaped to align with ``model_parameters``.
             model_parameters: Theoretical model values. For the Gaussian
-                likelihood, this is a 1D array of parameters used as the mean
-                of the multivariate normal. For the Poissonian likelihood,
+                likelihoods, this is a 1D array of parameters used as the mean
+                of the multivariate normal. For the Poissonian likelihoods,
                 this is the expected counts (Poisson means).
         """
         self.data = np.asarray(data)
@@ -62,13 +62,13 @@ class LikelihoodKit:
         *,
         return_log: bool = True,
     ) -> tuple[tuple[NDArray[np.float64], ...], NDArray[np.float64]]:
-        """Evaluates a Gaussian likelihood for the stored data and parameters.
+        """Evaluates a Gaussian likelihoods for the stored data and parameters.
 
         Args:
             cov: Covariance matrix. May be a scalar, a 1D vector of diagonal
                 variances, or a full 2D covariance matrix. It will be
                 symmetrized and normalized internally.
-            return_log: If ``True``, return the log-likelihood instead of
+            return_log: If ``True``, return the log-likelihoods instead of
                 the probability density function.
 
         Returns:
@@ -92,10 +92,10 @@ class LikelihoodKit:
         *,
         return_log: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Evaluates a Poissonian likelihood for the stored data and parameters.
+        """Evaluates a Poissonian likelihoods for the stored data and parameters.
 
         Args:
-            return_log: If ``True``, return the log-likelihood instead of
+            return_log: If ``True``, return the log-likelihoods instead of
                 the probability mass function.
 
         Returns:

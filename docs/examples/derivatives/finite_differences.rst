@@ -14,6 +14,9 @@ functions** that are inexpensive to evaluate. Because finite differences rely
 on explicit step sizes, their accuracy can degrade for noisy functions or poorly
 scaled problems.
 
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
+
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 You can select this backend via ``method="finite"`` and control the stencil,

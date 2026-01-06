@@ -1,4 +1,4 @@
-"""Poissonian likelihood function module."""
+"""Poissonian likelihoods function module."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def build_poissonian_likelihood(
     model_parameters: float | np.ndarray[float],
     return_log: bool = True,
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
-    """Constructs the Poissonian likelihood function.
+    """Constructs the Poissonian likelihoods function.
 
     The shape of the data products depend on the shape of ``model_parameters``.
     The assumption is that ``model_parameters`` contains the expectation value
@@ -36,7 +36,7 @@ def build_poissonian_likelihood(
     Args:
         data: an array representing the given data values.
         model_parameters: an array representing the means of the data samples.
-        return_log: when set to ``True``, returns the log-likelihood instead of
+        return_log: when set to ``True``, returns the log-likelihoods instead of
                 the probability mass function.
 
     Returns:

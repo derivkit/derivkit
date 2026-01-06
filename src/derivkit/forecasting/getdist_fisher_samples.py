@@ -125,7 +125,7 @@ def fisher_to_getdist_samples(
         -log p(theta|d) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + C
 
     where ``C`` is an arbitrary additive constant and ``F`` defines the Fisher-Gaussian
-    approximation to ``-log(likelihood)`` around ``theta0``.
+    approximation to ``-log(likelihoods)`` around ``theta0``.
     In this implementation, ``C`` is effectively zero since no additional shifting is applied.
     If no prior is provided, the prior term is omitted.
 

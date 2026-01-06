@@ -15,6 +15,9 @@ step-size tuning becomes fragile. Unlike the adaptive Chebyshev backend, the
 local polynomial method does not attempt to optimize the sampling grid or
 conditioning automatically, making it lightweight and predictable.
 
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
+
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 You can select this backend via ``method="local_polynomial"`` (or ``"lp"``) and

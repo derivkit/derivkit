@@ -45,7 +45,7 @@ LikelihoodKit automatically:
 - returns both the aligned data vector (for reuse) and the likelihood value.
 
 **Example:**
-Worked examples are provided in :doc:`../examples/likelihoods/gaussian`.
+Worked examples are provided in :doc:`../../examples/likelihoods/gaussian`.
 
 
 Poissonian Likelihood
@@ -76,7 +76,7 @@ LikelihoodKit supports:
 
 
 **Example:**
-Worked examples are provided in :doc:`../examples/likelihoods/poissonian`.
+Worked examples are provided in :doc:`../../examples/likelihoods/poissonian`.
 
 
 Input Handling and API Contract
@@ -122,6 +122,7 @@ offer robust, well-defined likelihood building blocks that integrate cleanly
 with derivative-based forecasting and approximation methods.
 
 This design makes it easy to:
+
 - prototype forecasts quickly,
 - swap likelihood forms without touching model code,
 - transition from forecasts to approximate posteriors.

@@ -20,7 +20,7 @@ foundation for derivative-based methods, together with higher-level tools for
 calculus, forecasting, and likelihood analysis.
 
 DerivKit is particularly suited to applications in physics, astronomy, and
-cosmology, where models are often noisy, expensive, or non-smooth, and where
+cosmology, where models are often noisy, computationally expensive, or non-smooth, and where
 automatic differentiation may be unavailable or inappropriate.
 
 .. toctree::

@@ -45,7 +45,7 @@ def negative_logposterior(
 ) -> float:
     """Computes the negative log-posterior at ``theta``.
 
-    This converts a user-provided log-posterior (often returned as a log-likelihood
+    This converts a user-provided log-posterior (often returned as a log-likelihoods
     plus log-prior) into the objective most optimizers and curvature-based methods
     work with: the negative log-posterior.
 

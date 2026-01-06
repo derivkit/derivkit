@@ -213,7 +213,7 @@ def get_index_value(theta: ArrayLike, index: int, *, name: str = "theta") -> flo
 
     This helper enforces that ``theta`` is one-dimensional and raises a clear,
     user-facing error if the requested index is out of bounds. It is intended
-    for simple prior or likelihood components that act on a single parameter.
+    for simple prior or likelihoods components that act on a single parameter.
 
     Args:
         theta: 1D parameter vector.

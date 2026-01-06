@@ -43,7 +43,7 @@ yields an effective output covariance
        - T C_{xy}
        + T C_{xx} T^{\mathsf{T}}.
 
-This effective covariance replaces ``C_{yy}`` in the Gaussian likelihood and Fisher
+This effective covariance replaces ``C_{yy}`` in the Gaussian likelihoods and Fisher
 matrix. The covariance blocks ``Cxx``, ``Cxy``, and ``Cyy`` are treated as fixed;
 parameter dependence enters only through the local sensitivity matrix ``T``.
 
@@ -246,7 +246,7 @@ def build_effective_covariance_r(
     input covariance, output covariance, and cross-covariance with a local sensitivity
     matrix ``t`` (describing how the model mean changes with the inputs) to produce an
     effective covariance for the outputs. The result is the covariance used in the
-    Gaussian likelihood and Fisher matrix after input uncertainty has been propagated
+    Gaussian likelihoods and Fisher matrix after input uncertainty has been propagated
     to the output space.
 
     Args:

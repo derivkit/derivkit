@@ -17,13 +17,12 @@ If ``f(theta)`` returns a scalar and ``theta`` has shape ``(p,)``, the gradient
 has shape ``(p,)``, with one component per parameter.
 
 See also :doc:`jacobian` for vector-valued outputs and :doc:`hessian` for second derivatives.
+For more information on gradient, see :doc:`../../about/kits/calculus_kit`.
 
 The primary interface for computing the gradient is
 :meth:`derivkit.calculus_kit.CalculusKit.gradient`.
-
 For advanced usage and backend-specific keyword arguments, see
 :func:`derivkit.calculus.gradient.build_gradient`.
-
 You can choose the derivative backend via ``method`` and pass backend-specific
 options via ``**dk_kwargs`` (forwarded to
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`).
