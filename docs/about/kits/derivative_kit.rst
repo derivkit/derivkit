@@ -1,5 +1,9 @@
-DerivativeKit
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| DerivativeKit
+======================
 
 DerivKit implements several complementary derivative engines. Each has different
 strengths depending on smoothness, noise level, and computational cost.

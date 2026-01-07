@@ -1,5 +1,10 @@
-Tabulated derivatives
-=====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Tabulated derivatives
+==============================
 
 This section shows how to compute derivatives using
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate` when your model is

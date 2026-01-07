@@ -1,5 +1,9 @@
-Gradient
-========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Gradient
+=================
 
 This section shows how to compute the gradient of a scalar-valued function using DerivKit.
 

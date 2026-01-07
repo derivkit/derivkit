@@ -1,16 +1,17 @@
-Team
-====
+.. |dklogo| image:: /assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
 
-.. figure:: /assets/favicon.png
-   :align: center
-   :width: 200px
-   :alt: DerivKit logo
+
+|dklogo| Team
+=============
 
 .. role:: name-red
    :class: name-red
 
 .. role:: role-blue
    :class: role-blue
+
 
 **DerivKit** is developed and maintained by a small team of researchers.
 

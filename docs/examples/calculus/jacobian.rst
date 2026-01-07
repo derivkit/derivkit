@@ -1,5 +1,9 @@
-Jacobian
-========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Jacobian
+=================
 
 This section shows how to compute the Jacobian of a vector-valued function using DerivKit.
 

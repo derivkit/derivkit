@@ -1,5 +1,10 @@
-DALI tensors
-============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| DALI tensors
+=====================
 
 This section shows how to construct the DALI (Derivative Approximation for
 LIkelihoods) tensors using :class:`derivkit.forecast_kit.ForecastKit`.

@@ -1,5 +1,10 @@
-Fisher matrix
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Fisher matrix
+======================
 
 This section shows how to construct a Fisher information matrix using
 :class:`derivkit.forecast_kit.ForecastKit`.

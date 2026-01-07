@@ -1,5 +1,10 @@
-Gaussian Likelihood
-===================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Gaussian Likelihood
+==============================
 
 This section shows how to evaluate a Gaussian likelihood using
 :class:`derivkit.likelihood_kit.LikelihoodKit`.

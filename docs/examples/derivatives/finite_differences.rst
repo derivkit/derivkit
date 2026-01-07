@@ -1,5 +1,9 @@
-Finite differences
-==================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Finite differences
+===========================
 
 This section shows how to compute derivatives using the finite-difference
 backend in DerivKit.

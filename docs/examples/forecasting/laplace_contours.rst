@@ -1,5 +1,10 @@
-Laplace contours
-================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Laplace contours
+=========================
 
 This page shows how to visualize Laplace-approximation posteriors using GetDist,
 starting from a Laplace approximation computed with DerivKit.

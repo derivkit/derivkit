@@ -1,5 +1,10 @@
-Poissonian Likelihood
-=====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Poissonian Likelihood
+==============================
 
 This section shows how to evaluate a Poisson likelihood using
 :class:`derivkit.likelihood_kit.LikelihoodKit`.

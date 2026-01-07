@@ -1,5 +1,9 @@
-LikelihoodKit
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| LikelihoodKit
+======================
 
 LikelihoodKit provides lightweight, easy-to-use wrappers for evaluating
 standard likelihoods in forecasting and inference workflows.

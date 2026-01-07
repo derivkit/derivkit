@@ -1,5 +1,10 @@
-Laplace approximation
-=====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Laplace approximation
+==============================
 
 This section shows how to construct a Laplace approximation to a posterior using
 :func:`derivkit.forecasting.laplace.laplace_approximation`.

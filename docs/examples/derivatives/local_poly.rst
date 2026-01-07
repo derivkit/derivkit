@@ -1,5 +1,9 @@
-Local polynomial fit
-====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Local polynomial fit
+=============================
 
 This section shows how to compute derivatives using the local polynomial
 backend in DerivKit.

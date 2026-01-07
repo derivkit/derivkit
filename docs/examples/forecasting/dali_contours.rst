@@ -1,5 +1,10 @@
-DALI contours
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| DALI contours
+======================
 
 This page shows how to visualize DALI-expanded posteriors using GetDist,
 starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).

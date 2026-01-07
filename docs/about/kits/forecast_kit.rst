@@ -1,5 +1,9 @@
-ForecastKit
-===========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| ForecastKit
+====================
 
 ForecastKit provides derivative-based tools for local likelihood and posterior
 analysis. It uses numerical derivatives to construct controlled approximations

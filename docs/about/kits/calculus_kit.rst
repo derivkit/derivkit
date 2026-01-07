@@ -1,5 +1,9 @@
-CalculusKit
-===========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| CalculusKit
+====================
 
 DerivKit provides a unified interface for computing gradients, Jacobians,
 Hessians, and higher-order derivative tensors through

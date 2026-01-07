@@ -1,5 +1,10 @@
-Citation
-========
+.. |dklogo| image:: /assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Citation
+=================
 
 If you use DerivKit in your work, please cite it.
 

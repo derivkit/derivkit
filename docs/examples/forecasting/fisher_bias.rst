@@ -1,5 +1,10 @@
-Fisher bias
-===========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Fisher bias
+====================
 
 This section shows how to map a systematic-induced shift in the data vector
 into a parameter shift using :class:`derivkit.forecast_kit.ForecastKit`.

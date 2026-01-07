@@ -1,5 +1,10 @@
-Fisher contours
-===============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Fisher contours
+========================
 
 This page shows how to visualize Fisher-matrix forecasts using GetDist,
 starting from a Fisher matrix computed with
