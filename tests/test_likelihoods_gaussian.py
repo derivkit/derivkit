@@ -52,7 +52,7 @@ def test_gaussian_likelihood_accepts_scalar_diag_full_cov():
     assert np.isfinite(pdf).all()
 
 def test_gaussian_likelihood_nonfinite_raises():
-    """Tests that non-finite inputs in Gaussian likelihood raise ValueError."""
+    """Tests that non-finite inputs in Gaussian likelihoods raise ValueError."""
     data = np.array([[0.0, 1.0]])
     mu = np.array([0.0])
 
@@ -159,7 +159,7 @@ def test_gaussian_likelihood_output_types():
   ]
 )
 class TestGaussOutput:
-    """A container for Gaussian likelihood output tests.
+    """A container for Gaussian likelihoods output tests.
 
     All tests in this class have access to the same parameters.
     """

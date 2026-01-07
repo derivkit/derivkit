@@ -1,8 +1,12 @@
 .. _contributing:
 
-############
-Contributing
-############
+.. |dklogo| image:: /assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Contributing
+=====================
 
 Contributions in any shape or form are appreciated.
 Below are some minimal guidelines to get started.

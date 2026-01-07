@@ -1,4 +1,4 @@
-"""Tests for the LikelihoodKit high-level likelihood interface."""
+"""Tests for the LikelihoodKit high-level likelihoods interface."""
 
 import numpy as np
 import numpy.testing as npt

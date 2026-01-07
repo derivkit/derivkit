@@ -1,5 +1,10 @@
-Laplace approximation
-=====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Laplace approximation
+==============================
 
 This section shows how to construct a Laplace approximation to a posterior using
 :func:`derivkit.forecasting.laplace.laplace_approximation`.
@@ -11,8 +16,9 @@ It is defined by:
 - a Hessian ``hessian`` of the negative log-posterior at ``theta_map``
 - a covariance ``cov`` given by the inverse Hessian (up to numerical regularization)
 
-For a conceptual overview of the Laplace approximation and its interpretation, see
-:doc:`../../guide/forecasting`.
+
+For a conceptual overview of the Laplace approximation, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 If you want to generate parameter samples or visualize confidence contours from the
 Laplace approximation, see the example :doc:`laplace_contours`, which shows how to

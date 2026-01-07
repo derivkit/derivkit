@@ -12,7 +12,7 @@ The target log-posterior is evaluated with
 :func:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
 user-defined priors and parameter support bounds.
 
-Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihood)``.
+Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihoods)``.
 """
 
 from __future__ import annotations
@@ -157,7 +157,7 @@ def dali_to_getdist_importance(
 
     Returns:
         :class:`getdist.MCSamples` containing the importance ``weights``.
-        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihoods x prior)``
         up to an additive constant, consistent with GetDist's convention.
 
     Raises:
@@ -318,7 +318,7 @@ def dali_to_getdist_emcee(
 
     Returns:
         :class:`getdist.MCSamples` containing MCMC chains.
-        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihood x prior)``
+        :attr:`getdist.MCSamples.loglikes` stores ``-log(posterior) (likelihoods x prior)``
         up to an additive constant, consistent with GetDist's convention.
 
     Raises:

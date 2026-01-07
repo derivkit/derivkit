@@ -1,5 +1,10 @@
-DALI contours
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| DALI contours
+======================
 
 This page shows how to visualize DALI-expanded posteriors using GetDist,
 starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).
@@ -11,7 +16,7 @@ All posterior quantities shown here refer to the DALI-expanded approximation.
 
 If you are looking for:
 
-- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecasting`
+- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecast_kit`
 - how to compute DALI tensors with DerivKit, see :doc:`dali`
 
 Two workflows are supported:
@@ -20,6 +25,9 @@ Two workflows are supported:
 - fast importance sampling using a Fisher–Gaussian proposal
 
 Both workflows return a :class:`getdist.MCSamples` object.
+
+For a conceptual overview of DALI forecasting, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 
 Sampling the DALI posterior with emcee
@@ -570,7 +578,7 @@ Typical workflow
 ----------------
 
 1. Compute Fisher ``F`` and higher-order tensors ``(G, H)`` with :class:`ForecastKit`.
-2. Use importance sampling`` for fast visualization and iteration.
+2. Use importance sampling for fast visualization and iteration.
 3. Switch to ``emcee`` when robustness is required or strong non-Gaussianity
    leads to unstable importance weights.
 4. Visualize and compare results using GetDist triangle plots.

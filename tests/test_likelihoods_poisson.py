@@ -128,7 +128,7 @@ import derivkit.likelihoods.poisson as poiss
   ]
 )
 class  TestPoissonOutput:
-    """A container for Poissonian likelihood tests.
+    """A container for Poissonian likelihoods tests.
 
     All methods in this class have access to the same pytest parameters.
     """

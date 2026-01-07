@@ -1,33 +1,36 @@
-Hyper-Hessian
-=============
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Hyper-Hessian
+======================
 
 This section shows how to compute the hyper-Hessian (third-derivative tensor)
-using DerivKit.
+of a function using DerivKit.
 
-The hyper-Hessian generalizes the Hessian to third order. For a function
-``f(theta)``, it contains all third-order partial derivatives evaluated at a
-single point in parameter space.
+The hyper-Hessian generalizes the Hessian to third order. For a set of
+parameters :math:`\theta` and a function :math:`f(\theta)`, it contains all
+third-order partial derivatives evaluated at a single point in parameter space.
 
-Notation
---------
+**Notation**
 
 - ``p`` denotes the number of model parameters (``theta`` has shape ``(p,)``).
 
-Depending on the output type of ``f(theta)``, the hyper-Hessian has the
-following shape:
+If ``f(theta)`` returns a scalar and ``theta`` has shape ``(p,)``, the hyper-Hessian
+has shape ``(p, p, p)``.
 
-- scalar output ``f(theta)``: hyper-Hessian shape ``(p, p, p)``
-- tensor output ``f(theta)`` with shape ``out_shape``: hyper-Hessian shape
-  ``(*out_shape, p, p, p)``
+If ``f(theta)`` returns an array with shape ``out_shape``, the hyper-Hessian has
+shape ``(*out_shape, p, p, p)`` and is computed independently for each output
+component.
+
+See also :doc:`gradient`, :doc:`jacobian`, and :doc:`hessian`.
+For more information on higher-order derivatives, see :doc:`../../about/kits/calculus_kit`.
 
 The primary low-level interface for computing the hyper-Hessian is
 :func:`derivkit.calculus.hyper_hessian.build_hyper_hessian`.
-
-For advanced usage and backend-specific keyword arguments, you can choose the
-derivative backend via ``method`` and pass backend-specific options via
-``**dk_kwargs`` (forwarded to :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`).
-
-See also :doc:`gradient`, :doc:`jacobian`, and :doc:`hessian`.
+You can choose the derivative backend via ``method`` and pass backend-specific
+options via ``**dk_kwargs`` (forwarded to
+:meth:`derivkit.derivative_kit.DerivativeKit.differentiate`).
 
 
 Basic usage

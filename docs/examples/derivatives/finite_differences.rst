@@ -1,5 +1,9 @@
-Finite differences
-==================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Finite differences
+===========================
 
 This section shows how to compute derivatives using the finite-difference
 backend in DerivKit.
@@ -13,6 +17,9 @@ This backend is typically **fast and effective for smooth, noise-free
 functions** that are inexpensive to evaluate. Because finite differences rely
 on explicit step sizes, their accuracy can degrade for noisy functions or poorly
 scaled problems.
+
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
 
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.

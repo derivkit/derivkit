@@ -34,7 +34,7 @@ def build_gaussian_fisher_matrix(
 ) -> NDArray[np.float64]:
     """Computes the Gaussian Fisher matrix.
 
-    This implements the standard Fisher matrix for a Gaussian likelihood with
+    This implements the standard Fisher matrix for a Gaussian likelihoods with
     parameter-dependent mean and covariance (see e.g. Eq. (2) of arXiv:1404.2854).
 
     For Gaussian-distributed data ``d`` with mean ``mu(theta)`` and covariance ``C(theta)``,

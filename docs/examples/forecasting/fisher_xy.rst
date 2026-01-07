@@ -1,11 +1,43 @@
-X–Y Gaussian Fisher matrix
-==========================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| X–Y Gaussian Fisher matrix
+===================================
 
 This section shows how to compute a Gaussian Fisher matrix when both the inputs
-and outputs are noisy and may be correlated.
+and outputs of a model are noisy and may be correlated.
+
+The X–Y Gaussian Fisher formalism applies when the observables are naturally
+split into measured inputs :math:`X` and outputs :math:`Y`, each with associated
+measurement uncertainty. Rather than treating the inputs as exact, their
+uncertainties are propagated into an effective covariance for the outputs.
+
+For a model predicting the mean output :math:`\mu_{xy}(x, \theta)` and a joint
+input–output covariance
+
+.. math::
+
+   C =
+   \begin{pmatrix}
+     C_{xx} & C_{xy} \\
+     C_{xy}^{\mathrm T} & C_{yy}
+   \end{pmatrix},
+
+input uncertainty is incorporated through a local linearization of the model
+with respect to the inputs. This yields an effective output covariance
+:math:`R(\theta)`, which replaces :math:`C_{yy}` in the Gaussian likelihood and
+Fisher matrix.
 
 The primary interface for this workflow is
 :func:`derivkit.forecasting.fisher_xy.build_xy_gaussian_fisher_matrix`.
+
+For conceptual background and interpretation, see
+:doc:`../../about/kits/forecast_kit`.
+
+The X–Y Gaussian Fisher is useful when measurement uncertainty in the inputs
+cannot be neglected and must be consistently propagated into parameter
+constraints.
 
 
 A mock example

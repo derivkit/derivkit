@@ -1,6 +1,6 @@
-"""Utilities for evaluating Fisher and DALI likelihood expansions.
+"""Utilities for evaluating Fisher and DALI likelihoods expansions.
 
-This module provides functional helpers to evaluate approximate likelihood
+This module provides functional helpers to evaluate approximate likelihoods
 (or posterior) surfaces from forecast tensors:
 
 - Fisher quadratic approximation (``F``)
@@ -222,7 +222,7 @@ def _resolve_logprior(
     prior_bounds: Sequence[tuple[float | None, float | None]] | None,
     logprior: Callable[[NDArray[np.floating]], float] | None,
 ) -> Callable[[NDArray[np.floating]], float] | None:
-    """Determines which log-prior to use for likelihood expansion evaluation.
+    """Determines which log-prior to use for likelihoods expansion evaluation.
 
     This helper allows callers to specify a prior in one of two ways: either by passing
     a pre-built ``logprior(theta)`` callable directly, or by providing a lightweight
@@ -243,7 +243,7 @@ def _resolve_logprior(
 
     Returns:
         A function that computes the log-prior contribution to the posterior, or
-        ``None`` if the likelihood should be evaluated without a prior.
+        ``None`` if the likelihoods should be evaluated without a prior.
     """
     if logprior is not None and (prior_terms is not None or prior_bounds is not None):
         raise ValueError("Use either `logprior` or (`prior_terms`/`prior_bounds`), not both.")
@@ -269,7 +269,7 @@ def logposterior_fisher(
     This corresponds to an overall multiplicative normalization of the posterior
     density in probability space.
 
-    If no prior is provided, this returns the Fisher log-likelihood expansion
+    If no prior is provided, this returns the Fisher log-likelihoods expansion
     with a flat prior and no hard cutoffs.
 
     The Fisher approximation corresponds to a purely quadratic ``delta_chi2`` surface::
@@ -282,12 +282,12 @@ def logposterior_fisher(
 
     This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI.
     In this interpretation, fixed ``delta_chi2`` values correspond to fixed probability content
-    (e.g. 68%, 95%) in parameter space, as for a Gaussian likelihood.
+    (e.g. 68%, 95%) in parameter space, as for a Gaussian likelihoods.
     See :func:`derivkit.forecasting.expansions.delta_chi2_dali` for the corresponding
     DALI definition of ``delta_chi2`` and its supported conventions.
 
     Unlike the DALI case, there is no alternative normalization for the Fisher
-    approximation: the likelihood is strictly Gaussian and fully described by the
+    approximation: the likelihoods is strictly Gaussian and fully described by the
     quadratic form.
 
     Args:
@@ -417,7 +417,7 @@ def logposterior_dali(
 ) -> float:
     """Computes the log posterior (up to a constant) under the DALI approximation.
 
-    If no prior is provided, this returns the DALI log-likelihood expansion with
+    If no prior is provided, this returns the DALI log-likelihoods expansion with
     a flat prior and no hard cutoffs.
 
     Args:

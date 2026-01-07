@@ -1,5 +1,10 @@
-Tabulated derivatives
-=====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Tabulated derivatives
+==============================
 
 This section shows how to compute derivatives using
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate` when your model is
@@ -13,6 +18,9 @@ interpolant.
 This is useful when working with simulation outputs, precomputed theory
 tables, or externally generated data products where the underlying function
 cannot be evaluated analytically.
+
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
 
 
 Basic usage

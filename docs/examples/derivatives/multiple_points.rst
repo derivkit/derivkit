@@ -1,5 +1,9 @@
-Derivatives at multiple points
-==============================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Derivatives at multiple points
+=======================================
 
 You can evaluate derivatives at multiple expansion points by passing an array
 to ``x0``. DerivKit computes the derivative independently at each point and

@@ -1,5 +1,10 @@
-Fisher bias
-===========
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Fisher bias
+====================
 
 This section shows how to map a systematic-induced shift in the data vector
 into a parameter shift using :class:`derivkit.forecast_kit.ForecastKit`.
@@ -15,8 +20,8 @@ and returns:
 - the corresponding first-order parameter shift
   :math:`\Delta \theta_a`.
 
-For a conceptual overview of Fisher bias and its interpretation, see
-:doc:`../../guide/forecasting`.
+For a conceptual overview of Fisher bias, its interpretation, and
+other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
 
 
 Compute ``delta_nu``
@@ -258,7 +263,7 @@ Notes
 - ``delta_nu`` corresponds to the difference data vector
   :math:`\Delta \nu = \nu^{\mathrm{biased}} - \nu^{\mathrm{unbiased}}`,
   evaluated consistently with the covariance. Notice the convention and sign as
-  the interpretaton of the resluts depend on it.
+  the interpretaton of the results depend on it.
 - The Fisher bias approximation is local: derivatives are evaluated at ``theta0``.
 - The returned ``delta_theta`` is the first-order parameter shift implied by the
   systematic difference vector.

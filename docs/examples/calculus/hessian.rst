@@ -1,5 +1,9 @@
-Hessian
-=======
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Hessian
+================
 
 This section shows how to compute the Hessian (matrix of second derivatives)
 using DerivKit.
@@ -22,13 +26,12 @@ Depending on the output type of ``f(theta)``, the Hessian has the following shap
 
 See also :doc:`gradient` for first derivatives and :doc:`jacobian` for
 vector-valued outputs.
+For more information on hessian, see :doc:`../../about/kits/calculus_kit`.
 
 The primary interface for computing the Hessian is
 :meth:`derivkit.calculus_kit.CalculusKit.hessian`.
-
 For advanced usage and backend-specific keyword arguments, see
 :func:`derivkit.calculus.hessian.build_hessian`.
-
 You can choose the derivative backend via ``method`` and pass backend-specific
 options via ``**dk_kwargs`` (forwarded to
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`).

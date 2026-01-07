@@ -1,5 +1,10 @@
-Gaussian Likelihood
-===================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Gaussian Likelihood
+==============================
 
 This section shows how to evaluate a Gaussian likelihood using
 :class:`derivkit.likelihood_kit.LikelihoodKit`.
@@ -25,8 +30,9 @@ Notation
 
 The primary interface for evaluating the Gaussian likelihood is
 :meth:`derivkit.likelihood_kit.LikelihoodKit.gaussian`.
-
 For advanced usage, see :func:`derivkit.likelihoods.gaussian.build_gaussian_likelihood`.
+
+For a conceptual overview of likelihoods, see :doc:`../../about/kits/likelihood_kit`.
 
 
 Gaussian log-likelihood
@@ -47,7 +53,7 @@ for numerical stability.
    >>> cov = np.array([0.1**2, 0.1**2, 0.1**2])
    >>> # Create LikelihoodKit instance
    >>> lkit = LikelihoodKit(data=data, model_parameters=mu)
-   >>> # Evaluate Gaussian log-likelihood
+   >>> # Evaluate Gaussian log-likelihoods
    >>> grid, loglike = lkit.gaussian(cov=cov)
    >>> print(bool(np.isfinite(loglike)))
    True

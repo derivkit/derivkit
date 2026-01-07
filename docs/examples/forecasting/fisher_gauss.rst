@@ -1,12 +1,41 @@
-Gaussian Fisher matrix
-======================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
 
-This section shows how to compute a Gaussian Fisher matrix for a model with
-parameter-dependent mean and (optionally) parameter-dependent covariance.
+|dklogo| Gaussian Fisher matrix
+===============================
+
+This section shows how to compute a Gaussian Fisher matrix for models with a
+parameter-dependent mean and, optionally, a parameter-dependent covariance.
+
+The Gaussian Fisher generalizes the standard Fisher matrix by including
+contributions from derivatives of the covariance matrix when
+:math:`C(\theta)` depends on the model parameters.
+
+For a model with mean prediction :math:`\mu(\theta)` and covariance
+:math:`C(\theta)`, the Fisher matrix is
+
+.. math::
+
+   F_{\alpha\beta}
+   =
+   \mu_{,\alpha}^{\mathrm T} C^{-1} \mu_{,\beta}
+   +
+   \frac{1}{2}
+   \mathrm{Tr}\!\left[
+     C^{-1} C_{,\alpha} C^{-1} C_{,\beta}
+   \right].
+
+If the covariance is independent of the parameters, the second term vanishes
+and the expression reduces to the standard Fisher matrix.
 
 The primary interface for this workflow is
 :class:`derivkit.forecast_kit.ForecastKit`.
-For conceptual background, see :doc:`../../guide/forecasting`.
+For conceptual background and interpretation, see
+:doc:`../../about/kits/forecast_kit`.
+
+The Gaussian Fisher is useful when noise properties, systematics, or model
+uncertainties depend explicitly on the parameters being forecast.
 
 
 A mock example

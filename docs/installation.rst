@@ -1,5 +1,10 @@
-Installation
-============
+.. |dklogo| image:: /assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+
+|dklogo| Installation
+=====================
 
 DerivKit is currently distributed from source.
 
@@ -10,11 +15,14 @@ DerivKit is currently distributed from source.
    pip install -e .
 
 
+
 Optional dependencies
-=====================
+---------------------
+
 
 JAX autodiff
-------------
+^^^^^^^^^^^^
+
 
 DerivKit includes optional JAX-based autodiff helpers and an opt-in autodiff backend.
 

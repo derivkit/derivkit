@@ -1,5 +1,9 @@
-Local polynomial fit
-====================
+.. |dklogo| image:: ../../assets/logos/logo-black.png
+   :alt: DerivKit logo black
+   :width: 32px
+
+|dklogo| Local polynomial fit
+=============================
 
 This section shows how to compute derivatives using the local polynomial
 backend in DerivKit.
@@ -14,6 +18,9 @@ differences**, particularly when function evaluations are mildly noisy or when
 step-size tuning becomes fragile. Unlike the adaptive Chebyshev backend, the
 local polynomial method does not attempt to optimize the sampling grid or
 conditioning automatically, making it lightweight and predictable.
+
+For more information on this and other implemented derivative methods,
+see :doc:`../../about/kits/derivative_kit`.
 
 The primary interface for this backend is
 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
