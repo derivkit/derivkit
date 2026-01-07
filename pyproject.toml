@@ -92,8 +92,8 @@ convention = "google"
 requires = ["tox>=4.22"]
 labels = { test = ["py310", "py311", "py312", "py313"] }
 envlist = [
-  "docs",
   "do",
+  "docs",
   "docs-releases",
   "lint",
   "py310",
