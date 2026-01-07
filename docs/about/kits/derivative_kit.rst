@@ -53,7 +53,7 @@ at the cost of more function evaluations.
 **Use when**:
 
 - The function is smooth and cheap to evaluate
-- Noise is low or moderate
+- Noise is low or absent
 - You want fast derivatives with minimal overhead
 
 
@@ -126,9 +126,9 @@ Adaptive Polynomial Fit
 
 **How it works:**
 
-Build a Chebyshev-spaced grid around ``x0`` (optionally domain-aware), rescale
-offsets to a stable interval, and fit a local polynomial with optional ridge
-regularisation. The method can enlarge the grid if there are too few samples,
+Build a Chebyshev-spaced grid around ``x0``, rescale offsets to a stable interval,
+and fit a local polynomial with optional ridge regularisation.
+The method can enlarge the grid if there are too few samples,
 adjust the effective polynomial degree, and reports detailed diagnostics
 [#fornberg]_.
 
