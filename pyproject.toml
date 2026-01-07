@@ -148,7 +148,7 @@ commands = [
 # Local convenience: same as docs, plus open HTML index (cross-platform).
 description = "(Mac only) Build and test docs and open docs in browser"
 extras = ["docs"]
-allowlist_externals = ["python"]
+allowlist_externals = ["open"]
 commands = [
   [
     "sphinx-apidoc",
@@ -179,10 +179,8 @@ commands = [
 
 
 [tool.tox.env.docs-releases]
-# Release docs build; redirect copied in Python for portability.
 description = "Build the documentation for derivkit releases using Sphinx"
 extras = ["docs"]
-allowlist_externals = ["python"]
 commands = [
   [
     "sphinx-apidoc",
@@ -208,5 +206,10 @@ commands = [
 description = "Lint derivkit using Ruff"
 extras = ["lint"]
 commands = [
-  ["ruff", "check", "--fix", { replace = "posargs", extend = true }],
+  [
+    "ruff",
+    "check",
+    "--fix",
+    { replace = "posargs", extend = true }
+  ],
 ]
