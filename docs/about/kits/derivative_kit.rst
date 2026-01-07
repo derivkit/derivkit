@@ -296,7 +296,7 @@ and does not extend to noisy, interpolated, or externally evaluated functions.
 In most scientific workflows targeted by DerivKit, the adaptive polynomial fit
 or finite-difference methods above are more appropriate.
 
-Installation details are described in :doc:`installation`.
+Installation details for the JAX module are described in :doc:`../../installation`.
 We do not recommend JAX for production use within DerivKit at this time.
 
 

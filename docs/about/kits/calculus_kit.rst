@@ -51,7 +51,7 @@ derivatives.
 
 
 **Examples:**
-A basic gradient computation is shown in :doc:`../examples/calculus/gradient`.
+A basic gradient computation is shown in :doc:`../../examples/calculus/gradient`.
 
 
 Jacobian
@@ -87,7 +87,7 @@ derivative engines as scalar gradients.
 
 
 **Examples:**
-A basic Jacobian computation is shown in :doc:`../examples/calculus/jacobian`.
+A basic Jacobian computation is shown in :doc:`../../examples/calculus/jacobian`.
 
 Hessian
 -------
@@ -117,7 +117,7 @@ All second-order derivatives rely on the same derivative backend selected in
 
 
 **Examples:**
-A basic Hessian computation is shown in :doc:`../examples/calculus/hessian`.
+A basic Hessian computation is shown in :doc:`../../examples/calculus/hessian`.
 
 Hyper-Hessian
 -------------
@@ -160,4 +160,4 @@ References
 ----------
 
 For numerical differentiation methods and stability considerations, see the
-references listed in the :doc:`derivative_methods` documentation page.
+references listed in the :doc:`../../examples/derivatives/index` documentation page.
