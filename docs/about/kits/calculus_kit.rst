@@ -1,5 +1,5 @@
-Calculus methods
-================
+CalculusKit
+===========
 
 DerivKit provides a unified interface for computing gradients, Jacobians,
 Hessians, and higher-order derivative tensors through
@@ -15,13 +15,13 @@ by :class:`DerivativeKit` (finite differences, polynomial fits, adaptive fits,
 tabulated functions, etc.) can be used transparently to compute gradients and
 higher-order tensors.
 
-Runnable examples are collected in :doc:`../examples/index`.
+Runnable examples are collected in :doc:`../../examples/index`.
 
 
 Gradient
 --------
 
-**What it is**
+**What it is:**
 
 The gradient is the vector of first derivatives of a scalar-valued function
 with respect to its parameters,
@@ -34,7 +34,7 @@ with respect to its parameters,
 It describes the local linear sensitivity of the function and defines the
 direction of steepest ascent or descent.
 
-**How it is computed**
+**How it is computed:**
 
 Each component of the gradient is computed as a first-order derivative with
 respect to one parameter, holding all others fixed. Internally,
@@ -53,7 +53,7 @@ A basic gradient computation is shown in :doc:`../examples/calculus/gradient`.
 Jacobian
 --------
 
-**What it is**
+**What it is:**
 
 The Jacobian generalizes the gradient to vector-valued functions. For a function
 mapping an input vector to an output vector,
@@ -71,7 +71,7 @@ the Jacobian describes the local linear map between input and output,
 It encodes how each output component responds to small changes in each input
 parameter.
 
-**How it is computed**
+**How it is computed:**
 
 The Jacobian is assembled by computing gradients of each output component with
 respect to the input parameters. :class:`CalculusKit` handles the bookkeeping
@@ -88,7 +88,7 @@ A basic Jacobian computation is shown in :doc:`../examples/calculus/jacobian`.
 Hessian
 -------
 
-**What it is**
+**What it is:**
 
 The Hessian is the matrix of second derivatives of a scalar-valued function,
 
@@ -102,7 +102,7 @@ approximations of likelihoods and posteriors.
 In many inference applications, the Hessian of the negative log-likelihood
 evaluated at its minimum defines the observed Fisher information matrix.
 
-**How it is computed**
+**How it is computed:**
 
 Second derivatives are computed by applying numerical differentiation twice,
 either directly or through nested derivative evaluations. :class:`CalculusKit`
@@ -118,7 +118,7 @@ A basic Hessian computation is shown in :doc:`../examples/calculus/hessian`.
 Hyper-Hessian
 -------------
 
-**What it is**
+**What it is:**
 
 The hyper-Hessian refers to third- and higher-order derivative tensors
 (often called higher-order Hessians or hyper-Hessians) of a scalar-valued function.
@@ -128,7 +128,7 @@ behaviour and capture local non-Gaussian structure.
 Such higher-order derivatives are required for systematic likelihood expansions
 beyond the Fisher or Laplace approximation, most notably in DALI-based methods.
 
-**How it is computed**
+**How it is computed:**
 
 Higher-order tensors are built by recursively applying numerical differentiation
 to lower-order derivatives. :class:`CalculusKit` manages the tensor structure and

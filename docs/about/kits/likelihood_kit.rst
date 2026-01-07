@@ -6,6 +6,9 @@ standard likelihoods in forecasting and inference workflows.
 They are designed to work naturally with ForecastKit but can be used
 independently in any context.
 
+Runnable examples illustrating these methods are collected in
+:doc:`../../examples/index`.
+
 
 Gaussian Likelihood
 -------------------

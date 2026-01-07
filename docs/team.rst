@@ -8,36 +8,57 @@ Team
 
 .. role:: name-red
    :class: name-red
+
 .. role:: role-blue
    :class: role-blue
 
-
 **DerivKit** is developed and maintained by a small team of researchers.
 
+----
+
 Core Team
-----------
+---------
 
-* :name-red:`Niko Šarčević`
+.. grid:: 2
+   :gutter: 2
 
-  - :role-blue:`Project Lead`
-  - **Affiliation:** Duke University (USA)
-  - **Focus:** Cosmological inference, systematics modeling, combined probes
-  - **Links:** `Website <https://nikosarcevic.com>`__ · `GitHub <https://github.com/nikosarcevic>`__ · `ORCID <https://orcid.org/0000-0001-7301-6415>`__
+   .. grid-item-card:: :name-red:`Niko Šarčević`
 
-* :name-red:`Matthijs van der Wild`
+      :role-blue:`Project Lead`
 
-  - :role-blue:`Co-maintainer (Lead developer)`
-  - **Affiliation:** Durham University (UK)
-  - **Focus:** LOFAR pipelines, theoretical physics, scientific software architecture
-  - **Links:** `Website <https://matthijs.vanderwild.com>`__ · `GitHub <https://github.com/lonbar>`__ · `ORCID <https://orcid.org/0000-0002-3949-3063>`__
+      **Affiliation:** Duke University (USA)
 
-* :name-red:`Cynthia Trendafilova`
+      **Focus:** Cosmological inference, systematics modeling, combined probes
 
-  - :role-blue:`Co-maintainer`
-  - **Affiliation:** NCSA, University of Illinois Urbana-Champaign (USA)
-  - **Focus:** CMB science, BSM physics, data-driven cosmology
-  - **Links:** `Website <https://caps.ncsa.illinois.edu/about-cynthia-trendafilova/>`__ · `GitHub <https://github.com/ctrendafilova>`__ · `ORCID <https://orcid.org/0000-0001-5500-4058>`__
+      **Links:** `Website <https://nikosarcevic.com>`__ ·
+      `GitHub <https://github.com/nikosarcevic>`__ ·
+      `ORCID <https://orcid.org/0000-0001-7301-6415>`__
+
+   .. grid-item-card:: :name-red:`Matthijs van der Wild`
+
+      :role-blue:`Co-maintainer (Lead developer)`
+
+      **Affiliation:** Durham University (UK)
+
+      **Focus:** LOFAR pipelines, theoretical physics, scientific software architecture
+
+      **Links:** `Website <https://matthijs.vanderwild.com>`__ ·
+      `GitHub <https://github.com/lonbar>`__ ·
+      `ORCID <https://orcid.org/0000-0002-3949-3063>`__
+
+   .. grid-item-card:: :name-red:`Cynthia Trendafilova`
+
+      :role-blue:`Co-maintainer`
+
+      **Affiliation:** NCSA, University of Illinois Urbana-Champaign (USA)
+
+      **Focus:** CMB science, BSM physics, data-driven cosmology
+
+      **Links:** `Website <https://caps.ncsa.illinois.edu/about-cynthia-trendafilova/>`__ ·
+      `GitHub <https://github.com/ctrendafilova>`__ ·
+      `ORCID <https://orcid.org/0000-0001-5500-4058>`__
 
 Contributors
 ------------
+
 See the `full list on GitHub <https://github.com/derivkit/derivkit/graphs/contributors>`__.

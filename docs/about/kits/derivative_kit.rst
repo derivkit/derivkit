@@ -5,7 +5,7 @@ DerivKit implements several complementary derivative engines. Each has different
 strengths depending on smoothness, noise level, and computational cost.
 
 This page gives an overview of the main methods featured in ``DerivativeKit``,
-how they work, and when to use which one.
+how they work, and when to use each one.
 
 All methods are accessed through the same DerivativeKit interface and can be swapped
 without changing downstream code.
@@ -47,7 +47,7 @@ at the cost of more function evaluations.
 - 3, 5, 7, 9-point central stencils
 - Richardson extrapolation [#richardsonwiki]_ (reduces truncation error)
 - Ridders extrapolation [#ridderswiki]_ (adaptive error control)
-- Gauss–Richardson (GRE) [#gre]_ (noise-robust variant)
+- Gauss–Richardson extrapolation (GRE) [#gre]_ (noise-robust variant)
 
 
 **Use when**:
@@ -118,7 +118,7 @@ where ``a_1`` is the fitted linear coefficient of the polynomial.
 **Examples:**
 
 A basic polyfit example is shown in
-:doc:`../examples/derivatives/local_poly`.
+:doc:`../../examples/derivatives/local_poly`.
 
 
 Adaptive Polynomial Fit
@@ -172,7 +172,7 @@ robust and smooth estimate.
 
 - Scales offsets before fitting to reduce conditioning
 - Optional ridge term to stabilise ill-conditioned Vandermonde systems
-- Checks fit quality and flags “obviously bad” derivatives with suggestions
+- Checks fit quality and flags “obviously bad” derivatives with suggestions for improvement
 - Optional diagnostics dictionary with sampled points, fit metrics, and metadata
 
 
@@ -187,13 +187,13 @@ robust and smooth estimate.
 
 - The function is extremely smooth and cheap to evaluate
 - Minimal overhead is a priority
-- You want a fully adaptive, robust method
+- You want a minimal-overhead solution for very smooth functions
 
 
 **Examples:**
 
 A basic adaptive polyfit example is shown in
-:doc:`../examples/derivatives/adaptive_fit`.
+:doc:`../../examples/derivatives/adaptive_fit`.
 
 
 Tabulated Functions
@@ -235,7 +235,7 @@ interface compatible with all derivative methods.
 
 **Examples:**
 
-See :doc:`../examples/derivatives/tabulated_functions` for a basic example using
+See :doc:`../../examples/derivatives/tabulated` for a basic example using
 tabulated data.
 
 
@@ -244,30 +244,48 @@ JAX Autodiff
 
 **How it works:**
 
-Use JAX’s automatic differentiation to compute exact derivatives of
-Python-defined functions that are compatible with ``jax.numpy``.
+JAX provides automatic differentiation for Python functions written using
+``jax.numpy``. Instead of estimating derivatives numerically, autodiff propagates
+derivatives analytically through the computational graph, yielding exact
+derivatives up to machine precision.
 
-This functionality is exposed for convenience and experimentation and is
-*not* registered as a standard DerivKit derivative method by default.
+This avoids step-size choices, local sampling, and numerical differencing.
+However, this does not imply that autodiff is universally superior. A common
+misconception is that autodiff always yields a “perfect” derivative: in practice,
+it differentiates the implemented computation, which may already include
+approximations, interpolation, or numerical artifacts. As a result, autodiff can
+produce an exact derivative of an effective function that differs from the intended
+underlying model.
+
+Its applicability is therefore limited to fully JAX-compatible, analytic models
+and does not extend to noisy, interpolated, or externally evaluated functions.
 
 
 **DerivKit implementation:**
 
-- Exact derivatives via reverse- and forward-mode autodiff
-- No step-size tuning or numerical differencing
-- Useful for quick sanity checks against numerical methods
+- Exposed as an optional reference backend and not registered as a standard
+  ``DerivativeKit`` method
+- Intended primarily for sanity checks and validation
+- Not a core focus of DerivKit, which targets workflows where models are:
+
+  - noisy
+  - tabulated
+  - interpolated
+  - externally evaluated
+  - incompatible with automatic differentiation
 
 
 **Use when:**
 
 - The function is analytic and fully JAX-compatible
-- You want an exact reference derivative for validation
-- You are experimenting or debugging numerical methods
+- You want an exact reference derivative for comparison
+- You are prototyping or testing derivative workflows
 
 
 **Avoid when:**
 
-- The function is noisy, tabulated, or a black box
+- The function is noisy, tabulated, interpolated, or provided by an external
+  numerical code (e.g. Boltzmann solvers or emulators in cosmology)
 - You need production robustness or broad applicability
 - JAX compatibility cannot be guaranteed
 

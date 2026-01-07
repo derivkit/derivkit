@@ -13,6 +13,9 @@ local approximations.
 All methods rely on DerivativeKit for numerical differentiation and work with
 arbitrary user-defined models.
 
+Runnable examples illustrating these methods are collected in
+:doc:`../../examples/index`.
+
 
 Fisher Information Matrix
 -------------------------
@@ -156,11 +159,11 @@ with the replacement :math:`C \rightarrow R`:
    R^{-1}
    \mu_{,\beta}.
 
+
 **Interpretation:**
 The X–Y Fisher matrix consistently propagates uncertainty in the measured
 inputs into the output covariance, enabling Fisher forecasts when both inputs
 and outputs are noisy.
-
 
 
 Fisher Bias

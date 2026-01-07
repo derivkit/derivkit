@@ -4,12 +4,23 @@ Workflows
 Common workflows / FAQ
 ----------------------
 
-This page helps you decide **which DerivKit tool to use** based on your problem.
+This page helps you decide **which DerivKit tool to use** based on your scientific use case.
 Each section starts from a concrete question and points you to the appropriate
 workflow and examples.
 
-If you already know exactly what you want, you can skip this page and go
-directly to the relevant section (Fisher, DALI, Laplace, etc.).
+It is intended as a **decision guide**, not a full tutorial.
+
+DerivKit does **not** construct data covariances or define scientific models.
+Users are expected to provide:
+
+- their own model mapping parameters to observables
+- their own data covariance (or a function returning one)
+
+DerivKit focuses on derivative evaluation, local likelihood approximations,
+and fast forecasting utilities built on top of these inputs.
+
+If you are looking for short answers to common questions, you can jump directly
+to the :ref:`workflows-faq` section below.
 
 
 I want Fisher constraints on my parameters
@@ -39,6 +50,7 @@ See :doc:`examples/forecasting/fisher` and :doc:`examples/forecasting/fisher_con
 **Notes**
 
 - This assumes the posterior is approximately Gaussian near ``theta0``.
+- If this assumption fails, consider using DALI instead.
 - Parameter-dependent covariances are handled automatically.
 
 
@@ -253,33 +265,143 @@ I want Fisher bias / parameter shifts
 See :doc:`examples/forecasting/fisher_bias`
 
 
+I have many parameters and derivative evaluation is expensive
+-------------------------------------------------------------
+
+**You have**
+
+- a model with many parameters
+- expensive function evaluations
+- concerns about runtime or scaling
+
+**We compute**
+
+- derivatives using parallel execution
+- Jacobians and higher-order tensors efficiently
+
+**Use**
+
+- :class:`DerivativeKit` with ``n_workers``
+- :class:`ForecastKit` parallel derivative evaluation
+
+**Notes**
+
+- DerivKit parallelizes derivative evaluations across parameters and outputs.
+- This is especially useful for large Fisher or DALI expansions.
+
+
+I want to compare Fisher and DALI forecasts
+-------------------------------------------
+
+**You have**
+
+- a Fisher forecast
+- a DALI expansion for the same model
+
+**We compute**
+
+- approximate posterior samples from both
+- directly comparable contours and summaries
+
+**Use**
+
+- :class:`ForecastKit.fisher`
+- :class:`ForecastKit.dali`
+- GetDist-based visualization utilities
+
+**Notes**
+
+- This is useful for diagnosing non-Gaussianity.
+- Differences indicate where Fisher assumptions break down.
+
+
+.. _workflows-faq:
+
 FAQ / Frequently asked questions
 --------------------------------
 
 **Why does Fisher underestimate my errors?**
+
 Because it assumes the posterior is locally Gaussian. Strong curvature or
 parameter degeneracies require higher-order (DALI) terms.
 
+
 **Why is the Laplace mean equal to my expansion point?**
+
 The Laplace approximation expands around the MAP by construction. It does not
 estimate a shifted mean.
 
+
 **When should I use DALI instead of Fisher?**
+
 When the posterior is visibly non-Gaussian or when Fisher forecasts are known
 to be biased.
 
+
+**How do I choose the DALI expansion order?**
+
+The appropriate expansion order depends on the degree of non-Gaussianity in the
+posterior. Order 2 corresponds to the Fisher approximation, while higher orders
+capture increasing levels of skewness and curvature. In practice, comparing
+results across orders can help diagnose when Fisher assumptions break down.
+
+
 **Why are priors not included automatically?**
+
 DerivKit separates likelihood information from prior assumptions by design.
 This keeps approximations explicit and easier to reason about.
 
+
 **Can I use DerivKit with MCMC samplers?**
+
 Yes. DerivKit likelihoods and priors can be used with any sampler that accepts
-log-posterior functions.
+log-posterior functions. We provide examples using ``emcee`` and importance
+sampling, but DerivKit is sampler-agnostic and can be integrated with other
+sampling frameworks by implementing a thin wrapper around the log-posterior API.
+
+
+**Does DerivKit assume Gaussian likelihoods?**
+
+No. Fisher and Laplace methods make local Gaussian approximations, while DALI
+systematically captures non-Gaussian structure through higher-order terms.
+
+
+**Where do my model and covariance come from?**
+
+DerivKit is agnostic to how models and covariances are constructed. Users are
+expected to supply these based on their scientific application, while DerivKit
+provides derivative evaluation and inference utilities built on top of them.
+
+
+**Can I use my own likelihood with DerivKit?**
+
+Yes. DerivKit is agnostic to how likelihoods are defined. Users can supply their
+own likelihood or log-posterior functions, which DerivKit treats as external
+inputs for derivative evaluation, local approximations, and sampling.
+
+
+**Can I use DerivKit within an existing inference pipeline?**
+
+Yes. DerivKit is designed to integrate with externally defined models,
+likelihoods, and covariances, and can be used alongside other inference or
+sampling frameworks.
+
+
+**Are derivatives computed analytically or numerically?**
+
+DerivKit computes derivatives numerically using robust finite-difference and
+polynomial-based methods. Optional automatic differentiation backends may be
+used for validation, but numerical methods are the default and primary focus.
+
 
 **Where can I find more examples?**
+
 See the :doc:`examples/index` section of the documentation.
 Additional extended demos are available at
 https://github.com/derivkit/derivkit-demos
 
+
 **Who do I contact for support?**
+
 Please open an issue on the DerivKit GitHub repository.
+Go to :doc:`contributing` for contribution guidelines and support options.

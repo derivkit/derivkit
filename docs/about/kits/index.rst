@@ -12,6 +12,12 @@ evaluation, calculus operations, forecasting, or likelihood-based inference.
 The focus here is on *what each kit is responsible for* and *how the kits are
 intended to be combined*, rather than on step-by-step usage examples.
 
+Examples demonstrating how to use each kit can be found in the
+:doc:`../../examples/index` section, while more detailed and in-depth demos
+are available in the
+`DerivKit demos repository <https://github.com/derivkit/derivkit-demos>`_.
+
+
 ----
 
 .. grid:: 2
