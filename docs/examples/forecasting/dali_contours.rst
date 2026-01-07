@@ -16,7 +16,7 @@ All posterior quantities shown here refer to the DALI-expanded approximation.
 
 If you are looking for:
 
-- how DALI tensors are defined and interpreted, see :doc:`../../guide/forecast_kit`
+- how DALI tensors are defined and interpreted, see :doc:`../../about/kits/forecast_kit`
 - how to compute DALI tensors with DerivKit, see :doc:`dali`
 
 Two workflows are supported:
