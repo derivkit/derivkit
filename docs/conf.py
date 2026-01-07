@@ -31,8 +31,9 @@ copyright = "2025, Nikolina Šarčević, Matthijs van der Wild, Cynthia Trendafi
 author = "Nikolina Šarčević et al."
 
 # -----------------------------------------------------------------------------
-# General configuration
-# -----------------------------------------------------------------------------
+# -- General configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
 html_favicon = "assets/favicon.png"
 
 extensions = [
