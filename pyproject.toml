@@ -118,8 +118,7 @@ PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
 
 [tool.tox.env.docs]
-# Build docs for CI: doctest + html (API doctests excluded via docs/conf.py).
-description = "Build docs with Sphinx; doctest runs on docs/ (API pages excluded)"
+description = "Build docs with Sphinx and doctest"
 extras = ["docs"]
 commands = [
   ["sphinx-apidoc", "-o", "{tox_root}/docs", "{tox_root}/src/derivkit", "--separate", "-f"],
