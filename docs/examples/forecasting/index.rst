@@ -58,6 +58,18 @@ For end-to-end workflows and larger examples, see the
 
       Visualize Laplace-approximated posteriors with GetDist.
 
+   .. grid-item-card:: Gaussian Fisher
+      :link: fisher_gauss
+      :link-type: doc
+
+      Fisher matrix including parameter-dependent covariance.
+
+   .. grid-item-card:: X–Y Gaussian Fisher
+      :link: fisher_xy
+      :link-type: doc
+
+      Fisher forecasts with uncertainty in both inputs and outputs.
+
 .. toctree::
    :maxdepth: 2
    :hidden:

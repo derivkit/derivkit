@@ -6,7 +6,7 @@ parameter-dependent mean and (optionally) parameter-dependent covariance.
 
 The primary interface for this workflow is
 :class:`derivkit.forecast_kit.ForecastKit`.
-For conceptual background, see :doc:`../../guide/forecasting`.
+For conceptual background, see :doc:`../../about/kits/forecast_kit`.
 
 
 A mock example

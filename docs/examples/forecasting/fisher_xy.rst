@@ -7,6 +7,8 @@ and outputs are noisy and may be correlated.
 The primary interface for this workflow is
 :func:`derivkit.forecasting.fisher_xy.build_xy_gaussian_fisher_matrix`.
 
+For conceptual background on X-Y Fisher matrix, see :doc:`../../about/kits/forecast_kit`.
+
 
 A mock example
 --------------

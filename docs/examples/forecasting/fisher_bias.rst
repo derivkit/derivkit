@@ -263,7 +263,7 @@ Notes
 - ``delta_nu`` corresponds to the difference data vector
   :math:`\Delta \nu = \nu^{\mathrm{biased}} - \nu^{\mathrm{unbiased}}`,
   evaluated consistently with the covariance. Notice the convention and sign as
-  the interpretaton of the resluts depend on it.
+  the interpretaton of the results depend on it.
 - The Fisher bias approximation is local: derivatives are evaluated at ``theta0``.
 - The returned ``delta_theta`` is the first-order parameter shift implied by the
   systematic difference vector.
