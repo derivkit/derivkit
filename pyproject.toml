@@ -121,9 +121,27 @@ PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 description = "Build docs with Sphinx and doctest"
 extras = ["docs"]
 commands = [
-  ["sphinx-apidoc", "-o", "{tox_root}/docs", "{tox_root}/src/derivkit", "--separate", "-f"],
-  ["sphinx-build", "-b", "doctest", "{tox_root}/docs", "{tox_root}/docs/_build/doctest", "--fail-on-warning"],
-  ["sphinx-build", "-b", "html", "{tox_root}/docs", "{tox_root}/docs/_build/html", "--fail-on-warning"],
+  [
+    "sphinx-apidoc",
+    "-o", "{tox_root}/docs",
+    "{tox_root}/src/derivkit",
+    "--separate",
+    "-f",
+  ],
+  [
+    "sphinx-build",
+    "-b", "doctest",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/doctest",
+    "--fail-on-warning",
+  ],
+  [
+    "sphinx-build",
+    "-b", "html",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/html",
+    "--fail-on-warning",
+  ],
 ]
 
 
@@ -133,13 +151,30 @@ description = "Build docs (doctest + html) and open local HTML index"
 extras = ["docs"]
 allowlist_externals = ["python"]
 commands = [
-  ["sphinx-apidoc", "-o", "{tox_root}/docs", "{tox_root}/src/derivkit", "--separate", "-f"],
-  ["sphinx-build", "-b", "doctest", "{tox_root}/docs", "{tox_root}/docs/_build/doctest", "--fail-on-warning"],
-  ["sphinx-build", "-b", "html", "{tox_root}/docs", "{tox_root}/docs/_build/html", "--fail-on-warning"],
   [
-    "python",
-    "-c",
-    "import pathlib, webbrowser; p=(pathlib.Path(r'{tox_root}')/'docs'/'_build'/'html'/'index.html').resolve(); webbrowser.open(p.as_uri())",
+    "sphinx-apidoc",
+    "-o", "{tox_root}/docs",
+    "{tox_root}/src/derivkit",
+    "--separate",
+    "-f",
+  ],
+  [
+    "sphinx-build",
+    "-b", "doctest",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/doctest",
+    "--fail-on-warning",
+  ],
+  [
+    "sphinx-build",
+    "-b", "html",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/html",
+    "--fail-on-warning",
+  ],
+  [
+    "open",
+    "{tox_root}/docs/_build/html/index.html",
   ],
 ]
 
@@ -150,15 +185,25 @@ description = "Build the documentation for derivkit releases using Sphinx"
 extras = ["docs"]
 allowlist_externals = ["python"]
 commands = [
-  ["sphinx-apidoc", "-o", "{tox_root}/docs", "{tox_root}/src/derivkit", "--separate", "-f"],
-  ["sphinx-multiversion", "{tox_root}/docs", "{tox_root}/docs/_build/html", "--fail-on-warning"],
   [
-    "python",
-    "-c",
-    "import pathlib, shutil; src=pathlib.Path(r'{tox_root}')/'docs'/'_templates'/'pages_redirect.html'; dst=pathlib.Path(r'{tox_root}')/'docs'/'_build'/'html'/'index.html'; shutil.copyfile(src, dst)",
+    "sphinx-apidoc",
+    "-o", "{tox_root}/docs",
+    "{tox_root}/src/derivkit",
+    "--separate",
+    "-f",
+  ],
+  [
+    "sphinx-multiversion",
+    "{tox_root}/docs",
+    "{tox_root}/docs/_build/html",
+    "--fail-on-warning",
+  ],
+  [
+    "cp",
+    "{tox_root}/docs/_templates/pages_redirect.html",
+    "{tox_root}/docs/_build/html/index.html",
   ],
 ]
-
 
 [tool.tox.env.lint]
 description = "Lint derivkit using Ruff"
