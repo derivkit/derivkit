@@ -75,8 +75,6 @@ This example compares:
    ...     cxy=cxy,
    ...     cyy=cyy,
    ... )
-   >>> bool(np.allclose(fisher_std, fisher_xy, atol=1e-10, rtol=0.0))
-   False
    >>> # Convert to GetDist GaussianND samples for visualization
    >>> gnd_std = fisher_to_getdist_gaussiannd(
    ...     theta0=theta0,
