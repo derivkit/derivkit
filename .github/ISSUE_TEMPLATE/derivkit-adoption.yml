@@ -1,0 +1,41 @@
+name: DerivKit adoption entry
+description: Request that a software project or publication using DerivKit be listed in the docs.
+title: "[Adoption] "
+labels: ["adoption"]
+body:
+  - type: dropdown
+    id: entry_type
+    attributes:
+      label: Entry type
+      description: Where should this be listed on the Citation page?
+      options:
+        - Software / pipeline
+        - Publication
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: e.g., Package Name, Paper title
+    validations:
+      required: true
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact (optional)
+      description: Email or GitHub handle in case maintainers need clarification.
+      placeholder: "@username or name@example.com"
+    validations:
+      required: false
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference (optional)
+      description: For publications, include DOI/arXiv and BibTeX if available.
+      placeholder: DOI/arXiv/BibTeX (optional)
+    validations:
+      required: false
