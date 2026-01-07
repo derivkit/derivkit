@@ -21,8 +21,11 @@ logging.getLogger("emcee").setLevel(logging.ERROR)
 logging.getLogger("emcee.pbar").setLevel(logging.ERROR)
 
 # -----------------------------------------------------------------------------
-# Project information
-# -----------------------------------------------------------------------------
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 project = "DerivKit"
 copyright = "2025, Nikolina Šarčević, Matthijs van der Wild, Cynthia Trendafilova"
 author = "Nikolina Šarčević et al."
