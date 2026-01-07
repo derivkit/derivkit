@@ -13,10 +13,13 @@ A mock example
 
 This example compares:
 
-- **Standard Fisher**: treat the measured inputs ``x0`` as exact and use only the
-  output covariance ``cov_yy``.
-- **X–Y Fisher**: propagate input uncertainty using ``cov_xx`` and ``cov_xy`` and compute
-  a Fisher matrix with the effective covariance ``R(theta)``.
+- **Standard Fisher**: treats the measured inputs :math:`x_0` as exact and uses only
+  the output covariance :math:`C_{yy}`.
+
+- **X–Y Fisher**: propagates input uncertainty using :math:`C_{xx}` and :math:`C_{xy}`,
+  leading to a Fisher matrix defined in terms of the effective covariance
+  :math:`R(\theta)`.
+
 
 .. doctest:: fisher_xy_standard_vs_xy
 
@@ -214,10 +217,15 @@ This example compares:
 Notes
 -----
 
-- The **standard** Fisher here treats the measured inputs ``x0`` as exact and uses
-  ``cov_yy`` directly.
-- The **X–Y** Fisher propagates input uncertainty using ``cov_xx`` and ``cov_xy`` via an
-  effective covariance ``R(theta)`` built from the local sensitivity matrix
-  :math:`T = d mu_xy / d x` evaluated at ``(x0, theta)``.
-- The result depends on the derivative backend used to compute the sensitivity matrix.
-  Use ``method`` and ``**dk_kwargs`` to control the derivative settings consistently.
+- The **standard** Fisher treats the measured inputs :math:`x_0` as exact and uses
+  the output covariance :math:`C_{yy}` directly.
+
+- The **X–Y** Fisher propagates input uncertainty using the input and cross covariances
+  :math:`C_{xx}` and :math:`C_{xy}` through an effective covariance
+  :math:`R(\theta)`, constructed from the local sensitivity matrix
+  :math:`T = \frac{\mathrm{d}\mu_{xy}(x,\theta)}{\mathrm{d}x}\bigg|_{(x_0,\theta)}`
+  evaluated at :math:`(x_0, \theta)`.
+
+- The resulting Fisher matrix depends on the derivative backend used to compute
+  :math:`T`. The choice of method and derivative settings is controlled via
+  ``method`` and ``**dk_kwargs``.

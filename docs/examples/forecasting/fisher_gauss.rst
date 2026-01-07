@@ -14,13 +14,15 @@ A mock example
 
 This example compares:
 
-- **Standard Fisher**: :meth:`derivkit.forecast_kit.ForecastKit.fisher`, which treats the
-  covariance as fixed at ``C(theta0)`` (mean term only).
-- **Full Gaussian Fisher**: :meth:`derivkit.forecast_kit.ForecastKit.gaussian_fisher`,
-  which accepts ``C(theta)`` and includes covariance-derivative contributions.
+- **Standard Fisher**: uses a fixed covariance :math:`C(\theta_0)` and computes
+  :math:`F = J^\mathsf{T} C^{-1} J`.
 
-The covariance dependence is chosen to be noticeable but not dominant, while
-remaining SPD by construction.
+- **Full Gaussian Fisher**: allows :math:`C(\theta)` and adds the corresponding
+  covariance-derivative terms to the Fisher matrix.
+
+- The covariance dependence is chosen to be noticeable but not dominant, while
+  remaining SPD by construction.
+
 
 .. doctest:: gaussian_fisher_standard_vs_full
 
@@ -178,6 +180,9 @@ remaining SPD by construction.
 Notes
 -----
 
-- :meth:`ForecastKit.fisher` uses the fixed covariance ``C(theta0)`` and computes the mean term only.
-- :meth:`ForecastKit.gaussian_fisher` includes the additional covariance-derivative term when a
-  covariance function ``C(theta)`` is provided.
+- :meth:`ForecastKit.fisher` uses a fixed covariance :math:`C(\theta_0)` and computes
+  only the mean-derivative term.
+
+- :meth:`ForecastKit.gaussian_fisher` includes the additional covariance-derivative
+  contribution when a parameter-dependent covariance :math:`C(\theta)` is provided.
+
