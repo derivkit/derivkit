@@ -1,13 +1,35 @@
 [build-system]
 requires = [
-    "setuptools >= 80",
-    "setuptools_scm[simple] >= 8"
+  "setuptools >= 80",
+  "setuptools_scm[simple] >= 8",
 ]
 build-backend = "setuptools.build_meta"
 
+
 [project]
 name = "derivkit"
+description = "A robust toolkit for stable numerical derivatives"
+readme = "README.md"
+requires-python = ">3.9"
 dynamic = ["version"]
+
+license = "MIT"
+license-files = ["LICENSE*"]
+
+authors = [
+  { name = "Nikolina Šarčević", email = "nikolina.sarcevic@gmail.com" },
+  { name = "Matthijs van der Wild", email = "matthijs@vanderwild.com" },
+  { name = "Cynthia Trendafilova", email = "cyntrendafilova@gmail.com" },
+]
+
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+
 dependencies = [
   "numdifftools",
   "numpy",
@@ -17,55 +39,37 @@ dependencies = [
   "getdist",
   "emcee",
 ]
-authors = [
-  { name="Nikolina Šarčević", email="nikolina.sarcevic@gmail.com" },
-  { name="Matthijs van der Wild", email="matthijs@vanderwild.com" },
-  { name="Cynthia Trendafilova", email="cyntrendafilova@gmail.com" },
-]
-description = "A robust toolkit for stable numerical derivatives"
-readme = "README.md"
-requires-python = ">3.9"
-classifiers = [
-    "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Astronomy",
-    "Topic :: Scientific/Engineering :: Physics",
-]
-license = "MIT"
-license-files = ["LICENSE*"]
+
 
 [project.optional-dependencies]
-"test" = [
-    "pytest",
-]
-"docs" = [
-    "sphinx",
-    "sphinx-design",
-    "sphinx-multiversion",
-    "furo",
-    "sphinx-copybutton",
-    "sphinxawesome-theme",
-    "sphinx-book-theme",
-]
-"lint" = [
-    "ruff",
-]
-"jax" = [
-    "jax>=0.4",
-    "jaxlib>=0.4",
+test = ["pytest"]
+
+docs = [
+  "sphinx",
+  "sphinx-design",
+  "sphinx-multiversion",
+  "furo",
+  "sphinx-copybutton",
 ]
 
+lint = ["ruff"]
+
+jax = [
+  "jax>=0.4",
+  "jaxlib>=0.4",
+]
+
+
 [tool.pytest.ini_options]
-pythonpath = [
-  "src",
-]
+pythonpath = ["src"]
 markers = [
-  "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
+
 
 [tool.ruff]
 line-length = 79
+
 
 [tool.ruff.lint]
 # Here we list the styling/formatting rules that Ruff should use.
@@ -74,16 +78,20 @@ line-length = 79
 select = ["E", "F", "W", "Q", "I", "D", "PLC0415"]
 ignore = ["E203", "E501"]
 
+
 [tool.ruff.lint.isort]
 known-first-party = ["derivkit"]
 
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
 
 [tool.tox]
 requires = ["tox>=4.22"]
 labels = { test = ["py310", "py311", "py312", "py313"] }
 envlist = [
+  "do",
   "docs",
   "docs-releases",
   "lint",
@@ -93,31 +101,23 @@ envlist = [
   "py313",
 ]
 
+
 [tool.tox.env_run_base]
-change_dir = "{tox_root}/tests"
 description = "Run tests under {base_python}"
+change_dir = "{tox_root}/tests"
 extras = ["test"]
 allowlist_externals = ["pytest"]
 commands = [
-    [
-        "pytest",
-        {replace = "posargs", extend = true},
-    ],
+  ["pytest", { replace = "posargs", extend = true }],
 ]
+
 
 [tool.tox.env_run_base.setenv]
 PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
 
 [tool.tox.env.docs]
-# NOTE:
-#   For now we EXCLUDE sphinx-apidoc-generated API pages from the doctest run
-#   via `exclude_patterns` in docs/conf.py (see conf.py comments).
-#   This avoids executing >>> snippets in source docstrings during CI.
-#
-# To re-enable doctests for API docstrings later:
-#   - comment out the "modules.rst" / "derivkit.*.rst" exclude_patterns in docs/conf.py
-description = "Build docs with Sphinx; doctest runs on docs/ (API pages excluded via conf.py for now)"
+description = "Build docs with Sphinx and doctest"
 extras = ["docs"]
 commands = [
   [
@@ -144,12 +144,9 @@ commands = [
 ]
 
 
-
-
 [tool.tox.env.do]
-# Same policy as `tox -e docs`, but also opens the built HTML.
-# API doctests are currently disabled via docs/conf.py exclude_patterns.
-description = "Build docs (doctest + html) and open local HTML index"
+# Local convenience: same as docs, plus open HTML index (cross-platform).
+description = "(Mac only) Build and test docs and open docs in browser"
 extras = ["docs"]
 allowlist_externals = ["open"]
 commands = [
@@ -181,11 +178,6 @@ commands = [
 ]
 
 
-
-
-# This feels ugly because it mostly duplicates the docs environment.
-# However, it is the simplest way to allow a user to build the docs
-# for only their local working branch using the old `tox -e docs` rule.
 [tool.tox.env.docs-releases]
 description = "Build the documentation for derivkit releases using Sphinx"
 extras = ["docs"]
@@ -219,6 +211,6 @@ commands = [
     "ruff",
     "check",
     "--fix",
-    {replace = "posargs", extend = true},
+    { replace = "posargs", extend = true }
   ],
 ]
