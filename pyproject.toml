@@ -67,15 +67,14 @@ markers = [
 ]
 
 
-# Here we list the styling/formatting rules that Ruff should use.
-# A list of available rules and what each rule does is provided at
-# https://docs.astral.sh/ruff/rules
-
 [tool.ruff]
 line-length = 79
 
 
 [tool.ruff.lint]
+# Here we list the styling/formatting rules that Ruff should use.
+# A list of available rules and what each rule does is provided at
+# https://docs.astral.sh/ruff/rules
 select = ["E", "F", "W", "Q", "I", "D", "PLC0415"]
 ignore = ["E203", "E501"]
 
