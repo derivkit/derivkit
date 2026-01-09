@@ -60,49 +60,69 @@ class CalculusKit:
     def gradient(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the gradient of a scalar-valued function.
 
-        This function is a convenience wrapper around
+        This is a wrapper around :func:`derivkit.calculus.build_gradient`,
+        with the ``function`` and ``theta0`` arguments fixed to the values
+        provided at initialization of :class:`CalculusKit`. Any additional
+        positional or keyword arguments are forwarded to
         :func:`derivkit.calculus.build_gradient`.
-        Refer to the documentation of that function for tunable optional
-        arguments.
+
+        Refer to the documentation of
+        :func:`derivkit.calculus.build_gradient` for available options.
         """
         return build_gradient(self.function, self.x0, *args, **kwargs)
 
     def jacobian(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the Jacobian of a vector-valued function.
 
-        This function is a convenience wrapper around
+        This is a wrapper around :func:`derivkit.calculus.build_jacobian`,
+        with the ``function`` and ``theta0`` arguments fixed to the values
+        provided at initialization of :class:`CalculusKit`. Any additional
+        positional or keyword arguments are forwarded to
         :func:`derivkit.calculus.build_jacobian`.
-        Refer to the documentation of that function for tunable optional
-        arguments.
+
+        Refer to the documentation of
+        :func:`derivkit.calculus.build_jacobian` for available options.
         """
         return build_jacobian(self.function, self.x0, *args, **kwargs)
 
     def hessian(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the Hessian of a scalar-valued function.
 
-        This function is a convenience wrapper around
+        This is a wrapper around :func:`derivkit.calculus.build_hessian`,
+        with the ``function`` and ``theta0`` arguments fixed to the values
+        provided at initialization of :class:`CalculusKit`. Any additional
+        positional or keyword arguments are forwarded to
         :func:`derivkit.calculus.build_hessian`.
-        Refer to the documentation of that function for tunable optional
-        arguments.
+
+        Refer to the documentation of
+        :func:`derivkit.calculus.build_hessian` for available options.
         """
         return build_hessian(self.function, self.x0, *args, **kwargs)
 
     def hessian_diag(self, *args, **kwargs) -> NDArray[np.floating]:
         """Returns the diagonal of the Hessian of a scalar-valued function.
 
-        This function is a convenience wrapper around
-        :func:`derivkit.calculus.hessian.build_hessian_diag`.
-        Refer to the documentation of that function for tunable optional
-        arguments.
+        This is a wrapper around :func:`derivkit.calculus.build_hessian_diag`,
+        with the ``function`` and ``theta0`` arguments fixed to the values
+        provided at initialization of :class:`CalculusKit`. Any additional
+        positional or keyword arguments are forwarded to
+        :func:`derivkit.calculus.build_hessian_diag`.
+
+        Refer to the documentation of
+        :func:`derivkit.calculus.build_hessian_diag` for available options.
         """
         return build_hessian_diag(self.function, self.x0, *args, **kwargs)
 
     def hyper_hessian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the third-derivative tensor ("hyper-Hessian") of a function.
+        """Returns the third-derivative tensor of a function.
 
-        This function is a convenience wrapper around
-        :func:`derivkit.calculus.hyper_hessian.build_hyper_hessian`.
-        Refer to the documentation of that function for tunable optional
-        arguments.
+        This is a wrapper around :func:`derivkit.calculus.build_hyper_hessian`,
+        with the ``function`` and ``theta0`` arguments fixed to the values
+        provided at initialization of :class:`CalculusKit`. Any additional
+        positional or keyword arguments are forwarded to
+        :func:`derivkit.calculus.build_hyper_hessian`.
+
+        Refer to the documentation of
+        :func:`derivkit.calculus.build_hyper_hessian` for available options.
         """
         return build_hyper_hessian(self.function, self.x0, *args, **kwargs)
