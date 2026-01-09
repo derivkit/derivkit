@@ -1,7 +1,7 @@
-derivkit.adaptive.polyfit\_utils module
+derivkit.derivatives.finite.core module
 =======================================
 
-.. automodule:: derivkit.adaptive.polyfit_utils
+.. automodule:: derivkit.derivatives.finite.core
    :members:
    :show-inheritance:
    :undoc-members:

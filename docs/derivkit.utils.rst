@@ -10,6 +10,7 @@ Submodules
    derivkit.utils.concurrency
    derivkit.utils.extrapolation
    derivkit.utils.linalg
+   derivkit.utils.logger
    derivkit.utils.numerics
    derivkit.utils.sandbox
    derivkit.utils.validate

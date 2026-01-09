@@ -1,7 +1,7 @@
-derivkit.adaptive.diagnostics module
+derivkit.derivatives.fornberg module
 ====================================
 
-.. automodule:: derivkit.adaptive.diagnostics
+.. automodule:: derivkit.derivatives.fornberg
    :members:
    :show-inheritance:
    :undoc-members:
