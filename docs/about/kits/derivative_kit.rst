@@ -249,7 +249,8 @@ JAX Autodiff
 **How it works:**
 
 JAX provides automatic differentiation for Python functions written using
-``jax.numpy``. Instead of estimating derivatives numerically, autodiff propagates
+`jax.numpy <https://docs.jax.dev/en/latest/jax.numpy.html>`. Instead of
+estimating derivatives numerically, autodiff propagates
 derivatives analytically through the computational graph, yielding exact
 derivatives up to machine precision.
 
