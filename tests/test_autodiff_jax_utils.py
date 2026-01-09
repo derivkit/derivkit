@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from derivkit.autodiff.jax_utils import AutodiffUnavailable, require_jax
+from derivkit.derivatives.autodiff.jax_utils import (
+    AutodiffUnavailable,
+    require_jax,
+)
 
 try:
     require_jax()
@@ -16,7 +19,7 @@ except AutodiffUnavailable:
 
 import jax.numpy as jnp
 
-from derivkit.autodiff.jax_utils import (
+from derivkit.derivatives.autodiff.jax_utils import (
     apply_array_nd,
     apply_scalar_1d,
     apply_scalar_nd,

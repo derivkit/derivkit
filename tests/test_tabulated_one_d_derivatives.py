@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.tabulated_model.one_d import Tabulated1DModel
+from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
 
 
 def make_linear_scalar_model():

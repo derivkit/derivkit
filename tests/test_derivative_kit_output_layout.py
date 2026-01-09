@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.finite.core import single_finite_step
+from derivkit.derivatives.finite.core import single_finite_step
 
 
 def scalar_func(x: float) -> float:

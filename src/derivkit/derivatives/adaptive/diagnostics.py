@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.adaptive.polyfit_utils import assess_polyfit_quality
-from derivkit.logger import derivkit_logger
+from derivkit.derivatives.adaptive.polyfit_utils import assess_polyfit_quality
+from derivkit.utils.logger import derivkit_logger
 
 __all__ = [
     "format_derivative_diagnostics",

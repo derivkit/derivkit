@@ -9,7 +9,7 @@ import time
 import numpy as np
 import pytest
 
-from derivkit.adaptive.batch_eval import eval_function_batch
+from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
 
 
 def cpu_heavy(x: float) -> float:

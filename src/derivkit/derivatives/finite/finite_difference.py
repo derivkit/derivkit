@@ -3,43 +3,15 @@
 The user must specify the function to differentiate and the central value
 at which the derivative should be evaluated. More details about available
 options can be found in the documentation of the methods.
-
-Examples:
---------
-Basic usage without extrapolation:
-
->>> from derivkit.finite.finite_difference import FiniteDifferenceDerivative
->>> f = lambda x: x**3
->>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
->>> d.differentiate(order=2)
-12.0
-
-First derivative with Ridders extrapolation and an error estimate:
-
->>> import numpy as np
->>> g = np.sin
->>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
->>> val, err = d.differentiate(
-...     order=1,
-...     stepsize=1e-2,
-...     num_points=5,
-...     n_workers=2,
-...     extrapolation="ridders",
-...     levels=4,
-...     return_error=True,
-... )
->>> np.allclose(val, np.cos(0.7), rtol=1e-6)
-True
 """
-
 
 from collections.abc import Callable
 from functools import partial
 
 import numpy as np
 
-from derivkit.finite.core import single_finite_step
-from derivkit.finite.extrapolators import (
+from derivkit.derivatives.finite.core import single_finite_step
+from derivkit.derivatives.finite.extrapolators import (
     adaptive_gre_fd,
     adaptive_richardson_fd,
     adaptive_ridders_fd,
@@ -47,7 +19,7 @@ from derivkit.finite.extrapolators import (
     fixed_richardson_fd,
     fixed_ridders_fd,
 )
-from derivkit.finite.stencil import (
+from derivkit.derivatives.finite.stencil import (
     TRUNCATION_ORDER,
     validate_supported_combo,
 )
@@ -76,18 +48,20 @@ class FiniteDifferenceDerivative:
     - 7-point: first and second-order
     - 9-point: first and second-order
 
-    Examples:
-    ---------
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from derivkit.derivatives.finite.finite_difference import FiniteDifferenceDerivative
+
     Basic second derivative without extrapolation:
 
     >>> f = lambda x: x**3
     >>> d = FiniteDifferenceDerivative(function=f, x0=2.0)
-    >>> d.differentiate(order=2)
+    >>> round(float(d.differentiate(order=2)), 6)
     12.0
 
     First derivative with Ridders extrapolation and an error estimate:
 
-    >>> import numpy as np
     >>> g = np.sin
     >>> d = FiniteDifferenceDerivative(function=g, x0=0.7)
     >>> val, err = d.differentiate(
@@ -98,7 +72,7 @@ class FiniteDifferenceDerivative:
     ...     levels=4,
     ...     return_error=True,
     ... )
-    >>> np.allclose(val, np.cos(0.7), rtol=1e-6)
+    >>> bool(np.allclose(val, np.cos(0.7), rtol=1e-6))
     True
 
     Vector-valued function with Gauss–Richardson extrapolation:

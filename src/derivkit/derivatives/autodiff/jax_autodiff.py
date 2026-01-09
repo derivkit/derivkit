@@ -8,7 +8,7 @@ Example:
 Basic usage (opt-in registration):
 
     >>> from derivkit.derivative_kit import DerivativeKit  # doctest: +SKIP
-    >>> from derivkit.autodiff.jax_autodiff import register_jax_autodiff_backend  # doctest: +SKIP
+    >>> from derivkit.derivatives.autodiff.jax_autodiff import register_jax_autodiff_backend  # doctest: +SKIP
     >>> register_jax_autodiff_backend()  # doctest: +SKIP
     >>>
     >>> def func(x):  # doctest: +SKIP
@@ -32,9 +32,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from derivkit.autodiff.jax_core import autodiff_derivative
-from derivkit.autodiff.jax_utils import require_jax
 from derivkit.derivative_kit import register_method
+from derivkit.derivatives.autodiff.jax_core import autodiff_derivative
+from derivkit.derivatives.autodiff.jax_utils import require_jax
 
 __all__ = [
     "AutodiffDerivative",

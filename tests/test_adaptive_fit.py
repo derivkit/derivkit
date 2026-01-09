@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
+from derivkit.derivatives.adaptive.adaptive_fit import AdaptiveFitDerivative
 
 
 def f_lin(x: float) -> float:

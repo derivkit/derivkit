@@ -5,7 +5,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.local_polynomial_derivative.sampling import build_samples
+from derivkit.derivatives.local_polynomial_derivative.local_polynomial_derivative import (
+    build_samples,
+)
 
 
 class DummyConfig:

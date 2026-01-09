@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from derivkit.logger import derivkit_logger
+from derivkit.utils.logger import derivkit_logger
 
 __all__ = [
     "invert_covariance",

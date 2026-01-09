@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from derivkit.local_polynomial_derivative.local_poly_config import (
+from derivkit.derivatives.local_polynomial_derivative.local_poly_config import (
     LocalPolyConfig,
 )
 

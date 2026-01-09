@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-import derivkit.finite.extrapolators as fe
-from derivkit.finite.extrapolators import (
+import derivkit.derivatives.finite.extrapolators as fe
+from derivkit.derivatives.finite.extrapolators import (
     adaptive_gre_fd,
     adaptive_richardson_fd,
     adaptive_ridders_fd,

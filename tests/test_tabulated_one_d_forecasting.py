@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
 from derivkit.forecast_kit import ForecastKit
-from derivkit.tabulated_model.one_d import Tabulated1DModel
 
 
 def make_tabulated_linear_obs(a_vec: np.ndarray) -> Tabulated1DModel:

@@ -7,7 +7,7 @@ SIAM Review, vol. 40, No. 3, pp. 685–691, September 1998
 Typical usage example:
 
 >>> import numpy as np
->>> from derivkit.fornberg import FornbergDerivative
+>>> from derivkit.derivatives.fornberg import FornbergDerivative
 >>> x0 = np.pi/4
 >>> grid = x0 + np.array([-0.3, -0.25, -0.1, 0, 0.12])
 >>> fornberg = FornbergDerivative(lambda x: np.tan(x), x0)

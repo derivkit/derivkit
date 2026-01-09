@@ -42,7 +42,7 @@ def eval_function_batch(
 
     Examples:
       >>> import numpy as np
-      >>> from derivkit.adaptive.batch_eval import eval_function_batch
+      >>> from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
       >>> def f(x):
       ...     return np.array([x, x**2])
       >>> xs = np.linspace(-1.0, 1.0, 5)

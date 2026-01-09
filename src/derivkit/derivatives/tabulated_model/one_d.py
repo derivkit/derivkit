@@ -49,7 +49,7 @@ class Tabulated1DModel:
 
     Example:
         >>> import numpy as np
-        >>> from derivkit.tabulated_model.one_d import Tabulated1DModel
+        >>> from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
         >>>
         >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
         >>> y_tab = np.array([[0.0, 0.0],

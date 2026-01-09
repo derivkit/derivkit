@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from derivkit.autodiff.jax_autodiff import (
+from derivkit.derivative_kit import DerivativeKit
+from derivkit.derivatives.autodiff.jax_autodiff import (
     AutodiffDerivative,
     register_jax_autodiff_backend,
 )
-from derivkit.autodiff.jax_utils import AutodiffUnavailable, require_jax
-from derivkit.derivative_kit import DerivativeKit
+from derivkit.derivatives.autodiff.jax_utils import (
+    AutodiffUnavailable,
+    require_jax,
+)
 
 
 def _skip_if_no_jax() -> None:

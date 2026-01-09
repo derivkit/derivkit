@@ -7,15 +7,19 @@ from typing import Any, Callable
 
 import numpy as np
 
-from derivkit.local_polynomial_derivative.diagnostics import make_diagnostics
-from derivkit.local_polynomial_derivative.fit import (
+from derivkit.derivatives.local_polynomial_derivative.diagnostics import (
+    make_diagnostics,
+)
+from derivkit.derivatives.local_polynomial_derivative.fit import (
     centered_polyfit_least_squares,
     trimmed_polyfit,
 )
-from derivkit.local_polynomial_derivative.local_poly_config import (
+from derivkit.derivatives.local_polynomial_derivative.local_poly_config import (
     LocalPolyConfig,
 )
-from derivkit.local_polynomial_derivative.sampling import build_samples
+from derivkit.derivatives.local_polynomial_derivative.sampling import (
+    build_samples,
+)
 from derivkit.utils.numerics import relative_error
 
 

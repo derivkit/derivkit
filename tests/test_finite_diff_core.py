@@ -7,8 +7,8 @@ from typing import Any
 import numpy as np
 import pytest
 
-import derivkit.finite.core as ss
-from derivkit.finite.core import single_finite_step
+import derivkit.derivatives.finite.core as ss
+from derivkit.derivatives.finite.core import single_finite_step
 
 OFFSETS: dict[int, np.ndarray] = {}
 COEFFS_TABLE: dict[tuple[int, int], np.ndarray] = {}

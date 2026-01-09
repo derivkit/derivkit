@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.adaptive.batch_eval import eval_function_batch
+from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
 
 
 def square_scalar(x: float) -> float:

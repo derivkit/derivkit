@@ -4,23 +4,23 @@ from __future__ import annotations
 
 import numpy as np
 
-from derivkit.adaptive.batch_eval import eval_function_batch
-from derivkit.adaptive.diagnostics import (
+from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
+from derivkit.derivatives.adaptive.diagnostics import (
     fit_is_obviously_bad,
     make_derivative_diag,
     print_derivative_diagnostics,
 )
-from derivkit.adaptive.grid import (
+from derivkit.derivatives.adaptive.grid import (
     ensure_min_samples_and_maybe_rebuild,
     make_domain_aware_chebyshev_grid,
 )
-from derivkit.adaptive.polyfit_utils import (
+from derivkit.derivatives.adaptive.polyfit_utils import (
     assess_polyfit_quality,
     fit_with_headroom_and_maybe_minimize,
     pullback_derivative_from_fit,
     scale_offsets,
 )
-from derivkit.logger import derivkit_logger
+from derivkit.utils.logger import derivkit_logger
 
 
 class AdaptiveFitDerivative:

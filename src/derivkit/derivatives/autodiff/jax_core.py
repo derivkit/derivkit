@@ -32,7 +32,7 @@ from typing import Callable
 
 import numpy as np
 
-from derivkit.autodiff.jax_utils import (
+from derivkit.derivatives.autodiff.jax_utils import (
     AutodiffUnavailable,
     apply_array_nd,
     apply_scalar_1d,
