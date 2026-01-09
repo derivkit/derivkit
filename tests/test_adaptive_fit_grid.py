@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.adaptive.grid import make_offsets
+from derivkit.derivatives.adaptive.grid import make_offsets
 
 RTOL = 5e-13  # relative tolerance for spacing checks
 ATOL_SCALE = 1e-12  # absolute tolerance scale factor

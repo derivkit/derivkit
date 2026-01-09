@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from derivkit.tabulated_model.one_d import (
+from derivkit.derivatives.tabulated_model.one_d import (
     Tabulated1DModel,
     parse_xy_table,
     tabulated1d_from_table,

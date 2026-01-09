@@ -7,7 +7,7 @@ from typing import Callable, Sequence
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.logger import derivkit_logger
+from derivkit.utils.logger import derivkit_logger
 
 __all__ = [
     "central_difference_error_estimate",

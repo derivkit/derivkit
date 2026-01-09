@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from derivkit.adaptive.polyfit_utils import fit_multi_power
+from derivkit.derivatives.adaptive.polyfit_utils import fit_multi_power
 
 
 def make_poly_data(coeffs: list[float], t: np.ndarray) -> np.ndarray:

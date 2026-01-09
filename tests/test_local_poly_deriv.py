@@ -7,10 +7,8 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.local_polynomial_derivative.local_poly_config import (
+from derivkit.derivatives.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolyConfig,
-)
-from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
 

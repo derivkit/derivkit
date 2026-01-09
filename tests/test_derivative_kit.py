@@ -5,11 +5,13 @@ from functools import partial
 import numpy as np
 import pytest
 
-from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
 from derivkit.derivative_kit import DerivativeKit, _resolve
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative
-from derivkit.fornberg import FornbergDerivative
-from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
+from derivkit.derivatives.adaptive.adaptive_fit import AdaptiveFitDerivative
+from derivkit.derivatives.finite.finite_difference import (
+    FiniteDifferenceDerivative,
+)
+from derivkit.derivatives.fornberg import FornbergDerivative
+from derivkit.derivatives.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
 

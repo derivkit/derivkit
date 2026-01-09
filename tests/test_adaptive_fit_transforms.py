@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 
-from derivkit.adaptive.transforms import (
+from derivkit.derivatives.adaptive.transforms import (
     signed_log_derivatives_to_x,
     signed_log_forward,
     signed_log_to_physical,

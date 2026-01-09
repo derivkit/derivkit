@@ -6,8 +6,10 @@ import numpy as np
 import pytest
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.finite.batch_eval import eval_points
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+from derivkit.derivatives.finite.batch_eval import eval_points
+from derivkit.derivatives.finite.finite_difference import (
+    FiniteDifferenceDerivative,
+)
 from derivkit.utils.extrapolation import richardson_extrapolate
 
 

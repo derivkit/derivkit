@@ -7,13 +7,10 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   derivkit.adaptive
-   derivkit.autodiff
    derivkit.calculus
+   derivkit.derivatives
    derivkit.forecasting
    derivkit.likelihoods
-   derivkit.local_polynomial_derivative
-   derivkit.tabulated_model
    derivkit.utils
 
 Submodules
@@ -25,9 +22,7 @@ Submodules
    derivkit.calculus_kit
    derivkit.derivative_kit
    derivkit.forecast_kit
-   derivkit.fornberg
    derivkit.likelihood_kit
-   derivkit.logger
 
 Module contents
 ---------------

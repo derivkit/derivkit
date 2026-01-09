@@ -53,13 +53,15 @@ from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 import numpy as np
 from numpy.typing import ArrayLike
 
-from derivkit.adaptive.adaptive_fit import AdaptiveFitDerivative
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative
-from derivkit.fornberg import FornbergDerivative
-from derivkit.local_polynomial_derivative.local_polynomial_derivative import (
+from derivkit.derivatives.adaptive.adaptive_fit import AdaptiveFitDerivative
+from derivkit.derivatives.finite.finite_difference import (
+    FiniteDifferenceDerivative,
+)
+from derivkit.derivatives.fornberg import FornbergDerivative
+from derivkit.derivatives.local_polynomial_derivative.local_polynomial_derivative import (
     LocalPolynomialDerivative,
 )
-from derivkit.tabulated_model.one_d import Tabulated1DModel
+from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
 
 
 class DerivativeEngine(Protocol):

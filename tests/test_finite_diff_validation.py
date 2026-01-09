@@ -5,7 +5,9 @@ import re
 import numpy as np
 import pytest
 
-from derivkit.finite.finite_difference import FiniteDifferenceDerivative
+from derivkit.derivatives.finite.finite_difference import (
+    FiniteDifferenceDerivative,
+)
 
 
 def f_poly(power):

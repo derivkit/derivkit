@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from derivkit.adaptive.spacing import resolve_spacing
+from derivkit.derivatives.adaptive.spacing import resolve_spacing
 
 
 def test_numeric_ok():

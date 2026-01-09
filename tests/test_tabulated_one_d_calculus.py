@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from derivkit.calculus_kit import CalculusKit
-from derivkit.tabulated_model.one_d import Tabulated1DModel
+from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
 
 
 def make_tabulated_linear_scalar():

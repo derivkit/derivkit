@@ -3,7 +3,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-from derivkit.local_polynomial_derivative.fit import (
+from derivkit.derivatives.local_polynomial_derivative.fit import (
     centered_polyfit_least_squares,
     design_matrix,
     trimmed_polyfit,
