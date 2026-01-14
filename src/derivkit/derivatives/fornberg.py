@@ -25,6 +25,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 class FornbergDerivative:
@@ -53,7 +54,7 @@ class FornbergDerivative:
     def differentiate(
         self,
         *,
-        grid: np.array,
+        grid: NDArray[np.float64],
         order: int = 1,
     ) -> np.float64:
         """Constructs the derivative of a given order of a function at a point.
@@ -77,13 +78,13 @@ class FornbergDerivative:
 
         y = self.function(grid)
         weights = self.get_weights(grid, order)[-1]
-        result = np.dot(y, weights**order)
+        result = np.dot(y, weights)
 
         return result
 
     def get_weights(
         self,
-        grid: np.array,
+        grid: NDArray[np.float64],
         order: int = 1,
     ) -> np.ndarray:
         """Constructs the weights needed for derivatives up to a given order.
