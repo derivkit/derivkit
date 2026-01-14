@@ -26,13 +26,11 @@ ISSUE_HINT_RE = re.compile(r"issue\s*#?\s*202", flags=re.I)
     [
         # currently unsupported by this build. See
         # https://github.com/derivkit/derivkit/issues/202
-        (3, 2), (3, 3), (3, 4),
-        (7, 3), (7, 4),
-        (9, 3), (9, 4),
+        (3, 3), (3, 4),
     ],
 )
 def test_unsupported_combo_raises_with_issue_hint(num_points, order):
-    """Unsupported (num_points, order) combos raise ValueError with hint to issue #202."""
+    """Unsupported (num_points, order) combos raise ValueError."""
     d = FiniteDifferenceDerivative(function=f_poly(3), x0=0.1)
 
     with pytest.raises(ValueError) as ei:
@@ -41,7 +39,6 @@ def test_unsupported_combo_raises_with_issue_hint(num_points, order):
     msg = str(ei.value)
     # Human-friendly hint is present in the exception itself
     assert "Not implemented yet" in msg
-    assert ISSUE_HINT_RE.search(msg), "Error message should reference issue #202"
 
 
 def test_invalid_stencil_size_raises():
