@@ -183,7 +183,7 @@ def test_resolve_workers_inner_override_is_respected(monkeypatch):
 
 @pytest.mark.parametrize("inner_override", [0, -2, "bad"])
 def test_resolve_workers_invalid_inner_override_falls_back_to_one(monkeypatch, inner_override):
-    """Invalid inner_workers override should normalize to 1."""
+    """Tests that invalid inner_workers override normalizes to 1."""
     monkeypatch.setattr(
         "derivkit.utils.concurrency.resolve_inner_from_outer",
         lambda outer: 5,
