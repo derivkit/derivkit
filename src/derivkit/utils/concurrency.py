@@ -121,7 +121,7 @@ def parallel_execute(
     inner_workers: int | None = None,
     backend: str = "threads",
 ) -> list[Any]:
-    """Runs ``worker(*args)`` for each tuple in arg_tuples with outer threads.
+    """Applies a function to groups of arguments in parallel.
 
     Inner worker setting is applied to the context, so calls inside worker
     will see the resolved inner worker count.
