@@ -221,6 +221,8 @@ def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
     lock = threading.Lock()
     seen: set[int] = set()
 
+    # parallel_execute expands each tuple into worker(*args),
+    # so worker must accept one argument.
     def worker(_x: int) -> int:
         """Function to run in parallel threads."""
         tid = threading.get_ident()
@@ -229,8 +231,6 @@ def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
         barrier.wait()
         return tid
 
-    # parallel_execute expands each tuple into worker(*args),
-    # so worker must accept one arg here.
     tasks = [(i,) for i in range(n)]
 
     out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1)
