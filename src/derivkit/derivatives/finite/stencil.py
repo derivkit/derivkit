@@ -13,22 +13,27 @@ __all = [
 ]
 
 SUPPORTED_BY_STENCIL: dict[int, set[int]] = {
-    3: {1},
+    3: {1, 2},
     5: {1, 2, 3, 4},
-    7: {1, 2},
-    9: {1, 2},
+    7: {1, 2, 3, 4},
+    9: {1, 2, 3, 4},
 }
 
 TRUNCATION_ORDER: dict[tuple[int, int], int] = {
     (3, 1): 2,
+    (3, 2): 0,
     (5, 1): 4,
     (5, 2): 4,
     (5, 3): 2,
     (5, 4): 2,
     (7, 1): 6,
     (7, 2): 6,
+    (7, 3): 0,
+    (7, 4): 0,
     (9, 1): 8,
     (9, 2): 8,
+    (9, 3): 0,
+    (9, 4): 0,
 }
 
 
@@ -119,6 +124,7 @@ def get_finite_difference_tables(
 
     coeffs_table = {
         (3, 1): np.array([-0.5, 0, 0.5]) / stepsize,
+        (3, 2): np.array([1, -2, 1]) / (stepsize**2),
         (5, 1): np.array([1, -8, 0, 8, -1]) / (12 * stepsize),
         (5, 2): np.array([-1, 16, -30, 16, -1]) / (12 * stepsize**2),
         (5, 3): np.array([-1, 2, 0, -2, 1]) / (2 * stepsize**3),
@@ -126,12 +132,16 @@ def get_finite_difference_tables(
         (7, 1): np.array([-1, 9, -45, 0, 45, -9, 1]) / (60 * stepsize),
         (7, 2): np.array([2, -27, 270, -490, 270, -27, 2])
         / (180 * stepsize**2),
+        (7, 3): np.array([ 1,  -8,   13,   0,  -13,   8,  -1]) / (  8*stepsize**3),
+        (7, 4): np.array([-1,  12,  -39,  56,  -39,  12,  -1]) / (  6*stepsize**4),
         (9, 1): np.array([3, -32, 168, -672, 0, 672, -168, 32, -3])
         / (840 * stepsize),
         (9, 2): np.array(
             [-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9]
         )
         / (5040 * stepsize**2),
+        (9, 3): np.array([ -7,   72,  -338,  488,    0, -488,  338,  -72,   7]) / (240*stepsize**3),
+        (9, 4): np.array([  7,  -96,   676, -1952, 2730, -1952, 676,  -96,   7]) / (240*stepsize**4),
     }
 
     return offsets, coeffs_table
@@ -162,15 +172,7 @@ def validate_supported_combo(num_points: int, order: int) -> None:
 
     allowed = SUPPORTED_BY_STENCIL[num_points]
     if order not in allowed:
-        # TODO: implement this. See https://github.com/derivkit/derivkit/issues/202
         raise ValueError(
             "[FiniteDifference] Not implemented yet: "
             f"{num_points}-point stencil for order {order}.\n"
-            "This is tracked in issue #202 "
-            "('Complete finite-difference stencil support: all (3/5/7/9)-point "
-            "central stencils for orders ≤ 4').\n"
-            "Workarounds: choose a supported combo, e.g.\n"
-            "  • 5-point for orders 1–4\n"
-            "  • 7/9-point for orders 1–2\n"
-            "Or switch methods (e.g., 'adaptive') if available."
         )
