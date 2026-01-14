@@ -127,8 +127,8 @@ def parallel_execute(
     will see the resolved inner worker count.
 
     Args:
-        worker: Callable executed as ``worker(*args)``.
-        arg_tuples: Sequence of argument tuples.
+        worker: Function applied to each entry in ``arg_tuples`` (called as ``worker(*args)``).
+        arg_tuples: Argument tuples; each tuple is expanded into one ``worker(*args)`` call.
         outer_workers: Parallelism level for outer execution.
         inner_workers: Inner derivative worker setting to propagate via contextvar.
         backend: Parallel backend. Currently supported: "threads".
