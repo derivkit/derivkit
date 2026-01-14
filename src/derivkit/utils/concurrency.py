@@ -119,12 +119,30 @@ def parallel_execute(
     *,
     outer_workers: int = 1,
     inner_workers: int | None = None,
+    backend: str = "threads",
 ) -> list[Any]:
-    """Runs ``worker(*args)`` for each tuple in arg_tuples with outer threads.
+    """Applies a function to groups of arguments in parallel.
 
     Inner worker setting is applied to the context, so calls inside worker
     will see the resolved inner worker count.
+
+    Args:
+        worker: Function applied to each entry in ``arg_tuples`` (called as ``worker(*args)``).
+        arg_tuples: Argument tuples; each tuple is expanded into one ``worker(*args)`` call.
+        outer_workers: Parallelism level for outer execution.
+        inner_workers: Inner derivative worker setting to propagate via contextvar.
+        backend: Parallel backend. Currently supported: "threads".
+
+    Returns:
+        List of worker return values.
     """
+    backend_l = str(backend).lower()
+    if backend_l not in {"threads"}:
+        raise NotImplementedError(
+            f"parallel_execute backend={backend!r} not supported yet."
+            f" Use backend='threads'."
+        )
+
     with set_inner_derivative_workers(inner_workers):
         if outer_workers > 1:
             with ThreadPoolExecutor(max_workers=outer_workers) as ex:

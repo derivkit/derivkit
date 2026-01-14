@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import contextvars
+import threading
 
 import pytest
 
 from derivkit.utils import concurrency as conc
-from derivkit.utils.concurrency import normalize_workers, resolve_workers
+from derivkit.utils.concurrency import (
+    normalize_workers,
+    parallel_execute,
+    resolve_workers,
+)
 
 
 def _reset_inner_var() -> None:
@@ -178,21 +183,57 @@ def test_resolve_workers_inner_override_is_respected(monkeypatch):
 
 @pytest.mark.parametrize("inner_override", [0, -2, "bad"])
 def test_resolve_workers_invalid_inner_override_falls_back_to_one(monkeypatch, inner_override):
-    """Tests that invalid inner_workers override falls back to single worker."""
+    """Tests that invalid inner_workers override normalizes to 1."""
     monkeypatch.setattr(
         "derivkit.utils.concurrency.resolve_inner_from_outer",
         lambda outer: 5,
     )
 
-    dk_kwargs = {"beta": 2.0}
-    if inner_override is not None:
-        dk_kwargs["inner_workers"] = inner_override
-
+    dk_kwargs = {"beta": 2.0, "inner_workers": inner_override}
     outer, inner, cleaned = resolve_workers(2, dk_kwargs)
 
     assert outer == 2
-    if inner_override is None:
-        assert inner == 5
-    else:
-        assert inner == 1
+    assert inner == 1
     assert cleaned == {"beta": 2.0}
+
+
+def test_parallel_execute_backend_threads_ok():
+    """Tests that backend='threads' returns the correct results (not performance)."""
+    def worker(x): return x + 1
+    out = parallel_execute(worker, [(1,), (2,)], outer_workers=2, backend="threads")
+    assert sorted(out) == [2, 3]
+
+
+def test_parallel_execute_backend_processes_not_implemented():
+    """Tests that backend='processes' raises NotImplementedError."""
+    def identity(x: int) -> int:
+        """Identity function used for testing."""
+        return x
+
+    with pytest.raises(NotImplementedError):
+        parallel_execute(identity, [(1,)], backend="processes")
+
+
+def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
+    """Tests that parallel_execute uses multiple threads when outer_workers > 1."""
+    n = 4
+    barrier = threading.Barrier(n, timeout=2.0)
+    lock = threading.Lock()
+    seen: set[int] = set()
+
+    # parallel_execute expands each tuple into worker(*args),
+    # so worker must accept one argument.
+    def worker(_x: int) -> int:
+        """Function to run in parallel threads."""
+        tid = threading.get_ident()
+        with lock:
+            seen.add(tid)
+        barrier.wait()
+        return tid
+
+    tasks = [(i,) for i in range(n)]
+
+    out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1)
+
+    assert len(set(out)) > 1
+    assert len(seen) > 1

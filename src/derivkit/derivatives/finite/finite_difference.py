@@ -48,8 +48,8 @@ class FiniteDifferenceDerivative:
     - 7-point: first and second-order
     - 9-point: first and second-order
 
-    Examples
-    --------
+    Examples:
+    ---------
     >>> import numpy as np
     >>> from derivkit.derivatives.finite.finite_difference import FiniteDifferenceDerivative
 
