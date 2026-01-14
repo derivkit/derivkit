@@ -132,7 +132,6 @@ def parallel_execute(
         outer_workers: Parallelism level for outer execution.
         inner_workers: Inner derivative worker setting to propagate via contextvar.
         backend: Parallel backend. Currently supported: "threads".
-            ("processes" is intentionally not supported in v1.).
 
     Returns:
         List of worker return values.
