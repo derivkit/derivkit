@@ -1,3 +1,9 @@
+"""Create adoption YAML entries from GitHub adoption issues.
+
+This script is used by a GitHub Action. It parses the issue form body and writes a
+YAML file into ``docs/adoption/`` so the docs can render the adoption list.
+"""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +14,7 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class AdoptionIssue:
+    """Structured fields extracted from a DerivKit adoption issue."""
     entry_type: str  # "software" or "publication"
     name: str
     description: str
@@ -40,10 +47,12 @@ def _slugify(name: str) -> str:
 
 
 def _parse_issue_form(body: str) -> dict[str, str]:
-    """
-    Parse GitHub issue-form markdown:
-      ### Field label
-      value
+    """Parse a GitHub issue-form body into a mapping of field labels to values.
+
+    The issue form is rendered as markdown sections of the form:
+
+        ### Field label
+        value
     """
     out: dict[str, str] = {}
     current: str | None = None
@@ -71,6 +80,7 @@ def _yaml_quote_block(s: str) -> str:
 
 
 def build_yaml(issue: AdoptionIssue) -> str:
+    """Render a single adoption entry as YAML text."""
     if issue.entry_type == "software":
         if not issue.repo:
             raise ValueError("Software entry requires a repository URL (repo).")
@@ -102,6 +112,7 @@ def build_yaml(issue: AdoptionIssue) -> str:
 
 
 def main() -> None:
+    """Entry point for GitHub Actions to generate the adoption YAML file."""
     issue_body = os.environ["ISSUE_BODY"]
     issue_number = int(os.environ["ISSUE_NUMBER"])
     issue_url = os.environ["ISSUE_URL"]

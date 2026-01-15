@@ -4,6 +4,9 @@
 # Standard library imports
 # -----------------------------------------------------------------------------
 import logging
+import subprocess
+import sys
+from pathlib import Path
 
 # -----------------------------------------------------------------------------
 # Third-party imports
@@ -190,10 +193,6 @@ html_css_files = [
 
 def setup(app):
     """Runs the script that renders the adoption charts."""
-    from pathlib import Path
-    import subprocess
-    import sys
-
     docs = Path(__file__).resolve().parent
     script = docs / "_scripts" / "render_adoption.py"
 

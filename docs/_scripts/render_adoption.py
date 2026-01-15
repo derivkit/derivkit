@@ -1,3 +1,5 @@
+"""Render adoption entries from YAML into RST fragments for the docs."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
