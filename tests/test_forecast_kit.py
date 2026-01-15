@@ -805,3 +805,221 @@ def test_laplace_approximation_delegates_uses_theta_map_override(monkeypatch):
     fk.laplace_approximation(neg_logposterior=neglogpost, theta_map=theta_map)
 
     np.testing.assert_allclose(seen["theta_map"], theta_map)
+
+
+def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.fisher_to_getdist_gaussiannd delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, names=None, labels=None, **kwargs):
+        """Mock fisher_to_getdist_gaussiannd that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["names"] = names
+        seen["labels"] = labels
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.fisher_to_getdist_gaussiannd",
+        fake_fisher_to_getdist_gaussiannd,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.fisher_to_getdist_gaussiannd(
+        fisher=fisher,
+        names=names,
+        labels=labels,
+        label="mylabel",
+        rcond=1e-9,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["label"] == "mylabel"
+    assert seen["kwargs"]["rcond"] == 1e-9
+
+
+def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.fisher_to_getdist_samples delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_fisher_to_getdist_samples(theta0, fisher, *, names, labels, **kwargs):
+        """Mock fisher_to_getdist_samples that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.fisher_to_getdist_samples",
+        fake_fisher_to_getdist_samples,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.fisher_to_getdist_samples(
+        fisher=fisher,
+        names=names,
+        labels=labels,
+        n_samples=123,
+        seed=7,
+        kernel_scale=2.0,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_samples"] == 123
+    assert seen["kwargs"]["seed"] == 7
+    assert seen["kwargs"]["kernel_scale"] == 2.0
+
+
+def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.dali_to_getdist_importance delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_to_getdist_importance(
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        *,
+        names,
+        labels,
+        **kwargs,
+    ):
+        """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.dali_to_getdist_importance",
+        fake_dali_to_getdist_importance,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.dali_to_getdist_importance(
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        names=names,
+        labels=labels,
+        n_samples=1000,
+        seed=11,
+        convention="matplotlib_loglike",
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_samples"] == 1000
+    assert seen["kwargs"]["seed"] == 11
+    assert seen["kwargs"]["convention"] == "matplotlib_loglike"
+
+
+def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.dali_to_getdist_emcee delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_to_getdist_emcee(
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        *,
+        names,
+        labels,
+        **kwargs,
+    ):
+        """Mock dali_to_getdist_emcee that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.dali_to_getdist_emcee",
+        fake_dali_to_getdist_emcee,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.dali_to_getdist_emcee(
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        names=names,
+        labels=labels,
+        n_steps=50,
+        burn=10,
+        thin=2,
+        n_walkers=16,
+        init_scale=1e-2,
+        seed=5,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_steps"] == 50
+    assert seen["kwargs"]["burn"] == 10
+    assert seen["kwargs"]["thin"] == 2
+    assert seen["kwargs"]["n_walkers"] == 16
+    assert seen["kwargs"]["init_scale"] == 1e-2
+    assert seen["kwargs"]["seed"] == 5
