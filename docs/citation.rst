@@ -28,24 +28,7 @@ Software using DerivKit
 DerivKit is used as a dependency or internal component in the following
 external software and analysis pipelines:
 
-- **Augur**
-
-  A DESC forecasting and inference validation tool that generates synthetic
-  datasets and performs parameter inference using either full MCMC or
-  second-order derivative–based Fisher matrix forecasts.
-  DerivKit is used internally for derivative-based Fisher forecasts.
-  Repository: https://github.com/LSSTDESC/augur
-
-- **COCOA**
-
-  A cosmological analysis framework that integrates CosmoLike within the Cobaya
-  inference engine, enabling forecasts and multi-probe analyses for surveys such
-  as DES, LSST, and the Roman Space Telescope.
-  COCOA provides a containerized workflow for reproducible inference, ensuring
-  consistent compiler and library environments across platforms.
-  DerivKit is used internally for derivative-based forecasting and Fisher matrix
-  calculations.
-  Repository: https://github.com/CosmoLike/cocoa
+.. include:: /_generated/adoption_software.rst
 
 
 Publications using DerivKit
@@ -54,7 +37,16 @@ Publications using DerivKit
 The following publications make use of DerivKit, either directly or as part
 of a larger analysis pipeline.
 
-*No publications listed yet.*
+.. include:: /_generated/adoption_publications.rst
 
-If you use DerivKit in a publication and would like it listed here, please open
-an issue or pull request on the DerivKit repository.
+
+Add your software or paper
+--------------------------
+
+To add an entry to this page, please open an adoption issue:
+
+.. button-link:: https://github.com/derivkit/derivkit/issues/new?template=derivkit-adoption.yml&labels=adoption
+   :color: primary
+   :outline:
+
+   Open adoption issue
