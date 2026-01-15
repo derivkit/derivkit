@@ -315,3 +315,280 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     assert seen["rcond"] == 1e-8
     assert seen["symmetrize_dcov"] is False
     assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_submatrix_fisher_delegates(monkeypatch):
+    """Tests that ForecastKit.submatrix_fisher delegates to submatrix_fisher."""
+    seen: dict[str, object] = {}
+
+    def fake_submatrix_fisher(*, fisher, idx):
+        """Mock submatrix_fisher that records inputs and returns fixed output."""
+        seen["fisher"] = np.asarray(fisher)
+        seen["idx"] = list(idx)
+        return np.full((2, 2), 7.0)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.submatrix_fisher",
+        fake_submatrix_fisher,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.0, 1.0]), cov=np.eye(1))
+
+    fisher = np.eye(3)
+    idx = [2, 0]
+
+    out = fk.submatrix_fisher(fisher=fisher, idx=idx)
+
+    np.testing.assert_allclose(out, np.full((2, 2), 7.0))
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["idx"] == idx
+
+
+def test_submatrix_dali_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.submatrix_dali delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_submatrix_dali(*, theta0, fisher, g_tensor, h_tensor, idx):
+        """Mock submatrix_dali that records inputs and returns fixed output."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["idx"] = list(idx)
+        return (
+            np.array([9.0, 8.0]),
+            np.full((2, 2), 1.0),
+            np.full((2, 2, 2), 2.0),
+            np.full((2, 2, 2, 2), 3.0),
+        )
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.submatrix_dali",
+        fake_submatrix_dali,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2, 0.3])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(3)
+    g = np.zeros((3, 3, 3))
+    h = np.ones((3, 3, 3, 3))
+    idx = [1, 2]
+
+    t0_sub, f_sub, g_sub, h_sub = fk.submatrix_dali(
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        idx=idx,
+    )
+
+    np.testing.assert_allclose(t0_sub, np.array([9.0, 8.0]))
+    np.testing.assert_allclose(f_sub, np.full((2, 2), 1.0))
+    np.testing.assert_allclose(g_sub, np.full((2, 2, 2), 2.0))
+    np.testing.assert_allclose(h_sub, np.full((2, 2, 2, 2), 3.0))
+
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["idx"] == idx
+
+
+def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.delta_chi2_fisher delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_delta_chi2_fisher(*, theta, theta0, fisher):
+        """Mock delta_chi2_fisher that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.delta_chi2_fisher",
+        fake_delta_chi2_fisher,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+
+    out = fk.delta_chi2_fisher(theta=theta, fisher=fisher)
+
+    assert out == 123.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+
+
+def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monkeypatch):
+    """Tests that ForecastKit.delta_chi2_dali delegates and forwards convention."""
+    seen: dict[str, object] = {}
+
+    def fake_delta_chi2_dali(*, theta, theta0, fisher, g_tensor, h_tensor, convention="delta_chi2"):
+        """Mock delta_chi2_dali that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["convention"] = convention
+        return 456.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.delta_chi2_dali",
+        fake_delta_chi2_dali,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+
+    out = fk.delta_chi2_dali(
+        theta=theta,
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=None,
+        convention="matplotlib_loglike",
+    )
+
+    assert out == 456.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    assert seen["h_tensor"] is None
+    assert seen["convention"] == "matplotlib_loglike"
+
+
+def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monkeypatch):
+    """Tests that ForecastKit.logposterior_fisher delegates and forwards prior inputs."""
+    seen: dict[str, object] = {}
+
+    def fake_logposterior_fisher(
+        *,
+        theta,
+        theta0,
+        fisher,
+        prior_terms=None,
+        prior_bounds=None,
+        logprior=None,
+    ):
+        """Mock logposterior_fisher that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["prior_terms"] = prior_terms
+        seen["prior_bounds"] = prior_bounds
+        seen["logprior"] = logprior
+        return -3.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.logposterior_fisher",
+        fake_logposterior_fisher,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    prior_terms = [("gaussian", {"mu": 0.0, "sigma": 1.0, "idx": 0})]
+    prior_bounds = [(None, None), (0.0, 1.0)]
+
+    def lp(_theta):
+        return 0.0
+
+    out = fk.logposterior_fisher(
+        theta=theta,
+        fisher=fisher,
+        prior_terms=prior_terms,
+        prior_bounds=prior_bounds,
+        logprior=lp,
+    )
+
+    assert out == -3.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["prior_terms"] == prior_terms
+    assert seen["prior_bounds"] == prior_bounds
+    assert seen["logprior"] is lp
+
+
+def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_convention(monkeypatch):
+    """Tests that ForecastKit.logposterior_dali delegates and forwards priors and convention."""
+    seen: dict[str, object] = {}
+
+    def fake_logposterior_dali(
+        *,
+        theta,
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        convention="delta_chi2",
+        prior_terms=None,
+        prior_bounds=None,
+        logprior=None,
+    ):
+        """Mock logposterior_dali that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["convention"] = convention
+        seen["prior_terms"] = prior_terms
+        seen["prior_bounds"] = prior_bounds
+        seen["logprior"] = logprior
+        return -7.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.logposterior_dali",
+        fake_logposterior_dali,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+
+    prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
+
+    out = fk.logposterior_dali(
+        theta=theta,
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        convention="matplotlib_loglike",
+        prior_terms=prior_terms,
+        prior_bounds=None,
+        logprior=None,
+    )
+
+    assert out == -7.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["convention"] == "matplotlib_loglike"
+    assert seen["prior_terms"] == prior_terms
+    assert seen["prior_bounds"] is None
+    assert seen["logprior"] is None
