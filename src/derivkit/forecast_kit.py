@@ -218,10 +218,11 @@ class ForecastKit:
         )
         return bias
 
-    def delta_nu(self,
-                 data_unbiased: np.ndarray,
-                 data_biased: np.ndarray,
-                 ):
+    def delta_nu(
+        self,
+        data_unbiased: np.ndarray,
+        data_biased: np.ndarray,
+    ) -> np.ndarray:
         """Computes the difference between two data vectors.
 
         This helper is used in Fisher-bias calculations and any other workflow
@@ -276,7 +277,7 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
-            dk_kwargs: Additional keyword arguments passed to
+            **dk_kwargs: Additional keyword arguments passed to
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
@@ -308,8 +309,8 @@ class ForecastKit:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
-        likelihoods with parameter-dependent mean and/or covariance.
-        Uses :func:`derivkit.forecasting.fisher_general.build_generalized_fisher_matrix`.
+        likelihood with parameter-dependent mean and/or covariance.
+        Uses :func:`derivkit.forecasting.fisher_gaussian.build_gaussian_fisher_matrix`.
 
         Args:
             method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -655,7 +656,7 @@ class ForecastKit:
             theta_map=theta,
             method=method,
             n_workers=n_workers,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
 
     def laplace_covariance(
@@ -731,7 +732,7 @@ class ForecastKit:
             theta_map=theta,
             method=method,
             n_workers=n_workers,
-            dk_kwargs=dk_kwargs,
             ensure_spd=ensure_spd,
             rcond=rcond,
+            **dk_kwargs,
         )
