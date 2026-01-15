@@ -592,3 +592,216 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] is None
     assert seen["logprior"] is None
+
+
+def test_negative_logposterior_delegates(monkeypatch):
+    """Tests that ForecastKit.negative_logposterior delegates to negative_logposterior."""
+    seen: dict[str, object] = {}
+
+    def fake_negative_logposterior(theta, *, logposterior):
+        """Mock negative_logposterior that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["logposterior"] = logposterior
+        return 12.5
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.negative_logposterior",
+        fake_negative_logposterior,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.0, 1.0]), cov=np.eye(1))
+
+    def logpost(_theta):
+        return -1.0
+
+    theta = np.array([0.2, 0.3])
+    out = fk.negative_logposterior(theta, logposterior=logpost)
+
+    assert out == 12.5
+    np.testing.assert_allclose(seen["theta"], theta)
+    assert seen["logposterior"] is logpost
+
+
+def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypatch):
+    """Tests that ForecastKit.laplace_hessian delegates, uses self.theta0, and forwards kwargs."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_hessian(
+        *,
+        neg_logposterior,
+        theta_map,
+        method=None,
+        n_workers=1,
+        **dk_kwargs,
+    ):
+        """Mock laplace_hessian that records inputs and returns fixed output."""
+        seen["neg_logposterior"] = neg_logposterior
+        seen["theta_map"] = np.asarray(theta_map)
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["dk_kwargs"] = dk_kwargs
+        return np.eye(2)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.laplace_hessian",
+        fake_laplace_hessian,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    def neglogpost(_theta):
+        """Mock logposterior that returns fixed output."""
+        return 0.0
+
+    out = fk.laplace_hessian(
+        neg_logposterior=neglogpost,
+        theta_map=None,
+        method="finite",
+        n_workers=3,
+        step=1e-4,
+    )
+
+    np.testing.assert_allclose(out, np.eye(2))
+    assert seen["neg_logposterior"] is neglogpost
+    np.testing.assert_allclose(seen["theta_map"], theta0)
+    assert seen["method"] == "finite"
+    assert seen["n_workers"] == 3
+    assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_laplace_hessian_delegates_uses_theta_map_override(monkeypatch):
+    """Tests that ForecastKit.laplace_hessian uses theta_map when provided."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_hessian(*, theta_map, **_kwargs):
+        """Mock laplace_hessian that records theta_map and returns fixed output."""
+        seen["theta_map"] = np.asarray(theta_map)
+        return np.eye(1)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.laplace_hessian",
+        fake_laplace_hessian,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=np.eye(1))
+
+    def neglogpost(_theta):
+        """Mock logposterior that returns fixed output."""
+        return 0.0
+
+    theta_map = np.array([9.0, 8.0])
+    fk.laplace_hessian(neg_logposterior=neglogpost, theta_map=theta_map)
+
+    np.testing.assert_allclose(seen["theta_map"], theta_map)
+
+
+def test_laplace_covariance_delegates(monkeypatch):
+    """Tests that ForecastKit.laplace_covariance delegates to laplace_covariance."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_covariance(hessian, *, rcond=1e-12):
+        """Mock laplace_covariance that records inputs and returns fixed output."""
+        seen["hessian"] = np.asarray(hessian)
+        seen["rcond"] = rcond
+        return np.full((2, 2), 3.0)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.laplace_covariance",
+        fake_laplace_covariance,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(1))
+
+    hess = np.eye(2)
+    out = fk.laplace_covariance(hessian=hess, rcond=1e-9)
+
+    np.testing.assert_allclose(out, np.full((2, 2), 3.0))
+    np.testing.assert_allclose(seen["hessian"], hess)
+    assert seen["rcond"] == 1e-9
+
+
+def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(monkeypatch):
+    """Tests that ForecastKit.laplace_approximation delegates, uses self.theta0, and forwards kwargs."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_approximation(
+        *,
+        neg_logposterior,
+        theta_map,
+        method=None,
+        n_workers=1,
+        ensure_spd=True,
+        rcond=1e-12,
+        **dk_kwargs,
+    ):
+        """Mock laplace_approximation that records inputs and returns fixed output."""
+        seen["neg_logposterior"] = neg_logposterior
+        seen["theta_map"] = np.asarray(theta_map)
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["ensure_spd"] = ensure_spd
+        seen["rcond"] = rcond
+        seen["dk_kwargs"] = dk_kwargs
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.laplace_approximation",
+        fake_laplace_approximation,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    def neglogpost(_theta):
+        return 0.0
+
+    out = fk.laplace_approximation(
+        neg_logposterior=neglogpost,
+        theta_map=None,
+        method="finite",
+        n_workers=4,
+        ensure_spd=False,
+        rcond=1e-9,
+        step=1e-4,
+    )
+
+    assert out == {"ok": True}
+    assert seen["neg_logposterior"] is neglogpost
+    np.testing.assert_allclose(seen["theta_map"], theta0)
+    assert seen["method"] == "finite"
+    assert seen["n_workers"] == 4
+    assert seen["ensure_spd"] is False
+    assert seen["rcond"] == 1e-9
+    assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_laplace_approximation_delegates_uses_theta_map_override(monkeypatch):
+    """Tests that ForecastKit.laplace_approximation uses theta_map when provided."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_approximation(*, theta_map, **_kwargs):
+        """Mock laplace_approximation that records theta_map and returns fixed output."""
+        seen["theta_map"] = np.asarray(theta_map)
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.laplace_approximation",
+        fake_laplace_approximation,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=np.eye(1))
+
+    def neglogpost(_theta):
+        return 0.0
+
+    theta_map = np.array([7.0, 6.0])
+    fk.laplace_approximation(neg_logposterior=neglogpost, theta_map=theta_map)
+
+    np.testing.assert_allclose(seen["theta_map"], theta_map)
