@@ -63,6 +63,14 @@ from derivkit.forecasting.fisher import (
 from derivkit.forecasting.fisher_gaussian import (
     build_gaussian_fisher_matrix,
 )
+from derivkit.forecasting.getdist_dali_samples import (
+    dali_to_getdist_emcee,
+    dali_to_getdist_importance,
+)
+from derivkit.forecasting.getdist_fisher_samples import (
+    fisher_to_getdist_gaussiannd,
+    fisher_to_getdist_samples,
+)
 from derivkit.forecasting.laplace import (
     laplace_approximation,
     laplace_covariance,
@@ -735,4 +743,158 @@ class ForecastKit:
             ensure_spd=ensure_spd,
             rcond=rcond,
             **dk_kwargs,
+        )
+
+    def fisher_to_getdist_gaussiannd(
+            self,
+            *,
+            fisher: np.ndarray,
+            names: Sequence[str] | None = None,
+            labels: Sequence[str] | None = None,
+            **kwargs: Any,
+    ):
+        """Converts a Fisher Gaussian into a GetDist :class:`getdist.gaussian_mixtures.GaussianND`.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
+        that fixes the mean to the stored expansion point ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            names: Optional parameter names (length ``p``).
+            labels: Optional parameter labels (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
+                (e.g. ``label``, ``rcond``).
+
+        Returns:
+            A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``self.theta0`` and
+            covariance given by the (pseudo-)inverse Fisher matrix.
+        """
+        return fisher_to_getdist_gaussiannd(
+            self.theta0,
+            fisher,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def fisher_to_getdist_samples(
+            self,
+            *,
+            fisher: np.ndarray,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Draws GetDist :class:`getdist.MCSamples` from the Fisher Gaussian at ``self.theta0``.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+        that fixes the sampling center to the stored expansion point ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+                (e.g. ``n_samples``, ``seed``, ``kernel_scale``, ``prior_terms``,
+                ``prior_bounds``, ``logprior``, ``hard_bounds``, ``store_loglikes``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` object containing samples drawn from the Fisher Gaussian.
+        """
+        return fisher_to_getdist_samples(
+            self.theta0,
+            fisher,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def dali_to_getdist_importance(
+            self,
+            *,
+            fisher: np.ndarray,
+            g_tensor: np.ndarray,
+            h_tensor: np.ndarray | None,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Returns GetDist :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
+        that fixes the expansion point to ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
+                (e.g. ``n_samples``, ``kernel_scale``, ``convention``, ``seed``,
+                ``prior_terms``, ``prior_bounds``, ``logprior``, ``sampler_bounds``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` with importance weights.
+        """
+        return dali_to_getdist_importance(
+            self.theta0,
+            fisher,
+            g_tensor,
+            None if h_tensor is None else h_tensor,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def dali_to_getdist_emcee(
+            self,
+            *,
+            fisher: np.ndarray,
+            g_tensor: np.ndarray,
+            h_tensor: np.ndarray | None,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Returns GetDist :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
+        that fixes the expansion point to ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
+                (e.g. ``n_steps``, ``burn``, ``thin``, ``n_walkers``, ``init_scale``, ``seed``,
+                ``convention``, ``prior_terms``, ``prior_bounds``, ``logprior``,
+                ``sampler_bounds``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` containing MCMC chains.
+
+        Raises:
+            TypeError: If ``theta0`` is provided (ForecastKit always uses ``self.theta0``).
+            ValueError: If shapes are inconsistent or mutually exclusive options are provided.
+            RuntimeError: If walker initialization fails.
+        """
+        return dali_to_getdist_emcee(
+            self.theta0,
+            fisher,
+            g_tensor,
+            None if h_tensor is None else h_tensor,
+            names=names,
+            labels=labels,
+            **kwargs,
         )
