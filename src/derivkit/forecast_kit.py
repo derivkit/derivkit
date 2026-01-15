@@ -47,6 +47,14 @@ from typing import Any, Sequence
 import numpy as np
 
 from derivkit.forecasting.dali import build_dali
+from derivkit.forecasting.expansions import (
+    delta_chi2_dali,
+    delta_chi2_fisher,
+    logposterior_dali,
+    logposterior_fisher,
+    submatrix_dali,
+    submatrix_fisher,
+)
 from derivkit.forecasting.fisher import (
     build_delta_nu,
     build_fisher_bias,
@@ -319,4 +327,258 @@ class ForecastKit:
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
             **dk_kwargs,
+        )
+
+    def submatrix_fisher(
+        self,
+        *,
+        fisher: np.ndarray,
+        idx: Sequence[int],
+    ) -> np.ndarray:
+        """Extracts a sub-Fisher matrix for a subset of parameter indices.
+
+        This helper selects rows and columns of the provided Fisher matrix at the
+        indices in ``idx`` so that the returned matrix corresponds to the Fisher
+        sub-block for that parameter subset. This operation represents a slice
+        through parameter space (holding other parameters fixed at their expansion
+        values), not a marginalization. For marginal constraints, invert the full
+        Fisher matrix to form a covariance and then slice that instead.
+
+        Args:
+            fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number
+                of parameters.
+            idx: Sequence of parameter indices to extract. The indices may be any
+                subset and any order and do not need to correspond to a contiguous
+                block in the full matrix.
+
+        Returns:
+            Sub-Fisher matrix with shape ``(len(idx), len(idx))``.
+
+        Raises:
+            ValueError: If ``fisher`` is not square 2D.
+            TypeError: If ``idx`` contains non-integer indices.
+            IndexError: If any index in ``idx`` is out of bounds.
+        """
+        return submatrix_fisher(fisher=fisher, idx=idx)
+
+    def submatrix_dali(
+        self,
+        *,
+        fisher: np.ndarray,
+        g_tensor: np.ndarray,
+        h_tensor: np.ndarray | None,
+        idx: Sequence[int],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
+        """Extracts sub-DALI tensors for a subset of parameter indices.
+
+        This helper selects entries of the stored expansion point ``self.theta0`` and the
+        corresponding entries of the Fisher, cubic, and quartic DALI tensors using the
+        indices in ``idx``. The result can be used to evaluate a Fisher/DALI expansion on
+        a lower-dimensional parameter subspace while holding all other parameters fixed at
+        the expansion point.
+
+        Args:
+            fisher: Full Fisher matrix with shape ``(p, p)``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
+            idx: Sequence of parameter indices to extract. The indices may be any
+                subset and any order and do not need to correspond to a contiguous
+                block.
+
+        Returns:
+            A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where shapes are:
+
+            - ``theta0_sub``: ``(len(idx),)``
+            - ``f_sub``: ``(len(idx), len(idx))``
+            - ``g_sub``: ``(len(idx), len(idx), len(idx))``
+            - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
+
+        Raises:
+            ValueError: If input tensors have invalid shapes.
+            TypeError: If ``idx`` contains non-integer indices.
+            IndexError: If any index in ``idx`` is out of bounds.
+        """
+        return submatrix_dali(
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            idx=idx,
+        )
+
+    def delta_chi2_fisher(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+    ) -> float:
+        """Computes a displacement chi-squared under the Fisher approximation.
+
+        This evaluates the standard quadratic form
+
+            ``delta_chi2 = (theta - theta0)^T @ F @ (theta - theta0)``
+
+        using the provided Fisher matrix and the stored expansion point ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+
+        Returns:
+            Scalar delta chi-squared value.
+
+        Raises:
+            ValueError: If shapes are inconsistent.
+        """
+        return delta_chi2_fisher(theta=theta, theta0=self.theta0, fisher=fisher)
+
+    def delta_chi2_dali(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        g_tensor: np.ndarray,
+        h_tensor: np.ndarray | None,
+        convention: str = "delta_chi2",
+    ) -> float:
+        """Computes a displacement chi-squared under the DALI approximation.
+
+        This evaluates a scalar ``delta_chi2`` from the displacement
+        ``d = theta - theta0`` using the Fisher matrix and (optionally) the cubic
+        and quartic DALI tensors. The ``convention`` parameter controls the
+        numerical prefactors applied to the cubic/quartic contractions.
+
+        The expansion point is taken from the stored ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
+            convention: Controls the prefactors used in the cubic/quartic tensor
+                contractions. Supported conventions are ``"delta_chi2"`` and
+                ``"matplotlib_loglike"``.
+
+        Returns:
+            Scalar delta chi-squared value.
+
+        Raises:
+            ValueError: If an unknown ``convention`` is provided.
+            ValueError: If input shapes are inconsistent.
+        """
+        return delta_chi2_dali(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            convention=convention,
+        )
+
+    def logposterior_fisher(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+        prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+        logprior: Callable[[np.ndarray], float] | None = None,
+    ) -> float:
+        """Computes the log posterior under the Fisher approximation.
+
+        The returned value is defined up to an additive constant in log space.
+        This corresponds to an overall multiplicative normalization of the posterior
+        density in probability space.
+
+        If no prior is provided, this returns the Fisher log-likelihood expansion
+        with a flat prior and no hard cutoffs. Priors may be provided either as a
+        pre-built ``logprior(theta)`` callable or as a lightweight prior specification
+        via ``prior_terms`` and/or ``prior_bounds``.
+
+        The expansion point is taken from the stored ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            prior_terms: Prior term specification passed to the underlying prior
+                builder. Use this only if ``logprior`` is not provided.
+            prior_bounds: Global hard bounds passed to the underlying prior builder.
+                Use this only if ``logprior`` is not provided.
+            logprior: Optional custom log-prior callable. If it returns a non-finite
+                value, the posterior is treated as zero at that point and the function
+                returns ``-np.inf``. Cannot be used together with ``prior_terms`` or
+                ``prior_bounds``.
+
+        Returns:
+            Scalar log posterior value, defined up to an additive constant.
+
+        Raises:
+            ValueError: If shapes are inconsistent or if both prior styles are provided.
+        """
+        return logposterior_fisher(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            prior_terms=prior_terms,
+            prior_bounds=prior_bounds,
+            logprior=logprior,
+        )
+
+    def logposterior_dali(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        g_tensor: np.ndarray,
+        h_tensor: np.ndarray | None,
+        convention: str = "delta_chi2",
+        prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+        prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+        logprior: Callable[[np.ndarray], float] | None = None,
+    ) -> float:
+        """Computes the log posterior (up to a constant) under the DALI approximation.
+
+        If no prior is provided, this returns the DALI log-likelihood expansion with
+        a flat prior and no hard cutoffs. Priors may be provided either as a pre-built
+        ``logprior(theta)`` callable or as a lightweight prior specification via
+        ``prior_terms`` and/or ``prior_bounds``.
+
+        The ``convention`` parameter controls the numerical prefactors used in the
+        cubic/quartic contractions and matches the underlying expansion helpers.
+
+        The expansion point is taken from the stored ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
+            convention: The normalization to use (``"delta_chi2"`` or
+                ``"matplotlib_loglike"``).
+            prior_terms: Prior term specification passed to the underlying prior
+                builder. Use this only if ``logprior`` is not provided.
+            prior_bounds: Global hard bounds passed to the underlying prior builder.
+                Use this only if ``logprior`` is not provided.
+            logprior: Optional custom log-prior callable. If it returns a non-finite
+                value, the posterior is treated as zero at that point and the function
+                returns ``-np.inf``. Cannot be used together with ``prior_terms`` or
+                ``prior_bounds``.
+
+        Returns:
+            Scalar log posterior value, defined up to an additive constant.
+
+        Raises:
+            ValueError: If an unknown ``convention`` is provided.
+            ValueError: If shapes are inconsistent or if both prior styles are provided.
+        """
+        return logposterior_dali(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            convention=convention,
+            prior_terms=prior_terms,
+            prior_bounds=prior_bounds,
+            logprior=logprior,
         )
