@@ -63,6 +63,12 @@ from derivkit.forecasting.fisher import (
 from derivkit.forecasting.fisher_gaussian import (
     build_gaussian_fisher_matrix,
 )
+from derivkit.forecasting.laplace import (
+    laplace_approximation,
+    laplace_covariance,
+    laplace_hessian,
+    negative_logposterior,
+)
 from derivkit.utils.validate import (
     require_callable,
     resolve_covariance_input,
@@ -581,4 +587,151 @@ class ForecastKit:
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
             logprior=logprior,
+        )
+
+    def negative_logposterior(
+        self,
+        theta: Sequence[float] | np.ndarray,
+        *,
+        logposterior: Callable[[np.ndarray], float],
+    ) -> float:
+        """Computes the negative log-posterior at ``theta``.
+
+        This converts a log-posterior callable into the objective used by MAP
+        estimation and curvature-based methods. It simply returns
+        ``-logposterior(theta)`` and validates that the result is finite.
+
+        Args:
+            theta: 1D array-like parameter vector.
+            logposterior: Callable that accepts a 1D float64 array and returns a scalar float.
+
+        Returns:
+            Negative log-posterior value as a float.
+
+        Raises:
+            ValueError: If ``theta`` is not a finite 1D vector or if the negative log-posterior
+                evaluates to a non-finite value.
+        """
+        return negative_logposterior(theta, logposterior=logposterior)
+
+    def laplace_hessian(
+            self,
+            *,
+            neg_logposterior: Callable[[np.ndarray], float],
+            theta_map: Sequence[float] | np.ndarray | None = None,
+            method: str | None = None,
+            n_workers: int = 1,
+            **dk_kwargs: Any,
+    ) -> np.ndarray:
+        """Computes the Hessian of the negative log-posterior at ``theta_map``.
+
+        The Hessian at ``theta_map`` measures the local curvature of the posterior peak.
+        In the Laplace approximation, this Hessian plays the role of a local precision
+        matrix, and its inverse provides a fast Gaussian estimate of parameter
+        uncertainties and correlations.
+
+        If ``theta_map`` is not provided, this uses the stored expansion point ``self.theta0``.
+
+        Args:
+            neg_logposterior: Callable returning the scalar negative log-posterior.
+            theta_map: Point where the curvature is evaluated (typically the MAP).
+                If ``None``, uses ``self.theta0``.
+            method: Derivative method name/alias forwarded to the calculus machinery.
+            n_workers: Outer parallelism forwarded to Hessian construction.
+            **dk_kwargs: Additional keyword arguments forwarded to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            A symmetric 2D array with shape ``(p, p)`` giving the Hessian of
+            ``neg_logposterior`` evaluated at ``theta_map``.
+
+        Raises:
+            TypeError: If ``neg_logposterior`` is not scalar-valued (Hessian is not 2D).
+            ValueError: If inputs are invalid or the Hessian is not a finite square matrix.
+        """
+        theta = self.theta0 if theta_map is None else theta_map
+        return laplace_hessian(
+            neg_logposterior=neg_logposterior,
+            theta_map=theta,
+            method=method,
+            n_workers=n_workers,
+            dk_kwargs=dk_kwargs,
+        )
+
+    def laplace_covariance(
+        self,
+        hessian: np.ndarray,
+        *,
+        rcond: float = 1e-12,
+    ) -> np.ndarray:
+        """Computes the Laplace covariance matrix from a Hessian.
+
+        In the Laplace (Gaussian) approximation, the Hessian of the negative
+        log-posterior at the expansion point acts like a local precision matrix.
+        The approximate posterior covariance is the matrix inverse of that Hessian.
+
+        Args:
+            hessian: 2D square Hessian matrix.
+            rcond: Cutoff for small singular values used by the pseudoinverse fallback.
+
+        Returns:
+            A 2D symmetric covariance matrix with the same shape as ``hessian``.
+
+        Raises:
+            ValueError: If ``hessian`` is not a finite square matrix.
+        """
+        return laplace_covariance(hessian, rcond=rcond)
+
+    def laplace_approximation(
+            self,
+            *,
+            neg_logposterior: Callable[[np.ndarray], float],
+            theta_map: Sequence[float] | np.ndarray | None = None,
+            method: str | None = None,
+            n_workers: int = 1,
+            ensure_spd: bool = True,
+            rcond: float = 1e-12,
+            **dk_kwargs: Any,
+    ) -> dict[str, Any]:
+        """Computes a Laplace (Gaussian) approximation around ``theta_map``.
+
+        The Laplace approximation replaces the posterior near its peak with a Gaussian.
+        It does this by measuring the local curvature of the negative log-posterior
+        using its Hessian at ``theta_map``. The Hessian acts like a local precision
+        matrix, and its inverse is the approximate covariance.
+
+        If ``theta_map`` is not provided, this uses the stored expansion point ``self.theta0``.
+
+        Args:
+            neg_logposterior: Callable that accepts a 1D float64 parameter vector and
+                returns a scalar negative log-posterior value.
+            theta_map: Expansion point for the approximation. This is often the maximum a
+                posteriori estimate (MAP). If ``None``, uses ``self.theta0``.
+            method: Derivative method name/alias forwarded to the Hessian builder.
+            n_workers: Outer parallelism forwarded to Hessian construction.
+            ensure_spd: If ``True``, attempt to regularize the Hessian to be symmetric positive definite
+                (SPD) by adding diagonal jitter.
+            rcond: Cutoff for small singular values used by the pseudoinverse fallback
+                when computing the covariance.
+            **dk_kwargs: Additional keyword arguments forwarded to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            Dictionary with the Laplace approximation outputs (theta_map, neg_logposterior_at_map,
+            hessian, cov, and jitter).
+
+        Raises:
+            TypeError: If ``neg_logposterior`` is not scalar-valued.
+            ValueError: If inputs are invalid or non-finite values are encountered.
+            np.linalg.LinAlgError: If ``ensure_spd=True`` and the Hessian cannot be regularized to be SPD.
+        """
+        theta = self.theta0 if theta_map is None else theta_map
+        return laplace_approximation(
+            neg_logposterior=neg_logposterior,
+            theta_map=theta,
+            method=method,
+            n_workers=n_workers,
+            dk_kwargs=dk_kwargs,
+            ensure_spd=ensure_spd,
+            rcond=rcond,
         )
