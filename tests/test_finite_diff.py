@@ -64,10 +64,10 @@ def test_invalid_stencil_size_raises():
 
 def test_invalid_combo_stencil_order_raises():
     """Tests that unsupported (stencil size, order) combination raises ValueError."""
-    # 3-point supports only order=1
+    # 3-point supports only order=1 or order=2
     with pytest.raises(ValueError):
         DerivativeKit(lambda x: x, 0.0).differentiate(
-            order=2, method="finite", num_points=3
+            order=3, method="finite", num_points=3
         )
 
 
