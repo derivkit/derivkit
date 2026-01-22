@@ -10,7 +10,13 @@ __all = [
     "validate_supported_combo",
     "SUPPORTED_BY_STENCIL",
     "TRUNCATION_ORDER",
+    "STENCILS",
+    "ORDERS",
 ]
+
+
+STENCILS = (3, 5, 7, 9)
+ORDERS = (1, 2, 3, 4)
 
 
 def supported_orders(
@@ -18,31 +24,39 @@ def supported_orders(
     *, 
     max_order: int = 4,
 ) -> set[int]:
-    """Create a list of supported derivative orders for a given stencil size, with maximum order 4.
+    """Creates a list of supported derivative orders for a given stencil size, and a maximum derivative order.
 
     Args:
-        num_points:
-            Number of points in the stencil.
-        max_order:
-            The maximum supported derivative order, 4 by default.
+        num_points: Number of points in the stencil. The supported stencil sizes are 3, 5, 7, and 9.
+        max_order: The maximum supported derivative order, 4 by default.
 
     Returns:
         A list of supported derivative orders.
+
+    Raises:
+        ValueError: If ``num_points`` is not in ``STENCILS``.
+        ValueError: If ``max_order < 1`` or ``max_order > 4``.
     """
+    if num_points not in STENCILS:
+        raise ValueError("num_points must be 3, 5, 7, or 9")
+    if max_order < 1:
+        raise ValueError("max_order must be at least 1")
+    if max_order > 4:
+        raise ValueError("max_order must be 4 or less")
+
     return set(range(1, min(max_order, num_points - 1) + 1))
 
 
-SUPPORTED_BY_STENCIL = {n: supported_orders(n) for n in (3, 5, 7, 9)}
+SUPPORTED_BY_STENCIL = {n: supported_orders(n) for n in STENCILS}
 
 
 def _central_offsets(
     num_points: int,
 ) -> NDArray[np.float64]:
-    """Create a grid of central offset values for a desired number of points.
+    """Creates a grid of central offset values for a desired number of points.
 
     Args:
-        num_points:
-            Number of points desired in the grid.
+        num_points: Number of points desired in the grid.
 
     Returns:
         An array of offset values centered at zero.
@@ -55,21 +69,19 @@ def truncation_order_from_coeffs(
     offsets: NDArray[np.float64], 
     coeffs: NDArray[np.float64], 
     deriv_order: int,
+    tol: float = 1e-12,
 ) -> int:
-    """Compute the truncation order from the coefficients and offsets, for some numerical tolerance.
+    """Computes the truncation order from the coefficients and offsets, for some numerical tolerance.
     
     Args:
-        offsets:
-            Array of integer offsets for the finite difference stencil.
-        coeffs:
-            Array of finite difference coefficients.
-        deriv_order:
-            The requested derivative order.
+        offsets: Array of integer offsets for the finite difference stencil.
+        coeffs: Array of finite difference coefficients.
+        deriv_order: The requested derivative order.
+        tol: Numerical tolerance used to determine the truncation order, 1e-12 by default.
             
     Returns:
         The truncation order for the given numerical tolerance.
     """
-    tol = 1e-12
 
     m = deriv_order
     max_r = 40  # plenty for n<=9
@@ -92,12 +104,9 @@ def _finite_difference_coeffs(
     approximate the derivative of specified order using the provided offsets.
 
     Args:
-        offsets:
-            List or array of integer offsets for the finite difference stencil.
-        deriv_order:
-            The order of the derivative to approximate.
-        stepsize:
-            The stepsize used in the finite difference calculation.
+        offsets: List or array of integer offsets for the finite difference stencil.
+        deriv_order: The order of the derivative to approximate.
+        stepsize: The stepsize used in the finite difference calculation.
 
     Returns:
         An array of finite difference coefficients.
@@ -126,7 +135,7 @@ def build_truncation_orders(
     """
     out: dict[tuple[int, int], int] = {}
     h = 1.0  # any value works for p-detection
-    for n in (3, 5, 7, 9):
+    for n in STENCILS:
         k = _central_offsets(n)  # integers as floats
         for m in supported_orders(n):
             c = _finite_difference_coeffs(k, m, h)
@@ -143,14 +152,13 @@ def get_finite_difference_tables(
     """Dynamically computes offset patterns and coefficient tables.
 
     Args:
-        stepsize:
-            The step size to use for the stencil spacing.
+        stepsize: The step size to use for the stencil spacing.
     
     Returns:
         A dictionary of offsets, and a dictionary of coefficient tables, 
         for a range of supported stencil sizes and derivative orders.
     """
-    offsets = {n: _central_offsets(n).tolist() for n in (3, 5, 7, 9)}
+    offsets = {n: _central_offsets(n).tolist() for n in STENCILS}
     coeffs_table = {}
 
     for n, ks in offsets.items():
@@ -169,20 +177,18 @@ def validate_supported_combo(
     """Validates that the (stencil size, order) combo is supported.
 
     Args:
-        num_points:
-            Number of points in the finite difference stencil.
-        order:
-            The order of the derivative to compute.
+        num_points: Number of points in the finite difference stencil.
+        order: The order of the derivative to compute.
 
     Raises:
         ValueError: If the combination of num_points and order is not supported.
     """
-    if num_points not in (3, 5, 7, 9):
+    if num_points not in STENCILS:
         raise ValueError(
             f"[FiniteDifference] Unsupported stencil size: {num_points}. "
             "Must be one of [3, 5, 7, 9]."
         )
-    if order not in (1, 2, 3, 4):
+    if order not in ORDERS:
         raise ValueError(
             f"[FiniteDifference] Unsupported derivative order: {order}. "
             "Must be one of [1, 2, 3, 4]."
