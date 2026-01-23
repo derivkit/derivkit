@@ -40,9 +40,6 @@ def test_forecast_order():
     cov = np.array([[1.0]])
 
     with pytest.raises(ValueError):
-        get_forecast_tensors(func, theta0, cov, forecast_order=3)
-
-    with pytest.raises(ValueError):
         get_forecast_tensors(
             func, theta0, cov, forecast_order=np.random.randint(low=4, high=30)
         )

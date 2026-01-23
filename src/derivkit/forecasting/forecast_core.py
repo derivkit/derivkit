@@ -55,9 +55,9 @@ def get_forecast_tensors(
                 - D = 1 returns a Fisher matrix.
                 - D = 2 returns the 3D and 4D tensors required for the
                   doublet-DALI approximation.
-                - D = 3 would be the triplet-DALI approximation.
+                - D = 3 returns the tensors corresponding to triplet-DALI.
 
-            Currently only D = 1, 2 are supported.
+            Currently only D = 1, 2, 3 are supported.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
@@ -70,18 +70,21 @@ def get_forecast_tensors(
     Returns:
         If ``D = 1``: Fisher matrix of shape ``(P, P)``.
         If ``D = 2``: tuple ``(G, H)`` with shapes ``(P, P, P)`` and ``(P, P, P, P)``.
+        If ``D = 3``: tuple ``(T1, T2, T3)`` with shapes ``(P, P, P, P)``,
+        ``(P, P, P, P, P)``, ``(P, P, P, P, P, P)``.
 
     Raises:
-        ValueError: If `forecast_order` is not 1 or 2.
+        ValueError: If `forecast_order` is not 1, 2 or 3.
 
     Warns:
         RuntimeWarning: If `cov` is not symmetric (proceeds as-is, no symmetrization),
             is ill-conditioned (large condition number), or inversion
             falls back to the pseudoinverse.
     """
-    if forecast_order not in (1, 2):
+    if forecast_order not in (1, 2, 3):
         raise ValueError(
-            "Only Fisher (order 1) and doublet-DALI (order 2) forecasts are currently supported."
+            "Only Fisher (order 1), doublet-DALI (order 2), "
+            "triplet-DALI (order 3) forecasts are currently supported."
         )
 
     theta0_arr = np.atleast_1d(theta0)
@@ -122,11 +125,32 @@ def get_forecast_tensors(
         method=method,
         **dk_kwargs,
     )
-    # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-    g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
-    # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-    h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
-    return g_tensor, h_tensor
+
+    if forecast_order == 2:
+        # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
+        g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
+        # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
+        h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
+        return g_tensor, h_tensor
+
+    # At this point it can be assumed that forecast_order == 3.
+    deriv_order3 = _get_derivatives(
+        function,
+        theta0_arr,
+        cov_arr,
+        order=3,
+        n_workers=n_workers,
+        method=method,
+        **dk_kwargs,
+    )
+
+    # T1_abcd = Σ_ijk d3[a,b,c, i] invcov[i,j] d1[d,j]
+    T1 = np.einsum("iabc,ij,dj->abcd", deriv_order3, invcov, deriv_order1)
+    # T2_abcde = Σ_ijk d3[a,b,c, i] invcov[i,j] d2[d,e,j]
+    T2 = np.einsum("iabc,ij,dej->abcde", deriv_order3, invcov, deriv_order2)
+    # T3_abcdf = Σ_ijk d3[a,b,c, i] invcov[i,j] d3[d,e,f,j]
+    T3 = np.einsum("iabc,ij,jdef->abcdef", deriv_order3, invcov, deriv_order3)
+    return T1, T2, T3
 
 
 def _get_derivatives(
@@ -245,8 +269,10 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        if hh_raw.shape == (n_parameters, n_parameters, n_parameters, n_observables):
+        if hh_raw.shape == (n_observables, n_parameters, n_parameters, n_parameters):
             return hh_raw
+        elif hh_raw.shape == (n_parameters, n_parameters, n_parameters, n_observables):
+            return np.moveaxis(hh_raw, [0,1,2], [1,2,3])
         else:
             raise ValueError(
                 f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
