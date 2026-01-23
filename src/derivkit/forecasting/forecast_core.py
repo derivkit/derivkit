@@ -156,8 +156,9 @@ def _get_derivatives(
 
             - A value of ``1`` returns first-order derivatives.
             - A value of ``2`` returns second-order derivatives.
+            - A value of ``3`` returns third-order derivatives.
 
-            Currently supported values are ``1`` and ``2``.
+            Currently supported values are ``1``, ``2`, ``3``.
 
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
@@ -171,14 +172,16 @@ def _get_derivatives(
         shape is ``(n_parameters, n_observables)`` (first-order derivatives).
         For ``order == 2``, the shape is
         ``(n_parameters, n_parameters, n_observables)`` (second-order derivatives).
+        For ``order == 3``, the shape is
+        ``(n_parameters, n_parameters, n_parameters, n_observables)`` (third-order derivatives).
 
     Raises:
         ValueError: An error occurred if a derivative was requested of
-            higher order than 2.
+            higher order than 3.
         RuntimeError: An error occurred if a ValueError was not raised
             after calling the function.
     """
-    if order not in (1, 2):
+    if order not in (1, 2, 3):
         raise ValueError("Only first- and second-order derivatives are currently supported.")
 
     theta0_arr = np.atleast_1d(theta0)
@@ -232,5 +235,24 @@ def _get_derivatives(
                 f"expected ({n_observables},{n_parameters},{n_parameters}) or "
                 f"({n_parameters},{n_parameters},{n_observables})."
             )
+
+    elif order == 3:
+        hh_raw = np.asarray(
+            ckit.hyper_hessian(
+                method=method,
+                n_workers=n_workers,  # allow outer parallelism across params
+                **dk_kwargs,
+            ),
+            dtype=float,
+        )
+        if hh_raw.shape == (n_parameters, n_parameters, n_parameters, n_observables):
+            return hh_raw
+        else:
+            raise ValueError(
+                f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters}) or "
+                f"({n_parameters},{n_parameters},{n_observables})."
+            )
+
     else:
         raise ValueError(f"Unsupported value of {order}.")

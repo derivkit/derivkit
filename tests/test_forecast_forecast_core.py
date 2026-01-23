@@ -30,8 +30,6 @@ def test_derivative_order():
     cov = np.array([[1.0]])
 
     with pytest.raises(ValueError):
-        _get_derivatives(func, theta0, cov, order=3)
-    with pytest.raises(ValueError):
         _get_derivatives(func, theta0, cov, order=np.random.randint(low=4, high=30))
 
 
