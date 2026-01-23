@@ -211,24 +211,26 @@ def _get_derivatives(
                 f"({n_parameters},{n_observables})."
             )
 
-    # Second-order path (order is guaranteed to be 2 here)
-    # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
-    # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
-    h_raw = np.asarray(
-        ckit.hessian(
-            method=method,
-            n_workers=n_workers,  # allow outer parallelism across params
-            **dk_kwargs,
-        ),
-        dtype=float,
-    )
-    if h_raw.shape == (n_observables, n_parameters, n_parameters):
-        return np.moveaxis(h_raw,[1,2],[0,1])
-    elif h_raw.shape == (n_parameters, n_parameters, n_observables):
-        return h_raw
-    else:
-        raise ValueError(
-            f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
-            f"expected ({n_observables},{n_parameters},{n_parameters}) or "
-            f"({n_parameters},{n_parameters},{n_observables})."
+    elif order == 2:
+        # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
+        # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
+        h_raw = np.asarray(
+            ckit.hessian(
+                method=method,
+                n_workers=n_workers,  # allow outer parallelism across params
+                **dk_kwargs,
+            ),
+            dtype=float,
         )
+        if h_raw.shape == (n_observables, n_parameters, n_parameters):
+            return np.moveaxis(h_raw,[1,2],[0,1])
+        elif h_raw.shape == (n_parameters, n_parameters, n_observables):
+            return h_raw
+        else:
+            raise ValueError(
+                f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters}) or "
+                f"({n_parameters},{n_parameters},{n_observables})."
+            )
+    else:
+        raise ValueError(f"Unsupported value of {order}.")
