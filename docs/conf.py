@@ -4,6 +4,9 @@
 # Standard library imports
 # -----------------------------------------------------------------------------
 import logging
+import subprocess
+import sys
+from pathlib import Path
 
 # -----------------------------------------------------------------------------
 # Third-party imports
@@ -187,3 +190,13 @@ html_static_path = ["_static"]
 html_css_files = [
     "derivkit.css",  # keep LAST; bump version to bust cache
 ]
+
+def setup(app):
+    """Runs the script that renders the adoption charts."""
+    docs = Path(__file__).resolve().parent
+    script = docs / "_scripts" / "render_adoption.py"
+
+    def _render_adoption(_app):
+        subprocess.check_call([sys.executable, str(script)])
+
+    app.connect("builder-inited", _render_adoption)

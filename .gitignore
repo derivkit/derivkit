@@ -17,3 +17,6 @@ notebooks/
 notebooks/plots/*.png
 notebooks/plots/*.pdf
 notebooks/logs/
+
+# docs build artifacts
+docs/_generated/
