@@ -627,6 +627,11 @@ def model_quadratic(theta: np.ndarray) -> np.ndarray:
     return np.array([t0**2, 2.0 * t0 * t1], float)
 
 
+def model_cubic(theta: np.ndarray) -> np.ndarray:
+    """Returns a linear combination of cubes."""
+    return np.asarray([np.sum(np.asarray(theta)**4)])
+
+
 def test_fisher_bias_quadratic_small_systematic():
     """End-to-end test of Fisher bias against quadratic model with small systematic."""
     theta0 = np.array([1.2, -0.7], float)
