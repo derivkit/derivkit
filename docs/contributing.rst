@@ -79,7 +79,9 @@ Code documentation is generated from docstrings, and can be generated automatica
 
   tox -e docs
 
+The new documentation will be placed in the ``docs/_build`` directory.
 Newly created rST files may need to be added to the appropriate table of contents files by hand.
+
 Note that ``tox -e docs`` will use the ``html`` builder of sphinx-build.
 A different builder can be selected by passing it as a command-line argument to tox.
 For example, to run the doctest build::
