@@ -129,16 +129,9 @@ commands = [
   ],
   [
     "sphinx-build",
-    "-b", "doctest",
+    "-b", "{posargs:html}",
     "{tox_root}/docs",
-    "{tox_root}/docs/_build/doctest",
-    "--fail-on-warning",
-  ],
-  [
-    "sphinx-build",
-    "-b", "html",
-    "{tox_root}/docs",
-    "{tox_root}/docs/_build/html",
+    "{tox_root}/docs/_build/{posargs:html}",
     "--fail-on-warning",
   ],
 ]
