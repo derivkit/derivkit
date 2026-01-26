@@ -80,6 +80,13 @@ Code documentation is generated from docstrings, and can be generated automatica
   tox -e docs
 
 Newly created rST files may need to be added to the appropriate table of contents files by hand.
+Note that ``tox -e docs`` will use the ``html`` builder of sphinx-build.
+A different builder can be selected by passing it as a command-line argument to tox.
+For example, to run the doctest build::
+
+  tox -e docs -- doctest
+
+A list of supported options can be found on the `Builders <https://www.sphinx-doc.org/en/master/usage/builders/index.html#builders>`__ page of Sphinx.
 
 The entire documentation for the head of the main branch and all release tags can be generated using::
 
