@@ -275,9 +275,9 @@ def _get_derivatives(
             return np.moveaxis(hh_raw, [0,1,2], [1,2,3])
         else:
             raise ValueError(
-                f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
-                f"expected ({n_observables},{n_parameters},{n_parameters}) or "
-                f"({n_parameters},{n_parameters},{n_observables})."
+                f"build_hessian_tensor returned unexpected shape {hh_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters}) or "
+                f"({n_parameters},{n_parameters},{n_parameters},{n_observables})."
             )
 
     else:
