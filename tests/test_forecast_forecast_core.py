@@ -632,6 +632,51 @@ def model_cubic(theta: np.ndarray) -> np.ndarray:
     return np.asarray([np.sum(np.asarray(theta)**4)])
 
 
+@pytest.mark.parametrize(
+    (
+        "model, "
+        "theta, "
+        "expected,"
+    ),
+    [
+        pytest.param(
+            lambda x: x,
+            np.array([2]),
+            (
+                np.array([[[0]]]),
+                np.array([[[[[0]]]]]),
+                np.array([[[[[[0]]]]]]),
+            ),
+        ),
+        pytest.param(
+            model_cubic,
+            np.array([1]),
+            (
+                np.array([[[96]]]),
+                np.array([[[[[288]]]]]),
+                np.array([[[[[[576]]]]]]),
+            ),
+        ),
+    ]
+)
+def test_scalar_dali_triplet(model, theta, expected):
+    """Tests the DALI triplet for scalar models.
+
+    The models have a single parameter and produce a single observable.
+    """
+    dali_triplet = get_forecast_tensors(
+        model,
+        theta,
+        np.array([1]),
+        forecast_order=3,
+    )
+
+    assert len(dali_triplet) == len(expected)
+
+    for i in range(len(dali_triplet)):
+        assert np.allclose(dali_triplet[i], expected[i], atol=1e-6)
+
+
 def test_fisher_bias_quadratic_small_systematic():
     """End-to-end test of Fisher bias against quadratic model with small systematic."""
     theta0 = np.array([1.2, -0.7], float)
