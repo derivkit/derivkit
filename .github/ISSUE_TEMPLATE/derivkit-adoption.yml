@@ -18,7 +18,48 @@ body:
     id: name
     attributes:
       label: Name
-      placeholder: e.g., Package Name, Paper title
+      placeholder: "e.g. Augur, COCOA, or Paper title"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: >
+        Required. This text will appear on the Citation page. Please write 2–5 lines.
+      placeholder: |
+        Software example:
+        A short description of what the package/pipeline does, and how DerivKit is used
+        (e.g. Fisher forecasts, DALI expansion, numerical derivatives for likelihoods).
+
+        Publication example:
+        A short description of what the paper does, and where DerivKit enters the analysis
+        (e.g. derivative evaluation, forecasting, validation, etc.).
+    validations:
+      required: true
+
+  - type: input
+    id: link
+    attributes:
+      label: Link (required)
+      description: >
+        Required. For software: repository URL. For publications: arXiv or DOI URL.
+      placeholder: |
+        Software: https://github.com/org/repo
+        Publication: https://arxiv.org/abs/XXXX.XXXXX  (or https://doi.org/...)
+    validations:
+      required: true
+
+  - type: textarea
+    id: citation
+    attributes:
+      label: Citation (publications only)
+      description: >
+        Optional but recommended for publications. Free-form reference text (journal/venue + DOI/arXiv).
+        BibTeX is fine too.
+      placeholder: |
+        Author A., Author B. (YEAR), Journal/venue, DOI or arXiv:XXXX.XXXXX
     validations:
       required: true
 
@@ -29,13 +70,4 @@ body:
       description: Email or GitHub handle in case maintainers need clarification.
       placeholder: "@username or name@example.com"
     validations:
-      required: false
-
-  - type: textarea
-    id: reference
-    attributes:
-      label: Reference (optional)
-      description: For publications, include DOI/arXiv and BibTeX if available.
-      placeholder: DOI/arXiv/BibTeX (optional)
-    validations:
-      required: false
+      required: true

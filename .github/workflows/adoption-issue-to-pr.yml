@@ -1,0 +1,50 @@
+name: Adoption issue -> PR
+
+"on":
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create_pr:
+    # Safer gate: only run when a maintainer adds this label
+    if: github.event.label.name == 'adoption-approved'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyyaml
+
+      - name: Generate adoption YAML from issue
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          python .github/scripts/adoption_from_issue.py
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: automation/adoption-${{ github.event.issue.number }}
+          title: "docs: add adoption entry (#${{ github.event.issue.number }})"
+          commit-message: "docs: add adoption entry (#${{ github.event.issue.number }})"
+          body: |
+            Auto-generated from adoption issue #${{ github.event.issue.number }}.
+          add-paths: |
+            docs/adoption/**
+          labels: |
+            adoption

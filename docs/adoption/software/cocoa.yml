@@ -1,0 +1,11 @@
+name: COCOA
+kind: software
+description: >
+  A cosmological analysis framework that integrates CosmoLike within the Cobaya
+  inference engine, enabling forecasts and multi-probe analyses for surveys such
+  as DES, LSST, and the Roman Space Telescope.
+  COCOA provides a containerized workflow for reproducible inference, ensuring
+  consistent compiler and library environments across platforms.
+  DerivKit is used internally for derivative-based forecasting and Fisher matrix
+  calculations.
+repo: https://github.com/CosmoLike/cocoa
