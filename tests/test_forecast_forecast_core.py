@@ -677,6 +677,28 @@ def test_scalar_dali_triplet(model, theta, expected):
         assert np.allclose(dali_triplet[i], expected[i], atol=1e-6)
 
 
+def get_all_indices(max_indices):
+    """Returns all combinations of numbers up to the given input.
+
+    Args:
+        max_indices: a tuple of numbers. Each tuple indicates the number
+            of possible values corresponding to the idex of that axis.
+
+    Returns:
+        A list containing all combinations of possible indices.
+        Each configuration of indices is stored in a tuple.
+    """
+    tmp = max_indices
+    tmp_tuple = ()
+    for i in tmp:
+        tmp_tuple += (np.arange(0, i),)
+
+    grid = np.meshgrid(*tmp_tuple)
+    combinations = np.stack(grid, axis=-1).reshape(-1, len(tmp_tuple))
+
+    return list(map(tuple, combinations))
+
+
 def test_fisher_bias_quadratic_small_systematic():
     """End-to-end test of Fisher bias against quadratic model with small systematic."""
     theta0 = np.array([1.2, -0.7], float)
