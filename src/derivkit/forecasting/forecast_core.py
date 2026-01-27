@@ -23,9 +23,19 @@ from derivkit.utils.linalg import invert_covariance
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
+    "SUPPORTED_FORECAST_ORDERS",
     "get_forecast_tensors",
 ]
 
+
+#: The supported orders of the DALI expansion.
+#:
+#: A value of 1 corresponds to the Fisher matrix.
+#: A value of 2 corresponds to the DALI doublet.
+#: A value of 3 corresponds to the DALI triplet.
+SUPPORTED_FORECAST_ORDERS = (1, 2, 3)
+
+SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3)
 
 def get_forecast_tensors(
         function: Callable[[ArrayLike], float | NDArray[np.floating]],
@@ -50,14 +60,9 @@ def get_forecast_tensors(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        forecast_order: The requested order D of the forecast:
-
-                - D = 1 returns a Fisher matrix.
-                - D = 2 returns the 3D and 4D tensors required for the
-                  doublet-DALI approximation.
-                - D = 3 returns the tensors corresponding to triplet-DALI.
-
-            Currently only D = 1, 2, 3 are supported.
+        forecast_order: The requested order of the forecast.
+            Currently supported values and their meaning are given in
+            :data:`SUPPORTED_FORECAST_ORDERS`.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
@@ -68,23 +73,24 @@ def get_forecast_tensors(
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        If ``D = 1``: Fisher matrix of shape ``(P, P)``.
-        If ``D = 2``: tuple ``(G, H)`` with shapes ``(P, P, P)`` and ``(P, P, P, P)``.
-        If ``D = 3``: tuple ``(T1, T2, T3)`` with shapes ``(P, P, P, P)``,
-        ``(P, P, P, P, P)``, ``(P, P, P, P, P, P)``.
+        If ``forecast_order == 1``: Fisher matrix of shape ``(P, P)``.
+        If ``forecast_order == 2``: tuple ``(G, H)`` with shapes
+        ``(P, P, P)`` and ``(P, P, P, P)``.
+        If ``forecast_order == 3``: tuple ``(T1, T2, T3)`` with shapes
+        ``(P, P, P, P)``, ``(P, P, P, P, P)``, ``(P, P, P, P, P, P)``.
 
     Raises:
-        ValueError: If `forecast_order` is not 1, 2 or 3.
+        ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDER`.
 
     Warns:
-        RuntimeWarning: If `cov` is not symmetric (proceeds as-is, no symmetrization),
+        RuntimeWarning: If ``cov`` is not symmetric (proceeds as-is, no symmetrization),
             is ill-conditioned (large condition number), or inversion
             falls back to the pseudoinverse.
     """
-    if forecast_order not in (1, 2, 3):
+    if forecast_order not in SUPPORTED_FORECAST_ORDERS:
         raise ValueError(
-            "Only Fisher (order 1), doublet-DALI (order 2), "
-            "triplet-DALI (order 3) are currently supported."
+            "A forecast_order was requested with a higher value "
+            "than currently supported."
         )
 
     theta0_arr = np.atleast_1d(theta0)
@@ -176,13 +182,9 @@ def _get_derivatives(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        order: The requested order of the derivatives:
-
-            - A value of ``1`` returns first-order derivatives.
-            - A value of ``2`` returns second-order derivatives.
-            - A value of ``3`` returns third-order derivatives.
-
-            Currently supported values are ``1``, ``2`, ``3``.
+        order: The requested order of the derivatives. The value determines
+            the order of the derivative that is returned. Currently supported
+            values are given in :data:`SUPPORTED_DERIVATIVE_ORDERS`.
 
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
@@ -205,7 +207,7 @@ def _get_derivatives(
         RuntimeError: An error occurred if a ValueError was not raised
             after calling the function.
     """
-    if order not in (1, 2, 3):
+    if order not in SUPPORTED_DERIVATIVE_ORDERS:
         raise ValueError(
             "Requested derivative order is higher than what is "
             "currently supported."
