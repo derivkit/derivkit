@@ -30,8 +30,6 @@ def test_derivative_order():
     cov = np.array([[1.0]])
 
     with pytest.raises(ValueError):
-        _get_derivatives(func, theta0, cov, order=3)
-    with pytest.raises(ValueError):
         _get_derivatives(func, theta0, cov, order=np.random.randint(low=4, high=30))
 
 
@@ -40,9 +38,6 @@ def test_forecast_order():
     func = _identity
     theta0 = np.array([1.0])
     cov = np.array([[1.0]])
-
-    with pytest.raises(ValueError):
-        get_forecast_tensors(func, theta0, cov, forecast_order=3)
 
     with pytest.raises(ValueError):
         get_forecast_tensors(
@@ -630,6 +625,154 @@ def model_quadratic(theta: np.ndarray) -> np.ndarray:
     """A simple 2D→2D quadratic model for basic multi-parameter tests."""
     t0, t1 = np.asarray(theta, float)
     return np.array([t0**2, 2.0 * t0 * t1], float)
+
+
+def model_cubic(theta: np.ndarray) -> np.ndarray:
+    """Returns a linear combination of cubes."""
+    return np.asarray([np.sum(np.asarray(theta)**4)])
+
+
+@pytest.mark.parametrize(
+    (
+        "model, "
+        "theta, "
+        "expected,"
+    ),
+    [
+        pytest.param(
+            lambda x: x,
+            np.array([2]),
+            (
+                np.array([[[0]]]),
+                np.array([[[[[0]]]]]),
+                np.array([[[[[[0]]]]]]),
+            ),
+        ),
+        pytest.param(
+            model_cubic,
+            np.array([1]),
+            (
+                np.array([[[96]]]),
+                np.array([[[[[288]]]]]),
+                np.array([[[[[[576]]]]]]),
+            ),
+        ),
+    ]
+)
+def test_scalar_dali_triplet(model, theta, expected):
+    """Tests the DALI triplet for scalar models.
+
+    The models have a single parameter and produce a single observable.
+    """
+    dali_triplet = get_forecast_tensors(
+        model,
+        theta,
+        np.array([1]),
+        forecast_order=3,
+    )
+
+    assert len(dali_triplet) == len(expected)
+
+    for i in range(len(dali_triplet)):
+        assert np.allclose(dali_triplet[i], expected[i], atol=1e-6)
+
+
+def get_all_indices(max_indices):
+    """Returns all combinations of numbers up to the given input.
+
+    Args:
+        max_indices: a tuple of numbers. Each tuple indicates the number
+            of possible values corresponding to the idex of that axis.
+
+    Returns:
+        A list containing all combinations of possible indices.
+        Each configuration of indices is stored in a tuple.
+    """
+    tmp = max_indices
+    tmp_tuple = ()
+    for i in tmp:
+        tmp_tuple += (np.arange(0, i),)
+
+    grid = np.meshgrid(*tmp_tuple)
+    combinations = np.stack(grid, axis=-1).reshape(-1, len(tmp_tuple))
+
+    return list(map(tuple, combinations))
+
+
+def test_vector_dali_triplet():
+    """Tests the DALI triplet for a vector model.
+
+    In this case the model takes 2 parameters and returns two observables.
+    The observables are assumed to be uncorrelated; the correlation matrix
+    is unity.
+
+    The reference tensors are called T1, T2, T3. This notation follows the
+    convention established in
+    derivkit.forecasting.forecast_core.py:get_forecast_tensors.
+    """
+    model = lambda x: np.array([np.cos(x[0]) + np.sin(x[1]), x[0]**2 * x[1]]) #noqa
+
+    x = np.pi/3
+    y = np.e
+    theta = np.array([x, y])
+
+    cov = np.eye(2)
+
+    triplet = get_forecast_tensors(model, theta, cov, forecast_order=3)
+
+    # The DALI triplet tensors are fully symmetric in the first three indices.
+    # Additionally, the T2 tensor is fully symmetric in its last two indices,
+    # while the T3 is symmetric in the last three indices. Below are only the
+    # non-zero independent components; all the other non-zero components can be
+    # obtained from these through permutations of the axes.
+    #
+    # The convention is that the independent non-zero components have the indices
+    # of each group sorted with the zeroes first and the ones second.
+    T1 = np.zeros((2, 2, 2, 2))
+    T1[0,0,0,0] = -np.sin(x)**2
+    T1[0,0,0,1] = np.sin(x) * np.cos(y)
+    T1[0,0,1,0] = 4*x*y
+    T1[0,0,1,1] = 2*x**2
+    T1[1,1,1,0] = np.sin(x) * np.cos(y)
+    T1[1,1,1,1] = -np.cos(y)**2
+
+    T2 = np.zeros((2, 2, 2, 2, 2))
+    T2[0,0,0,0,0] = - np.sin(x) * np.cos(x)
+    T2[0,0,0,1,1] = - np.sin(x) * np.sin(y)
+    T2[0,0,1,0,0] = 4*y
+    T2[0,0,1,0,1] = 4*x
+    T2[1,1,1,0,0] = np.cos(x) * np.cos(y)
+    T2[1,1,1,1,1] = np.cos(y) * np.sin(y)
+
+    T3 = np.zeros((2,2,2,2,2,2))
+    T3[0,0,0,0,0,0] = np.sin(x)**2
+    T3[0,0,1,0,0,1] = 4
+    T3[0,0,0,1,1,1] = - np.sin(x) * np.cos(y)
+    T3[1,1,1,0,0,0] = T3[0,0,0,1,1,1]
+    T3[1,1,1,1,1,1] = np.cos(y)**2
+
+    for ind, expected_tensor in enumerate((T1,T2,T3)):
+        assert expected_tensor.shape == triplet[ind].shape
+
+        dimension = expected_tensor.ndim
+        max_index = len(expected_tensor[0])
+        max_indices = dimension * (max_index,)
+
+        index_combinations = get_all_indices(max_indices)
+        for i in index_combinations:
+            # The tensor components cannot be compared directly, because
+            # expected_tensor contains only the components for the sorted
+            # index groups. The indices therefore have to be grouped and sorted
+            # before they're passed to expected_tensor.
+            # The first index group is a triple, whereas the
+            # second group comprises what remains when the triple is stripped.
+            expected_indices = (*sorted(i[:3]), *sorted(i[3:]))
+            assert np.allclose(
+                expected_tensor[expected_indices],
+                triplet[ind][i],
+                rtol=1e-8,
+                atol=1e-3,
+            )
 
 
 def test_fisher_bias_quadratic_small_systematic():
