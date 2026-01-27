@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 
 from derivkit.forecasting.expansions import (
-    delta_chi2_dali,
-    delta_chi2_fisher,
-    logposterior_dali,
-    logposterior_fisher,
-    submatrix_dali,
-    submatrix_fisher,
+    build_delta_chi2_dali,
+    build_delta_chi2_fisher,
+    build_logposterior_dali,
+    build_logposterior_fisher,
+    build_submatrix_dali,
+    build_submatrix_fisher,
 )
 
 
@@ -49,7 +49,7 @@ def test_submatrix_fisher_extracts_correct_block():
     """Tests that submatrix_fisher extracts the correct sub-block."""
     f = np.arange(25, dtype=float).reshape(5, 5)
     idx = [0, 2, 4]
-    sub = submatrix_fisher(f, idx)
+    sub = build_submatrix_fisher(f, idx)
     assert sub.shape == (3, 3)
     assert np.allclose(sub, f[np.ix_(idx, idx)])
 
@@ -58,7 +58,7 @@ def test_submatrix_fisher_raises_on_non_square():
     """Tests that submatrix_fisher raises on non-square input."""
     f = np.zeros((2, 3), dtype=float)
     with pytest.raises(ValueError, match="square 2D"):
-        submatrix_fisher(f, [0])
+        build_submatrix_fisher(f, [0])
 
 
 def test_submatrix_dali_extracts_all_tensors():
@@ -69,7 +69,7 @@ def test_submatrix_dali_extracts_all_tensors():
     g, h = _toy_tensors(p)
 
     idx = [1, 3, 4]
-    t0s, fs, gs, hs = submatrix_dali(theta0, f, g, h, idx)
+    t0s, fs, gs, hs = build_submatrix_dali(theta0, f, g, h, idx)
 
     assert t0s.shape == (len(idx),)
     assert fs.shape == (len(idx), len(idx))
@@ -89,7 +89,7 @@ def test_submatrix_dali_h_none_propagates():
     f = _spd_fisher(p, seed=2)
     g, _ = _toy_tensors(p)
 
-    _, _, _, hs = submatrix_dali(theta0, f, g, None, [0, 2])
+    _, _, _, hs = build_submatrix_dali(theta0, f, g, None, [0, 2])
     assert hs is None
 
 
@@ -102,7 +102,7 @@ def test_delta_chi2_fisher_matches_manual():
 
     d = theta - theta0
     expected = float(d @ f @ d)
-    assert delta_chi2_fisher(theta, theta0, f) == pytest.approx(expected)
+    assert build_delta_chi2_fisher(theta, theta0, f) == pytest.approx(expected)
 
 
 def test_logposterior_fisher_no_prior_is_minus_half_chi2():
@@ -112,8 +112,8 @@ def test_logposterior_fisher_no_prior_is_minus_half_chi2():
     theta = np.array([0.1, -0.2, 0.05])
     f = _spd_fisher(p, seed=4)
 
-    chi2 = delta_chi2_fisher(theta, theta0, f)
-    lp = logposterior_fisher(theta, theta0, f)
+    chi2 = build_delta_chi2_fisher(theta, theta0, f)
+    lp = build_logposterior_fisher(theta, theta0, f)
     assert lp == pytest.approx(-0.5 * chi2)
 
 
@@ -125,10 +125,11 @@ def test_logposterior_fisher_with_logprior_adds_term():
     f = _spd_fisher(p, seed=5)
 
     def logprior(th: np.ndarray) -> float:
+        _ = th
         return -1.23
 
-    chi2 = delta_chi2_fisher(theta, theta0, f)
-    lp = logposterior_fisher(theta, theta0, f, logprior=logprior)
+    chi2 = build_delta_chi2_fisher(theta, theta0, f)
+    lp = build_logposterior_fisher(theta, theta0, f, logprior=logprior)
     assert lp == pytest.approx(-1.23 - 0.5 * chi2)
 
 
@@ -142,7 +143,7 @@ def test_logposterior_fisher_prior_returns_minus_inf_short_circuits():
     def logprior(_: np.ndarray) -> float:
         return -np.inf
 
-    lp = logposterior_fisher(theta, theta0, f, logprior=logprior)
+    lp = build_logposterior_fisher(theta, theta0, f, logprior=logprior)
     assert lp == -np.inf
 
 
@@ -154,7 +155,7 @@ def test_logposterior_fisher_rejects_prior_spec_and_logprior_together():
     f = _spd_fisher(p, seed=7)
 
     with pytest.raises(ValueError, match="either `logprior` or"):
-        logposterior_fisher(
+        build_logposterior_fisher(
             theta,
             theta0,
             f,
@@ -172,8 +173,8 @@ def test_delta_chi2_dali_reduces_to_fisher_when_g_h_zero():
     g = np.zeros((p, p, p), dtype=float)
     h = np.zeros((p, p, p, p), dtype=float)
 
-    chi2_f = delta_chi2_fisher(theta, theta0, f)
-    chi2_d = delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
+    chi2_f = build_delta_chi2_fisher(theta, theta0, f)
+    chi2_d = build_delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
     assert chi2_d == pytest.approx(chi2_f)
 
 
@@ -191,7 +192,7 @@ def test_delta_chi2_dali_convention_delta_chi2_matches_formula():
     h4 = _manual_h4(h, d)
 
     expected = quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4
-    got = delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
+    got = build_delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
     assert got == pytest.approx(expected)
 
 
@@ -209,7 +210,7 @@ def test_delta_chi2_dali_convention_matplotlib_matches_formula():
     h4 = _manual_h4(h, d)
 
     expected = quad + g3 + 0.25 * h4
-    got = delta_chi2_dali(theta, theta0, f, g, h, convention="matplotlib_loglike")
+    got = build_delta_chi2_dali(theta, theta0, f, g, h, convention="matplotlib_loglike")
     assert got == pytest.approx(expected)
 
 
@@ -221,7 +222,7 @@ def test_delta_chi2_dali_unknown_convention_raises():
     f = _spd_fisher(p, seed=11)
     g = np.zeros((p, p, p))
     with pytest.raises(ValueError, match="Unknown convention"):
-        delta_chi2_dali(theta, theta0, f, g, None, convention="nope")
+        build_delta_chi2_dali(theta, theta0, f, g, None, convention="nope")
 
 
 def test_logposterior_dali_no_prior_is_minus_half_delta_chi2():
@@ -232,8 +233,8 @@ def test_logposterior_dali_no_prior_is_minus_half_delta_chi2():
     f = _spd_fisher(p, seed=12)
     g, h = _toy_tensors(p)
 
-    chi2 = delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
-    lp = logposterior_dali(theta, theta0, f, g, h, convention="delta_chi2")
+    chi2 = build_delta_chi2_dali(theta, theta0, f, g, h, convention="delta_chi2")
+    lp = build_logposterior_dali(theta, theta0, f, g, h, convention="delta_chi2")
     assert lp == pytest.approx(-0.5 * chi2)
 
 
@@ -248,7 +249,7 @@ def test_logposterior_dali_prior_short_circuit_to_minus_inf():
     def logprior(_: np.ndarray) -> float:
         return -np.inf
 
-    lp = logposterior_dali(theta, theta0, f, g, h, logprior=logprior)
+    lp = build_logposterior_dali(theta, theta0, f, g, h, logprior=logprior)
     assert lp == -np.inf
 
 
@@ -261,7 +262,7 @@ def test_logposterior_dali_rejects_prior_spec_and_logprior_together():
     g, h = _toy_tensors(p)
 
     with pytest.raises(ValueError, match="either `logprior` or"):
-        logposterior_dali(
+        build_logposterior_dali(
             theta,
             theta0,
             f,
@@ -282,8 +283,8 @@ def test_logposterior_fisher_prior_bounds_enforced_via_build_prior():
     theta_inside = np.array([0.1, -0.2])
     theta_outside = np.array([0.6, 0.0])
 
-    lp_in = logposterior_fisher(theta_inside, theta0, f, prior_bounds=bounds)
+    lp_in = build_logposterior_fisher(theta_inside, theta0, f, prior_bounds=bounds)
     assert np.isfinite(lp_in)
 
-    lp_out = logposterior_fisher(theta_outside, theta0, f, prior_bounds=bounds)
+    lp_out = build_logposterior_fisher(theta_outside, theta0, f, prior_bounds=bounds)
     assert lp_out == -np.inf

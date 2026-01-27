@@ -48,12 +48,12 @@ import numpy as np
 
 from derivkit.forecasting.dali import build_dali
 from derivkit.forecasting.expansions import (
-    delta_chi2_dali,
-    delta_chi2_fisher,
-    logposterior_dali,
-    logposterior_fisher,
-    submatrix_dali,
-    submatrix_fisher,
+    build_delta_chi2_dali,
+    build_delta_chi2_fisher,
+    build_logposterior_dali,
+    build_logposterior_fisher,
+    build_submatrix_dali,
+    build_submatrix_fisher,
 )
 from derivkit.forecasting.fisher import (
     build_delta_nu,
@@ -72,10 +72,10 @@ from derivkit.forecasting.getdist_fisher_samples import (
     fisher_to_getdist_samples,
 )
 from derivkit.forecasting.laplace import (
-    laplace_approximation,
-    laplace_covariance,
-    laplace_hessian,
-    negative_logposterior,
+    build_laplace_approximation,
+    build_laplace_covariance,
+    build_laplace_hessian,
+    build_negative_logposterior,
 )
 from derivkit.utils.validate import (
     require_callable,
@@ -374,7 +374,7 @@ class ForecastKit:
             TypeError: If ``idx`` contains non-integer indices.
             IndexError: If any index in ``idx`` is out of bounds.
         """
-        return submatrix_fisher(fisher=fisher, idx=idx)
+        return build_submatrix_fisher(fisher=fisher, idx=idx)
 
     def submatrix_dali(
         self,
@@ -413,7 +413,7 @@ class ForecastKit:
             TypeError: If ``idx`` contains non-integer indices.
             IndexError: If any index in ``idx`` is out of bounds.
         """
-        return submatrix_dali(
+        return build_submatrix_dali(
             theta0=self.theta0,
             fisher=fisher,
             g_tensor=g_tensor,
@@ -445,7 +445,7 @@ class ForecastKit:
         Raises:
             ValueError: If shapes are inconsistent.
         """
-        return delta_chi2_fisher(theta=theta, theta0=self.theta0, fisher=fisher)
+        return build_delta_chi2_fisher(theta=theta, theta0=self.theta0, fisher=fisher)
 
     def delta_chi2_dali(
         self,
@@ -481,7 +481,7 @@ class ForecastKit:
             ValueError: If an unknown ``convention`` is provided.
             ValueError: If input shapes are inconsistent.
         """
-        return delta_chi2_dali(
+        return build_delta_chi2_dali(
             theta=theta,
             theta0=self.theta0,
             fisher=fisher,
@@ -530,7 +530,7 @@ class ForecastKit:
         Raises:
             ValueError: If shapes are inconsistent or if both prior styles are provided.
         """
-        return logposterior_fisher(
+        return build_logposterior_fisher(
             theta=theta,
             theta0=self.theta0,
             fisher=fisher,
@@ -586,7 +586,7 @@ class ForecastKit:
             ValueError: If an unknown ``convention`` is provided.
             ValueError: If shapes are inconsistent or if both prior styles are provided.
         """
-        return logposterior_dali(
+        return build_logposterior_dali(
             theta=theta,
             theta0=self.theta0,
             fisher=fisher,
@@ -621,7 +621,7 @@ class ForecastKit:
             ValueError: If ``theta`` is not a finite 1D vector or if the negative log-posterior
                 evaluates to a non-finite value.
         """
-        return negative_logposterior(theta, logposterior=logposterior)
+        return build_negative_logposterior(theta, logposterior=logposterior)
 
     def laplace_hessian(
             self,
@@ -659,7 +659,7 @@ class ForecastKit:
             ValueError: If inputs are invalid or the Hessian is not a finite square matrix.
         """
         theta = self.theta0 if theta_map is None else theta_map
-        return laplace_hessian(
+        return build_laplace_hessian(
             neg_logposterior=neg_logposterior,
             theta_map=theta,
             method=method,
@@ -689,7 +689,7 @@ class ForecastKit:
         Raises:
             ValueError: If ``hessian`` is not a finite square matrix.
         """
-        return laplace_covariance(hessian, rcond=rcond)
+        return build_laplace_covariance(hessian, rcond=rcond)
 
     def laplace_approximation(
             self,
@@ -735,7 +735,7 @@ class ForecastKit:
             np.linalg.LinAlgError: If ``ensure_spd=True`` and the Hessian cannot be regularized to be SPD.
         """
         theta = self.theta0 if theta_map is None else theta_map
-        return laplace_approximation(
+        return build_laplace_approximation(
             neg_logposterior=neg_logposterior,
             theta_map=theta,
             method=method,
@@ -745,7 +745,7 @@ class ForecastKit:
             **dk_kwargs,
         )
 
-    def fisher_to_getdist_gaussiannd(
+    def getdist_fisher_gaussian(
             self,
             *,
             fisher: np.ndarray,
@@ -779,7 +779,7 @@ class ForecastKit:
             **kwargs,
         )
 
-    def fisher_to_getdist_samples(
+    def getdist_fisher_samples(
             self,
             *,
             fisher: np.ndarray,
@@ -813,7 +813,7 @@ class ForecastKit:
             **kwargs,
         )
 
-    def dali_to_getdist_importance(
+    def getdist_dali_importance(
             self,
             *,
             fisher: np.ndarray,
@@ -853,7 +853,7 @@ class ForecastKit:
             **kwargs,
         )
 
-    def dali_to_getdist_emcee(
+    def getdist_dali_emcee(
             self,
             *,
             fisher: np.ndarray,

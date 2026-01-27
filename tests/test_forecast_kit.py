@@ -328,7 +328,7 @@ def test_submatrix_fisher_delegates(monkeypatch):
         return np.full((2, 2), 7.0)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.submatrix_fisher",
+        "derivkit.forecast_kit.build_submatrix_fisher",
         fake_submatrix_fisher,
         raising=True,
     )
@@ -364,7 +364,7 @@ def test_submatrix_dali_delegates_uses_self_theta0(monkeypatch):
         )
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.submatrix_dali",
+        "derivkit.forecast_kit.build_submatrix_dali",
         fake_submatrix_dali,
         raising=True,
     )
@@ -408,7 +408,7 @@ def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
         return 123.0
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.delta_chi2_fisher",
+        "derivkit.forecast_kit.build_delta_chi2_fisher",
         fake_delta_chi2_fisher,
         raising=True,
     )
@@ -442,7 +442,7 @@ def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monk
         return 456.0
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.delta_chi2_dali",
+        "derivkit.forecast_kit.build_delta_chi2_dali",
         fake_delta_chi2_dali,
         raising=True,
     )
@@ -494,7 +494,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
         return -3.0
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.logposterior_fisher",
+        "derivkit.forecast_kit.build_logposterior_fisher",
         fake_logposterior_fisher,
         raising=True,
     )
@@ -556,7 +556,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         return -7.0
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.logposterior_dali",
+        "derivkit.forecast_kit.build_logposterior_dali",
         fake_logposterior_dali,
         raising=True,
     )
@@ -605,7 +605,7 @@ def test_negative_logposterior_delegates(monkeypatch):
         return 12.5
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.negative_logposterior",
+        "derivkit.forecast_kit.build_negative_logposterior",
         fake_negative_logposterior,
         raising=True,
     )
@@ -644,7 +644,7 @@ def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypa
         return np.eye(2)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.laplace_hessian",
+        "derivkit.forecast_kit.build_laplace_hessian",
         fake_laplace_hessian,
         raising=True,
     )
@@ -682,7 +682,7 @@ def test_laplace_hessian_delegates_uses_theta_map_override(monkeypatch):
         return np.eye(1)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.laplace_hessian",
+        "derivkit.forecast_kit.build_laplace_hessian",
         fake_laplace_hessian,
         raising=True,
     )
@@ -710,7 +710,7 @@ def test_laplace_covariance_delegates(monkeypatch):
         return np.full((2, 2), 3.0)
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.laplace_covariance",
+        "derivkit.forecast_kit.build_laplace_covariance",
         fake_laplace_covariance,
         raising=True,
     )
@@ -750,7 +750,7 @@ def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(mo
         return {"ok": True}
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.laplace_approximation",
+        "derivkit.forecast_kit.build_laplace_approximation",
         fake_laplace_approximation,
         raising=True,
     )
@@ -791,7 +791,7 @@ def test_laplace_approximation_delegates_uses_theta_map_override(monkeypatch):
         return {"ok": True}
 
     monkeypatch.setattr(
-        "derivkit.forecast_kit.laplace_approximation",
+        "derivkit.forecast_kit.build_laplace_approximation",
         fake_laplace_approximation,
         raising=True,
     )
@@ -833,7 +833,7 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    out = fk.fisher_to_getdist_gaussiannd(
+    out = fk.getdist_fisher_gaussian(
         fisher=fisher,
         names=names,
         labels=labels,
@@ -876,7 +876,7 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    out = fk.fisher_to_getdist_samples(
+    out = fk.getdist_fisher_samples(
         fisher=fisher,
         names=names,
         labels=labels,
@@ -934,7 +934,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    out = fk.dali_to_getdist_importance(
+    out = fk.getdist_dali_importance(
         fisher=fisher,
         g_tensor=g,
         h_tensor=h,
@@ -996,7 +996,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    out = fk.dali_to_getdist_emcee(
+    out = fk.getdist_dali_emcee(
         fisher=fisher,
         g_tensor=g,
         h_tensor=h,
