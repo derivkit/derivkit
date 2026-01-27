@@ -43,7 +43,6 @@ then plot Fisher ellipses using GetDist.
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> # Define a simple toy model
    >>> def model(theta):
    ...     a, b = theta
@@ -61,8 +60,7 @@ then plot Fisher ellipses using GetDist.
    ...     levels=4,
    ... )
    >>> # Convert Fisher matrix to analytic GetDist Gaussian
-   >>> gnd = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> gnd = fk.getdist_fisher_gaussian(
    ...     fisher=fisher,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
@@ -93,7 +91,6 @@ then plot Fisher ellipses using GetDist.
    import numpy as np
    from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def model(theta):
        a, b = theta
@@ -111,8 +108,7 @@ then plot Fisher ellipses using GetDist.
        levels=4,
    )
 
-   gnd = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd = fk.getdist_fisher_gaussian(
        fisher=fisher,
        names=["a", "b"],
        labels=[r"a", r"b"],
@@ -148,7 +144,6 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
    >>> # Define a simple toy model
    >>> def model(theta):
    ...     a, b = theta
@@ -166,8 +161,7 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
    ...     levels=4,
    ... )
    >>> # Draw samples from the Fisher Gaussian
-   >>> samples = fisher_to_getdist_samples(
-   ...     theta0=theta0,
+   >>> samples = fk.getdist_fisher_samples(
    ...     fisher=fisher,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
@@ -199,7 +193,6 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
    import numpy as np
    from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
 
    def model(theta):
        a, b = theta
@@ -217,8 +210,7 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
        levels=4,
    )
 
-   samples = fisher_to_getdist_samples(
-       theta0=theta0,
+   samples = fk.getdist_fisher_samples(
        fisher=fisher,
        names=["a", "b"],
        labels=[r"a", r"b"],
@@ -257,7 +249,6 @@ Fisher+prior contours (yellow).
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Same toy model as above
    >>> def model(theta):
@@ -273,15 +264,13 @@ Fisher+prior contours (yellow).
    >>> fisher_prior = np.diag(1.0 / sigma_prior**2)
    >>> fisher_post = fisher_like + fisher_prior
    >>> # Convert both to analytic GetDist Gaussians
-   >>> g_like = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> g_like = fk.getdist_fisher_gaussian(
    ...     fisher=fisher_like,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
    ...     label="Fisher",
    ... )
-   >>> g_post = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> g_post = fk.getdist_fisher_gaussian(
    ...     fisher=fisher_post,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
@@ -315,7 +304,6 @@ Fisher+prior contours (yellow).
    import numpy as np
    from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def model(theta):
        a, b = theta
@@ -331,15 +319,13 @@ Fisher+prior contours (yellow).
    fisher_prior = np.diag(1.0 / sigma_prior**2)
    fisher_post = fisher_like + fisher_prior
 
-   g_like = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   g_like = fk.getdist_fisher_gaussian(
        fisher=fisher_like,
        names=["a", "b"],
        labels=[r"a", r"b"],
        label="Fisher",
    )
-   g_post = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   g_post = fk.getdist_fisher_gaussian(
        fisher=fisher_post,
        names=["a", "b"],
        labels=[r"a", r"b"],
@@ -385,6 +371,6 @@ See also
 --------
 
 - :class:`derivkit.forecast_kit.ForecastKit`
-- :func:`derivkit.forecasting.fisher.build_fisher_matrix`
-- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
-- :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
+- :func:`derivkit.forecast_kit.ForecastKit.fisher`
+- :func:`derivkit.forecast_kit.ForecastKit.getdist_fisher_gaussian`
+- :func:`derivkit.forecast_kit.ForecastKit.getdist_fisher_samples`
