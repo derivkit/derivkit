@@ -63,16 +63,16 @@ from derivkit.utils.validate import (
 )
 
 __all__ = [
-    "submatrix_fisher",
-    "submatrix_dali",
-    "delta_chi2_fisher",
-    "delta_chi2_dali",
-    "logposterior_fisher",
-    "logposterior_dali",
+    "build_submatrix_fisher",
+    "build_submatrix_dali",
+    "build_delta_chi2_fisher",
+    "build_delta_chi2_dali",
+    "build_logposterior_fisher",
+    "build_logposterior_dali",
 ]
 
 
-def submatrix_fisher(
+def build_submatrix_fisher(
     fisher: NDArray[np.floating],
     idx: Sequence[int],
 ) -> NDArray[np.float64]:
@@ -121,7 +121,7 @@ def submatrix_fisher(
     return fisher[np.ix_(idx, idx)]
 
 
-def submatrix_dali(
+def build_submatrix_dali(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
     g_tensor: NDArray[np.floating],
@@ -189,7 +189,7 @@ def submatrix_dali(
     return t0, f2, g2, h2
 
 
-def delta_chi2_fisher(
+def build_delta_chi2_fisher(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -254,7 +254,7 @@ def _resolve_logprior(
     return logprior
 
 
-def logposterior_fisher(
+def build_logposterior_fisher(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -325,7 +325,7 @@ def logposterior_fisher(
     return logprior_val - 0.5 * chi2
 
 
-def delta_chi2_dali(
+def build_delta_chi2_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -403,7 +403,7 @@ def delta_chi2_dali(
     return conv_dict[convention]
 
 
-def logposterior_dali(
+def build_logposterior_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
