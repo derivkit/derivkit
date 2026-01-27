@@ -42,7 +42,7 @@ Typical usage example:
 """
 
 from collections.abc import Callable
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
@@ -83,6 +83,7 @@ from derivkit.utils.validate import (
     validate_covariance_matrix_shape,
 )
 
+_RESERVED_KWARGS = {"theta0"}
 
 class ForecastKit:
     """Provides access to Fisher and DALI likelihoods-expansion tensors."""
@@ -843,11 +844,13 @@ class ForecastKit:
         Returns:
             A :class:`getdist.MCSamples` with importance weights.
         """
+        kwargs = _drop_reserved_kwargs(kwargs, reserved=_RESERVED_KWARGS)
+
         return dali_to_getdist_importance(
-            self.theta0,
-            fisher,
-            g_tensor,
-            None if h_tensor is None else h_tensor,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
             names=names,
             labels=labels,
             **kwargs,
@@ -889,12 +892,22 @@ class ForecastKit:
             ValueError: If shapes are inconsistent or mutually exclusive options are provided.
             RuntimeError: If walker initialization fails.
         """
+        kwargs = _drop_reserved_kwargs(kwargs, reserved=_RESERVED_KWARGS)
+
         return dali_to_getdist_emcee(
-            self.theta0,
-            fisher,
-            g_tensor,
-            None if h_tensor is None else h_tensor,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
             names=names,
             labels=labels,
             **kwargs,
         )
+
+
+def _drop_reserved_kwargs(
+    kwargs: Mapping[str, Any],
+    *,
+    reserved: set[str]
+) -> dict[str, Any]:
+    return {k: v for k, v in kwargs.items() if k not in reserved}
