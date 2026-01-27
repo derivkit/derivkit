@@ -13,12 +13,15 @@ The main features are:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 from numpy.typing import NDArray
 
 from derivkit.utils.logger import derivkit_logger
+from derivkit.utils.validate import validate_covariance_matrix_shape
+
+CovSpec = NDArray[np.float64] | Mapping[str, Any]
 
 __all__ = [
     "invert_covariance",
@@ -26,6 +29,8 @@ __all__ = [
     "solve_or_pinv",
     "symmetrize_matrix",
     "make_spd_by_jitter",
+    "split_xy_covariance",
+    "as_1d_data_vector",
 ]
 
 
@@ -316,3 +321,188 @@ def make_spd_by_jitter(
         "Hessian was not SPD and could not be regularized with diagonal jitter "
         f"(min_eig={min_eig:.2e}, last_jitter={jitter:.2e})."
     )
+
+
+def split_xy_covariance(
+    cov: CovSpec,
+    *,
+    nx: int,
+    atol_sym: float = 1e-12,
+    rtol_sym: float = 1e-8,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Validates and splits a stacked covariance for the concatenated vector ``[x, y]``.
+
+    This function enforces the convention that the full covariance corresponds to
+    a stacked data vector ordered as ``[x, y]``, where x has length ``nx`` and y has
+    length ``n - nx``. It returns the covariance blocks (Cxx, Cxy, Cyy) and raises
+    informative errors if the input is not consistent with this convention.
+
+    The input may be provided directly as a 2D covariance matrix, or as a dict-like
+    specification that includes the covariance and optional metadata for enforcing
+    or reordering the ``[x, y]`` convention.
+
+    Args:
+        cov: Full covariance for the stacked vector ``[x, y]``. Accepts either:
+            - A 2D array interpreted as already ordered ``[x, y]``.
+            - A dict-like object with key "cov" containing the 2D array. The dict
+              may include:
+                - "order": Must be "xy" (clarifies the intended convention).
+                - "x_idx" and "y_idx": Integer index arrays used to reorder an
+                  arbitrary covariance into ``[x, y]`` order before splitting.
+        nx: Number of input components in ``x`` (length of ``x`` in the stacked vector).
+        atol_sym: Absolute tolerance used for symmetry and cross-block consistency
+            checks.
+        rtol_sym: Relative tolerance used for symmetry and cross-block consistency
+            checks.
+
+    Returns:
+        A tuple (cxx, cxy, cyy) where:
+            - cxx has shape (nx, nx)
+            - cxy has shape (nx, ny)
+            - cyy has shape (ny, ny)
+        with ny = n - nx.
+
+    Raises:
+        ValueError: If cov is not a valid square covariance matrix, contains
+            non-finite values, is not symmetric within tolerance, cannot be split
+            using ``nx`, or if the cross-blocks are inconsistent with the ``[x, y]``
+            stacking convention. Also raised if a dict-like specification is
+            missing required keys or uses an unsupported order value.
+    """
+    if isinstance(cov, Mapping):
+        spec = cov
+        cov_arr = np.asarray(spec["cov"], dtype=np.float64)
+
+        # Optional explicit reordering
+        if ("x_idx" in spec) or ("y_idx" in spec):
+            if ("x_idx" not in spec) or ("y_idx" not in spec):
+                raise ValueError("If using indices,"
+                                 " you must provide both 'x_idx' and 'y_idx'.")
+            x_idx = np.asarray(spec["x_idx"], dtype=np.int64)
+            y_idx = np.asarray(spec["y_idx"], dtype=np.int64)
+            cov_arr = _reorder_cov_to_xy(cov_arr, x_idx=x_idx, y_idx=y_idx)
+
+        order = spec.get("order", "xy")
+        if order != "xy":
+            raise ValueError("Only order='xy' is supported."
+                             " Use x_idx/y_idx to reorder explicitly.")
+    else:
+        cov_arr = np.asarray(cov, dtype=np.float64)
+
+    validate_covariance_matrix_shape(cov_arr)
+
+    if not np.all(np.isfinite(cov_arr)):
+        raise ValueError("cov must contain only finite values.")
+
+    if not np.allclose(cov_arr, cov_arr.T, atol=atol_sym, rtol=rtol_sym):
+        max_asym = float(np.max(np.abs(cov_arr - cov_arr.T)))
+        raise ValueError(
+            "cov must be symmetric within tolerance. "
+            f"max|cov-cov.T|={max_asym:g} (atol={atol_sym:g}, rtol={rtol_sym:g})."
+        )
+
+    n = int(cov_arr.shape[0])
+    if not (0 < nx < n):
+        raise ValueError(f"nx must satisfy 0 < nx < cov.shape[0];"
+                         f" got nx={nx}, n={n}.")
+
+    ny = n - nx
+
+    cxx = cov_arr[:nx, :nx]
+    cxy = cov_arr[:nx, nx:]
+    cyy = cov_arr[nx:, nx:]
+
+    # Block shape checks
+    if cxx.shape != (nx, nx):
+        raise ValueError(f"cxx must have shape ({nx},{nx}); got {cxx.shape}.")
+    if cxy.shape != (nx, ny):
+        raise ValueError(f"cxy must have shape ({nx},{ny}); got {cxy.shape}.")
+    if cyy.shape != (ny, ny):
+        raise ValueError(f"cyy must have shape ({ny},{ny}); got {cyy.shape}.")
+
+    # Cross-block consistency: Cxy == Cyx^T
+    cyx = cov_arr[nx:, :nx]
+    if not np.allclose(cxy, cyx.T, atol=atol_sym, rtol=rtol_sym):
+        max_cross = float(np.max(np.abs(cxy - cyx.T)))
+        raise ValueError(
+            "Cross-covariance blocks inconsistent with [x,y] stacking: "
+            "expected cov[:nx,nx:] == cov[nx:,:nx].T within tolerance. "
+            f"max diff={max_cross:g} (atol={atol_sym:g}, rtol={rtol_sym:g})."
+        )
+
+    return cxx, cxy, cyy
+
+
+def _reorder_cov_to_xy(
+    cov: NDArray[np.float64],
+    *,
+    x_idx: NDArray[np.int64],
+    y_idx: NDArray[np.int64],
+) -> NDArray[np.float64]:
+    """Reorders a full covariance matrix into the stacked ``[x, y]`` convention.
+
+    This helper reindexes the input covariance so that the returned matrix is
+    ordered as ``[x, y]``, where the first block corresponds to indices ``x_idx``
+    and the second block corresponds to indices ``y_idx``. It is intended to
+    support cases where the original covariance uses a different ordering than
+    the required ``[x, y]`` stacking convention.
+
+    Args:
+        cov: Full 2D covariance matrix to reorder.
+        x_idx: Integer indices selecting the x components in the original ordering.
+        y_idx: Integer indices selecting the y components in the original ordering.
+
+    Returns:
+        A reordered covariance matrix with the same shape as cov, where rows and
+        columns are permuted so the stacked order is ``[x, y]``.
+
+    Raises:
+        ValueError: If cov is not a square 2D matrix, if indices are not 1D, are
+            out of range, overlap, or do not cover all covariance dimensions
+            exactly once.
+    """
+    cov = np.asarray(cov, dtype=np.float64)
+    validate_covariance_matrix_shape(cov)
+
+    x_idx = np.asarray(x_idx, dtype=np.int64).ravel()
+    y_idx = np.asarray(y_idx, dtype=np.int64).ravel()
+
+    idx = np.concatenate([x_idx, y_idx])
+    n = int(cov.shape[0])
+
+    if idx.size != n:
+        raise ValueError(
+            "x_idx and y_idx must partition cov dimension exactly: "
+            f"len(x_idx)+len(y_idx)={idx.size} vs cov.shape[0]={n}."
+        )
+    if idx.min(initial=0) < 0 or idx.max(initial=0) >= n:
+        raise ValueError("x_idx/y_idx contain out-of-range indices.")
+    if np.unique(idx).size != n:
+        raise ValueError("x_idx and y_idx must be disjoint and"
+                         " cover all indices exactly once.")
+
+    return cov[np.ix_(idx, idx)]
+
+
+def as_1d_data_vector(y: NDArray[np.float64] | float) -> NDArray[np.float64]:
+    """Converts a model output into a 1D data vector.
+
+    This function standardizes model outputs so downstream code can treat them as a
+    single data vector. Scalars are converted to length-1 arrays. Array outputs are
+    returned as 1D arrays, flattening higher-rank inputs in row-major ("C") order.
+
+    Args:
+        y: Model output to convert. May be a scalar or an array-like object of any
+            shape.
+
+    Returns:
+        A 1D float64 NumPy array representing the model output as a single data
+        vector.
+    """
+    arr = np.asarray(y, dtype=np.float64)
+
+    if arr.ndim == 0:
+        return arr[None]
+    if arr.ndim == 1:
+        return arr
+    return arr.ravel(order="C")
