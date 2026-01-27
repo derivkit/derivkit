@@ -15,7 +15,9 @@ __all = [
 ]
 
 
+#: A list of supported stencil sizes.
 STENCILS = (3, 5, 7, 9)
+#: A list of supported derivative orders.
 ORDERS = (1, 2, 3, 4)
 
 
@@ -27,14 +29,14 @@ def supported_orders(
     """Creates a list of supported derivative orders for a given stencil size, and a maximum derivative order.
 
     Args:
-        num_points: Number of points in the stencil. The supported stencil sizes are 3, 5, 7, and 9.
-        max_order: The maximum supported derivative order, 4 by default.
+        num_points: Number of points in the stencil. The supported stencil sizes are defined in :data:`STENCILS`.
+        max_order: The maximum supported derivative order.
 
     Returns:
-        A list of supported derivative orders.
+        The list of supported derivative orders for the given stencil size.
 
     Raises:
-        ValueError: If ``num_points`` is not in ``STENCILS``.
+        ValueError: If ``num_points`` is not in :data:`STENCILS`.
         ValueError: If ``max_order < 1`` or ``max_order > 4``.
     """
     if num_points not in STENCILS:
@@ -47,6 +49,7 @@ def supported_orders(
     return set(range(1, min(max_order, num_points - 1) + 1))
 
 
+#: Dictionary containing the derivative orders by the available stencil sizes.
 SUPPORTED_BY_STENCIL = {n: supported_orders(n) for n in STENCILS}
 
 
@@ -77,7 +80,7 @@ def truncation_order_from_coeffs(
         offsets: Array of integer offsets for the finite difference stencil.
         coeffs: Array of finite difference coefficients.
         deriv_order: The requested derivative order.
-        tol: Numerical tolerance used to determine the truncation order, 1e-12 by default.
+        tol: Numerical tolerance used to determine the truncation order.
             
     Returns:
         The truncation order for the given numerical tolerance.
@@ -90,7 +93,7 @@ def truncation_order_from_coeffs(
         moment = float(np.dot(coeffs, offsets**r))
         if abs(moment) > tol:
             return r - m
-    raise RuntimeError("Could not detect truncation order (unexpected).")
+    raise RuntimeError("Could not detect truncation order.")
 
 
 def _finite_difference_coeffs(
@@ -126,7 +129,7 @@ def _finite_difference_coeffs(
     return coeffs
 
 
-def build_truncation_orders(
+def _build_truncation_orders(
 ) -> dict[tuple[int, int], int]:
     """Dynamically computes the truncation orders for the supported stencil combinations.
 
@@ -143,7 +146,8 @@ def build_truncation_orders(
     return out
 
 
-TRUNCATION_ORDER = build_truncation_orders()
+#: Dictionary of truncation order for the supported stencil sizes and derivative orders.
+TRUNCATION_ORDER = _build_truncation_orders()
 
 
 def get_finite_difference_tables(
@@ -183,15 +187,17 @@ def validate_supported_combo(
     Raises:
         ValueError: If the combination of num_points and order is not supported.
     """
+    list_STENCILS = list(STENCILS)
     if num_points not in STENCILS:
         raise ValueError(
             f"[FiniteDifference] Unsupported stencil size: {num_points}. "
-            "Must be one of [3, 5, 7, 9]."
+            f"Must be one of {list_STENCILS}."
         )
+    list_ORDERS = list(ORDERS)
     if order not in ORDERS:
         raise ValueError(
             f"[FiniteDifference] Unsupported derivative order: {order}. "
-            "Must be one of [1, 2, 3, 4]."
+            f"Must be one of {list_ORDERS}."
         )
 
     allowed = SUPPORTED_BY_STENCIL[num_points]
