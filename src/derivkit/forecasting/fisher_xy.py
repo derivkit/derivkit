@@ -61,7 +61,7 @@ from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.forecasting.fisher_gaussian import build_gaussian_fisher_matrix
-from derivkit.utils.linalg import split_xy_covariance, as_1d_data_vector
+from derivkit.utils.linalg import as_1d_data_vector, split_xy_covariance
 
 MuXY = Callable[[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64] | float]
 
