@@ -332,42 +332,52 @@ def split_xy_covariance(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Validates and splits a stacked covariance for the concatenated vector ``[x, y]``.
 
-    This function enforces the convention that the full covariance corresponds to
-    a stacked data vector ordered as ``[x, y]``, where x has length ``nx`` and y has
-    length ``n - nx``. It returns the covariance blocks (Cxx, Cxy, Cyy) and raises
-    informative errors if the input is not consistent with this convention.
+    This function enforces the convention that the full covariance corresponds to a
+    stacked data vector ordered as ``[x, y]``, where ``x`` has length ``nx`` and
+    ``y`` has length ``n - nx``. It returns the covariance blocks ``(Cxx, Cxy, Cyy)``
+    and raises informative errors if the input is not consistent with this convention.
 
     The input may be provided directly as a 2D covariance matrix, or as a dict-like
-    specification that includes the covariance and optional metadata for enforcing
-    or reordering the ``[x, y]`` convention.
+    specification that includes the covariance and optional metadata for enforcing or
+    reordering the ``[x, y]`` convention.
 
     Args:
-        cov: Full covariance for the stacked vector ``[x, y]``. Accepts either:
-            - A 2D array interpreted as already ordered ``[x, y]``.
-            - A dict-like object with key "cov" containing the 2D array. The dict
-              may include:
-                - "order": Must be "xy" (clarifies the intended convention).
-                - "x_idx" and "y_idx": Integer index arrays used to reorder an
-                  arbitrary covariance into ``[x, y]`` order before splitting.
+        cov: Full covariance for the stacked vector ``[x, y]``.
+
+            Supported forms are:
+
+            * A 2D array interpreted as already ordered ``[x, y]``.
+            * A dict-like object with key ``"cov"`` containing the 2D array.
+
+              The dict may include:
+
+              * ``"order"``: Must be ``"xy"`` (clarifies the intended convention).
+              * ``"x_idx"`` and ``"y_idx"``: Integer index arrays used to reorder an
+                arbitrary covariance into ``[x, y]`` order before splitting.
+
         nx: Number of input components in ``x`` (length of ``x`` in the stacked vector).
+
         atol_sym: Absolute tolerance used for symmetry and cross-block consistency
             checks.
+
         rtol_sym: Relative tolerance used for symmetry and cross-block consistency
             checks.
 
     Returns:
-        A tuple (cxx, cxy, cyy) where:
-            - cxx has shape (nx, nx)
-            - cxy has shape (nx, ny)
-            - cyy has shape (ny, ny)
-        with ny = n - nx.
+        A tuple ``(cxx, cxy, cyy)`` where:
+
+        * ``cxx`` has shape ``(nx, nx)``.
+        * ``cxy`` has shape ``(nx, ny)``.
+        * ``cyy`` has shape ``(ny, ny)``.
+
+        Here ``ny = n - nx``.
 
     Raises:
-        ValueError: If cov is not a valid square covariance matrix, contains
+        ValueError: If ``cov`` is not a valid square covariance matrix, contains
             non-finite values, is not symmetric within tolerance, cannot be split
-            using ``nx`, or if the cross-blocks are inconsistent with the ``[x, y]``
-            stacking convention. Also raised if a dict-like specification is
-            missing required keys or uses an unsupported order value.
+            using ``nx``, or if the cross-blocks are inconsistent with the ``[x, y]``
+            stacking convention. Also raised if a dict-like specification is missing
+            required keys or uses an unsupported order value.
     """
     if isinstance(cov, Mapping):
         spec = cov
