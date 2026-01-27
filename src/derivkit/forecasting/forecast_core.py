@@ -84,7 +84,7 @@ def get_forecast_tensors(
     if forecast_order not in (1, 2, 3):
         raise ValueError(
             "Only Fisher (order 1), doublet-DALI (order 2), "
-            "triplet-DALI (order 3) forecasts are currently supported."
+            "triplet-DALI (order 3) are currently supported."
         )
 
     theta0_arr = np.atleast_1d(theta0)
@@ -206,7 +206,10 @@ def _get_derivatives(
             after calling the function.
     """
     if order not in (1, 2, 3):
-        raise ValueError("Only first- and second-order derivatives are currently supported.")
+        raise ValueError(
+            "Requested derivative order is higher than what is "
+            "currently supported."
+        )
 
     theta0_arr = np.atleast_1d(theta0)
     cov_arr = validate_covariance_matrix_shape(cov)
