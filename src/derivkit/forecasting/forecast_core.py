@@ -23,9 +23,19 @@ from derivkit.utils.linalg import invert_covariance
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
+    "SUPPORTED_FORECAST_ORDERS",
     "get_forecast_tensors",
 ]
 
+
+#: The supported orders of the DALI expansion.
+#:
+#: A value of 1 corresponds to the Fisher matrix.
+#: A value of 2 corresponds to the DALI doublet.
+#: A value of 3 corresponds to the DALI triplet.
+SUPPORTED_FORECAST_ORDERS = (1, 2, 3)
+
+SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3)
 
 def get_forecast_tensors(
         function: Callable[[ArrayLike], float | NDArray[np.floating]],
@@ -50,14 +60,9 @@ def get_forecast_tensors(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        forecast_order: The requested order D of the forecast:
-
-                - D = 1 returns a Fisher matrix.
-                - D = 2 returns the 3D and 4D tensors required for the
-                  doublet-DALI approximation.
-                - D = 3 would be the triplet-DALI approximation.
-
-            Currently only D = 1, 2 are supported.
+        forecast_order: The requested order of the forecast.
+            Currently supported values and their meaning are given in
+            :data:`SUPPORTED_FORECAST_ORDERS`.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
@@ -68,20 +73,24 @@ def get_forecast_tensors(
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        If ``D = 1``: Fisher matrix of shape ``(P, P)``.
-        If ``D = 2``: tuple ``(G, H)`` with shapes ``(P, P, P)`` and ``(P, P, P, P)``.
+        If ``forecast_order == 1``: Fisher matrix of shape ``(P, P)``.
+        If ``forecast_order == 2``: tuple ``(G, H)`` with shapes
+        ``(P, P, P)`` and ``(P, P, P, P)``.
+        If ``forecast_order == 3``: tuple ``(T1, T2, T3)`` with shapes
+        ``(P, P, P, P)``, ``(P, P, P, P, P)``, ``(P, P, P, P, P, P)``.
 
     Raises:
-        ValueError: If `forecast_order` is not 1 or 2.
+        ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDER`.
 
     Warns:
-        RuntimeWarning: If `cov` is not symmetric (proceeds as-is, no symmetrization),
+        RuntimeWarning: If ``cov`` is not symmetric (proceeds as-is, no symmetrization),
             is ill-conditioned (large condition number), or inversion
             falls back to the pseudoinverse.
     """
-    if forecast_order not in (1, 2):
+    if forecast_order not in SUPPORTED_FORECAST_ORDERS:
         raise ValueError(
-            "Only Fisher (order 1) and doublet-DALI (order 2) forecasts are currently supported."
+            "A forecast_order was requested with a higher value "
+            "than currently supported."
         )
 
     theta0_arr = np.atleast_1d(theta0)
@@ -122,11 +131,32 @@ def get_forecast_tensors(
         method=method,
         **dk_kwargs,
     )
-    # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-    g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
-    # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-    h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
-    return g_tensor, h_tensor
+
+    if forecast_order == 2:
+        # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
+        g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
+        # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
+        h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
+        return g_tensor, h_tensor
+
+    # At this point it can be assumed that forecast_order == 3.
+    deriv_order3 = _get_derivatives(
+        function,
+        theta0_arr,
+        cov_arr,
+        order=3,
+        n_workers=n_workers,
+        method=method,
+        **dk_kwargs,
+    )
+
+    # T1_abcd = Σ_ijk d3[a,b,c, i] invcov[i,j] d1[d,j]
+    T1 = np.einsum("iabc,ij,dj->abcd", deriv_order3, invcov, deriv_order1)
+    # T2_abcde = Σ_ijk d3[a,b,c, i] invcov[i,j] d2[d,e,j]
+    T2 = np.einsum("iabc,ij,dej->abcde", deriv_order3, invcov, deriv_order2)
+    # T3_abcdf = Σ_ijk d3[a,b,c, i] invcov[i,j] d3[d,e,f,j]
+    T3 = np.einsum("iabc,ij,jdef->abcdef", deriv_order3, invcov, deriv_order3)
+    return T1, T2, T3
 
 
 def _get_derivatives(
@@ -152,12 +182,9 @@ def _get_derivatives(
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where ``n_observables``
             is the number of observables returned by the function.
-        order: The requested order of the derivatives:
-
-            - A value of ``1`` returns first-order derivatives.
-            - A value of ``2`` returns second-order derivatives.
-
-            Currently supported values are ``1`` and ``2``.
+        order: The requested order of the derivatives. The value determines
+            the order of the derivative that is returned. Currently supported
+            values are given in :data:`SUPPORTED_DERIVATIVE_ORDERS`.
 
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
             the DerivativeKit default ("adaptive") is used.
@@ -171,15 +198,20 @@ def _get_derivatives(
         shape is ``(n_parameters, n_observables)`` (first-order derivatives).
         For ``order == 2``, the shape is
         ``(n_parameters, n_parameters, n_observables)`` (second-order derivatives).
+        For ``order == 3``, the shape is
+        ``(n_parameters, n_parameters, n_parameters, n_observables)`` (third-order derivatives).
 
     Raises:
         ValueError: An error occurred if a derivative was requested of
-            higher order than 2.
+            higher order than 3.
         RuntimeError: An error occurred if a ValueError was not raised
             after calling the function.
     """
-    if order not in (1, 2):
-        raise ValueError("Only first- and second-order derivatives are currently supported.")
+    if order not in SUPPORTED_DERIVATIVE_ORDERS:
+        raise ValueError(
+            "Requested derivative order is higher than what is "
+            "currently supported."
+        )
 
     theta0_arr = np.atleast_1d(theta0)
     cov_arr = validate_covariance_matrix_shape(cov)
@@ -211,24 +243,47 @@ def _get_derivatives(
                 f"({n_parameters},{n_observables})."
             )
 
-    # Second-order path (order is guaranteed to be 2 here)
-    # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
-    # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
-    h_raw = np.asarray(
-        ckit.hessian(
-            method=method,
-            n_workers=n_workers,  # allow outer parallelism across params
-            **dk_kwargs,
-        ),
-        dtype=float,
-    )
-    if h_raw.shape == (n_observables, n_parameters, n_parameters):
-        return np.moveaxis(h_raw,[1,2],[0,1])
-    elif h_raw.shape == (n_parameters, n_parameters, n_observables):
-        return h_raw
-    else:
-        raise ValueError(
-            f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
-            f"expected ({n_observables},{n_parameters},{n_parameters}) or "
-            f"({n_parameters},{n_parameters},{n_observables})."
+    elif order == 2:
+        # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
+        # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
+        h_raw = np.asarray(
+            ckit.hessian(
+                method=method,
+                n_workers=n_workers,  # allow outer parallelism across params
+                **dk_kwargs,
+            ),
+            dtype=float,
         )
+        if h_raw.shape == (n_observables, n_parameters, n_parameters):
+            return np.moveaxis(h_raw,[1,2],[0,1])
+        elif h_raw.shape == (n_parameters, n_parameters, n_observables):
+            return h_raw
+        else:
+            raise ValueError(
+                f"build_hessian_tensor returned unexpected shape {h_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters}) or "
+                f"({n_parameters},{n_parameters},{n_observables})."
+            )
+
+    elif order == 3:
+        hh_raw = np.asarray(
+            ckit.hyper_hessian(
+                method=method,
+                n_workers=n_workers,  # allow outer parallelism across params
+                **dk_kwargs,
+            ),
+            dtype=float,
+        )
+        if hh_raw.shape == (n_observables, n_parameters, n_parameters, n_parameters):
+            return hh_raw
+        elif hh_raw.shape == (n_parameters, n_parameters, n_parameters, n_observables):
+            return np.moveaxis(hh_raw, [0,1,2], [1,2,3])
+        else:
+            raise ValueError(
+                f"build_hessian_tensor returned unexpected shape {hh_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters}) or "
+                f"({n_parameters},{n_parameters},{n_parameters},{n_observables})."
+            )
+
+    else:
+        raise ValueError(f"Unsupported value of {order}.")
