@@ -9,6 +9,7 @@ from derivkit.forecasting.fisher import build_delta_nu, build_fisher_bias
 from derivkit.forecasting.forecast_core import (
     _get_derivatives,
     get_forecast_tensors,
+    SUPPORTED_FORECAST_ORDERS,
 )
 from derivkit.utils.linalg import invert_covariance
 
@@ -773,6 +774,26 @@ def test_vector_dali_triplet():
                 rtol=1e-8,
                 atol=1e-3,
             )
+
+
+def test_get_forecast_tensors_output_type():
+    """Tests that a full forecast returns a dictionary of the right type."""
+    max_order = np.random.randint(low=1, high=SUPPORTED_FORECAST_ORDERS[-1])
+    forecast = get_forecast_tensors(
+        model_cubic,
+        [1.2],
+        [1],
+        forecast_order=max_order,
+        single_forecast_order=False,
+    )
+
+    assert isinstance(forecast, dict)
+
+    for key in forecast.keys():
+        assert isinstance(key, int)
+        assert isinstance(forecast[key], tuple)
+        for element in forecast[key]:
+            assert isinstance(element, np.ndarray)
 
 
 def test_fisher_bias_quadratic_small_systematic():
