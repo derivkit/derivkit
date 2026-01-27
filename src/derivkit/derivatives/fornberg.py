@@ -32,8 +32,8 @@ class FornbergDerivative:
     """Supplies the Fornberg derivative.
 
     Attributes:
-      function: the function to be differentiated.
-      x0: the evaluation point for the derivative.
+        function: the function to be differentiated.
+        x0: the evaluation point for the derivative.
     """
 
     def __init__(
@@ -44,8 +44,8 @@ class FornbergDerivative:
         """Initialises the class.
 
         Args:
-          function: the function to be differentiated.
-          x0: the evaluation point for the derivative.
+            function: the function to be differentiated.
+            x0: the evaluation point for the derivative.
         """
         self.function = function
         self.x0 = x0
@@ -59,13 +59,13 @@ class FornbergDerivative:
     ) -> np.float64:
         """Constructs the derivative of a given order of a function at a point.
 
-        Currently only the derivative of order `order` is returned.
-        An array of orders of 0 to `order` can be constructed through
-        `get_weights`. See section 3 of (Fornberg 1998) for more details.
+        Currently only the derivative of order ``order`` is returned.
+        An array of orders of ``0`` to ``order`` can be constructed through
+        ``get_weights``. See section 3 of (Fornberg 1998) for more details.
 
         Args:
-          grid: a series of points around the evaluation point.
-          order: the order of the derivative.
+            grid: a series of points around the evaluation point.
+            order: the order of the derivative.
 
         Returns:
             The derivative evaluated at the given point.
