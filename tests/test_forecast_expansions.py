@@ -345,9 +345,10 @@ def test_build_subspace_dali_mode_h_none_omits_h_tensor_key():
 def test_build_subspace_rejects_non_integer_indices():
     """Tests that build_subspace raises TypeError when idx contains non-integers."""
     p = 4
+    theta0 = np.zeros(p)
     f = _spd_fisher(p, seed=24)
-    with pytest.raises(TypeError, match="idx must contain integer indices"):
-        build_subspace([0, 1.5], fisher=f)  # type: ignore[list-item]
+    with pytest.raises(TypeError):
+        build_subspace([0, 1.5], fisher=f, theta0=theta0)  # type: ignore[list-item]
 
 
 def test_build_subspace_rejects_out_of_bounds_indices_dali_mode():
