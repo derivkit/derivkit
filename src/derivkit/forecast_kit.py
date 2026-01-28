@@ -52,8 +52,6 @@ from derivkit.forecasting.expansions import (
     build_delta_chi2_fisher,
     build_logposterior_dali,
     build_logposterior_fisher,
-    build_submatrix_dali,
-    build_submatrix_fisher,
 )
 from derivkit.forecasting.fisher import (
     build_delta_nu,
@@ -343,83 +341,6 @@ class ForecastKit:
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
             **dk_kwargs,
-        )
-
-    def submatrix_fisher(
-        self,
-        *,
-        fisher: np.ndarray,
-        idx: Sequence[int],
-    ) -> np.ndarray:
-        """Extracts a sub-Fisher matrix for a subset of parameter indices.
-
-        This helper selects rows and columns of the provided Fisher matrix at the
-        indices in ``idx`` so that the returned matrix corresponds to the Fisher
-        sub-block for that parameter subset. This operation represents a slice
-        through parameter space (holding other parameters fixed at their expansion
-        values), not a marginalization. For marginal constraints, invert the full
-        Fisher matrix to form a covariance and then slice that instead.
-
-        Args:
-            fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number
-                of parameters.
-            idx: Sequence of parameter indices to extract. The indices may be any
-                subset and any order and do not need to correspond to a contiguous
-                block in the full matrix.
-
-        Returns:
-            Sub-Fisher matrix with shape ``(len(idx), len(idx))``.
-
-        Raises:
-            ValueError: If ``fisher`` is not square 2D.
-            TypeError: If ``idx`` contains non-integer indices.
-            IndexError: If any index in ``idx`` is out of bounds.
-        """
-        return build_submatrix_fisher(fisher=fisher, idx=idx)
-
-    def submatrix_dali(
-        self,
-        *,
-        fisher: np.ndarray,
-        g_tensor: np.ndarray,
-        h_tensor: np.ndarray | None,
-        idx: Sequence[int],
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
-        """Extracts sub-DALI tensors for a subset of parameter indices.
-
-        This helper selects entries of the stored expansion point ``self.theta0`` and the
-        corresponding entries of the Fisher, cubic, and quartic DALI tensors using the
-        indices in ``idx``. The result can be used to evaluate a Fisher/DALI expansion on
-        a lower-dimensional parameter subspace while holding all other parameters fixed at
-        the expansion point.
-
-        Args:
-            fisher: Full Fisher matrix with shape ``(p, p)``.
-            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
-            idx: Sequence of parameter indices to extract. The indices may be any
-                subset and any order and do not need to correspond to a contiguous
-                block.
-
-        Returns:
-            A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where shapes are:
-
-            - ``theta0_sub``: ``(len(idx),)``
-            - ``f_sub``: ``(len(idx), len(idx))``
-            - ``g_sub``: ``(len(idx), len(idx), len(idx))``
-            - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
-
-        Raises:
-            ValueError: If input tensors have invalid shapes.
-            TypeError: If ``idx`` contains non-integer indices.
-            IndexError: If any index in ``idx`` is out of bounds.
-        """
-        return build_submatrix_dali(
-            theta0=self.theta0,
-            fisher=fisher,
-            g_tensor=g_tensor,
-            h_tensor=h_tensor,
-            idx=idx,
         )
 
     def delta_chi2_fisher(
