@@ -50,6 +50,8 @@ docs = [
   "sphinx-multiversion",
   "furo",
   "sphinx-copybutton",
+  "pyyaml",
+  "cycler",
 ]
 
 lint = ["ruff"]

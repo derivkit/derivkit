@@ -34,6 +34,8 @@ automatic differentiation may be unavailable or inappropriate.
    workflows
    modules
    citation
+   adoption/software/index
+   adoption/publications/index
    contributing
    team
    license

@@ -1,8 +1,4 @@
-Publications
-============
+Publications using DerivKit
+===========================
 
-.. toctree::
-   :maxdepth: 1
-   :glob:
-
-   *.rst
+.. include:: /_generated/adoption_publications.rst

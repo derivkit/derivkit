@@ -1,8 +1,4 @@
 Software
 ========
 
-.. toctree::
-   :maxdepth: 1
-   :glob:
-
-   *.rst
+.. include:: /_generated/adoption_software.rst

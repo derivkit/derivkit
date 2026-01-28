@@ -154,8 +154,12 @@ html_sidebar = {
 # -----------------------------------------------------------------------------
 # Sphinx Multiversion
 # -----------------------------------------------------------------------------
-smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
-smv_branch_whitelist = "main"
+#smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
+#smv_branch_whitelist = "main"
+
+smv_tag_whitelist = r"$^"        # match nothing (disable tags for now)
+smv_branch_whitelist = r"^main$" # only main
+
 
 # -----------------------------------------------------------------------------
 # HTML output
@@ -192,11 +196,19 @@ html_css_files = [
 ]
 
 def setup(app):
-    """Runs the script that renders the adoption charts."""
+    """Build-time hooks (run inside each sphinx-multiversion checkout)."""
     docs = Path(__file__).resolve().parent
-    script = docs / "_scripts" / "render_adoption.py"
+    repo_root = docs.parent
+
+    adoption_includes_script = repo_root / ".github" / "scripts" / "build_adoption_rst.py"
+    adoption_charts_script = docs / "_scripts" / "render_adoption.py"
+
+    def _generate_adoption_includes(_app):
+        subprocess.check_call([sys.executable, str(adoption_includes_script)], cwd=str(repo_root))
 
     def _render_adoption(_app):
-        subprocess.check_call([sys.executable, str(script)])
+        subprocess.check_call([sys.executable, str(adoption_charts_script)], cwd=str(docs))
 
+    # Order matters: includes must exist before Sphinx reads citation.rst includes.
+    app.connect("builder-inited", _generate_adoption_includes)
     app.connect("builder-inited", _render_adoption)
