@@ -226,7 +226,7 @@ def build_effective_covariance_r(
 
     Args:
         cov: Full covariance matrix for the stacked vector ``[x, y]``.
-        x0: Reference input values used for the local sensitivity evaluation.
+        x0: Input values at which the model mean is evaluated.
         t: Sensitivity matrix of the model mean with respect to the inputs, evaluated
             at a chosen reference point.
 
