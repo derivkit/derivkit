@@ -426,7 +426,6 @@ def split_xy_covariance(
     if cyy.shape != (ny, ny):
         raise ValueError(f"cyy must have shape ({ny},{ny}); got {cyy.shape}.")
 
-    # Cross-block consistency: Cxy == Cyx^T
     cyx = cov_arr[nx:, :nx]
     if not np.allclose(cxy, cyx.T, atol=atol_sym, rtol=rtol_sym):
         max_cross = float(np.max(np.abs(cxy - cyx.T)))
