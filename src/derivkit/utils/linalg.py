@@ -337,8 +337,8 @@ def split_xy_covariance(
     ``y`` has length ``n - nx``. It returns the covariance blocks ``(Cxx, Cxy, Cyy)``
     and raises informative errors if the input is not consistent with this convention.
 
-    The input may be provided directly as a 2D covariance matrix, or as a dict-like
-    specification that includes the covariance and optional metadata for enforcing or
+    The input may be provided directly as a 2D covariance matrix or as a dict-like
+    object that includes the covariance and optional metadata for enforcing or
     reordering the ``[x, y]`` convention.
 
     Args:
