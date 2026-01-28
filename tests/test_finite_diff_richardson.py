@@ -193,10 +193,10 @@ def test_finite_richardson_unsupported_combo_raises():
     """Tests that unsupported (num_points, order) combo raises ValueError."""
     d = FiniteDifferenceDerivative(function=np.sin, x0=0.0)
 
-    # 3-point stencil for order 2 is not in _TRUNCATION_ORDER
+    # 3-point stencil for order 3 is not in _TRUNCATION_ORDER
     with pytest.raises(ValueError):
         d.differentiate(
-            order=2,
+            order=3,
             stepsize=1e-2,
             num_points=3,
             extrapolation="richardson",
