@@ -45,8 +45,13 @@ def get_forecast_tensors(
         forecast_order: int = 1,
         method: str | None = None,
         n_workers: int = 1,
+        single_forecast_order: bool = True,
         **dk_kwargs: Any,
-) -> Union[NDArray[np.float64], tuple[NDArray[np.float64], NDArray[np.float64]]]:
+) -> Union[
+        NDArray[np.float64],
+        tuple[NDArray[np.float64]],
+        dict[int, tuple[NDArray[np.float64],...]],
+    ]:
     """Returns a set of tensors according to the requested order of the forecast.
 
     Args:
@@ -69,15 +74,25 @@ def get_forecast_tensors(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
+        single_forecast_order: If set to ``True``, the function will return only
+            the requested order. If set to ``False``, the function will return
+            the tensors up to the requested order.
         **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        If ``forecast_order == 1``: Fisher matrix of shape ``(P, P)``.
-        If ``forecast_order == 2``: tuple ``(G, H)`` with shapes
-        ``(P, P, P)`` and ``(P, P, P, P)``.
-        If ``forecast_order == 3``: tuple ``(T1, T2, T3)`` with shapes
-        ``(P, P, P, P)``, ``(P, P, P, P, P)``, ``(P, P, P, P, P, P)``.
+        If ``single_order == True`` the function returns a tuple containing
+        the tensors of the requested order.
+
+        If ``single_order == False`` the function returns a dict with entries
+        of the form ``order: (tensor_1,...,tensor_n)``, where ``order`` is an
+        ``int` that determines the order in the DALI approximation and the
+        ``tensor_n`` are the tensors corresponding to the order ``order`` in the
+        DALI approximation.
+
+        The number of axes of the tensors in the tuple at order ``order``
+        ranges from ``order+1`` to ``2*order`` in order of increasing number.
+        All axes have as length ``len(theta0)``.
 
     Raises:
         ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDER`.
@@ -106,57 +121,52 @@ def get_forecast_tensors(
 
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
-    deriv_order1 = _get_derivatives(
-        function,
-        theta0_arr,
-        cov_arr,
-        order=1,
-        n_workers=n_workers,
-        method=method,
-        **dk_kwargs,
-    )
+    forecast_tensors = {}
+    derivatives = {}
+    contractions = {
+        1: {1: "ai,ij,bj->ab"},
+        2: {1: "abi,ij,cj->abc",
+            2: "abi,ij,cdj->abcd"},
+        3: {1: "iabc,ij,dj->abcd",
+            2: "iabc,ij,dej->abcde",
+            3: "iabc,ij,jdef->abcdef"},
+    }
+    for order1 in range(1, 1+forecast_order):
+        derivatives[order1] = _get_derivatives(
+            function,
+            theta0_arr,
+            cov_arr,
+            order=order1,
+            n_workers=n_workers,
+            method=method,
+            **dk_kwargs,
+        )
+        tensors_at_order = []
+        for order2 in contractions[order1].keys():
+            if order2 > order1:
+                raise ValueError(
+                    f"Requested a derivative of order {order2} "
+                    f"in a DALI forecast of order {order1}"
+                )
+            tensors_at_order.append(np.einsum(
+                contractions[order1][order2],
+                derivatives[order1],
+                invcov,
+                derivatives[order2]
+            ))
+        forecast_tensors[order1] = tuple(tensors_at_order)
 
-    if forecast_order == 1:
-        return np.einsum("ai,ij,bj->ab",
-                         deriv_order1,
-                         invcov,
-                         deriv_order1)  # Fisher
+    if single_forecast_order:
+        forecast_tensors = forecast_tensors[forecast_order]
+        # The expected behaviour of the function is to return
+        # the Fisher matrix directly (not as a tuple). The Fisher
+        # matrix is the only DALI singlet, so if forecast_tensors
+        # at this point has length one it is guaranteed to contain
+        # the Fisher matrix.
+        if len(forecast_tensors) == 1:
+            forecast_tensors = forecast_tensors[0]
 
-    deriv_order2 = _get_derivatives(
-        function,
-        theta0_arr,
-        cov_arr,
-        order=2,
-        n_workers=n_workers,
-        method=method,
-        **dk_kwargs,
-    )
-
-    if forecast_order == 2:
-        # G_abc = Σ_ij d2[a,b,i] invcov[i,j] d1[c,j]
-        g_tensor = np.einsum("abi,ij,cj->abc", deriv_order2, invcov, deriv_order1)
-        # H_abcd = Σ_ij d2[a,b,i] invcov[i,j] d2[c,d,j]
-        h_tensor = np.einsum("abi,ij,cdj->abcd", deriv_order2, invcov, deriv_order2)
-        return g_tensor, h_tensor
-
-    # At this point it can be assumed that forecast_order == 3.
-    deriv_order3 = _get_derivatives(
-        function,
-        theta0_arr,
-        cov_arr,
-        order=3,
-        n_workers=n_workers,
-        method=method,
-        **dk_kwargs,
-    )
-
-    # T1_abcd = Σ_ijk d3[a,b,c, i] invcov[i,j] d1[d,j]
-    T1 = np.einsum("iabc,ij,dj->abcd", deriv_order3, invcov, deriv_order1)
-    # T2_abcde = Σ_ijk d3[a,b,c, i] invcov[i,j] d2[d,e,j]
-    T2 = np.einsum("iabc,ij,dej->abcde", deriv_order3, invcov, deriv_order2)
-    # T3_abcdf = Σ_ijk d3[a,b,c, i] invcov[i,j] d3[d,e,f,j]
-    T3 = np.einsum("iabc,ij,jdef->abcdef", deriv_order3, invcov, deriv_order3)
-    return T1, T2, T3
+    return forecast_tensors
 
 
 def _get_derivatives(
