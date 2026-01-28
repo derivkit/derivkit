@@ -69,6 +69,7 @@ __all__ = [
     "build_delta_chi2_dali",
     "build_logposterior_fisher",
     "build_logposterior_dali",
+    "build_subspace",
 ]
 
 
@@ -187,6 +188,88 @@ def build_submatrix_dali(
     g2 = g_tensor[np.ix_(idx, idx, idx)]
     h2 = None if h_tensor is None else h_tensor[np.ix_(idx, idx, idx, idx)]
     return t0, f2, g2, h2
+
+
+def build_subspace(
+    idx: Sequence[int],
+    *,
+    fisher: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    g_tensor: NDArray[np.floating] | None = None,
+    h_tensor: NDArray[np.floating] | None = None,
+) -> dict[str, Any]:
+    """Extracts a parameter subspace for Fisher or DALI expansions.
+
+    This function selects the parameters specified by ``idx`` and extracts the
+    corresponding entries of the expansion point and tensors.
+
+    The returned objects represent a slice through parameter space in which
+    parameters not listed in ``idx`` are held fixed at their expansion values.
+    This operation does not marginalize over the remaining parameters.
+
+    Args:
+        idx: Sequence of parameter indices to extract.
+        fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
+        theta0: Expansion point of shape ``(p,)``.
+        g_tensor: Optional DALI cubic tensor of shape ``(p, p, p)``.
+        h_tensor: Optional DALI quartic tensor of shape ``(p, p, p, p)`` or ``None``.
+
+    Returns:
+        Dictionary containing the sliced objects. Let ``m = len(idx)``. The Fisher
+        submatrix has shape ``(m, m)`` and the expansion point has shape ``(m,)``.
+        If ``g_tensor`` is provided, the cubic tensor has shape ``(m, m, m)``.
+        If ``h_tensor`` is provided, the quartic tensor has shape ``(m, m, m, m)``.
+        Keys use the same names as the inputs.
+
+    Raises:
+        TypeError: If ``idx`` contains non-integer indices.
+        IndexError: If any index in ``idx`` is out of bounds.
+        ValueError: If the provided arrays have incompatible shapes, or if ``h_tensor``
+            is provided without ``g_tensor``.
+    """
+    idx = list(idx)
+    if not all(isinstance(i, (int, np.integer)) for i in idx):
+        raise TypeError("idx must contain integer indices")
+
+    fisher = np.asarray(fisher, float)
+    theta0 = np.asarray(theta0, float)
+
+    dali_mode = (g_tensor is not None) or (h_tensor is not None)
+
+    if not dali_mode:
+        validate_fisher_shapes(theta0, fisher)
+        p = int(theta0.shape[0])
+        if any((i < 0) or (i >= p) for i in idx):
+            raise IndexError(
+                f"idx contains out-of-bounds indices for p={p}: {idx}")
+
+        return {
+            "theta0": theta0[idx],
+            "fisher": fisher[np.ix_(idx, idx)],
+        }
+
+    if g_tensor is None:
+        raise ValueError(
+            "DALI subspace extraction requires `g_tensor` when `h_tensor` is provided.")
+
+    g_tensor = np.asarray(g_tensor, float)
+    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+
+    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+
+    p = int(theta0.shape[0])
+    if any((i < 0) or (i >= p) for i in idx):
+        raise IndexError(
+            f"idx contains out-of-bounds indices for p={p}: {idx}")
+
+    out = {
+        "theta0": theta0[idx],
+        "fisher": fisher[np.ix_(idx, idx)],
+        "g_tensor": g_tensor[np.ix_(idx, idx, idx)],
+    }
+    if h_tensor is not None:
+        out["h_tensor"] = h_tensor[np.ix_(idx, idx, idx, idx)]
+    return out
 
 
 def build_delta_chi2_fisher(
