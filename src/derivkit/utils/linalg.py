@@ -374,7 +374,7 @@ def split_xy_covariance(
         ValueError: If ``cov`` is not a valid square covariance matrix, contains
             non-finite values, is not symmetric within tolerance, cannot be split
             using ``nx``, or if the cross-blocks are inconsistent with the ``[x, y]``
-            stacking convention. Also raised if a dict-like specification is missing
+            stacking convention. Also raised if a dict-like object is missing
             required keys or uses an unsupported order value.
     """
     if isinstance(cov, Mapping):
