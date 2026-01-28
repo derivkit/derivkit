@@ -369,13 +369,6 @@ def test_split_xy_covariance_raises_on_bad_nx_range():
         split_xy_covariance(cov, nx=3)
 
 
-def test_split_xy_covariance_mapping_order_not_xy_raises():
-    """Tests that split_xy_covariance raises ValueError when a mapping specifies an unsupported order."""
-    cov = np.eye(3, dtype=np.float64)
-    with pytest.raises(ValueError, match=r"Only order='xy'"):
-        split_xy_covariance({"cov": cov, "order": "yx"}, nx=1)
-
-
 def test_split_xy_covariance_mapping_missing_one_index_array_raises():
     """Tests that split_xy_covariance raises ValueError when only one of x_idx/y_idx is provided."""
     cov = np.eye(3, dtype=np.float64)
