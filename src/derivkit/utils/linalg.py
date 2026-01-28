@@ -345,13 +345,12 @@ def split_xy_covariance(
         cov: Full covariance for the stacked vector ``[x, y]``.
             Supported forms are:
 
-            * A 2D covariance matrix cov with shape ``[nx+ny, nx+ny]``
-              corresponding to the stacked vector ``[x, y]`` (``x`` first, then ``y`).
+            * A 2D covariance matrix with shape ``(nx+ny, nx+ny)``
+              corresponding to the stacked vector ``[x, y]`` (``x`` first, then ``y``).
             * A dict-like object with key ``"cov"`` containing the 2D array.
               The dict may include:
 
-              * ``"order"``: Must be ``"xy"`` (clarifies the intended convention).
-              * ``"x_idx"`` and ``"y_idx"``: Integer index arrays used to reorder an
+              * ``"x_idx"`` and ``"y_idx"``: integer index arrays used to reorder an
                 arbitrary covariance into ``[x, y]`` order before splitting.
 
         nx: Number of input components in ``x`` (length of ``x`` in the stacked vector).
@@ -390,10 +389,6 @@ def split_xy_covariance(
             y_idx = np.asarray(spec["y_idx"], dtype=np.int64)
             cov_arr = _reorder_cov_to_xy(cov_arr, x_idx=x_idx, y_idx=y_idx)
 
-        order = spec.get("order", "xy")
-        if order != "xy":
-            raise ValueError("Only order='xy' is supported."
-                             " Use x_idx/y_idx to reorder explicitly.")
     else:
         cov_arr = np.asarray(cov, dtype=np.float64)
 
