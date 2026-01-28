@@ -347,7 +347,6 @@ def split_xy_covariance(
 
             * A 2D array interpreted as already ordered ``[x, y]``.
             * A dict-like object with key ``"cov"`` containing the 2D array.
-
               The dict may include:
 
               * ``"order"``: Must be ``"xy"`` (clarifies the intended convention).
