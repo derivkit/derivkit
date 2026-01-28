@@ -346,7 +346,10 @@ def split_xy_covariance(
             Supported forms are:
 
             * A 2D covariance matrix with shape ``(nx+ny, nx+ny)``
-              corresponding to the stacked vector ``[x, y]`` (``x`` first, then ``y``).
+              acting on the stacked measurement vector ``[x, y]``, where ``x``
+              (length ``nx``) denotes the input components and ``y`` (length ``ny``)
+              denotes the output components. The covariance is assumed to be
+              ordered with ``x`` first, followed by ``y``.
             * A dict-like object with key ``"cov"`` containing the 2D array.
               The dict may include:
 
