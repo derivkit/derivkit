@@ -61,7 +61,7 @@ from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.forecasting.fisher_gaussian import build_gaussian_fisher_matrix
-from derivkit.utils.validate import validate_covariance_matrix_shape
+from derivkit.utils.linalg import as_1d_data_vector, split_xy_covariance
 
 MuXY = Callable[[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64] | float]
 
@@ -74,28 +74,6 @@ __all__ = [
     "effective_covariance_r_theta",
     "build_xy_gaussian_fisher_matrix",
 ]
-
-
-def _as_1d_mu_output(y: NDArray[np.float64] | float) -> NDArray[np.float64]:
-    """Converts a model output into a 1D array.
-
-    This helper ensures the model mean can be treated as a single data vector.
-    Scalars become length-1 arrays. If the model returns a vector or higher-rank
-    tensor, it is flattened into 1D in row-major (C) order.
-
-    Args:
-        y: Model output. Can be a scalar, a vector, or a higher-rank array.
-
-    Returns:
-        The model output represented as a single 1D data vector.
-    """
-    arr = np.asarray(y, dtype=np.float64)
-
-    if arr.ndim == 0:
-        return arr[None]
-    if arr.ndim == 1:
-        return arr
-    return arr.ravel(order="C")
 
 
 def mu_xy_given_theta(
@@ -123,7 +101,7 @@ def mu_xy_given_theta(
     """
     x = np.atleast_1d(np.asarray(x, dtype=np.float64))
     theta = np.atleast_1d(np.asarray(theta, dtype=np.float64))
-    return _as_1d_mu_output(mu_xy(x, theta))
+    return as_1d_data_vector(mu_xy(x, theta))
 
 
 def mu_xy_given_x0(
@@ -151,7 +129,7 @@ def mu_xy_given_x0(
     """
     x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
     theta = np.atleast_1d(np.asarray(theta, dtype=np.float64))
-    return _as_1d_mu_output(mu_xy(x0, theta))
+    return as_1d_data_vector(mu_xy(x0, theta))
 
 
 def build_mu_theta_from_mu_xy(
@@ -203,12 +181,10 @@ def build_t_matrix(
             values and parameters.
         x0: Reference input values at which the sensitivity is evaluated.
         theta: Parameter values at which the sensitivity is evaluated.
-        method: Optional derivative method name passed to the derivative engine.
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default is used.
-
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
-
+        method: Optional derivative method name used by the derivative backend.
+            This option is forwarded through ``CalculusKit`` to the underlying
+            derivative engine (``DerivativeKit``).
+            If ``None``, the backend default is used.
         n_workers: Number of workers used for derivative evaluations.
         **dk_kwargs: Additional keyword arguments forwarded to the derivative engine.
 
@@ -234,9 +210,8 @@ def build_t_matrix(
 
 def build_effective_covariance_r(
     *,
-    cxx: NDArray[np.float64],
-    cxy: NDArray[np.float64],
-    cyy: NDArray[np.float64],
+    cov: NDArray[np.float64],
+    x0: NDArray[np.float64],
     t: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """Computes an effective output covariance that includes input uncertainty.
@@ -250,28 +225,22 @@ def build_effective_covariance_r(
     to the output space.
 
     Args:
-        cxx: Covariance matrix of the input measurements.
-        cxy: Cross-covariance between input and output measurement errors.
-        cyy: Covariance matrix of the output measurements.
+        cov: Full covariance matrix for the stacked vector ``[x, y]``.
+        x0: Input values at which the model mean is evaluated.
         t: Sensitivity matrix of the model mean with respect to the inputs, evaluated
             at a chosen reference point.
 
     Returns:
         The effective covariance matrix for the output measurements.
     """
-    cxx = np.asarray(cxx, dtype=np.float64)
-    cxy = np.asarray(cxy, dtype=np.float64)
-    cyy = np.asarray(cyy, dtype=np.float64)
-    t = np.asarray(t, dtype=np.float64)
+    cov = np.asarray(cov, dtype=np.float64)
+    x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
 
-    nx = cxx.shape[0]
+    nx = int(x0.size)
+    cxx, cxy, cyy = split_xy_covariance(cov, nx=nx)
+
     ny = cyy.shape[0]
-
-    validate_covariance_matrix_shape(cxx)
-    validate_covariance_matrix_shape(cyy)
-
-    if cxy.shape != (nx, ny):
-        raise ValueError(f"cxy must have shape ({nx}, {ny}); got {cxy.shape}.")
+    t = np.asarray(t, dtype=np.float64)
     if t.shape != (ny, nx):
         raise ValueError(f"t must have shape ({ny}, {nx}); got {t.shape}.")
 
@@ -283,9 +252,7 @@ def effective_covariance_r_theta(
     *,
     mu_xy: MuXY,
     x0: NDArray[np.float64],
-    cxx: NDArray[np.float64],
-    cxy: NDArray[np.float64],
-    cyy: NDArray[np.float64],
+    cov: NDArray[np.float64] | None = None,
     method: str | None,
     n_workers: int,
     dk_kwargs: dict[str, Any],
@@ -303,9 +270,7 @@ def effective_covariance_r_theta(
         mu_xy: Function that predicts the mean of the observed quantity given input
             values and parameters.
         x0: Reference input values used for the local sensitivity evaluation.
-        cxx: Covariance matrix of the input measurements.
-        cxy: Cross-covariance between input and output measurement errors.
-        cyy: Covariance matrix of the output measurements.
+        cov: Full covariance matrix for the stacked vector ``[x, y]``.
         method: Optional derivative method name passed to the derivative engine.
         n_workers: Number of workers used for derivative evaluations.
         dk_kwargs: Additional keyword arguments forwarded to the derivative engine.
@@ -313,6 +278,9 @@ def effective_covariance_r_theta(
     Returns:
         The effective covariance matrix for the output measurements at ``theta``.
     """
+    x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
+    theta = np.atleast_1d(np.asarray(theta, dtype=np.float64))
+
     t_matrix = build_t_matrix(
         mu_xy,
         x0=x0,
@@ -321,7 +289,7 @@ def effective_covariance_r_theta(
         n_workers=n_workers,
         **dk_kwargs,
     )
-    return build_effective_covariance_r(cxx=cxx, cxy=cxy, cyy=cyy, t=t_matrix)
+    return build_effective_covariance_r(cov=cov, x0=x0, t=t_matrix)
 
 
 def build_xy_gaussian_fisher_matrix(
@@ -329,9 +297,7 @@ def build_xy_gaussian_fisher_matrix(
     theta0: NDArray[np.float64],
     x0: NDArray[np.float64],
     mu_xy: MuXY,
-    cxx: NDArray[np.float64],
-    cxy: NDArray[np.float64],
-    cyy: NDArray[np.float64],
+    cov: NDArray[np.float64],
     method: str | None = None,
     n_workers: int = 1,
     rcond: float = 1e-12,
@@ -353,9 +319,7 @@ def build_xy_gaussian_fisher_matrix(
         x0: Reference input values used for the local sensitivity evaluation.
         mu_xy: Function that predicts the mean of the observed quantity given input
             values and parameters.
-        cxx: Covariance matrix of the input measurements.
-        cxy: Cross-covariance between input and output measurement errors.
-        cyy: Covariance matrix of the output measurements.
+        cov: Full covariance matrix for the stacked vector ``[x, y]``.
         method: Optional derivative method name passed to the derivative engine.
         n_workers: Number of workers used for derivative evaluations.
         rcond: Cutoff used when solving linear systems involving the covariance.
@@ -367,6 +331,7 @@ def build_xy_gaussian_fisher_matrix(
     """
     theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
     x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
+    cov = np.asarray(cov, dtype=np.float64)
 
     mu_theta = build_mu_theta_from_mu_xy(mu_xy, x0=x0)
 
@@ -374,9 +339,7 @@ def build_xy_gaussian_fisher_matrix(
         effective_covariance_r_theta,
         mu_xy=mu_xy,
         x0=x0,
-        cxx=np.asarray(cxx, dtype=np.float64),
-        cxy=np.asarray(cxy, dtype=np.float64),
-        cyy=np.asarray(cyy, dtype=np.float64),
+        cov=cov,
         method=method,
         n_workers=n_workers,
         dk_kwargs=dict(dk_kwargs),
