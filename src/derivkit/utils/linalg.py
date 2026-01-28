@@ -412,7 +412,7 @@ def split_xy_covariance(
     n = int(cov_arr.shape[0])
     if not (0 < nx < n):
         raise ValueError(f"nx must satisfy 0 < nx < cov.shape[0];"
-                         f" got nx={nx}, n={n}.")
+                         f" got nx={nx}, cov.shape[0]={n}.")
 
     ny = n - nx
 
