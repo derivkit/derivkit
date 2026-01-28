@@ -347,8 +347,8 @@ def build_xy_gaussian_fisher_matrix(
 
     return build_gaussian_fisher_matrix(
         theta0=theta0,
-        cov=r_fn,  # <-- cov(theta) = R(theta)
-        function=mu_theta,  # <-- mu(theta) at fixed x0
+        cov=r_fn,
+        function=mu_theta,
         method=method,
         n_workers=n_workers,
         rcond=rcond,
