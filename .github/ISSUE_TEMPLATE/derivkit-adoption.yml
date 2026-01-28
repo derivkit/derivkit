@@ -61,7 +61,7 @@ body:
       placeholder: |
         Author A., Author B. (YEAR), Journal/venue, DOI or arXiv:XXXX.XXXXX
     validations:
-      required: true
+      required: false
 
   - type: input
     id: contact
@@ -70,4 +70,4 @@ body:
       description: Email or GitHub handle in case maintainers need clarification.
       placeholder: "@username or name@example.com"
     validations:
-      required: true
+      required: false

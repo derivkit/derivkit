@@ -28,7 +28,7 @@ Software using DerivKit
 DerivKit is used as a dependency or internal component in the following
 external software and analysis pipelines:
 
-.. include:: /_generated/adoption_software.rst
+See :doc:`adoption/software/index`.
 
 
 Publications using DerivKit
@@ -37,7 +37,7 @@ Publications using DerivKit
 The following publications make use of DerivKit, either directly or as part
 of a larger analysis pipeline.
 
-.. include:: /_generated/adoption_publications.rst
+See :doc:`adoption/publications/index`.
 
 
 Add your software or paper
