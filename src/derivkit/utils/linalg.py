@@ -447,7 +447,7 @@ def _reorder_cov_to_xy(
     x_idx: NDArray[np.int64],
     y_idx: NDArray[np.int64],
 ) -> NDArray[np.float64]:
-    """Reorders a full covariance matrix into the stacked ``[x, y]`` convention.
+    """Reorders the subspaces of a full covariance matrix.
 
     This helper reindexes the input covariance so that the returned matrix is
     ordered as ``[x, y]``, where the first block corresponds to indices ``x_idx``
