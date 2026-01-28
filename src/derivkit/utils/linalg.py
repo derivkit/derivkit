@@ -343,7 +343,6 @@ def split_xy_covariance(
 
     Args:
         cov: Full covariance for the stacked vector ``[x, y]``.
-
             Supported forms are:
 
             * A 2D array interpreted as already ordered ``[x, y]``.
