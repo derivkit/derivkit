@@ -25,7 +25,7 @@ import numpy as np
 from getdist import MCSamples
 from numpy.typing import NDArray
 
-from derivkit.forecasting.expansions import logposterior_dali
+from derivkit.forecasting.expansions import build_logposterior_dali
 from derivkit.forecasting.priors_core import build_prior
 from derivkit.forecasting.sampling_utils import (
     apply_parameter_bounds,
@@ -207,7 +207,7 @@ def dali_to_getdist_importance(
 
     target_logpost = np.array(
         [
-            logposterior_dali(
+            build_logposterior_dali(
                 theta,
                 fiducial,
                 fisher_matrix,
@@ -375,7 +375,7 @@ def dali_to_getdist_emcee(
         )
 
     log_prob = partial(
-        logposterior_dali,
+        build_logposterior_dali,
         theta0=fiducial,
         fisher=fisher_matrix,
         g_tensor=dali_g,

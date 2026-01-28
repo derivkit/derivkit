@@ -31,14 +31,14 @@ from derivkit.utils.validate import (
 )
 
 __all__ = [
-    "negative_logposterior",
-    "laplace_hessian",
-    "laplace_covariance",
-    "laplace_approximation",
+    "build_negative_logposterior",
+    "build_laplace_hessian",
+    "build_laplace_covariance",
+    "build_laplace_approximation",
 ]
 
 
-def negative_logposterior(
+def build_negative_logposterior(
     theta: Sequence[float] | NDArray[np.float64],
     *,
     logposterior: Callable[[NDArray[np.float64]], float],
@@ -73,7 +73,7 @@ def negative_logposterior(
     return negative_log_posterior_value
 
 
-def laplace_hessian(
+def build_laplace_hessian(
     *,
     neg_logposterior: Callable[[NDArray[np.float64]], float],
     theta_map: Sequence[float] | NDArray[np.float64],
@@ -132,7 +132,7 @@ def laplace_hessian(
     return symmetrize_matrix(hessian_matrix)
 
 
-def laplace_covariance(
+def build_laplace_covariance(
     hessian: NDArray[np.float64],
     *,
     rcond: float = 1e-12,
@@ -177,7 +177,7 @@ def laplace_covariance(
     return symmetrize_matrix(covariance_matrix)
 
 
-def laplace_approximation(
+def build_laplace_approximation(
     *,
     neg_logposterior: Callable[[NDArray[np.float64]], float],
     theta_map: Sequence[float] | NDArray[np.float64],
@@ -236,7 +236,7 @@ def laplace_approximation(
     if not np.isfinite(negative_logposterior_at_map):
         raise ValueError("Negative log-posterior evaluated to a non-finite value at theta_map.")
 
-    hessian_matrix = laplace_hessian(
+    hessian_matrix = build_laplace_hessian(
         neg_logposterior=neg_logposterior,
         theta_map=theta_map_array,
         method=method,
@@ -248,7 +248,7 @@ def laplace_approximation(
     if ensure_spd:
         hessian_matrix, diagonal_jitter = make_spd_by_jitter(hessian_matrix)
 
-    covariance_matrix = laplace_covariance(hessian_matrix, rcond=rcond)
+    covariance_matrix = build_laplace_covariance(hessian_matrix, rcond=rcond)
 
     return {
         "theta_map": theta_map_array,

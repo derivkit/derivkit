@@ -58,7 +58,7 @@ then plot contours using GetDist.
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
-   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> from derivkit.forecasting.laplace import build_laplace_approximation
    >>> # Linear–Gaussian likelihoods with Gaussian prior (posterior is exactly Gaussian)
    >>> observed_y = np.array([1.2, -0.4], dtype=float)
    >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -76,7 +76,7 @@ then plot contours using GetDist.
    ...     return float(nll + nlp)
    >>> # Expansion point (can be an initial guess; Laplace returns the MAP it finds/uses)
    >>> theta_map0 = np.array([0.0, 0.0], dtype=float)
-   >>> out = laplace_approximation(
+   >>> out = build_laplace_approximation(
    ...     neg_logposterior=neg_logposterior,
    ...     theta_map=theta_map0,
    ...     method="finite",
@@ -107,7 +107,7 @@ then plot contours using GetDist.
    from getdist import plots as getdist_plots
 
    from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
-   from derivkit.forecasting.laplace import laplace_approximation
+   from derivkit.forecasting.laplace import build_laplace_approximation
 
    observed_y = np.array([1.2, -0.4], dtype=float)
    design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -129,7 +129,7 @@ then plot contours using GetDist.
 
    theta_map0 = np.array([0.0, 0.0], dtype=float)
 
-   out = laplace_approximation(
+   out = build_laplace_approximation(
        neg_logposterior=neg_logposterior,
        theta_map=theta_map0,
        method="finite",
@@ -176,7 +176,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
-   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> from derivkit.forecasting.laplace import build_laplace_approximation
    >>> observed_y = np.array([1.2, -0.4], dtype=float)
    >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
    >>> data_cov = np.array([[0.30**2, 0.0], [0.0, 0.25**2]], dtype=float)
@@ -191,7 +191,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
    ...     d = theta - prior_mean
    ...     nlp = 0.5 * (d @ prior_prec @ d)
    ...     return float(nll + nlp)
-   >>> out = laplace_approximation(
+   >>> out = build_laplace_approximation(
    ...     neg_logposterior=neg_logposterior,
    ...     theta_map=np.array([0.0, 0.0], dtype=float),
    ...     method="finite",
@@ -233,7 +233,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
    from getdist import plots as getdist_plots
 
    from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_samples
-   from derivkit.forecasting.laplace import laplace_approximation
+   from derivkit.forecasting.laplace import build_laplace_approximation
 
    observed_y = np.array([1.2, -0.4], dtype=float)
    design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -253,7 +253,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
        nlp = 0.5 * (d @ prior_prec @ d)
        return float(nll + nlp)
 
-   out = laplace_approximation(
+   out = build_laplace_approximation(
        neg_logposterior=neg_logposterior,
        theta_map=np.array([0.0, 0.0], dtype=float),
        method="finite",
@@ -293,6 +293,6 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
 See also
 --------
 
-- :func:`derivkit.forecasting.laplace.laplace_approximation`
+- :func:`derivkit.forecasting.laplace.build_laplace_approximation`
 - :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
 - :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
