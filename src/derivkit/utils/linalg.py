@@ -381,7 +381,6 @@ def split_xy_covariance(
         spec = cov
         cov_arr = np.asarray(spec["cov"], dtype=np.float64)
 
-        # Optional explicit reordering
         if ("x_idx" in spec) or ("y_idx" in spec):
             if ("x_idx" not in spec) or ("y_idx" not in spec):
                 raise ValueError("If using indices,"
@@ -420,7 +419,6 @@ def split_xy_covariance(
     cxy = cov_arr[:nx, nx:]
     cyy = cov_arr[nx:, nx:]
 
-    # Block shape checks
     if cxx.shape != (nx, nx):
         raise ValueError(f"cxx must have shape ({nx},{nx}); got {cxx.shape}.")
     if cxy.shape != (nx, ny):
