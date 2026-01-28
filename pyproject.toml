@@ -45,7 +45,7 @@ dependencies = [
 test = ["pytest"]
 
 docs = [
-  "sphinx",
+  "sphinx < 9",
   "sphinx-design",
   "sphinx-multiversion",
   "furo",
