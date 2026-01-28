@@ -345,7 +345,8 @@ def split_xy_covariance(
         cov: Full covariance for the stacked vector ``[x, y]``.
             Supported forms are:
 
-            * A 2D array interpreted as already ordered ``[x, y]``.
+            * A 2D covariance matrix cov with shape ``[nx+ny, nx+ny]``
+              corresponding to the stacked vector ``[x, y]`` (``x`` first, then ``y`).
             * A dict-like object with key ``"cov"`` containing the 2D array.
               The dict may include:
 
@@ -449,8 +450,8 @@ def _reorder_cov_to_xy(
     This helper reindexes the input matrix so that the returned matrix is
     ordered as in a block structure corresponding to the vectors
     ``[x, y]``. The first block corresponds to indices ``x_idx`` and the
-    second block corresponds to indices ``y_idx``. It is intended to 
-    support cases where the original covariance uses a different ordering
+    second block corresponds to indices ``y_idx``. It is intended to support
+    cases where the original covariance uses a different ordering
     than the required ``[x, y]`` stacking convention.
 
     Args:
