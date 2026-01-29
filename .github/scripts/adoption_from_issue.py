@@ -122,7 +122,7 @@ def main() -> None:
     entry_type = _normalize_type(fields.get("Entry type", ""))
     name = fields.get("Name", "").strip()
     description = fields.get("Description", "").strip()
-    repo = fields.get("Repository URL (software only)", "").strip() or None
+    repo = fields.get("Link (required)", "").strip() or None
     link = fields.get("Publication link (publication only)", "").strip() or None
     citation = fields.get("Citation / reference (publication only)", "").strip() or None
     contact = fields.get("Contact (optional)", "").strip() or None
