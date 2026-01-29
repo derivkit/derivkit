@@ -1,0 +1,6 @@
+name: Everything everywhere all at once
+kind: software
+description: >
+  It does the thing.
+repo: https://github.com/derivkit/derivkit
+source_issue: https://github.com/derivkit/derivkit/issues/389
