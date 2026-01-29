@@ -77,7 +77,7 @@ This example compares:
    >>> # Fiducial parameters and inputs
    >>> theta0 = np.array([1.2, -0.3])
    >>> x0 = np.array([0.7, 1.1])
-   >>> # Covariances
+   >>> # Covariance blocks
    >>> cyy = np.array(
    ...     [
    ...         [0.25, 0.04, 0.01],
@@ -94,18 +94,21 @@ This example compares:
    ...     ],
    ...     dtype=float,
    ... )
+   >>> # Build stacked covariance for [x, y]
+   >>> top = np.hstack([cxx, cxy])
+   >>> bot = np.hstack([cxy.T, cyy])
+   >>> cov_xy = np.vstack([top, bot])
+   >>> # Standard Fisher: treat x0 as exact and use only Cyy
    >>> def mu_theta(theta):
    ...     return mu_xy(x0, theta)
    >>> fk_std = ForecastKit(function=mu_theta, theta0=theta0, cov=cyy)
-   >>> fisher_std = fk_std.fisher()  # standard Fisher: fixed cov_yy
-   >>> # X–Y Fisher: propagate input uncertainty into an effective covariance R(theta)
+   >>> fisher_std = fk_std.fisher()
+   >>> # X–Y Fisher: propagate input uncertainty from the stacked covariance
    >>> fisher_xy = build_xy_gaussian_fisher_matrix(
    ...     theta0=theta0,
    ...     x0=x0,
    ...     mu_xy=mu_xy,
-   ...     cxx=cxx,
-   ...     cxy=cxy,
-   ...     cyy=cyy,
+   ...     cov=cov_xy,
    ... )
    >>> # Convert to GetDist GaussianND samples for visualization
    >>> gnd_std = fisher_to_getdist_gaussiannd(
@@ -190,20 +193,21 @@ This example compares:
        dtype=float,
    )
 
+   top = np.hstack([cxx, cxy])
+   bot = np.hstack([cxy.T, cyy])
+   cov_xy = np.vstack([top, bot])
+
    def mu_theta(theta):
        return mu_xy(x0, theta)
 
    fk_std = ForecastKit(function=mu_theta, theta0=theta0, cov=cyy)
-   fisher_std = fk_std.fisher(
-   )
+   fisher_std = fk_std.fisher()
 
    fisher_xy = build_xy_gaussian_fisher_matrix(
        theta0=theta0,
        x0=x0,
        mu_xy=mu_xy,
-       cxx=cxx,
-       cxy=cxy,
-       cyy=cyy,
+       cov=cov_xy,
        rcond=1e-12,
        symmetrize_dcov=True,
    )
@@ -242,6 +246,7 @@ This example compares:
        contour_lws=[line_width, line_width],
        contour_ls=["-", "-"],
    )
+
 
 
 Notes

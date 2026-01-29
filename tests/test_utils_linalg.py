@@ -7,12 +7,22 @@ import pytest
 from numpy.testing import assert_allclose
 
 from derivkit.utils.linalg import (
+    as_1d_data_vector,
     invert_covariance,
     make_spd_by_jitter,
     normalize_covariance,
     solve_or_pinv,
+    split_xy_covariance,
     symmetrize_matrix,
 )
+
+
+def _stack_xy_cov(cxx: np.ndarray, cxy: np.ndarray, cyy: np.ndarray) -> np.ndarray:
+    """Builds a full covariance for the stacked data vector [x, y] from (Cxx, Cxy, Cyy)."""
+    cxx = np.asarray(cxx, dtype=np.float64)
+    cxy = np.asarray(cxy, dtype=np.float64)
+    cyy = np.asarray(cyy, dtype=np.float64)
+    return np.block([[cxx, cxy], [cxy.T, cyy]]).astype(np.float64, copy=False)
 
 
 def test_invert_covariance_scalar():
@@ -292,3 +302,114 @@ def test_make_spd_by_jitter_raises_if_cannot_make_spd(monkeypatch):
 
     with pytest.raises(np.linalg.LinAlgError, match=r"could not be regularized"):
         make_spd_by_jitter(h, max_tries=3)
+
+
+def test_as_1d_data_vector_scalar_returns_length_1_float64():
+    """Tests that as_1d_data_vector converts a scalar into a length-1 float64 array."""
+    out = as_1d_data_vector(3.5)
+    assert out.shape == (1,)
+    assert out.dtype == np.float64
+    assert_allclose(out, np.array([3.5], dtype=np.float64))
+
+
+def test_as_1d_data_vector_1d_returns_same_values():
+    """Tests that as_1d_data_vector returns a 1D array unchanged in shape and values."""
+    y = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    out = as_1d_data_vector(y)
+    assert out.shape == (3,)
+    assert_allclose(out, y)
+
+
+def test_as_1d_data_vector_flattens_higher_rank_c_order():
+    """Tests that as_1d_data_vector flattens higher-rank arrays in row-major (C) order."""
+    y = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    out = as_1d_data_vector(y)
+    assert out.shape == (4,)
+    assert_allclose(out, y.ravel(order="C"))
+
+
+def test_split_xy_covariance_splits_blocks_and_checks_cross_consistency():
+    """Tests that split_xy_covariance returns (Cxx, Cxy, Cyy) with correct shapes and consistent cross-blocks."""
+    cxx = np.array([[2.0, 0.3], [0.3, 1.5]], dtype=np.float64)
+    cxy = np.array([[0.1], [-0.2]], dtype=np.float64)
+    cyy = np.array([[4.0]], dtype=np.float64)
+    cov = _stack_xy_cov(cxx, cxy, cyy)
+
+    out_cxx, out_cxy, out_cyy = split_xy_covariance(cov, nx=2)
+
+    assert out_cxx.shape == (2, 2)
+    assert out_cxy.shape == (2, 1)
+    assert out_cyy.shape == (1, 1)
+    assert_allclose(out_cxx, cxx)
+    assert_allclose(out_cxy, cxy)
+    assert_allclose(out_cyy, cyy)
+
+
+def test_split_xy_covariance_raises_on_nonfinite_entries():
+    """Tests that split_xy_covariance raises ValueError when cov contains non-finite values."""
+    cov = np.eye(3, dtype=np.float64)
+    cov[0, 0] = np.nan
+    with pytest.raises(ValueError, match=r"finite"):
+        split_xy_covariance(cov, nx=1)
+
+
+def test_split_xy_covariance_raises_on_asymmetric_covariance():
+    """Tests that split_xy_covariance raises ValueError when cov is not symmetric within tolerance."""
+    cov = np.array([[1.0, 2.0], [0.0, 1.0]], dtype=np.float64)
+    with pytest.raises(ValueError, match=r"symmetric"):
+        split_xy_covariance(cov, nx=1)
+
+
+def test_split_xy_covariance_raises_on_bad_nx_range():
+    """Tests that split_xy_covariance raises ValueError when nx does not satisfy 0 < nx < n."""
+    cov = np.eye(3, dtype=np.float64)
+    with pytest.raises(ValueError, match=r"nx must satisfy"):
+        split_xy_covariance(cov, nx=0)
+    with pytest.raises(ValueError, match=r"nx must satisfy"):
+        split_xy_covariance(cov, nx=3)
+
+
+def test_split_xy_covariance_mapping_missing_one_index_array_raises():
+    """Tests that split_xy_covariance raises ValueError when only one of x_idx/y_idx is provided."""
+    cov = np.eye(3, dtype=np.float64)
+    with pytest.raises(ValueError, match=r"both 'x_idx' and 'y_idx'"):
+        split_xy_covariance({"cov": cov, "x_idx": np.array([0], dtype=int)}, nx=1)
+
+
+def test_split_xy_covariance_mapping_reorders_then_splits():
+    """Tests that split_xy_covariance reorders a covariance via x_idx/y_idx before splitting into blocks."""
+    cxx = np.array([[2.0, 0.3], [0.3, 1.5]], dtype=np.float64)
+    cxy = np.array([[0.1], [-0.2]], dtype=np.float64)
+    cyy = np.array([[4.0]], dtype=np.float64)
+    cov_xy = _stack_xy_cov(cxx, cxy, cyy)
+
+    # Permute to [y, x0, x1] using idx [2,0,1] (since cov_xy is [x0,x1,y])
+    idx = np.array([2, 0, 1], dtype=np.int64)
+    cov_yx = cov_xy[np.ix_(idx, idx)]
+
+    spec = {
+        "cov": cov_yx,
+        "x_idx": np.array([1, 2], dtype=np.int64),
+        "y_idx": np.array([0], dtype=np.int64),
+        "order": "xy",
+    }
+
+    out_cxx, out_cxy, out_cyy = split_xy_covariance(spec, nx=2)
+    assert_allclose(out_cxx, cxx)
+    assert_allclose(out_cxy, cxy)
+    assert_allclose(out_cyy, cyy)
+
+
+def test_split_xy_covariance_mapping_reorder_invalid_partition_raises():
+    """Tests that split_xy_covariance raises ValueError when x_idx/y_idx do not partition indices exactly once."""
+    cov = np.eye(3, dtype=np.float64)
+
+    # overlap (duplicate 1) and missing 2 -> not a partition
+    spec = {
+        "cov": cov,
+        "x_idx": np.array([0, 1], dtype=np.int64),
+        "y_idx": np.array([1], dtype=np.int64),
+    }
+
+    with pytest.raises(ValueError, match=r"disjoint|cover all indices|partition"):
+        split_xy_covariance(spec, nx=2)
