@@ -137,7 +137,7 @@ def _build_truncation_orders(
         A dictionary of truncation order for the supported stencil sizes and derivative orders.
     """
     out: dict[tuple[int, int], int] = {}
-    h = 1.0  # any value works for p-detection
+    h = 1.0
     for n in STENCILS:
         k = _central_offsets(n)  # integers as floats
         for m in supported_orders(n):
