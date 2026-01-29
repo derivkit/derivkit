@@ -8,4 +8,4 @@ description: >
   consistent compiler and library environments across platforms.
   DerivKit is used internally for derivative-based forecasting and Fisher matrix
   calculations.
-repo: https://github.com/CosmoLike/cocoa
+link: https://github.com/CosmoLike/cocoa
