@@ -47,15 +47,15 @@ def _iter_entry_files(path: Path) -> list[Path]:
 def _require_str(data: dict[str, Any], key: str, *, path: Path) -> str:
     """Return a required string field from a YAML mapping.
 
-    This enforces that a given key exists and is a non-empty string, so the docs
+    This enforces that a given key exists and is a valid string, so the docs
     renderer can rely on well-formed data and fail with a clear error message.
     """
     val = data.get(key)
-    if not isinstance(val, str) or not val.strip():
+    if val and not isinstance(val, str):
         raise ValueError(
-            f"{path}: missing/invalid {key!r} (must be a non-empty string)."
+            f"{path}: invalid {key!r}."
         )
-    return val.strip()
+    return val.strip() if val else ""
 
 
 def load_adoption_entries(path: Path) -> list[Entry]:
@@ -102,9 +102,9 @@ class AdoptionDirective(SphinxDirective):
                 entry_section = nodes.section(ids=[entry.name])
                 entry_section += nodes.title(text=entry.name)
                 entry_section += nodes.paragraph(text=entry.description)
-                if entry.citation is not None:
-                    entry_section += nodes.paragraph(text=entry.description)
-                if entry.link is not None:
+                if len(entry.citation) > 0:
+                    entry_section += nodes.paragraph(text=entry.citation)
+                if len(entry.link) > 0:
                     entry_section += nodes.paragraph(
                         "",
                         "",
