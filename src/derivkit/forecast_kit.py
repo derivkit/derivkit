@@ -385,7 +385,7 @@ class ForecastKit:
         and quartic DALI tensors. The ``convention`` parameter controls the
         numerical prefactors applied to the cubic/quartic contractions.
 
-        The expansion point is taken from the stored ``self.theta0``.
+        The expansion point is taken from :attr:`ForecastKit.theta0`.
 
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
