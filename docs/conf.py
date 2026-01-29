@@ -17,6 +17,7 @@ from sphinx.ext.doctest import doctest
 # -----------------------------------------------------------------------------
 # Global setup
 # -----------------------------------------------------------------------------
+sys.path.append(str(Path('_ext').resolve()))
 matplotlib.use("Agg")
 
 # Silence emcee progress-bar / logging noise during Sphinx builds
@@ -49,6 +50,7 @@ extensions = [
     "sphinx_design",
     "sphinx_multiversion",
     "sphinx_copybutton",
+    "adoption",
 ]
 
 # -----------------------------------------------------------------------------
@@ -190,13 +192,3 @@ html_static_path = ["_static"]
 html_css_files = [
     "derivkit.css",  # keep LAST; bump version to bust cache
 ]
-
-def setup(app):
-    """Runs the script that renders the adoption charts."""
-    docs = Path(__file__).resolve().parent
-    script = docs / "_scripts" / "render_adoption.py"
-
-    def _render_adoption(_app):
-        subprocess.check_call([sys.executable, str(script)])
-
-    app.connect("builder-inited", _render_adoption)
