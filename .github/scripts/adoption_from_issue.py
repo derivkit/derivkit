@@ -118,6 +118,7 @@ def main() -> None:
     issue_url = os.environ["ISSUE_URL"]
 
     fields = _parse_issue_form(issue_body)
+    print(issue_body)
 
     entry_type = _normalize_type(fields.get("Entry type", ""))
     name = fields.get("Name", "").strip()
