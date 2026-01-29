@@ -355,7 +355,7 @@ class ForecastKit:
 
             ``delta_chi2 = (theta - theta0)^T @ F @ (theta - theta0)``
 
-        using the provided Fisher matrix and the stored expansion point ``self.theta0``.
+        using the provided Fisher matrix and the stored expansion point :attr:`ForecastKit.theta0`.
 
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
