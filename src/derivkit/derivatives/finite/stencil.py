@@ -87,7 +87,7 @@ def truncation_order_from_coeffs(
     """
 
     m = deriv_order
-    max_r = 40  # plenty for n<=9
+    max_r = 40
 
     for r in range(m + 1, max_r + 1):
         moment = float(np.dot(coeffs, offsets**r))
