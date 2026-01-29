@@ -203,10 +203,6 @@ def build_subspace(
     This function selects the parameters specified by ``idx`` and extracts the
     corresponding entries of the expansion point and tensors.
 
-    The returned objects represent a slice through parameter space in which
-    parameters not listed in ``idx`` are held fixed at their expansion values.
-    This operation does not marginalize over the remaining parameters.
-
     Args:
         idx: Sequence of parameter indices to extract.
         fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
