@@ -187,17 +187,15 @@ def validate_supported_combo(
     Raises:
         ValueError: If the combination of num_points and order is not supported.
     """
-    list_STENCILS = list(STENCILS)
     if num_points not in STENCILS:
         raise ValueError(
             f"[FiniteDifference] Unsupported stencil size: {num_points}. "
-            f"Must be one of {list_STENCILS}."
+            f"Must be one of {list(STENCILS)}."
         )
-    list_ORDERS = list(ORDERS)
     if order not in ORDERS:
         raise ValueError(
             f"[FiniteDifference] Unsupported derivative order: {order}. "
-            f"Must be one of {list_ORDERS}."
+            f"Must be one of {list(ORDERS)}."
         )
 
     allowed = SUPPORTED_BY_STENCIL[num_points]
