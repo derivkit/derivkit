@@ -38,7 +38,6 @@ Sampling the DALI posterior with emcee
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
    >>> def model_2d(theta):
    ...     # Nonlinear forward model with a curved parameter degeneracy
    ...     # (informally referred to as a "banana"-shaped posterior).
@@ -55,8 +54,7 @@ Sampling the DALI posterior with emcee
    >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
    >>> fisher = fk.fisher()
    >>> g_tensor, h_tensor = fk.dali()
-   >>> samples = dali_to_getdist_emcee(
-   ...     theta0=theta0,
+   >>> samples = fk.getdist_dali_emcee(
    ...     fisher=fisher,
    ...     g_tensor=g_tensor,
    ...     h_tensor=h_tensor,
@@ -91,7 +89,6 @@ Sampling the DALI posterior with emcee
    from getdist import plots as getdist_plots
 
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
 
    def model_2d(theta):
        # Nonlinear forward model with a curved parameter degeneracy
@@ -114,8 +111,7 @@ Sampling the DALI posterior with emcee
    fisher = fk.fisher()
    g_tensor, h_tensor = fk.dali()
 
-   samples = dali_to_getdist_emcee(
-       theta0=theta0,
+   samples = fk.getdist_dali_emcee(
        fisher=fisher,
        g_tensor=g_tensor,
        h_tensor=h_tensor,
@@ -152,7 +148,6 @@ Sampling the DALI posterior with importance sampling
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_importance
    >>> def model_2d(theta):
    ...     # Nonlinear forward model with a curved parameter degeneracy
    ...     # (informally referred to as a "banana"-shaped posterior).
@@ -169,8 +164,7 @@ Sampling the DALI posterior with importance sampling
    >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
    >>> fisher = fk.fisher()
    >>> g_tensor, h_tensor = fk.dali()
-   >>> samples = dali_to_getdist_importance(
-   ...     theta0=theta0,
+   >>> samples = fk.getdist_dali_importance(
    ...     fisher=fisher,
    ...     g_tensor=g_tensor,
    ...     h_tensor=h_tensor,
@@ -207,7 +201,6 @@ Sampling the DALI posterior with importance sampling
    from getdist import plots as getdist_plots
 
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_importance
 
    def model_2d(theta):
        # Nonlinear forward model with a curved parameter degeneracy
@@ -230,8 +223,7 @@ Sampling the DALI posterior with importance sampling
    fisher = fk.fisher()
    g_tensor, h_tensor = fk.dali()
 
-   samples = dali_to_getdist_importance(
-       theta0=theta0,
+   samples = fk.getdist_dali_importance(
        fisher=fisher,
        g_tensor=g_tensor,
        h_tensor=h_tensor,
@@ -279,7 +271,6 @@ while preserving the dominant nonlinear features.
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
    >>> def model_3d(theta):
    ...     # A nonlinear model with 3 parameters:
    ...     x, eps, y = float(theta[0]), float(theta[1]), float(theta[2])
@@ -298,8 +289,7 @@ while preserving the dominant nonlinear features.
    >>> fk = ForecastKit(function=model_3d, theta0=theta0, cov=cov)
    >>> fisher = fk.fisher()
    >>> g_tensor, h_tensor = fk.dali()
-   >>> samples = dali_to_getdist_emcee(
-   ...     theta0=theta0,
+   >>> samples = fk.getdist_dali_emcee(
    ...     fisher=fisher,
    ...     g_tensor=g_tensor,
    ...     h_tensor=h_tensor,
@@ -336,7 +326,6 @@ while preserving the dominant nonlinear features.
    from getdist import plots as getdist_plots
 
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
 
    def model_3d(theta):
        # A nonlinear model with 3 parameters:
@@ -361,8 +350,7 @@ while preserving the dominant nonlinear features.
    fisher = fk.fisher()
    g_tensor, h_tensor = fk.dali()
 
-   samples = dali_to_getdist_emcee(
-       theta0=theta0,
+   samples = fk.getdist_dali_emcee(
        fisher=fisher,
        g_tensor=g_tensor,
        h_tensor=h_tensor,
@@ -410,7 +398,6 @@ of the contours.
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
    >>> def model_2d(theta):
    ...     x, eps = float(theta[0]), float(theta[1])
    ...     k = 3.0
@@ -426,8 +413,7 @@ of the contours.
    >>> fisher = fk.fisher()
    >>> g_tensor, h_tensor = fk.dali()
    >>> # Baseline: no priors
-   >>> samples_base = dali_to_getdist_emcee(
-   ...     theta0=theta0,
+   >>> samples_base = fk.getdist_dali_emcee(
    ...     fisher=fisher,
    ...     g_tensor=g_tensor,
    ...     h_tensor=h_tensor,
@@ -446,8 +432,7 @@ of the contours.
    ...     dtype=float,
    ... )
    >>> prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
-   >>> samples_prior = dali_to_getdist_emcee(
-   ...     theta0=theta0,
+   >>> samples_prior = fk.getdist_dali_emcee(
    ...     fisher=fisher,
    ...     g_tensor=g_tensor,
    ...     h_tensor=h_tensor,
@@ -485,7 +470,6 @@ of the contours.
    from getdist import plots as getdist_plots
 
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_dali_samples import dali_to_getdist_emcee
 
    def model_2d(theta):
        x, eps = float(theta[0]), float(theta[1])
@@ -504,8 +488,7 @@ of the contours.
    fisher = fk.fisher()
    g_tensor, h_tensor = fk.dali()
 
-   samples_base = dali_to_getdist_emcee(
-       theta0=theta0,
+   samples_base = fk.getdist_dali_emcee(
        fisher=fisher,
        g_tensor=g_tensor,
        h_tensor=h_tensor,
@@ -527,8 +510,7 @@ of the contours.
    )
    prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
 
-   samples_prior = dali_to_getdist_emcee(
-       theta0=theta0,
+   samples_prior = fk.getdist_dali_emcee(
        fisher=fisher,
        g_tensor=g_tensor,
        h_tensor=h_tensor,
@@ -588,7 +570,7 @@ See also
 --------
 
 - :class:`derivkit.forecast_kit.ForecastKit`
-- :func:`derivkit.forecasting.dali.build_dali`
-- :func:`derivkit.forecasting.expansions.logposterior_dali`
-- :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
-- :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
+- :meth:`derivkit.forecast_kit.ForecastKit.dali`
+- :func:`derivkit.forecast_kit.ForecastKit.logposterior_dali`
+- :meth:`derivkit.forecast_kit.ForecastKit.getdist_dali_emcee`
+- :meth:`derivkit.forecast_kit.ForecastKit.getdist_dali_importance`

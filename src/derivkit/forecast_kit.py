@@ -42,11 +42,17 @@ Typical usage example:
 """
 
 from collections.abc import Callable
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
 from derivkit.forecasting.dali import build_dali
+from derivkit.forecasting.expansions import (
+    build_delta_chi2_dali,
+    build_delta_chi2_fisher,
+    build_logposterior_dali,
+    build_logposterior_fisher,
+)
 from derivkit.forecasting.fisher import (
     build_delta_nu,
     build_fisher_bias,
@@ -55,12 +61,27 @@ from derivkit.forecasting.fisher import (
 from derivkit.forecasting.fisher_gaussian import (
     build_gaussian_fisher_matrix,
 )
+from derivkit.forecasting.getdist_dali_samples import (
+    dali_to_getdist_emcee,
+    dali_to_getdist_importance,
+)
+from derivkit.forecasting.getdist_fisher_samples import (
+    fisher_to_getdist_gaussiannd,
+    fisher_to_getdist_samples,
+)
+from derivkit.forecasting.laplace import (
+    build_laplace_approximation,
+    build_laplace_covariance,
+    build_laplace_hessian,
+    build_negative_logposterior,
+)
 from derivkit.utils.validate import (
     require_callable,
     resolve_covariance_input,
     validate_covariance_matrix_shape,
 )
 
+_RESERVED_KWARGS = {"theta0"}
 
 class ForecastKit:
     """Provides access to Fisher and DALI likelihoods-expansion tensors."""
@@ -204,10 +225,11 @@ class ForecastKit:
         )
         return bias
 
-    def delta_nu(self,
-                 data_unbiased: np.ndarray,
-                 data_biased: np.ndarray,
-                 ):
+    def delta_nu(
+        self,
+        data_unbiased: np.ndarray,
+        data_biased: np.ndarray,
+    ) -> np.ndarray:
         """Computes the difference between two data vectors.
 
         This helper is used in Fisher-bias calculations and any other workflow
@@ -262,7 +284,7 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
-            dk_kwargs: Additional keyword arguments passed to
+            **dk_kwargs: Additional keyword arguments passed to
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
@@ -294,8 +316,8 @@ class ForecastKit:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
-        likelihoods with parameter-dependent mean and/or covariance.
-        Uses :func:`derivkit.forecasting.fisher_general.build_generalized_fisher_matrix`.
+        likelihood with parameter-dependent mean and/or covariance.
+        Uses :func:`derivkit.forecasting.fisher_gaussian.build_gaussian_fisher_matrix`.
 
         Args:
             method: Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -320,3 +342,493 @@ class ForecastKit:
             symmetrize_dcov=symmetrize_dcov,
             **dk_kwargs,
         )
+
+    def delta_chi2_fisher(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+    ) -> float:
+        """Computes a displacement chi-squared under the Fisher approximation.
+
+        This evaluates the standard quadratic form
+
+            ``delta_chi2 = (theta - theta0)^T @ F @ (theta - theta0)``
+
+        using the provided Fisher matrix and the stored expansion point :attr:`ForecastKit.theta0`.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+
+        Returns:
+            Scalar delta chi-squared value.
+
+        Raises:
+            ValueError: If shapes are inconsistent.
+        """
+        return build_delta_chi2_fisher(theta=theta, theta0=self.theta0, fisher=fisher)
+
+    def delta_chi2_dali(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        g_tensor: np.ndarray,
+        h_tensor: np.ndarray | None,
+        convention: str = "delta_chi2",
+    ) -> float:
+        """Computes a displacement chi-squared under the DALI approximation.
+
+        This evaluates a scalar ``delta_chi2`` from the displacement
+        ``d = theta - theta0`` using the Fisher matrix and (optionally) the cubic
+        and quartic DALI tensors. The ``convention`` parameter controls the
+        numerical prefactors applied to the cubic/quartic contractions.
+
+        The expansion point is taken from :attr:`ForecastKit.theta0`.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
+            convention: Controls the prefactors used in the cubic/quartic tensor
+                contractions. Supported conventions are ``"delta_chi2"`` and
+                ``"matplotlib_loglike"``.
+
+        Returns:
+            Scalar delta chi-squared value.
+
+        Raises:
+            ValueError: If an unknown ``convention`` is provided.
+            ValueError: If input shapes are inconsistent.
+        """
+        return build_delta_chi2_dali(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            convention=convention,
+        )
+
+    def logposterior_fisher(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+        prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+        logprior: Callable[[np.ndarray], float] | None = None,
+    ) -> float:
+        """Computes the log posterior under the Fisher approximation.
+
+        The returned value is defined up to an additive constant in log space.
+        This corresponds to an overall multiplicative normalization of the posterior
+        density in probability space.
+
+        If no prior is provided, this returns the Fisher log-likelihood expansion
+        with a flat prior and no hard cutoffs. Priors may be provided either as a
+        pre-built ``logprior(theta)`` callable or as a lightweight prior specification
+        via ``prior_terms`` and/or ``prior_bounds``.
+
+        The expansion point is taken from the stored ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            prior_terms: Prior term specification passed to the underlying prior
+                builder. Use this only if ``logprior`` is not provided.
+            prior_bounds: Global hard bounds passed to the underlying prior builder.
+                Use this only if ``logprior`` is not provided.
+            logprior: Optional custom log-prior callable. If it returns a non-finite
+                value, the posterior is treated as zero at that point and the function
+                returns ``-np.inf``. Cannot be used together with ``prior_terms`` or
+                ``prior_bounds``.
+
+        Returns:
+            Scalar log posterior value, defined up to an additive constant.
+
+        Raises:
+            ValueError: If shapes are inconsistent or if both prior styles are provided.
+        """
+        return build_logposterior_fisher(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            prior_terms=prior_terms,
+            prior_bounds=prior_bounds,
+            logprior=logprior,
+        )
+
+    def logposterior_dali(
+        self,
+        *,
+        theta: np.ndarray,
+        fisher: np.ndarray,
+        g_tensor: np.ndarray,
+        h_tensor: np.ndarray | None,
+        convention: str = "delta_chi2",
+        prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
+        prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
+        logprior: Callable[[np.ndarray], float] | None = None,
+    ) -> float:
+        """Computes the log posterior (up to a constant) under the DALI approximation.
+
+        If no prior is provided, this returns the DALI log-likelihood expansion with
+        a flat prior and no hard cutoffs. Priors may be provided either as a pre-built
+        ``logprior(theta)`` callable or as a lightweight prior specification via
+        ``prior_terms`` and/or ``prior_bounds``.
+
+        The ``convention`` parameter controls the numerical prefactors used in the
+        cubic/quartic contractions and matches the underlying expansion helpers.
+
+        The expansion point is taken from the stored ``self.theta0``.
+
+        Args:
+            theta: Evaluation point in parameter space with shape ``(p,)``.
+            fisher: Fisher matrix with shape ``(p, p)``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
+            convention: The normalization to use (``"delta_chi2"`` or
+                ``"matplotlib_loglike"``).
+            prior_terms: Prior term specification passed to the underlying prior
+                builder. Use this only if ``logprior`` is not provided.
+            prior_bounds: Global hard bounds passed to the underlying prior builder.
+                Use this only if ``logprior`` is not provided.
+            logprior: Optional custom log-prior callable. If it returns a non-finite
+                value, the posterior is treated as zero at that point and the function
+                returns ``-np.inf``. Cannot be used together with ``prior_terms`` or
+                ``prior_bounds``.
+
+        Returns:
+            Scalar log posterior value, defined up to an additive constant.
+
+        Raises:
+            ValueError: If an unknown ``convention`` is provided.
+            ValueError: If shapes are inconsistent or if both prior styles are provided.
+        """
+        return build_logposterior_dali(
+            theta=theta,
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            convention=convention,
+            prior_terms=prior_terms,
+            prior_bounds=prior_bounds,
+            logprior=logprior,
+        )
+
+    def negative_logposterior(
+        self,
+        theta: Sequence[float] | np.ndarray,
+        *,
+        logposterior: Callable[[np.ndarray], float],
+    ) -> float:
+        """Computes the negative log-posterior at ``theta``.
+
+        This converts a log-posterior callable into the objective used by MAP
+        estimation and curvature-based methods. It simply returns
+        ``-logposterior(theta)`` and validates that the result is finite.
+
+        Args:
+            theta: 1D array-like parameter vector.
+            logposterior: Callable that accepts a 1D float64 array and returns a scalar float.
+
+        Returns:
+            Negative log-posterior value as a float.
+
+        Raises:
+            ValueError: If ``theta`` is not a finite 1D vector or if the negative log-posterior
+                evaluates to a non-finite value.
+        """
+        return build_negative_logposterior(theta, logposterior=logposterior)
+
+    def laplace_hessian(
+            self,
+            *,
+            neg_logposterior: Callable[[np.ndarray], float],
+            theta_map: Sequence[float] | np.ndarray | None = None,
+            method: str | None = None,
+            n_workers: int = 1,
+            **dk_kwargs: Any,
+    ) -> np.ndarray:
+        """Computes the Hessian of the negative log-posterior at ``theta_map``.
+
+        The Hessian at ``theta_map`` measures the local curvature of the posterior peak.
+        In the Laplace approximation, this Hessian plays the role of a local precision
+        matrix, and its inverse provides a fast Gaussian estimate of parameter
+        uncertainties and correlations.
+
+        If ``theta_map`` is not provided, this uses the stored expansion point ``self.theta0``.
+
+        Args:
+            neg_logposterior: Callable returning the scalar negative log-posterior.
+            theta_map: Point where the curvature is evaluated (typically the MAP).
+                If ``None``, uses ``self.theta0``.
+            method: Derivative method name/alias forwarded to the calculus machinery.
+            n_workers: Outer parallelism forwarded to Hessian construction.
+            **dk_kwargs: Additional keyword arguments forwarded to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            A symmetric 2D array with shape ``(p, p)`` giving the Hessian of
+            ``neg_logposterior`` evaluated at ``theta_map``.
+
+        Raises:
+            TypeError: If ``neg_logposterior`` is not scalar-valued (Hessian is not 2D).
+            ValueError: If inputs are invalid or the Hessian is not a finite square matrix.
+        """
+        theta = self.theta0 if theta_map is None else theta_map
+        return build_laplace_hessian(
+            neg_logposterior=neg_logposterior,
+            theta_map=theta,
+            method=method,
+            n_workers=n_workers,
+            **dk_kwargs,
+        )
+
+    def laplace_covariance(
+        self,
+        hessian: np.ndarray,
+        *,
+        rcond: float = 1e-12,
+    ) -> np.ndarray:
+        """Computes the Laplace covariance matrix from a Hessian.
+
+        In the Laplace (Gaussian) approximation, the Hessian of the negative
+        log-posterior at the expansion point acts like a local precision matrix.
+        The approximate posterior covariance is the matrix inverse of that Hessian.
+
+        Args:
+            hessian: 2D square Hessian matrix.
+            rcond: Cutoff for small singular values used by the pseudoinverse fallback.
+
+        Returns:
+            A 2D symmetric covariance matrix with the same shape as ``hessian``.
+
+        Raises:
+            ValueError: If ``hessian`` is not a finite square matrix.
+        """
+        return build_laplace_covariance(hessian, rcond=rcond)
+
+    def laplace_approximation(
+            self,
+            *,
+            neg_logposterior: Callable[[np.ndarray], float],
+            theta_map: Sequence[float] | np.ndarray | None = None,
+            method: str | None = None,
+            n_workers: int = 1,
+            ensure_spd: bool = True,
+            rcond: float = 1e-12,
+            **dk_kwargs: Any,
+    ) -> dict[str, Any]:
+        """Computes a Laplace (Gaussian) approximation around ``theta_map``.
+
+        The Laplace approximation replaces the posterior near its peak with a Gaussian.
+        It does this by measuring the local curvature of the negative log-posterior
+        using its Hessian at ``theta_map``. The Hessian acts like a local precision
+        matrix, and its inverse is the approximate covariance.
+
+        If ``theta_map`` is not provided, this uses the stored expansion point ``self.theta0``.
+
+        Args:
+            neg_logposterior: Callable that accepts a 1D float64 parameter vector and
+                returns a scalar negative log-posterior value.
+            theta_map: Expansion point for the approximation. This is often the maximum a
+                posteriori estimate (MAP). If ``None``, uses ``self.theta0``.
+            method: Derivative method name/alias forwarded to the Hessian builder.
+            n_workers: Outer parallelism forwarded to Hessian construction.
+            ensure_spd: If ``True``, attempt to regularize the Hessian to be symmetric positive definite
+                (SPD) by adding diagonal jitter.
+            rcond: Cutoff for small singular values used by the pseudoinverse fallback
+                when computing the covariance.
+            **dk_kwargs: Additional keyword arguments forwarded to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            Dictionary with the Laplace approximation outputs (theta_map, neg_logposterior_at_map,
+            hessian, cov, and jitter).
+
+        Raises:
+            TypeError: If ``neg_logposterior`` is not scalar-valued.
+            ValueError: If inputs are invalid or non-finite values are encountered.
+            np.linalg.LinAlgError: If ``ensure_spd=True`` and the Hessian cannot be regularized to be SPD.
+        """
+        theta = self.theta0 if theta_map is None else theta_map
+        return build_laplace_approximation(
+            neg_logposterior=neg_logposterior,
+            theta_map=theta,
+            method=method,
+            n_workers=n_workers,
+            ensure_spd=ensure_spd,
+            rcond=rcond,
+            **dk_kwargs,
+        )
+
+    def getdist_fisher_gaussian(
+            self,
+            *,
+            fisher: np.ndarray,
+            names: Sequence[str] | None = None,
+            labels: Sequence[str] | None = None,
+            **kwargs: Any,
+    ):
+        """Converts a Fisher Gaussian into a GetDist :class:`getdist.gaussian_mixtures.GaussianND`.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
+        that fixes the mean to the stored expansion point ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            names: Optional parameter names (length ``p``).
+            labels: Optional parameter labels (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_gaussiannd`
+                (e.g. ``label``, ``rcond``).
+
+        Returns:
+            A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``self.theta0`` and
+            covariance given by the (pseudo-)inverse Fisher matrix.
+        """
+        return fisher_to_getdist_gaussiannd(
+            self.theta0,
+            fisher,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def getdist_fisher_samples(
+            self,
+            *,
+            fisher: np.ndarray,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Draws GetDist :class:`getdist.MCSamples` from the Fisher Gaussian at ``self.theta0``.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+        that fixes the sampling center to the stored expansion point ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_fisher_samples.fisher_to_getdist_samples`
+                (e.g. ``n_samples``, ``seed``, ``kernel_scale``, ``prior_terms``,
+                ``prior_bounds``, ``logprior``, ``hard_bounds``, ``store_loglikes``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` object containing samples drawn from the Fisher Gaussian.
+        """
+        return fisher_to_getdist_samples(
+            self.theta0,
+            fisher,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def getdist_dali_importance(
+            self,
+            *,
+            fisher: np.ndarray,
+            g_tensor: np.ndarray,
+            h_tensor: np.ndarray | None,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Returns GetDist :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
+        that fixes the expansion point to ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
+                (e.g. ``n_samples``, ``kernel_scale``, ``convention``, ``seed``,
+                ``prior_terms``, ``prior_bounds``, ``logprior``, ``sampler_bounds``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` with importance weights.
+        """
+        kwargs = _drop_reserved_kwargs(kwargs, reserved=_RESERVED_KWARGS)
+
+        return dali_to_getdist_importance(
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+    def getdist_dali_emcee(
+            self,
+            *,
+            fisher: np.ndarray,
+            g_tensor: np.ndarray,
+            h_tensor: np.ndarray | None,
+            names: Sequence[str],
+            labels: Sequence[str],
+            **kwargs: Any,
+    ):
+        """Returns GetDist :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
+
+        This is a thin wrapper around
+        :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
+        that fixes the expansion point to ``self.theta0``.
+
+        Args:
+            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
+            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
+            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            names: Parameter names for GetDist (length ``p``).
+            labels: Parameter labels for GetDist (length ``p``).
+            **kwargs: Forwarded to
+                :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
+                (e.g. ``n_steps``, ``burn``, ``thin``, ``n_walkers``, ``init_scale``, ``seed``,
+                ``convention``, ``prior_terms``, ``prior_bounds``, ``logprior``,
+                ``sampler_bounds``, ``label``).
+
+        Returns:
+            A :class:`getdist.MCSamples` containing MCMC chains.
+
+        Raises:
+            TypeError: If ``theta0`` is provided (ForecastKit always uses ``self.theta0``).
+            ValueError: If shapes are inconsistent or mutually exclusive options are provided.
+            RuntimeError: If walker initialization fails.
+        """
+        kwargs = _drop_reserved_kwargs(kwargs, reserved=_RESERVED_KWARGS)
+
+        return dali_to_getdist_emcee(
+            theta0=self.theta0,
+            fisher=fisher,
+            g_tensor=g_tensor,
+            h_tensor=h_tensor,
+            names=names,
+            labels=labels,
+            **kwargs,
+        )
+
+
+def _drop_reserved_kwargs(
+    kwargs: Mapping[str, Any],
+    *,
+    reserved: set[str]
+) -> dict[str, Any]:
+    return {k: v for k, v in kwargs.items() if k not in reserved}

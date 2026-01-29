@@ -7,9 +7,9 @@ import pytest
 
 from derivkit.forecasting.fisher import build_delta_nu, build_fisher_bias
 from derivkit.forecasting.forecast_core import (
+    SUPPORTED_FORECAST_ORDERS,
     _get_derivatives,
     get_forecast_tensors,
-    SUPPORTED_FORECAST_ORDERS,
 )
 from derivkit.utils.linalg import invert_covariance
 

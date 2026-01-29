@@ -37,7 +37,7 @@ The function must accept a 1D parameter vector and return a scalar.
 .. doctest:: laplace_basic
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> from derivkit.forecasting.laplace import build_laplace_approximation
    >>>
    >>> # Toy 2D negative log-posterior: a Gaussian centered at mu
    >>> def neg_log_posterior(theta):
@@ -50,7 +50,10 @@ The function must accept a 1D parameter vector and return a scalar.
    >>>
    >>> # For this toy model, the MAP is known: theta_map = mu
    >>> theta_map_in = np.array([1.3, -0.5])
-   >>> out = laplace_approximation(neg_logposterior=neg_log_posterior, theta_map=theta_map_in)
+   >>> out = build_laplace_approximation(
+   ...     neg_logposterior=neg_log_posterior,
+   ...     theta_map=theta_map_in,
+   ... )
    >>> theta_map = np.asarray(out["theta_map"], dtype=float)
    >>> cov = np.asarray(out["cov"], dtype=float)
    >>> print(theta_map.shape, cov.shape)
@@ -73,7 +76,7 @@ The Laplace Gaussian is centered on ``theta_map`` by construction.
 .. doctest:: laplace_shapes
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> from derivkit.forecasting.laplace import build_laplace_approximation
    >>>
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -83,7 +86,7 @@ The Laplace Gaussian is centered on ``theta_map`` by construction.
    ...     d = theta - mu
    ...     return float(0.5 * d @ prec @ d)
    >>>
-   >>> out = laplace_approximation(
+   >>> out = build_laplace_approximation(
    ...     neg_logposterior=neg_log_posterior,
    ...     theta_map=np.array([1.3, -0.5]),
    ... )
@@ -104,7 +107,7 @@ of derivative-engine options via ``dk_kwargs``.
 .. doctest:: laplace_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import laplace_approximation
+   >>> from derivkit.forecasting.laplace import build_laplace_approximation
    >>>
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -114,7 +117,7 @@ of derivative-engine options via ``dk_kwargs``.
    ...     d = theta - mu
    ...     return float(0.5 * d @ prec @ d)
    >>>
-   >>> out = laplace_approximation(
+   >>> out = build_laplace_approximation(
    ...     neg_logposterior=neg_log_posterior,
    ...     theta_map=np.array([1.3, -0.5]),
    ...     method="finite",

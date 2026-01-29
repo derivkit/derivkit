@@ -315,3 +315,632 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     assert seen["rcond"] == 1e-8
     assert seen["symmetrize_dcov"] is False
     assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.delta_chi2_fisher delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_delta_chi2_fisher(*, theta, theta0, fisher):
+        """Mock delta_chi2_fisher that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_delta_chi2_fisher",
+        fake_delta_chi2_fisher,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+
+    out = fk.delta_chi2_fisher(theta=theta, fisher=fisher)
+
+    assert out == 123.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+
+
+def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monkeypatch):
+    """Tests that ForecastKit.delta_chi2_dali delegates and forwards convention."""
+    seen: dict[str, object] = {}
+
+    def fake_delta_chi2_dali(*, theta, theta0, fisher, g_tensor, h_tensor, convention="delta_chi2"):
+        """Mock delta_chi2_dali that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["convention"] = convention
+        return 456.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_delta_chi2_dali",
+        fake_delta_chi2_dali,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+
+    out = fk.delta_chi2_dali(
+        theta=theta,
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=None,
+        convention="matplotlib_loglike",
+    )
+
+    assert out == 456.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    assert seen["h_tensor"] is None
+    assert seen["convention"] == "matplotlib_loglike"
+
+
+def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monkeypatch):
+    """Tests that ForecastKit.logposterior_fisher delegates and forwards prior inputs."""
+    seen: dict[str, object] = {}
+
+    def fake_logposterior_fisher(
+        *,
+        theta,
+        theta0,
+        fisher,
+        prior_terms=None,
+        prior_bounds=None,
+        logprior=None,
+    ):
+        """Mock logposterior_fisher that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["prior_terms"] = prior_terms
+        seen["prior_bounds"] = prior_bounds
+        seen["logprior"] = logprior
+        return -3.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_logposterior_fisher",
+        fake_logposterior_fisher,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    prior_terms = [("gaussian", {"mu": 0.0, "sigma": 1.0, "idx": 0})]
+    prior_bounds = [(None, None), (0.0, 1.0)]
+
+    def lp(_theta):
+        return 0.0
+
+    out = fk.logposterior_fisher(
+        theta=theta,
+        fisher=fisher,
+        prior_terms=prior_terms,
+        prior_bounds=prior_bounds,
+        logprior=lp,
+    )
+
+    assert out == -3.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["prior_terms"] == prior_terms
+    assert seen["prior_bounds"] == prior_bounds
+    assert seen["logprior"] is lp
+
+
+def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_convention(monkeypatch):
+    """Tests that ForecastKit.logposterior_dali delegates and forwards priors and convention."""
+    seen: dict[str, object] = {}
+
+    def fake_logposterior_dali(
+        *,
+        theta,
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        convention="delta_chi2",
+        prior_terms=None,
+        prior_bounds=None,
+        logprior=None,
+    ):
+        """Mock logposterior_dali that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["convention"] = convention
+        seen["prior_terms"] = prior_terms
+        seen["prior_bounds"] = prior_bounds
+        seen["logprior"] = logprior
+        return -7.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_logposterior_dali",
+        fake_logposterior_dali,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    theta = np.array([0.3, 0.4])
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+
+    prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
+
+    out = fk.logposterior_dali(
+        theta=theta,
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        convention="matplotlib_loglike",
+        prior_terms=prior_terms,
+        prior_bounds=None,
+        logprior=None,
+    )
+
+    assert out == -7.0
+    np.testing.assert_allclose(seen["theta"], theta)
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["convention"] == "matplotlib_loglike"
+    assert seen["prior_terms"] == prior_terms
+    assert seen["prior_bounds"] is None
+    assert seen["logprior"] is None
+
+
+def test_negative_logposterior_delegates(monkeypatch):
+    """Tests that ForecastKit.negative_logposterior delegates to negative_logposterior."""
+    seen: dict[str, object] = {}
+
+    def fake_negative_logposterior(theta, *, logposterior):
+        """Mock negative_logposterior that records inputs and returns fixed output."""
+        seen["theta"] = np.asarray(theta)
+        seen["logposterior"] = logposterior
+        return 12.5
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_negative_logposterior",
+        fake_negative_logposterior,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.0, 1.0]), cov=np.eye(1))
+
+    def logpost(_theta):
+        return -1.0
+
+    theta = np.array([0.2, 0.3])
+    out = fk.negative_logposterior(theta, logposterior=logpost)
+
+    assert out == 12.5
+    np.testing.assert_allclose(seen["theta"], theta)
+    assert seen["logposterior"] is logpost
+
+
+def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypatch):
+    """Tests that ForecastKit.laplace_hessian delegates, uses self.theta0, and forwards kwargs."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_hessian(
+        *,
+        neg_logposterior,
+        theta_map,
+        method=None,
+        n_workers=1,
+        **dk_kwargs,
+    ):
+        """Mock laplace_hessian that records inputs and returns fixed output."""
+        seen["neg_logposterior"] = neg_logposterior
+        seen["theta_map"] = np.asarray(theta_map)
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["dk_kwargs"] = dk_kwargs
+        return np.eye(2)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_laplace_hessian",
+        fake_laplace_hessian,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    def neglogpost(_theta):
+        """Mock logposterior that returns fixed output."""
+        return 0.0
+
+    out = fk.laplace_hessian(
+        neg_logposterior=neglogpost,
+        theta_map=None,
+        method="finite",
+        n_workers=3,
+        step=1e-4,
+    )
+
+    np.testing.assert_allclose(out, np.eye(2))
+    assert seen["neg_logposterior"] is neglogpost
+    np.testing.assert_allclose(seen["theta_map"], theta0)
+    assert seen["method"] == "finite"
+    assert seen["n_workers"] == 3
+    assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_laplace_hessian_delegates_uses_theta_map_override(monkeypatch):
+    """Tests that ForecastKit.laplace_hessian uses theta_map when provided."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_hessian(*, theta_map, **_kwargs):
+        """Mock laplace_hessian that records theta_map and returns fixed output."""
+        seen["theta_map"] = np.asarray(theta_map)
+        return np.eye(1)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_laplace_hessian",
+        fake_laplace_hessian,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=np.eye(1))
+
+    def neglogpost(_theta):
+        """Mock logposterior that returns fixed output."""
+        return 0.0
+
+    theta_map = np.array([9.0, 8.0])
+    fk.laplace_hessian(neg_logposterior=neglogpost, theta_map=theta_map)
+
+    np.testing.assert_allclose(seen["theta_map"], theta_map)
+
+
+def test_laplace_covariance_delegates(monkeypatch):
+    """Tests that ForecastKit.laplace_covariance delegates to laplace_covariance."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_covariance(hessian, *, rcond=1e-12):
+        """Mock laplace_covariance that records inputs and returns fixed output."""
+        seen["hessian"] = np.asarray(hessian)
+        seen["rcond"] = rcond
+        return np.full((2, 2), 3.0)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_laplace_covariance",
+        fake_laplace_covariance,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.0]), cov=np.eye(1))
+
+    hess = np.eye(2)
+    out = fk.laplace_covariance(hessian=hess, rcond=1e-9)
+
+    np.testing.assert_allclose(out, np.full((2, 2), 3.0))
+    np.testing.assert_allclose(seen["hessian"], hess)
+    assert seen["rcond"] == 1e-9
+
+
+def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(monkeypatch):
+    """Tests that ForecastKit.laplace_approximation delegates, uses self.theta0, and forwards kwargs."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_approximation(
+        *,
+        neg_logposterior,
+        theta_map,
+        method=None,
+        n_workers=1,
+        ensure_spd=True,
+        rcond=1e-12,
+        **dk_kwargs,
+    ):
+        """Mock laplace_approximation that records inputs and returns fixed output."""
+        seen["neg_logposterior"] = neg_logposterior
+        seen["theta_map"] = np.asarray(theta_map)
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["ensure_spd"] = ensure_spd
+        seen["rcond"] = rcond
+        seen["dk_kwargs"] = dk_kwargs
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_laplace_approximation",
+        fake_laplace_approximation,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    def neglogpost(_theta):
+        return 0.0
+
+    out = fk.laplace_approximation(
+        neg_logposterior=neglogpost,
+        theta_map=None,
+        method="finite",
+        n_workers=4,
+        ensure_spd=False,
+        rcond=1e-9,
+        step=1e-4,
+    )
+
+    assert out == {"ok": True}
+    assert seen["neg_logposterior"] is neglogpost
+    np.testing.assert_allclose(seen["theta_map"], theta0)
+    assert seen["method"] == "finite"
+    assert seen["n_workers"] == 4
+    assert seen["ensure_spd"] is False
+    assert seen["rcond"] == 1e-9
+    assert seen["dk_kwargs"]["step"] == 1e-4
+
+
+def test_laplace_approximation_delegates_uses_theta_map_override(monkeypatch):
+    """Tests that ForecastKit.laplace_approximation uses theta_map when provided."""
+    seen: dict[str, object] = {}
+
+    def fake_laplace_approximation(*, theta_map, **_kwargs):
+        """Mock laplace_approximation that records theta_map and returns fixed output."""
+        seen["theta_map"] = np.asarray(theta_map)
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_laplace_approximation",
+        fake_laplace_approximation,
+        raising=True,
+    )
+
+    fk = ForecastKit(function=None, theta0=np.array([0.1, -0.2]), cov=np.eye(1))
+
+    def neglogpost(_theta):
+        return 0.0
+
+    theta_map = np.array([7.0, 6.0])
+    fk.laplace_approximation(neg_logposterior=neglogpost, theta_map=theta_map)
+
+    np.testing.assert_allclose(seen["theta_map"], theta_map)
+
+
+def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.fisher_to_getdist_gaussiannd delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, names=None, labels=None, **kwargs):
+        """Mock fisher_to_getdist_gaussiannd that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["names"] = names
+        seen["labels"] = labels
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.fisher_to_getdist_gaussiannd",
+        fake_fisher_to_getdist_gaussiannd,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.getdist_fisher_gaussian(
+        fisher=fisher,
+        names=names,
+        labels=labels,
+        label="mylabel",
+        rcond=1e-9,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["label"] == "mylabel"
+    assert seen["kwargs"]["rcond"] == 1e-9
+
+
+def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.fisher_to_getdist_samples delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_fisher_to_getdist_samples(theta0, fisher, *, names, labels, **kwargs):
+        """Mock fisher_to_getdist_samples that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.fisher_to_getdist_samples",
+        fake_fisher_to_getdist_samples,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.getdist_fisher_samples(
+        fisher=fisher,
+        names=names,
+        labels=labels,
+        n_samples=123,
+        seed=7,
+        kernel_scale=2.0,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_samples"] == 123
+    assert seen["kwargs"]["seed"] == 7
+    assert seen["kwargs"]["kernel_scale"] == 2.0
+
+
+def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.dali_to_getdist_importance delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_to_getdist_importance(
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        *,
+        names,
+        labels,
+        **kwargs,
+    ):
+        """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.dali_to_getdist_importance",
+        fake_dali_to_getdist_importance,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.getdist_dali_importance(
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        names=names,
+        labels=labels,
+        n_samples=1000,
+        seed=11,
+        convention="matplotlib_loglike",
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_samples"] == 1000
+    assert seen["kwargs"]["seed"] == 11
+    assert seen["kwargs"]["convention"] == "matplotlib_loglike"
+
+
+def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
+    """Tests that ForecastKit.dali_to_getdist_emcee delegates and uses self.theta0."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_to_getdist_emcee(
+        theta0,
+        fisher,
+        g_tensor,
+        h_tensor,
+        *,
+        names,
+        labels,
+        **kwargs,
+    ):
+        """Mock dali_to_getdist_emcee that records inputs and returns sentinel."""
+        seen["theta0"] = np.asarray(theta0)
+        seen["fisher"] = np.asarray(fisher)
+        seen["g_tensor"] = np.asarray(g_tensor)
+        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["names"] = list(names)
+        seen["labels"] = list(labels)
+        seen["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.dali_to_getdist_emcee",
+        fake_dali_to_getdist_emcee,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
+
+    fisher = np.eye(2)
+    g = np.zeros((2, 2, 2))
+    h = np.ones((2, 2, 2, 2))
+    names = ["a", "b"]
+    labels = [r"a", r"b"]
+
+    out = fk.getdist_dali_emcee(
+        fisher=fisher,
+        g_tensor=g,
+        h_tensor=h,
+        names=names,
+        labels=labels,
+        n_steps=50,
+        burn=10,
+        thin=2,
+        n_walkers=16,
+        init_scale=1e-2,
+        seed=5,
+    )
+
+    assert out is not None
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["g_tensor"], g)
+    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["names"] == names
+    assert seen["labels"] == labels
+    assert seen["kwargs"]["n_steps"] == 50
+    assert seen["kwargs"]["burn"] == 10
+    assert seen["kwargs"]["thin"] == 2
+    assert seen["kwargs"]["n_walkers"] == 16
+    assert seen["kwargs"]["init_scale"] == 1e-2
+    assert seen["kwargs"]["seed"] == 5

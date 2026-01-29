@@ -8,10 +8,10 @@ import pytest
 import derivkit.calculus_kit as calculus_kit_mod
 import derivkit.forecasting.laplace as laplace_mod
 from derivkit.forecasting.laplace import (
-    laplace_approximation,
-    laplace_covariance,
-    laplace_hessian,
-    negative_logposterior,
+    build_laplace_approximation,
+    build_laplace_covariance,
+    build_laplace_hessian,
+    build_negative_logposterior,
 )
 
 HESS_RAW_2X2 = np.array([[1.0, 2.0], [0.0, 4.0]], dtype=np.float64)
@@ -76,7 +76,7 @@ def fake_make_spd_by_jitter(_h: np.ndarray):
 def test_negative_logposterior_returns_negative_of_logposterior():
     """Tests that negative_logposterior returns the negative of the log-posterior."""
     theta = np.array([1.0, 2.0], dtype=np.float64)
-    out = negative_logposterior(theta, logposterior=logpost_const)
+    out = build_negative_logposterior(theta, logposterior=logpost_const)
     assert isinstance(out, float)
     assert out == pytest.approx(-3.5)
 
@@ -84,13 +84,13 @@ def test_negative_logposterior_returns_negative_of_logposterior():
 def test_negative_logposterior_raises_if_nonfinite():
     """Tests that negative_logposterior raises ValueError if log-posterior is non-finite."""
     with pytest.raises(ValueError, match="non-finite"):
-        negative_logposterior([0.0, 1.0], logposterior=logpost_nan)
+        build_negative_logposterior([0.0, 1.0], logposterior=logpost_nan)
 
 
 def test_laplace_covariance_inverts_hessian_and_symmetrizes():
     """Tests that laplace_covariance inverts and symmetrizes the Hessian matrix."""
     h = np.array([[2.0, 0.1], [0.0, 3.0]], dtype=np.float64)  # intentionally not symmetric
-    cov = laplace_covariance(h)
+    cov = build_laplace_covariance(h)
 
     assert np.allclose(cov, cov.T)
 
@@ -116,7 +116,7 @@ def test_laplace_hessian_symmetrizes_and_validates_shape(monkeypatch, raw_hessia
     monkeypatch.setattr(calculus_kit_mod.CalculusKit, "hessian", _fake_hessian, raising=True)
 
     theta_map = np.zeros(raw_hessian.shape[0], dtype=np.float64)
-    h = laplace_hessian(neg_logposterior=nlp_quadratic, theta_map=theta_map)
+    h = build_laplace_hessian(neg_logposterior=nlp_quadratic, theta_map=theta_map)
 
     assert np.allclose(h, h.T)
     assert np.allclose(h, expected)
@@ -129,7 +129,7 @@ def test_laplace_hessian_raises_if_hessian_ndim_not_2(monkeypatch):
     )
 
     with pytest.raises(TypeError, match="requires a scalar negative log-posterior"):
-        laplace_hessian(neg_logposterior=nlp_zero, theta_map=[0.0, 0.0])
+        build_laplace_hessian(neg_logposterior=nlp_zero, theta_map=[0.0, 0.0])
 
 
 def test_laplace_hessian_raises_if_shape_mismatch(monkeypatch):
@@ -139,7 +139,7 @@ def test_laplace_hessian_raises_if_shape_mismatch(monkeypatch):
     )
 
     with pytest.raises(ValueError, match=r"Hessian must have shape"):
-        laplace_hessian(neg_logposterior=nlp_zero, theta_map=[0.0, 0.0])
+        build_laplace_hessian(neg_logposterior=nlp_zero, theta_map=[0.0, 0.0])
 
 
 def test_laplace_approximation_returns_expected_keys_and_jitter(monkeypatch):
@@ -152,7 +152,7 @@ def test_laplace_approximation_returns_expected_keys_and_jitter(monkeypatch):
     )
 
     theta_map = np.array([0.1, -0.2], dtype=np.float64)
-    out = laplace_approximation(neg_logposterior=nlp_quadratic, theta_map=theta_map, ensure_spd=True)
+    out = build_laplace_approximation(neg_logposterior=nlp_quadratic, theta_map=theta_map, ensure_spd=True)
 
     assert np.allclose(out["hessian"], HESS_SPD)
     assert out["jitter"] == pytest.approx(JITTER)
@@ -161,4 +161,4 @@ def test_laplace_approximation_returns_expected_keys_and_jitter(monkeypatch):
 def test_laplace_approximation_raises_if_neg_logposterior_at_map_nonfinite():
     """Tests that laplace_approximation raises ValueError if neg_logposterior at theta_map is non-finite."""
     with pytest.raises(ValueError, match="non-finite value at theta_map"):
-        laplace_approximation(neg_logposterior=nlp_inf, theta_map=[0.0, 0.0])
+        build_laplace_approximation(neg_logposterior=nlp_inf, theta_map=[0.0, 0.0])

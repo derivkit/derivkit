@@ -63,16 +63,17 @@ from derivkit.utils.validate import (
 )
 
 __all__ = [
-    "submatrix_fisher",
-    "submatrix_dali",
-    "delta_chi2_fisher",
-    "delta_chi2_dali",
-    "logposterior_fisher",
-    "logposterior_dali",
+    "build_submatrix_fisher",
+    "build_submatrix_dali",
+    "build_delta_chi2_fisher",
+    "build_delta_chi2_dali",
+    "build_logposterior_fisher",
+    "build_logposterior_dali",
+    "build_subspace",
 ]
 
 
-def submatrix_fisher(
+def build_submatrix_fisher(
     fisher: NDArray[np.floating],
     idx: Sequence[int],
 ) -> NDArray[np.float64]:
@@ -121,7 +122,7 @@ def submatrix_fisher(
     return fisher[np.ix_(idx, idx)]
 
 
-def submatrix_dali(
+def build_submatrix_dali(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
     g_tensor: NDArray[np.floating],
@@ -189,7 +190,85 @@ def submatrix_dali(
     return t0, f2, g2, h2
 
 
-def delta_chi2_fisher(
+def build_subspace(
+    idx: Sequence[int],
+    *,
+    fisher: NDArray[np.floating],
+    theta0: NDArray[np.floating],
+    g_tensor: NDArray[np.floating] | None = None,
+    h_tensor: NDArray[np.floating] | None = None,
+) -> dict[str, Any]:
+    """Extracts a parameter subspace for Fisher or DALI expansions.
+
+    This function selects the parameters specified by ``idx`` and extracts the
+    corresponding entries of the expansion point and tensors.
+
+    Args:
+        idx: Sequence of parameter indices to extract.
+        fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
+        theta0: Expansion point of shape ``(p,)``.
+        g_tensor: Optional DALI cubic tensor of shape ``(p, p, p)``.
+        h_tensor: Optional DALI quartic tensor of shape ``(p, p, p, p)`` or ``None``.
+
+    Returns:
+        Dictionary containing the sliced objects. Let ``m = len(idx)``. The Fisher
+        submatrix has shape ``(m, m)`` and the expansion point has shape ``(m,)``.
+        If ``g_tensor`` is provided, the cubic tensor has shape ``(m, m, m)``.
+        If ``h_tensor`` is provided, the quartic tensor has shape ``(m, m, m, m)``.
+        Keys use the same names as the inputs.
+
+    Raises:
+        TypeError: If ``idx`` contains non-integer indices.
+        IndexError: If any index in ``idx`` is out of bounds.
+        ValueError: If the provided arrays have incompatible shapes, or if ``h_tensor``
+            is provided without ``g_tensor``.
+    """
+    idx = list(idx)
+    if not all(isinstance(i, (int, np.integer)) for i in idx):
+        raise TypeError("idx must contain integer indices")
+
+    fisher = np.asarray(fisher, float)
+    theta0 = np.asarray(theta0, float)
+
+    dali_mode = (g_tensor is not None) or (h_tensor is not None)
+
+    if not dali_mode:
+        validate_fisher_shapes(theta0, fisher)
+        p = int(theta0.shape[0])
+        if any((i < 0) or (i >= p) for i in idx):
+            raise IndexError(
+                f"idx contains out-of-bounds indices for p={p}: {idx}")
+
+        return {
+            "theta0": theta0[idx],
+            "fisher": fisher[np.ix_(idx, idx)],
+        }
+
+    if g_tensor is None:
+        raise ValueError(
+            "DALI subspace extraction requires `g_tensor` when `h_tensor` is provided.")
+
+    g_tensor = np.asarray(g_tensor, float)
+    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+
+    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+
+    p = int(theta0.shape[0])
+    if any((i < 0) or (i >= p) for i in idx):
+        raise IndexError(
+            f"idx contains out-of-bounds indices for p={p}: {idx}")
+
+    out = {
+        "theta0": theta0[idx],
+        "fisher": fisher[np.ix_(idx, idx)],
+        "g_tensor": g_tensor[np.ix_(idx, idx, idx)],
+    }
+    if h_tensor is not None:
+        out["h_tensor"] = h_tensor[np.ix_(idx, idx, idx, idx)]
+    return out
+
+
+def build_delta_chi2_fisher(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -254,7 +333,7 @@ def _resolve_logprior(
     return logprior
 
 
-def logposterior_fisher(
+def build_logposterior_fisher(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -325,7 +404,7 @@ def logposterior_fisher(
     return logprior_val - 0.5 * chi2
 
 
-def delta_chi2_dali(
+def build_delta_chi2_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
@@ -403,7 +482,7 @@ def delta_chi2_dali(
     return conv_dict[convention]
 
 
-def logposterior_dali(
+def build_logposterior_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],

@@ -4,7 +4,6 @@
 # Standard library imports
 # -----------------------------------------------------------------------------
 import logging
-import subprocess
 import sys
 from pathlib import Path
 
@@ -17,7 +16,7 @@ from sphinx.ext.doctest import doctest
 # -----------------------------------------------------------------------------
 # Global setup
 # -----------------------------------------------------------------------------
-sys.path.append(str(Path('_ext').resolve()))
+sys.path.append(str(Path("_ext").resolve()))
 matplotlib.use("Agg")
 
 # Silence emcee progress-bar / logging noise during Sphinx builds

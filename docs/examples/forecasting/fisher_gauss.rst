@@ -58,7 +58,6 @@ This example compares:
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> # Toy model: data vector in R^3, parameters in R^2
    >>> def model(theta):
    ...     a, b = theta
@@ -92,15 +91,13 @@ This example compares:
    >>> fisher_std = fk.fisher()
    >>> fisher_full = fk.gaussian_fisher()
    >>> # Convert to GetDist GaussianND samples for visualization
-   >>> gnd_std = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> gnd_std = fk.getdist_fisher_gaussian(
    ...     fisher=fisher_std,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
    ...     label="Standard Fisher",
    ... )
-   >>> gnd_full = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> gnd_full = fk.getdist_fisher_gaussian(
    ...     fisher=fisher_full,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
@@ -137,7 +134,6 @@ This example compares:
    from getdist import plots as getdist_plots
 
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def model(theta):
        a, b = theta
@@ -170,15 +166,13 @@ This example compares:
    fisher_std = fk.fisher()
    fisher_full = fk.gaussian_fisher()
 
-   gnd_std = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd_std = fk.getdist_fisher_gaussian(
        fisher=fisher_std,
        names=["a", "b"],
        labels=[r"a", r"b"],
        label="Standard Fisher",
    )
-   gnd_full = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd_full = fk.getdist_fisher_gaussian(
        fisher=fisher_full,
        names=["a", "b"],
        labels=[r"a", r"b"],
