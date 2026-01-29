@@ -1,14 +1,15 @@
+"""Utilities for rendering adoption entries in the docs."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from docutils import nodes
 import yaml
-
+from docutils import nodes
 from sphinx.application import Sphinx
-from sphinx.util.docutils import SphinxDirective, SphinxRole
+from sphinx.util.docutils import SphinxDirective
 from sphinx.util.typing import ExtensionMetadata
 
 
@@ -84,6 +85,7 @@ class AdoptionDirective(SphinxDirective):
     required_arguments = 1
 
     def run(self) -> list[nodes.Node]:
+        """Runs the directive and returns the resulting nodes."""
         docs_dir = Path(__file__).resolve().parents[1]
         adoption_dir = docs_dir / "adoption"
 
@@ -120,6 +122,7 @@ class AdoptionDirective(SphinxDirective):
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
+    """Set up the extension."""
     app.add_directive("adoption", AdoptionDirective)
 
     return {
