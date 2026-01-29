@@ -139,7 +139,7 @@ def _build_truncation_orders(
     out: dict[tuple[int, int], int] = {}
     h = 1.0
     for n in STENCILS:
-        k = _central_offsets(n)  # integers as floats
+        k = _central_offsets(n)
         for m in supported_orders(n):
             c = _finite_difference_coeffs(k, m, h)
             out[(n, m)] = truncation_order_from_coeffs(k, c, m)
