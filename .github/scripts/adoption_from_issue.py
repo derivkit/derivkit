@@ -18,7 +18,6 @@ class AdoptionIssue:
     entry_type: str  # "software" or "publication"
     name: str
     description: str
-    repo: str | None
     link: str | None
     citation: str | None
     contact: str | None
@@ -82,33 +81,24 @@ def _yaml_quote_block(s: str) -> str:
 def build_yaml(issue: AdoptionIssue) -> str:
     """Render a single adoption entry as YAML text."""
     if issue.entry_type == "software":
-        if not issue.repo:
+        if not issue.link:
             raise ValueError("Software entry requires a repository URL (repo).")
+    if issue.entry_type == "publication":
+        if not issue.citation:
+            raise ValueError("Publication entries require a citation line.")
 
-        return "\n".join(
-            [
-                f"name: {issue.name}",
-                "kind: software",
-                "description: " + _yaml_quote_block(issue.description),
-                f"repo: {issue.repo}",
-                f"source_issue: {issue.issue_url}",
-                "",
-            ]
-        )
-
-    # publication
-    parts = [
-        f"name: {issue.name}",
-        "kind: publication",
-        "description: " + _yaml_quote_block(issue.description),
+    reference = [
+            f"name: {issue.name}",
+            f"kind: {issue.entry_type}",
+            "description: " + _yaml_quote_block(issue.description),
+            f"link: {issue.link}",
+            f"source_issue: {issue.issue_url}",
     ]
+
     if issue.citation:
-        parts.append("citation: " + _yaml_quote_block(issue.citation))
-    if issue.link:
-        parts.append(f"link: {issue.link}")
-    parts.append(f"source_issue: {issue.issue_url}")
-    parts.append("")
-    return "\n".join(parts)
+        reference.append("citation: " + _yaml_quote_block(issue.citation))
+    reference.append("")
+    return "\n".join(reference)
 
 
 def main() -> None:
@@ -122,9 +112,8 @@ def main() -> None:
     entry_type = _normalize_type(fields.get("Entry type", ""))
     name = fields.get("Name", "").strip()
     description = fields.get("Description", "").strip()
-    repo = fields.get("Repository URL (software only)", "").strip() or None
-    link = fields.get("Publication link (publication only)", "").strip() or None
-    citation = fields.get("Citation / reference (publication only)", "").strip() or None
+    link = fields.get("Link (required)", "").strip() or None
+    citation = fields.get("Citation (publications only)", "").strip() or None
     contact = fields.get("Contact (optional)", "").strip() or None
 
     if not name:
@@ -136,7 +125,6 @@ def main() -> None:
         entry_type=entry_type,
         name=name,
         description=description,
-        repo=repo,
         link=link,
         citation=citation,
         contact=contact,
@@ -149,8 +137,10 @@ def main() -> None:
 
     if entry_type == "software":
         base = Path("docs/adoption/software") / slug
-    else:
+    elif entry_type == "publication":
         base = Path("docs/adoption/publications") / slug
+    else:
+        raise ValueError("Unsupported adoption type")
 
     out = base.with_suffix(".yml")
     if out.exists():

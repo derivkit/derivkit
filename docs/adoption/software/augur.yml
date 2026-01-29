@@ -4,4 +4,4 @@ description: >
   A DESC forecasting and inference validation tool that generates synthetic datasets
   and performs parameter inference using either full MCMC or second-order derivative–based
   Fisher matrix forecasts. DerivKit is used internally for derivative-based Fisher forecasts.
-repo: https://github.com/LSSTDESC/augur
+link: https://github.com/LSSTDESC/augur

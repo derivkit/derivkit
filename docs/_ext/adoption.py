@@ -13,12 +13,13 @@ from sphinx.util.typing import ExtensionMetadata
 
 
 @dataclass(frozen=True)
-class SoftwareEntry:
-    """A single "software using DerivKit" entry for the docs adoption list."""
+class Entry:
+    """A single adoption entry for the docs adoption list."""
 
     name: str
     description: str
-    repo: str
+    link: str
+    citation: str
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -46,31 +47,32 @@ def _iter_entry_files(path: Path) -> list[Path]:
 def _require_str(data: dict[str, Any], key: str, *, path: Path) -> str:
     """Return a required string field from a YAML mapping.
 
-    This enforces that a given key exists and is a non-empty string, so the docs
+    This enforces that a given key exists and is a valid string, so the docs
     renderer can rely on well-formed data and fail with a clear error message.
     """
     val = data.get(key)
-    if not isinstance(val, str) or not val.strip():
+    if val and not isinstance(val, str):
         raise ValueError(
-            f"{path}: missing/invalid {key!r} (must be a non-empty string)."
+            f"{path}: invalid {key!r}."
         )
-    return val.strip()
+    return val.strip() if val else ""
 
 
-def load_adoption_entries(path: Path) -> list[SoftwareEntry]:
-    """Load all software adoption entries from a directory of YAML files.
+def load_adoption_entries(path: Path) -> list[Entry]:
+    """Load all adoption entries from a directory of YAML files.
 
-    Each YAML file is expected to define one software entry with the required
-    fields (name, description, repo).
+    Each YAML file is expected to define one entry with the required
+    fields (name, description, link).
     """
-    entries: list[SoftwareEntry] = []
+    entries: list[Entry] = []
     for entry in _iter_entry_files(path):
         data = _load_yaml(entry)
         entries.append(
-            SoftwareEntry(
+            Entry(
                 name=_require_str(data, "name", path=entry),
                 description=_require_str(data, "description", path=entry),
-                repo=_require_str(data, "repo", path=entry),
+                link=_require_str(data, "link", path=entry),
+                citation=_require_str(data, "citation", path=entry),
             )
         )
     return entries
@@ -100,11 +102,14 @@ class AdoptionDirective(SphinxDirective):
                 entry_section = nodes.section(ids=[entry.name])
                 entry_section += nodes.title(text=entry.name)
                 entry_section += nodes.paragraph(text=entry.description)
-                entry_section += nodes.paragraph(
-                    "",
-                    "",
-                    nodes.reference("", "Project website", refuri=entry.repo),
-                )
+                if len(entry.citation) > 0:
+                    entry_section += nodes.paragraph(text=entry.citation)
+                if len(entry.link) > 0:
+                    entry_section += nodes.paragraph(
+                        "",
+                        "",
+                        nodes.reference("", "Project website", refuri=entry.link),
+                    )
 
                 node_list += entry_section
 
@@ -118,7 +123,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("adoption", AdoptionDirective)
 
     return {
-        "version": "0.1",
+        "version": "0.2",
         "parallel_read_safe": True,
         "parallel_write_safe": True,
     }
