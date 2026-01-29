@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "derivkit"
 description = "A robust toolkit for stable numerical derivatives"
 readme = "README.md"
-requires-python = ">3.9"
+requires-python = ">=3.10"
 dynamic = ["version"]
 
 license = "MIT"
