@@ -67,6 +67,7 @@ I expect non-Gaussian posteriors (banana-shaped, skewed, etc.)
 
 - a nonlinear model
 - parameters where Fisher may underestimate uncertainties
+- parameters with physical bounds or informative priors that truncate the Gaussian approximation
 - a data covariance matrix
 
 **We compute**
@@ -91,6 +92,10 @@ See :doc:`examples/forecasting/dali` and :doc:`examples/forecasting/dali_contour
 - Choose the expansion order based on how non-Gaussian you expect the posterior
   to be.
 - You do not need to manipulate DALI tensors directly.
+- Sampling bounds and informative priors can make posteriors non-Gaussian even
+  when the forward model is close to linear.
+- Fisher/DALI describe the *likelihood* locally; prior truncation effects are only
+  captured when you sample with explicit priors.
 
 
 I already have Fisher / DALI tensors. What do I do next?
