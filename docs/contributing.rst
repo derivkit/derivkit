@@ -28,7 +28,7 @@ In the case of a bug report please make sure to
 - describe the expected behaviour,
 - describe the actual behaviour,
 - the version(s) of ``derivkit`` that produce the bug,
-- any specific environmnent details.
+- any specific environment details.
 
 In the case of a feature please make sure to
 
@@ -116,3 +116,4 @@ To do so, add it as a command-line argument separated from the `tox` invocation 
 For example, to run only the tests in ``tests/test_derivative_kit.py`` for all supported Python versions::
 
   tox -m test -- tests/test_derivative_kit.py
+
