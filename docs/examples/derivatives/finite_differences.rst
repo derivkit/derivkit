@@ -224,8 +224,9 @@ Notes
 -----
 
 - Finite differences support scalar and vector outputs (computed component-wise).
-- Supported stencil sizes are ``num_points in {3, 5, 7, 9}``.
+- Supported stencil sizes are defined in :data:`derivkit.derivatives.finite.stencil.STENCILS`.
 - Supported derivative orders depend on the stencil size.
+  The supported orders by stencil size are defined in :data:`derivkit.derivatives.finite.stencil.STENCILS`.
 - Richardson and Ridders extrapolation can improve accuracy but increase the
   number of function evaluations.
 - Error estimates (when available) are heuristic and intended for diagnostics.
