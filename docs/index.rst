@@ -32,7 +32,7 @@ automatic differentiation may be unavailable or inappropriate.
    installation
    examples/index
    workflows
-   modules
+   api/modules
    citation
    contributing
    team
