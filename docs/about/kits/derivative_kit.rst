@@ -291,7 +291,7 @@ and does not extend to noisy, interpolated, or externally evaluated functions.
 
 - The function is noisy, tabulated, interpolated, or provided by an external
   numerical code (e.g. Boltzmann solvers or many cosmology emulators that rely
-on interpolation or precomputed grids rather than end-to-end autodiff)
+  on interpolation or precomputed grids rather than end-to-end autodiff)
 - You need production robustness or broad applicability
 - JAX compatibility cannot be guaranteed
 
