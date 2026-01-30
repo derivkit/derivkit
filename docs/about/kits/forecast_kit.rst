@@ -55,10 +55,12 @@ way to forecast expected parameter constraints without performing full
 likelihood sampling.
 
 **Interpretation:**
+
 The Fisher matrix provides a fast, local forecast of expected parameter constraints
 under a Gaussian likelihood approximation.
 
 **Example:**
+
 A basic Fisher matrix computation is shown in :doc:`../../examples/forecasting/fisher`
 
 
@@ -97,8 +99,14 @@ This expression reduces to the standard Fisher matrix when the covariance
 is independent of the parameters.
 
 **Interpretation:**
+
 The generalized Gaussian Fisher provides a consistent local approximation
 when both the signal and noise depend on the model parameters.
+
+
+**Example:**
+
+A worked example is provided in :doc:`../../examples/forecasting/fisher_gauss`.
 
 
 X–Y Fisher Formalism
@@ -165,9 +173,14 @@ with the replacement :math:`C \rightarrow R`:
 
 
 **Interpretation:**
+
 The X–Y Fisher matrix consistently propagates uncertainty in the measured
 inputs into the output covariance, enabling Fisher forecasts when both inputs
 and outputs are noisy.
+
+**Example:**
+
+A worked example is provided in :doc:`../../examples/forecasting/fisher_xy`.
 
 
 Fisher Bias
@@ -199,12 +212,14 @@ ForecastKit returns:
 - optional visualization of the bias relative to Fisher contours
 
 **Interpretation:**
+
 Fisher bias estimates how small systematic errors in the observables translate
 into shifts in best-fit parameters.
 
 .. image:: ../../assets/plots/fisher_bias_demo_1and2sigma.png
 
 **Example:**
+
 A worked example is provided in :doc:`../../examples/forecasting/fisher_bias`.
 
 
@@ -334,6 +349,7 @@ local approximation, capturing skewness and non-elliptical curvature while
 remaining positive definite.
 
 **Interpretation:**
+
 DALI provides a controlled hierarchy of local posterior approximations,
 reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
 
@@ -343,112 +359,8 @@ reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
 
 
 **Example:**
+
 A worked example is provided in :doc:`../../examples/forecasting/dali`.
-
-
-Generalized Gaussian Fisher
----------------------------
-
-When the data covariance depends on the model parameters, the Fisher matrix must
-include derivatives of both the mean-derivative and the covariance-derivative terms.
-
-For Gaussian-distributed data with mean :math:`\mu(\theta)` and covariance
-:math:`C(\theta)`, the generalized Fisher matrix evaluated at a fiducial point is
-
-.. math::
-
-   F_{\alpha\beta}
-   =
-   \mu_{,\alpha}^{\mathrm T}\, C^{-1}\, \mu_{,\beta}
-   +
-   \frac{1}{2}\,
-   \mathrm{Tr}\!\left[
-     C^{-1} C_{,\alpha} C^{-1} C_{,\beta}
-   \right],
-
-where :math:`\mu_{,\alpha} \equiv \partial \mu / \partial \theta_\alpha` and
-:math:`C_{,\alpha} \equiv \partial C / \partial \theta_\alpha`.
-
-This reduces to the standard Fisher matrix when :math:`C` is independent of
-the parameters. In ForecastKit, the mean-derivative term is always included,
-while the covariance-derivative term is included only when ``cov`` is provided
-as a callable ``C(theta)``.
-
-**Interpretation:**
-Use the generalized Gaussian Fisher when both the signal and the noise model
-depend on the parameters.
-
-**Example:**
-A worked example is provided in :doc:`../../examples/forecasting/fisher_gauss`.
-
-
-X–Y Fisher Formalism
---------------------
-
-The X–Y Fisher formalism applies when the observables are split into measured
-inputs :math:`X` and outputs :math:`Y`, where both are noisy and may be correlated.
-Measurement errors are described by a joint Gaussian covariance
-
-.. math::
-
-   C =
-   \begin{pmatrix}
-     C_{XX} & C_{XY} \\
-     C_{XY}^{\mathrm T} & C_{YY}
-   \end{pmatrix},
-
-and the model predicts the mean of the outputs as :math:`\mu(X,\theta)`.
-
-Linearizing the model mean in the (latent) true inputs :math:`x` around the
-measured inputs :math:`X`,
-
-.. math::
-
-   \mu(x,\theta) \simeq \mu(X,\theta) + T(X,\theta)\,(x - X),
-   \qquad
-   T_{ij} \equiv
-   \frac{\partial \mu_i}{\partial x_j}\Big|_{x=X},
-
-and analytically marginalizing over :math:`x` yields a Gaussian likelihood for
-:math:`Y` with an effective covariance
-
-.. math::
-
-   R
-   =
-   C_{YY}
-   -
-   C_{XY}^{\mathrm T} T^{\mathrm T}
-   -
-   T C_{XY}
-   +
-   T C_{XX} T^{\mathrm T}.
-
-The Fisher matrix then has the same form as the generalized Gaussian Fisher,
-with the replacement :math:`C \rightarrow R`:
-
-.. math::
-
-   F_{\alpha\beta}
-   =
-   \mu_{,\alpha}^{\mathrm T}\, R^{-1}\, \mu_{,\beta}
-   +
-   \frac{1}{2}\,
-   \mathrm{Tr}\!\left[
-     R^{-1} R_{,\alpha} R^{-1} R_{,\beta}
-   \right].
-
-In ForecastKit, the covariance blocks :math:`C_{XX}`, :math:`C_{XY}`, and
-:math:`C_{YY}` are treated as fixed; parameter dependence enters through the
-local sensitivity matrix :math:`T`, which propagates input uncertainty into the
-effective output covariance :math:`R`.
-
-**Interpretation:**
-Use the X–Y Fisher formalism when uncertainty in measured inputs must be
-propagated into the output covariance.
-
-**Example:**
-A worked example is provided in :doc:`../../examples/forecasting/fisher_xy`.
 
 
 Posterior Sampling and Visualization
