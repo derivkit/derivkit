@@ -5,7 +5,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.likelihoods.gaussian
    derivkit.likelihoods.poisson

@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.derivatives.adaptive
    derivkit.derivatives.autodiff
@@ -17,7 +17,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.derivatives.fornberg
 

@@ -5,7 +5,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.calculus.calculus_core
    derivkit.calculus.gradient

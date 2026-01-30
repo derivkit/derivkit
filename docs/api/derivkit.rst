@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.calculus
    derivkit.derivatives
@@ -17,7 +17,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.calculus_kit
    derivkit.derivative_kit
