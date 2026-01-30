@@ -32,11 +32,11 @@ automatic differentiation may be unavailable or inappropriate.
    installation
    examples/index
    workflows
-   api/modules
    citation
    contributing
    team
    license
+   derivkit
 
 
 What does DerivKit provide?
