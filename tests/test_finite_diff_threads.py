@@ -130,4 +130,4 @@ def test_fd_rejects_unsupported_combo():
     """Tests that FD rejects unsupported (stencil size, order) combinations."""
     with pytest.raises(ValueError):
         fd = FiniteDifferenceDerivative(math.sin, 0.0)
-        fd.differentiate(order=2, stepsize=1e-3, num_points=3)
+        fd.differentiate(order=3, stepsize=1e-3, num_points=3)
