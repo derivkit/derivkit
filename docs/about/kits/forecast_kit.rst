@@ -217,6 +217,7 @@ Fisher bias estimates how small systematic errors in the observables translate
 into shifts in best-fit parameters.
 
 .. image:: ../../assets/plots/fisher_bias_demo_1and2sigma.png
+   :width: 60%
 
 **Example:**
 
@@ -361,7 +362,9 @@ reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
 
 
 .. image:: ../../assets/plots/dali_vs_fisher_exact_1d.png
+   :width: 60%
 .. image:: ../../assets/plots/dali_vs_fisher_2d_1and2sigma.png
+   :width: 60%
 
 
 **Example:**
