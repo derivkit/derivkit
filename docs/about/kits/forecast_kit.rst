@@ -361,7 +361,7 @@ Keep in mind that:
 - DALI may perform poorly for models with weak or sublinear parameter dependence,
   or when increasing the expansion order does not improve convergence
   (see discussion in e.g. [#dali]_ and section VI.B of
-  `arXiv:2211.06534<https://arxiv.org/abs/2211.06534>`_).
+  `arXiv:2211.06534 <https://arxiv.org/abs/2211.06534>`_).
 - If DALI does not stabilize as the expansion order is increased,
   numerical posterior sampling (e.g. ``emcee``) should be used to validate
   the approximation.
