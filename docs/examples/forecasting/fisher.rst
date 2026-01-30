@@ -61,9 +61,12 @@ Interpreting the result
 
 For ``p`` parameters, the Fisher matrix has shape ``(p, p)``.
 
-- The diagonal elements correspond to inverse variances (up to correlations).
+- The Fisher matrix encodes the local curvature of the likelihood with respect
+  to the parameters.
 - The inverse Fisher matrix approximates the parameter covariance near
-  ``theta0``.
+  ``theta0``; its diagonal elements correspond to parameter variances, while
+  off-diagonal elements encode correlations.
+
 
 .. doctest:: fisher_inverse
 
