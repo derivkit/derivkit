@@ -354,14 +354,17 @@ Including third-order (“triplet DALI”) terms introduces additional correctio
 tensors :math:`T^{(i)}`, which capture higher-order non-Gaussian structure while
 preserving positive definiteness of the approximation.
 
-Keep in mind that
-- DALI is a *local* approximation around ``theta0``. It can degrade far from the
+Keep in mind that:
+
+- DALI is a *local* approximation around ``theta0`` and may degrade far from the
   expansion point.
-- DALI may perform poorly for models with weak/sublinear parameter dependence or
-  when higher-order terms do not improve convergence (see discussion in
-  section VI.B of arXiv:2211.06534).
-- If DALI does not stabilize as you increase the expansion order, use numerical
-  posterior sampling (e.g. ``emcee``) to validate the approximation.
+- DALI may perform poorly for models with weak or sublinear parameter dependence,
+  or when increasing the expansion order does not improve convergence
+  (see discussion in e.g. [#dali]_ and section VI.B of
+  `arXiv:2211.06534<https://arxiv.org/abs/2211.06534>`_).
+- If DALI does not stabilize as the expansion order is increased,
+  numerical posterior sampling (e.g. ``emcee``) should be used to validate
+  the approximation.
 
 
 **Interpretation:**
