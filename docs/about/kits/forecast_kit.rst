@@ -305,10 +305,10 @@ Expanding the log-posterior locally in parameter displacements
      F_{\alpha\beta}\,
      \Delta\theta_\alpha \Delta\theta_\beta
    - \frac{1}{3!}
-     G_{\alpha\beta\gamma}\,
+     D^{(1)}_{\alpha\beta\gamma}\,
      \Delta\theta_\alpha \Delta\theta_\beta \Delta\theta_\gamma
    - \frac{1}{4!}
-     H_{\alpha\beta\gamma\delta}\,
+     D^{(2)}_{\alpha\beta\gamma\delta}\,
      \Delta\theta_\alpha \Delta\theta_\beta
      \Delta\theta_\gamma \Delta\theta_\delta
    + \cdots,
@@ -316,10 +316,15 @@ Expanding the log-posterior locally in parameter displacements
 where
 
 - :math:`F_{\alpha\beta}` is the Fisher matrix,
-- :math:`G_{\alpha\beta\gamma}` is the third-derivative (skewness) tensor,
-- :math:`H_{\alpha\beta\gamma\delta}` is the fourth-derivative (kurtosis) tensor,
+- :math:`D^{(1)}_{\alpha\beta\gamma}` and :math:`D^{(2)}_{\alpha\beta\gamma\delta}`
+  are the second-order (doublet) DALI correction terms,
+- :math:`T^{(1)}_{\alpha\beta\gamma\delta}`,
+  :math:`T^{(2)}_{\alpha\beta\gamma\delta\epsilon}`,
+  and :math:`T^{(3)}_{\alpha\beta\gamma\delta\epsilon\zeta}`
+  denote third-order (triplet) DALI correction terms,
 
 all evaluated at the expansion point :math:`\hat{\theta}`.
+
 
 For Gaussian data models with parameter-independent covariance, these tensors
 can be expressed directly in terms of derivatives of the model predictions,
@@ -336,17 +341,18 @@ At second order (“doublet DALI”), the posterior takes the form
      F_{\alpha\beta}\,
      \Delta\theta_\alpha \Delta\theta_\beta
      -\frac{1}{2}
-     G_{\alpha\beta\gamma}\,
+     D^{(1)}_{\alpha\beta\gamma}\,
      \Delta\theta_\alpha \Delta\theta_\beta \Delta\theta_\gamma
      +\frac{1}{8}
-     H_{\alpha\beta\gamma\delta}\,
+     D^{(2)}_{\alpha\beta\gamma\delta}\,
      \Delta\theta_\alpha \Delta\theta_\beta
      \Delta\theta_\gamma \Delta\theta_\delta
    \Bigg].
 
-Including higher-order terms (“triplet DALI”) systematically improves the
-local approximation, capturing skewness and non-elliptical curvature while
-remaining positive definite.
+Including third-order (“triplet DALI”) terms introduces additional correction
+tensors :math:`T^{(i)}`, which capture higher-order non-Gaussian structure while
+preserving positive definiteness of the approximation.
+
 
 **Interpretation:**
 
