@@ -50,7 +50,8 @@ This example compares:
   covariance-derivative terms to the Fisher matrix.
 
 - The covariance dependence is chosen to be noticeable but not dominant, while
-  remaining SPD by construction.
+  remaining symmetric positive definite (SPD) by construction, ensuring a valid
+  and invertible covariance matrix.
 
 
 .. doctest:: gaussian_fisher_standard_vs_full
