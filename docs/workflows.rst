@@ -143,12 +143,19 @@ I have a parameter dependent covariance, can I still use Fisher / DALI?
 
 **Use**
 
-- :class:`ForecastKit` with a covariance function input
-- Fisher method as usual
-- DALI method as usual
+- :class:`ForecastKit` with a callable covariance input
+- :meth:`ForecastKit.gaussian_fisher` for parameter-dependent covariances
+- :doc:`examples/forecasting/fisher_xy` for the X–Y Gaussian case
 
 **Minimal example**
 
+See :doc:`examples/forecasting/fisher_xy`.
+
+**Notes**
+
+- Parameter-dependent covariances are supported for Gaussian Fisher forecasts.
+- DALI currently assumes a fixed covariance evaluated at ``theta0``; support for
+  parameter-dependent covariances is planned.
 
 
 
