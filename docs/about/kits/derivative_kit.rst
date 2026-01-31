@@ -133,7 +133,8 @@ Adaptive Polynomial Fit
 Build a Chebyshev-spaced grid around ``x0``, rescale offsets to a stable interval,
 and fit a local polynomial with optional ridge regularisation.
 The method can enlarge the grid if there are too few samples
-and adjust the effective polynomial degree, and it reports detailed diagnostics
+and adjust the effective polynomial degree.
+It also reports detailed diagnostics.
 [#fornberg]_.
 
 For a centered polynomial fit of degree ``d``,
