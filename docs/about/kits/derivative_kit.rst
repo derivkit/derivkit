@@ -256,13 +256,19 @@ estimating derivatives numerically, autodiff propagates
 derivatives analytically through the computational graph, yielding exact
 derivatives up to machine precision.
 
+A key distinction from finite differences or local fits is that autodiff stays
+close to the implemented functional form: it differentiates the same computation
+used to produce the model outputs, rather than estimating derivatives from
+nearby perturbed evaluations. When the model is smooth and expressed end-to-end
+in JAX, the resulting derivative typically has very small numerical error and
+does not introduce additional differencing noise.
+
 This avoids step-size choices, local sampling, and numerical differencing.
-However, this does not imply that autodiff is universally superior. A common
-misconception is that autodiff always yields a “perfect” derivative: in practice,
-it differentiates the implemented computation, which may already include
-approximations, interpolation, or numerical artifacts. As a result, autodiff can
-produce an exact derivative of an effective function that differs from the intended
-underlying model.
+This does not mean autodiff is universally superior. Autodiff differentiates the
+*implemented* computation. If that computation already contains approximations
+(splines, table lookups, iterative solvers, discontinuities, clipping, etc.),
+autodiff returns the exact derivative of that effective function, which may not
+match the derivative of the intended underlying model.
 
 Its applicability is therefore limited to fully JAX-compatible, analytic models
 and does not extend to noisy, interpolated, or externally evaluated functions.
