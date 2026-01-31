@@ -36,7 +36,7 @@ automatic differentiation may be unavailable or inappropriate.
    contributing
    team
    license
-   api
+   api/index
 
 
 What does DerivKit provide?
