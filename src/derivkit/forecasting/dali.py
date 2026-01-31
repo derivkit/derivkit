@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from derivkit.forecasting.forecast_core import get_forecast_tensors
+
+Array = NDArray[np.floating]  # for outputs / internal arrays
+ArrayLike1D = Any  # theta0: list[float] | np.ndarray | ...
+ArrayLike2D = Any  # cov: list[list[float]] | np.ndarray | ...
 
 __all__ = [
     "build_dali",
@@ -15,9 +19,9 @@ __all__ = [
 
 
 def build_dali(
-    function: Callable[[ArrayLike], np.floating | NDArray[np.floating]],
-    theta0: ArrayLike,
-    cov: ArrayLike,
+    function: Callable[[ArrayLike1D], np.floating | NDArray[np.floating]],
+    theta0: ArrayLike1D,
+    cov: ArrayLike2D,
     *,
     method: str | None = None,
     forecast_order: int | None = 2,
