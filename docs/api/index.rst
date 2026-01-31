@@ -1,5 +1,5 @@
-DerivKit API reference
-======================
+derivkit API
+============
 
 .. toctree::
    :maxdepth: 2
