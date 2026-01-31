@@ -25,13 +25,25 @@ def test_forecastkit_delegates(monkeypatch):
         }
         return np.full((2, 2), 42.0)
 
-    def fake_build_dali(function, theta0, cov, *, method=None, n_workers=1, **dk_kwargs):
+    def fake_build_dali(
+        function,
+        theta0,
+        cov,
+        *,
+        forecast_order,
+        single_forecast_order,
+        method=None,
+        n_workers=1,
+        **dk_kwargs
+    ):
         """Returns mock DALI tensors."""
         calls["dali"] = {
             "function": function,
             "theta0": np.asarray(theta0),
             "cov": np.asarray(cov),
             "method": method,
+            "forecast_order": forecast_order,
+            "single_forecast_order": single_forecast_order,
             "n_workers": n_workers,
             "dk_kwargs": dk_kwargs,
         }
@@ -68,8 +80,15 @@ def test_forecastkit_delegates(monkeypatch):
     assert calls["fisher"]["function"] is model
     assert calls["fisher"]["n_workers"] == 3
 
+    # Define a few mock variables. Their value doesn't matter.
+    mock_forecast_order = "forecast_order"
+    mock_single_forecast_order = 0
     # The DALI computation delegates to the helper function and forwards n_workers.
-    g_tensor, h_tensor = fk.dali(n_workers=4)
+    g_tensor, h_tensor = fk.dali(
+                        forecast_order=mock_forecast_order,
+                        single_forecast_order=mock_single_forecast_order,
+                        n_workers=4
+                    )
     assert g_tensor.shape == (2, 2, 2)
     assert h_tensor.shape == (2, 2, 2, 2)
 
@@ -77,6 +96,8 @@ def test_forecastkit_delegates(monkeypatch):
     np.testing.assert_allclose(calls["dali"]["theta0"], theta0)
     np.testing.assert_allclose(calls["dali"]["cov"], cov)
     assert calls["dali"]["function"] is model
+    assert calls["dali"]["forecast_order"] == mock_forecast_order
+    assert calls["dali"]["single_forecast_order"] == mock_single_forecast_order
     assert calls["dali"]["n_workers"] == 4
 
 
