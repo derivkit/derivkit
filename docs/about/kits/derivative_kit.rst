@@ -102,7 +102,7 @@ where ``a_1`` is the fitted linear coefficient of the polynomial.
 **DerivKit implementation:**
 
 - User-chosen window and polynomial degree
-- Low overhead and easy to reason about
+- Low overhead and transparent behaviour
 - Includes diagnostics on fit quality and conditioning
 
 
@@ -132,8 +132,10 @@ Adaptive Polynomial Fit
 
 Build a Chebyshev-spaced grid around ``x0``, rescale offsets to a stable interval,
 and fit a local polynomial with optional ridge regularisation.
-The method can enlarge the grid if there are too few samples,
-adjust the effective polynomial degree, and reports detailed diagnostics
+The method can enlarge the grid if there are too few samples
+and adjust the effective polynomial degree.
+It also reports detailed diagnostics on fit quality and suggests improvements
+if the derivative appears unreliable.
 [#fornberg]_.
 
 For a centered polynomial fit of degree ``d``,
@@ -249,18 +251,24 @@ JAX Autodiff
 **How it works:**
 
 JAX provides automatic differentiation for Python functions written using
-`jax.numpy <https://docs.jax.dev/en/latest/jax.numpy.html>`. Instead of
+`jax.numpy <https://docs.jax.dev/en/latest/jax.numpy.html>`_. Instead of
 estimating derivatives numerically, autodiff propagates
 derivatives analytically through the computational graph, yielding exact
 derivatives up to machine precision.
 
+A key distinction from finite differences or local fits is that autodiff stays
+close to the implemented functional form: it differentiates the same computation
+used to produce the model outputs, rather than estimating derivatives from
+nearby perturbed evaluations. When the model is smooth and expressed end-to-end
+in JAX, the resulting derivative typically has very small numerical error and
+does not introduce additional differencing noise.
+
 This avoids step-size choices, local sampling, and numerical differencing.
-However, this does not imply that autodiff is universally superior. A common
-misconception is that autodiff always yields a “perfect” derivative: in practice,
-it differentiates the implemented computation, which may already include
-approximations, interpolation, or numerical artifacts. As a result, autodiff can
-produce an exact derivative of an effective function that differs from the intended
-underlying model.
+This does not mean autodiff is universally superior. Autodiff differentiates the
+*implemented* computation. If that computation already contains approximations
+(splines, table lookups, iterative solvers, discontinuities, clipping, etc.),
+autodiff returns the exact derivative of that effective function, which may not
+match the derivative of the intended underlying model.
 
 Its applicability is therefore limited to fully JAX-compatible, analytic models
 and does not extend to noisy, interpolated, or externally evaluated functions.
@@ -290,7 +298,8 @@ and does not extend to noisy, interpolated, or externally evaluated functions.
 **Avoid when:**
 
 - The function is noisy, tabulated, interpolated, or provided by an external
-  numerical code (e.g. Boltzmann solvers or emulators in cosmology)
+  numerical software (e.g. Boltzmann solvers or many cosmology emulators that
+  rely on interpolation or precomputed grids rather than end-to-end autodiff)
 - You need production robustness or broad applicability
 - JAX compatibility cannot be guaranteed
 

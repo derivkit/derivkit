@@ -15,9 +15,9 @@ In this case, DerivKit first constructs an interpolated representation of the
 tabulated values, and then applies the selected derivative backend to that
 interpolant.
 
-This is useful when working with simulation outputs, precomputed theory
-tables, or externally generated data products where the underlying function
-cannot be evaluated analytically.
+This is useful when working with simulation outputs, precomputed theory tables,
+or externally generated data products where the underlying function cannot be
+evaluated analytically or would be prohibitively expensive to evaluate repeatedly.
 
 For more information on this and other implemented derivative methods,
 see :doc:`../../about/kits/derivative_kit`.
