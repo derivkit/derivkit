@@ -70,6 +70,12 @@ The linting workflow can be run using::
 
   tox -e lint
 
+Note that tox uses `ruff <https://docs.astral.sh/ruff/>`__ as the actual linter.
+Options can be passed to `ruff check` by supplying them as command-line arguments to tox.
+For example, to address fixable linting errors, use::
+
+  tox -e lint -- --fix
+
 =============
 Documentation
 =============
