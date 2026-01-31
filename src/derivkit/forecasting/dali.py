@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import numpy as np
-from numpy.typing import NDArray
 
 from derivkit.forecasting.forecast_core import get_forecast_tensors
-
-Array = NDArray[np.floating]  # for outputs / internal arrays
-ArrayLike1D = Any  # theta0: list[float] | np.ndarray | ...
-ArrayLike2D = Any  # cov: list[list[float]] | np.ndarray | ...
+from derivkit.utils.types import Array, ArrayLike1D, ArrayLike2D
 
 __all__ = [
     "build_dali",
@@ -19,7 +15,7 @@ __all__ = [
 
 
 def build_dali(
-    function: Callable[[ArrayLike1D], np.floating | NDArray[np.floating]],
+    function: Callable[[ArrayLike1D], np.floating | Array],
     theta0: ArrayLike1D,
     cov: ArrayLike2D,
     *,
@@ -28,11 +24,7 @@ def build_dali(
     single_forecast_order: bool = False,
     n_workers: int = 1,
     **dk_kwargs: Any,
-) -> Union[
-        NDArray[np.floating],
-        tuple[NDArray[np.floating],...],
-        dict[int, tuple[NDArray[np.floating],...]]
-    ]:
+) -> Array | tuple[Array, ...] | dict[int, tuple[Array, ...]]:
     """Builds the DALI expansion for the given model of the supplied order.
 
     Args:
