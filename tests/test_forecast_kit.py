@@ -84,13 +84,13 @@ def test_forecastkit_delegates(monkeypatch):
     mock_forecast_order = "forecast_order"
     mock_single_forecast_order = 0
     # The DALI computation delegates to the helper function and forwards n_workers.
-    g_tensor, h_tensor = fk.dali(
+    D1, D2 = fk.dali(
                         forecast_order=mock_forecast_order,
                         single_forecast_order=mock_single_forecast_order,
                         n_workers=4
                     )
-    assert g_tensor.shape == (2, 2, 2)
-    assert h_tensor.shape == (2, 2, 2, 2)
+    assert D1.shape == (2, 2, 2)
+    assert D2.shape == (2, 2, 2, 2)
 
     assert calls["dali"] is not None
     np.testing.assert_allclose(calls["dali"]["theta0"], theta0)
