@@ -102,7 +102,7 @@ where ``a_1`` is the fitted linear coefficient of the polynomial.
 **DerivKit implementation:**
 
 - User-chosen window and polynomial degree
-- Low overhead and straightforward behaviour with transparent assumptions
+- Low overhead and transparent behaviour
 - Includes diagnostics on fit quality and conditioning
 
 
