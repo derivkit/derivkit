@@ -77,6 +77,10 @@ def build_dali(
         multiplet of the requested order. Using the example above the output
         would be ``DALI_triplet``. In the case that ``forecast_order == 1``
         the Fisher matrix itself is returned instead of ``DALI_singlet``.
+
+        The number of axes of the tensors in the multiplet at order ``order``
+        ranges from ``order+1`` to ``2*order`` in order of increasing number.
+        All axes have length ``len(theta0)``.
     """
     return get_forecast_tensors(
         function,
