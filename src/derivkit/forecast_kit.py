@@ -44,9 +44,10 @@ Typical usage example:
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 from derivkit.forecasting.dali import build_dali
 from derivkit.forecasting.expansions import (
