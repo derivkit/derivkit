@@ -102,7 +102,7 @@ where ``a_1`` is the fitted linear coefficient of the polynomial.
 **DerivKit implementation:**
 
 - User-chosen window and polynomial degree
-- Low overhead and straightforward behaviour with transparent assumptions
+- Low overhead and transparent behaviour
 - Includes diagnostics on fit quality and conditioning
 
 
@@ -133,7 +133,9 @@ Adaptive Polynomial Fit
 Build a Chebyshev-spaced grid around ``x0``, rescale offsets to a stable interval,
 and fit a local polynomial with optional ridge regularisation.
 The method can enlarge the grid if there are too few samples
-and adjust the effective polynomial degree, and it reports detailed diagnostics
+and adjust the effective polynomial degree.
+It also reports detailed diagnostics on fit quality and suggests improvements
+if the derivative appears unreliable.
 [#fornberg]_.
 
 For a centered polynomial fit of degree ``d``,
