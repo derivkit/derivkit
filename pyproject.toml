@@ -122,13 +122,16 @@ extras = ["docs"]
 commands = [
   [
     "sphinx-apidoc",
-    "-o", "{tox_root}/docs",
+    "-d", "2",
+    "-o", "{tox_root}/docs/api",
+    "--tocfile", "{tox_root}/docs/api/index", "--no-toc",
     "{tox_root}/src/derivkit",
     "--separate",
     "-f",
   ],
   [
     "sphinx-build",
+    "-c", "{tox_root}/docs",
     "-b", "{posargs:html}",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/{posargs:html}",
@@ -145,13 +148,16 @@ allowlist_externals = ["open"]
 commands = [
   [
     "sphinx-apidoc",
-    "-o", "{tox_root}/docs",
+    "-d", "2",
+    "-o", "{tox_root}/docs/api",
+    "--tocfile", "{tox_root}/docs/api/index", "--no-toc",
     "{tox_root}/src/derivkit",
     "--separate",
     "-f",
   ],
   [
     "sphinx-build",
+    "-c", "{tox_root}/docs",
     "-b", "doctest",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/doctest",
@@ -178,13 +184,16 @@ allowlist_externals = ["cp"]
 commands = [
   [
     "sphinx-apidoc",
-    "-o", "{tox_root}/docs",
+    "-d", "2",
+    "-o", "{tox_root}/docs/api/index",
+    "--tocfile", "{tox_root}/docs/api", "--no-toc",
     "{tox_root}/src/derivkit",
     "--separate",
     "-f",
   ],
   [
     "sphinx-multiversion",
+    "-c", "{tox_root}/docs",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/html",
     "--fail-on-warning",

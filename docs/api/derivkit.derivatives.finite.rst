@@ -5,7 +5,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    derivkit.derivatives.finite.batch_eval
    derivkit.derivatives.finite.core
