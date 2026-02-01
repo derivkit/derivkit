@@ -52,7 +52,7 @@ def build_fisher_matrix(
     Returns:
         Fisher matrix with shape ``(n_parameters, n_parameters)``.
     """
-    fisher = get_forecast_tensors(
+    out = get_forecast_tensors(
         function=function,
         theta0=theta0,
         cov=cov,
@@ -61,6 +61,24 @@ def build_fisher_matrix(
         n_workers=n_workers,
         **dk_kwargs,
     )
+    # Accept both the dict form: out[1] == (F,) and the
+    # direct array form: out == F
+    if isinstance(out, dict):
+        try:
+            multiplet = out[1]
+        except KeyError as e:
+            raise ValueError(
+                "Expected Fisher output at key 1 in forecast tensors.") from e
+        if not isinstance(multiplet, tuple) or len(multiplet) < 1:
+            raise ValueError("Expected out[1] to be a tuple like (F,).")
+        fisher = np.asarray(multiplet[0], dtype=float)
+    else:
+        fisher = np.asarray(out, dtype=float)
+
+    if fisher.ndim != 2 or fisher.shape[0] != fisher.shape[1]:
+        raise ValueError(
+            f"Fisher matrix must be square; got shape {fisher.shape}.")
+
     return fisher
 
 
@@ -253,6 +271,7 @@ def build_delta_nu(
         length does not match ``n_observables``.
       FloatingPointError: If non-finite values are detected in the result.
     """
+    cov = validate_covariance_matrix_shape(cov)
     n_observables = cov.shape[0]
 
     a = np.asarray(data_biased, dtype=dtype)
