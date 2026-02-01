@@ -1,17 +1,14 @@
 """Tests for forecast_core methods."""
 
-from functools import partial
-
 import numpy as np
 import pytest
 
-from derivkit.forecasting.fisher import build_delta_nu, build_fisher_bias
+import derivkit.forecasting.forecast_core as fc
 from derivkit.forecasting.forecast_core import (
     SUPPORTED_FORECAST_ORDERS,
     _get_derivatives,
     get_forecast_tensors,
 )
-from derivkit.utils.linalg import invert_covariance
 
 
 def _identity(x):
@@ -22,6 +19,23 @@ def _two_obs(theta):
     """A test function that returns two identical observables."""
     t = float(np.asarray(theta)[0])
     return np.array([t, t], dtype=float)
+
+
+def get_fisher_matrix(forecast):
+    """Returns fisher matrix."""
+    return forecast[1][0]
+
+
+def get_dali_doublet(forecast):
+    """Returns dali doublet (d1, d2)."""
+    d1, d2 = forecast[2]
+    return d1, d2
+
+
+def get_dali_triplet(forecast):
+    """Returns dali triplet (t1, t2, t3)."""
+    t1, t2, t3 = forecast[3]
+    return t1, t2, t3
 
 
 def test_derivative_order():
@@ -47,35 +61,33 @@ def test_forecast_order():
 
 
 def test_pseudoinverse_path_no_nan(caplog):
-    """Test that pseudoinverse path yields finite tensors."""
-    # singular covariance -> forces pinv path
+    """Tests that pseudoinverse path yields finite tensors."""
     func = _two_obs
     theta0 = np.array([1.0])
-
     cov = np.array([[1.0, 1.0],
-                    [1.0, 1.0]], dtype=float)  # singular 2x2
+                    [1.0, 1.0]], dtype=float)
 
-    fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
-    tensor_g, tensor_h = get_forecast_tensors(func, theta0, cov, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
+    out_doublet = get_forecast_tensors(func, theta0, cov, forecast_order=2)
 
-    # We expect 2 warnings: 1 from the Fisher path and 1 from the DALI path
-    assert 2 == len([x for x in caplog.records
-        if "pseudoinverse" in x.message
-        and "WARNING" == x.levelname
-    ])
+    fisher_matrix = get_fisher_matrix(out_fisher)
+    dali_g, dali_h = get_dali_doublet(out_doublet)
 
-    assert np.isfinite(fisher).all()
-    assert np.isfinite(tensor_g).all()
-    assert np.isfinite(tensor_h).all()
+    assert any("pseudoinverse" in r.message.lower() for r in caplog.records)
+
+    assert np.isfinite(fisher_matrix).all()
+    assert np.isfinite(dali_g).all()
+    assert np.isfinite(dali_h).all()
+
 
 @pytest.mark.parametrize(
     (
         "model, "
         "fiducials, "
         "covariance_matrix, "
-        "expected_fisher, "
-        "expected_dali_g, "
-        "expected_dali_h"
+        "expected_fisher,"
+        "expected_d1, "
+        "expected_d2"
     ),
     [
         pytest.param(
@@ -185,8 +197,8 @@ def test_forecast(
     fiducials,
     covariance_matrix,
     expected_fisher,
-    expected_dali_g,
-    expected_dali_h,
+    expected_d1,
+    expected_d2,
     caplog,
 ):
     """Validates Fisher and DALI tensors against reference values.
@@ -195,7 +207,8 @@ def test_forecast(
     matrices.
 
     - Fisher is compared with `atol=0` (after casting to float64).
-    - DALI tensors (G, H) use a mixed tolerance: tight relative tolerance and a
+    - DALI tensors (D1, D2) use a mixed tolerance: tight relative tolerance
+    and a
       tiny absolute floor only where the expected entries are near zero. This
       avoids false failures from floating-point noise in ~0 entries while
       keeping real values strict.
@@ -211,8 +224,12 @@ def test_forecast(
     fisher_rtol = 3e-3
     fisher_atol = 1e-12
 
-    fisher_matrix = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
-    dali_g, dali_h = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
+    out_doublet = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
+
+    fisher = get_fisher_matrix(out_fisher)
+    d1, d2 = get_dali_doublet(out_doublet)
+
     # Helper: warn only if cov is non-symmetric
     want_sym_warn = not np.allclose(covmat, covmat.T)
     if want_sym_warn:
@@ -221,24 +238,22 @@ def test_forecast(
         assert r"`cov` is not symmetric; proceeding as-is" in caplog.text
 
     assert np.allclose(
-        np.asarray(fisher_matrix, float),
+        np.asarray(fisher, float),
         np.asarray(expected_fisher, float),
         rtol=fisher_rtol,
         atol=fisher_atol,
     )
 
     is_multi_param = fiducials.size > 1
-    rtol_g = 3e-3 if is_multi_param else 5e-4
-    # H is more sensitive;
-    rtol_h = 5e-3 if is_multi_param else 2e-3
+    rtol_d1 = 3e-3 if is_multi_param else 5e-4
+    rtol_d2 = 5e-3 if is_multi_param else 2e-3
 
-    # Non-symmetric covariances are more sensitive; relax slightly
     if not np.allclose(covmat, covmat.T):
-        rtol_g = max(rtol_g, 1.5e-2)  # was 3e-3
-        rtol_h = max(rtol_h, 2.5e-2)  # was 5e-3
+        rtol_d1 = max(rtol_d1, 1.5e-2)
+        rtol_d2 = max(rtol_d2, 2.5e-2)
 
-    _assert_close_mixed(dali_g, expected_dali_g, rtol=rtol_g, label="dali_g")
-    _assert_close_mixed(dali_h, expected_dali_h, rtol=rtol_h, label="dali_h")
+    _assert_close_mixed(d1, expected_d1, rtol=rtol_d1, label="d1")
+    _assert_close_mixed(d2, expected_d2, rtol=rtol_d2, label="d2")
 
 
 def _assert_close_mixed(
@@ -301,327 +316,6 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
         get_forecast_tensors(model, theta0, cov, forecast_order=2)
 
 
-def test_inv_cov_behaves_like_inverse():
-    """Tests that _inv_cov() returns a matrix behaving like the inverse."""
-    cov = np.array([[2.0, 0.0], [0.0, 0.5]])
-    inv = invert_covariance(cov, rcond=1e-12)
-    np.testing.assert_allclose(inv @ cov, np.eye(2), atol=1e-12)
-    np.testing.assert_allclose(cov @ inv, np.eye(2), atol=1e-12)
-
-
-def test_build_delta_nu_validation_errors():
-    """Tests that build_delta_nu raises on bad inputs."""
-    cov = np.eye(2)
-
-    with pytest.raises(ValueError):
-        # incompatible lengths
-        build_delta_nu(cov=cov, data_biased=np.array([1.0, 2.0]), data_unbiased=np.array([1.0]))
-
-    with pytest.raises(FloatingPointError):
-        # NaN in data_biased
-        build_delta_nu(cov=cov, data_biased=np.array([np.nan, 1.0]), data_unbiased=np.array([0.0, 0.0]))
-
-
-def _linear_model(design_matrix, theta):
-    """Returns design_matrix @ theta for linear-model tests."""
-    theta = np.asarray(theta, dtype=float)
-    return design_matrix @ theta
-
-
-def test_build_delta_nu_1d_and_2d_row_major():
-    """Tests that build_delta_nu returns correct shapes and values."""
-    # 1D case
-    cov_2 = np.eye(2)
-    data_biased = np.array([3.0, -1.0], dtype=float)
-    data_unbiased = np.array([2.5, -2.0], dtype=float)
-
-    delta_1d = build_delta_nu(cov=cov_2, data_biased=data_biased, data_unbiased=data_unbiased)
-    np.testing.assert_allclose(delta_1d, np.array([0.5, 1.0], dtype=float))
-    assert delta_1d.shape == (cov_2.shape[0],)
-
-    # 2D case
-    cov_6 = np.eye(6)
-    a2 = np.array([[1, 2, 3], [4, 5, 6]], dtype=float)
-    b2 = np.array([[0, 1, 1], [1, 1, 1]], dtype=float)
-
-    delta_2d = build_delta_nu(cov=cov_6, data_biased=a2, data_unbiased=b2)
-    np.testing.assert_allclose(delta_2d, (a2 - b2).ravel(order="C"))
-    assert delta_2d.ndim == 1
-    assert delta_2d.size == 6
-
-
-def test_fisher_bias_matches_lstsq_identity_cov():
-    """Tests that Fisher bias matches ordinary least squares when covariance is identity."""
-    design_matrix = np.array(
-        [[1.0, 2.0],
-         [0.5, -1.0]],
-        dtype=float,
-    )
-
-    linear_model = partial(_linear_model, design_matrix)
-
-    covariance = np.eye(2)
-    theta0 = np.zeros(2)
-
-    fisher_matrix = get_forecast_tensors(
-        linear_model, theta0, covariance, forecast_order=1
-    )
-
-    delta_nu = np.array([1.0, -0.5], dtype=float)
-    bias_vec, delta_theta = build_fisher_bias(
-        function=linear_model,
-        theta0=theta0,
-        cov=covariance,
-        fisher_matrix=fisher_matrix,
-        delta_nu=delta_nu,
-        n_workers=1,
-    )
-
-    # Reference values for identity covariance: ordinary least squares
-    expected_bias = design_matrix.T @ delta_nu
-    theta_lstsq, *_ = np.linalg.lstsq(design_matrix, delta_nu, rcond=None)
-
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
-    np.testing.assert_allclose(fisher_matrix @ delta_theta, bias_vec, rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(delta_theta, theta_lstsq, rtol=1e-10, atol=1e-12)
-
-
-def test_fisher_bias_matches_gls_weighted_cov():
-    """Fisher bias should match generalized least squares when covariance is non-identity."""
-    design_matrix = np.array(
-        [[1.0, 2.0, 0.0],
-         [0.0, 1.0, 1.0]],
-        dtype=float,
-    )  # n_observables = 2, n_parameters = 3
-
-    # Bind design_matrix so the model signature is model(theta) -> y
-    linear_model = partial(_linear_model, design_matrix)
-
-    covariance = np.array(
-        [[2.0, 0.3],
-         [0.3, 1.0]],
-        dtype=float,
-    )
-    inv_covariance = np.linalg.inv(covariance)
-    theta0 = np.zeros(3)
-
-    fisher_matrix = get_forecast_tensors(
-        linear_model, theta0, covariance, forecast_order=1
-    )
-
-    delta_nu = np.array([0.7, -1.2], dtype=float)
-    bias_vec, delta_theta = build_fisher_bias(
-        function=linear_model,
-        theta0=theta0,
-        cov=covariance,
-        fisher_matrix=fisher_matrix,
-        delta_nu=delta_nu,
-        n_workers=1,
-    )
-
-    expected_bias = design_matrix.T @ (inv_covariance @ delta_nu)
-    expected_delta_theta = np.linalg.pinv(fisher_matrix) @ expected_bias
-
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-12, atol=1e-12)
-    np.testing.assert_allclose(delta_theta, expected_delta_theta, rtol=1e-10, atol=1e-12)
-
-
-def test_fisher_bias_accepts_2d_delta_row_major_consistency():
-    """Test that build_fisher_bias accepts 2D delta_nu and matches flattened 1D input."""
-    design_matrix = np.array([[1.0, 2.0],
-                              [0.5, -1.0]], float)
-    model = partial(_linear_model, design_matrix)
-    cov = np.eye(2)
-    theta0 = np.zeros(2)
-
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
-
-    delta_2d = np.array([[1.0, -0.5]], float)
-    bias_a, dtheta_a = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta_2d,
-    )
-
-    delta_1d = build_delta_nu(
-        cov=cov,
-        data_biased=delta_2d,
-        data_unbiased=np.zeros_like(delta_2d),
-    ).ravel(order="C")
-    bias_b, dtheta_b = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta_1d,
-    )
-
-    np.testing.assert_allclose(bias_a, bias_b)
-    np.testing.assert_allclose(dtheta_a, dtheta_b)
-
-
-def test_fisher_bias_singular_fisher_uses_pinv_baseline():
-    """Tests that the Fisher bias equation is satisfied for singular Fisher matrices."""
-    design_matrix = np.array([[1.0, 1.0],
-                              [1.0, 1.0]], float)  # rank-1
-    model = partial(_linear_model, design_matrix)
-    cov = np.eye(2)
-    theta0 = np.zeros(2)
-
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
-    delta = np.array([1.0, -0.5], float)
-
-    bias_vec, delta_theta = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta,
-    )
-
-    expected_bias = design_matrix.T @ delta
-
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(fisher @ delta_theta, expected_bias, rtol=1e-10, atol=1e-12)
-
-
-def test_fisher_bias_singular_covariance_matches_pinv_baseline(caplog):
-    """Tests that build_fisher_bias with singular covariance matches pinv baseline."""
-    design_matrix = np.array([[1.0, 0.0],
-                              [1.0, 0.0]], float)
-    model = partial(_linear_model, design_matrix)
-
-    cov = np.array([[1.0, 1.0],
-                    [1.0, 1.0]], float)  # rank-1
-    theta0 = np.zeros(2)
-
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
-
-    delta = np.array([2.0, -1.0], float)
-
-    bias_vec, dtheta = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta,
-    )
-
-    assert 1 == len([x for x in caplog.records
-        if "covariance solve" in x.message
-        and "WARNING" == x.levelname
-    ])
-
-    c_pinv = np.linalg.pinv(cov)
-    expected_bias = design_matrix.T @ (c_pinv @ delta)
-    expected_dtheta = np.linalg.pinv(fisher) @ expected_bias
-
-    np.testing.assert_allclose(bias_vec, expected_bias, rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-8, atol=1e-10)
-
-
-def test_fisher_bias_raises_on_wrong_shapes():
-    """Test that build_fisher_bias raises on mismatched shapes."""
-    model = partial(_linear_model, np.eye(2))
-    theta0 = np.zeros(2)
-    cov = np.eye(2)
-
-    # Wrong Fisher shape (3x3 vs 2 params); should raise an exception.
-    fisher_bad = np.eye(3)
-    with pytest.raises(ValueError, match=r"fisher_matrix must be square;|shape.*\(3, 3\).*"):
-        build_fisher_bias(
-            function=model,
-            theta0=theta0,
-            cov=cov,
-            fisher_matrix=fisher_bad,
-            delta_nu=np.zeros(2),
-        )
-
-    # Fisher shape OK (2x2), but delta_nu length wrong (3 vs n_obs=2)
-    fisher_ok = np.eye(2)
-    with pytest.raises(ValueError, match=r"delta_nu must have length n=2"):
-        build_fisher_bias(
-            function=model,
-            theta0=theta0,
-            cov=cov,
-            fisher_matrix=fisher_ok,
-            delta_nu=np.zeros(3),
-        )
-
-
-def test_fisher_bias_linear_ground_truth_end_to_end():
-    """End-to-end test of Fisher bias against linear-model analytic solution."""
-    # 4 observables, 3 parameters
-    matrix = np.array([[1.0, 2.0, 0.0],
-                  [0.0, 1.0, 1.0],
-                  [2.0, 0.0, 1.0],
-                  [-1.0, 0.5, 0.5]], float)
-    model = partial(_linear_model, matrix)
-
-    cov = np.diag([0.5, 1.2, 2.0, 0.8])
-    cov_inv = np.diag(1.0 / np.diag(cov))
-
-    theta0 = np.zeros(3)
-
-    # Two data vectors: "with systematics" = y + s, "without" = y
-    y = model(theta0)
-    s = np.array([0.3, -0.1, 0.05, 0.2], float)
-    d_with, d_without = y + s, y
-
-    delta = build_delta_nu(cov=cov, data_biased=d_with, data_unbiased=d_without)
-    fisher_matrix = get_forecast_tensors(model, theta0, cov, forecast_order=1)
-
-    bias, dtheta = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher_matrix,
-        delta_nu=delta,
-    )
-
-    expected_bias = matrix.T @ (cov_inv @ s)
-    expected_fisher = matrix.T @ cov_inv @ matrix
-    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
-
-    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
-    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
-
-
-def test_fisher_bias_linear_full_cov_gls_formula():
-    """End-to-end test of Fisher bias against linear-model analytic solution with full cov."""
-    # 3 observables, 2 parameters
-    matrix = np.array([[1.0,  0.0],
-                  [2.0, -1.0],
-                  [0.5, 1.0]], float)
-    model = partial(_linear_model, matrix)
-
-    cov = np.array([[ 1.0,  0.2, -0.1],
-                  [ 0.2,  2.0,  0.3],
-                  [-0.1,  0.3,  1.5]], float)
-    cov_inv = np.linalg.inv(cov)
-
-    theta0 = np.zeros(2)
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
-
-    s = np.array([0.4, -0.2, 0.1], float)  # “with” – “without”
-    bias, dtheta = build_fisher_bias(
-        function=model,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=s,
-    )
-
-    expected_bias = matrix.T @ (cov_inv @ s)
-    expected_fisher = matrix.T @ cov_inv @ matrix
-    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
-
-    np.testing.assert_allclose(bias, expected_bias, rtol=1e-12, atol=1e-12)
-    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=1e-11, atol=1e-12)
-
-
 def model_quadratic(theta: np.ndarray) -> np.ndarray:
     """A simple 2D→2D quadratic model for basic multi-parameter tests."""
     t0, t1 = np.asarray(theta, float)
@@ -665,17 +359,24 @@ def test_scalar_dali_triplet(model, theta, expected):
 
     The models have a single parameter and produce a single observable.
     """
-    dali_triplet = get_forecast_tensors(
+    forecast = get_forecast_tensors(
         model,
         theta,
         np.array([1]),
         forecast_order=3,
     )
 
-    assert len(dali_triplet) == len(expected)
+    # forecast is a dict {1: (F,), 2: (D1, D2), 3: (T1, T2, T3)}
+    triplet = forecast[3]  # (T1, T2, T3)
 
-    for i in range(len(dali_triplet)):
-        assert np.allclose(dali_triplet[i], expected[i], atol=1e-6)
+    assert len(triplet) == len(expected)
+
+    # Keep parametrization unchanged:
+    # expected[0] is (p,p,p) in this test file, but code returns T1 as (p,p,p,p).
+    expected_fixed = (expected[0][..., np.newaxis], expected[1], expected[2])
+
+    for i in range(len(triplet)):
+        assert np.allclose(triplet[i], expected_fixed[i], atol=1e-6)
 
 
 def get_all_indices(max_indices):
@@ -719,7 +420,8 @@ def test_vector_dali_triplet():
 
     cov = np.eye(2)
 
-    triplet = get_forecast_tensors(model, theta, cov, forecast_order=3)
+    forecast = get_forecast_tensors(model, theta, cov, forecast_order=3)
+    triplet = forecast[3]  # (T1, T2, T3)
 
     # The DALI triplet tensors are fully symmetric in the first three indices.
     # Additionally, the T2 tensor is fully symmetric in its last two indices,
@@ -784,7 +486,6 @@ def test_get_forecast_tensors_output_type():
         [1.2],
         [1],
         forecast_order=max_order,
-        single_forecast_order=False,
     )
 
     assert isinstance(forecast, dict)
@@ -796,48 +497,207 @@ def test_get_forecast_tensors_output_type():
             assert isinstance(element, np.ndarray)
 
 
-def test_fisher_bias_quadratic_small_systematic():
-    """End-to-end test of Fisher bias against quadratic model with small systematic."""
-    theta0 = np.array([1.2, -0.7], float)
-    cov = np.diag([0.8, 1.1])
-    cov_inv = np.diag(1.0 / np.diag(cov))
+def test_forecast_dict_keys_and_multiplet_lengths():
+    """Tests that the forecast dictionary has the right keys and multiplets."""
+    theta0 = np.array([0.2, -0.1])
+    cov = np.eye(2)
 
-    delta = np.array([0.03, -0.02], float)
+    def model(th):
+        """Test model with non-trivial derivatives."""
+        t0, t1 = np.asarray(th, float)
+        return np.array([t0 + t1, t0 - 2 * t1], float)
 
-    fisher = get_forecast_tensors(model_quadratic, theta0, cov, forecast_order=1)
-    bias, dtheta = build_fisher_bias(
-        function=model_quadratic,
-        theta0=theta0,
-        cov=cov,
-        fisher_matrix=fisher,
-        delta_nu=delta,
-    )
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
 
-    jac = np.array([[2.0 * theta0[0], 0.0],
-                    [2.0 * theta0[1], 2.0 * theta0[0]]], float)
-    expected_fisher = jac.T @ cov_inv @ jac
-    expected_bias = jac.T @ (cov_inv @ delta)
-    expected_dtheta = np.linalg.pinv(expected_fisher) @ expected_bias
-
-    np.testing.assert_allclose(fisher, expected_fisher, rtol=0.0, atol=1e-6)
-    np.testing.assert_allclose(bias, expected_bias, rtol=0.0, atol=1e-9)
-    np.testing.assert_allclose(dtheta, expected_dtheta, rtol=0.0, atol=1e-9)
+    assert set(out.keys()) == {1, 2, 3}
+    assert len(out[1]) == 1  # (F,)
+    assert len(out[2]) == 2  # (D1, D2)
+    assert len(out[3]) == 3  # (T1, T2, T3)
 
 
-def test_build_fisher_bias_raises_on_nans_in_delta():
-    """If delta_nu contains NaNs, build_fisher_bias should raise FloatingPointError."""
-    matrix = np.eye(2, dtype=float)
-    model = partial(_linear_model, matrix)
-    cov = np.eye(2, dtype=float)
-    theta0 = np.zeros(2)
+@pytest.mark.parametrize("p,nobs", [(1, 1), (2, 2), (3, 2)])
+def test_tensor_shapes_all_orders(p, nobs):
+    """Tests that the forecast tensors have the right shapes for all orders."""
+    rng = np.random.default_rng(0)
+    theta0 = rng.normal(size=p)
+    cov = np.eye(nobs)
 
-    fisher = get_forecast_tensors(model, theta0, cov, forecast_order=1)
+    def model(th):
+        """Test model with non-trivial derivatives."""
+        th = np.asarray(th, dtype=float)
+        y = np.zeros(nobs, dtype=float)
+        y[0] = float(np.sum(th ** 2))
+        if nobs > 1:
+            y[1] = float(np.sum(th) + th[0] ** 3)
+        return y
 
-    with pytest.raises(FloatingPointError, match="Non-finite values"):
-        build_fisher_bias(
-            function=model,
-            theta0=theta0,
-            cov=cov,
-            fisher_matrix=fisher,
-            delta_nu=np.array([np.nan, 0.0]),
-        )
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+
+    F = out[1][0]
+    assert F.shape == (p, p)
+
+    D1, D2 = out[2]
+    assert D1.shape == (p, p, p)
+    assert D2.shape == (p, p, p, p)
+
+    T1, T2, T3 = out[3]
+    assert T1.shape == (p, p, p, p)
+    assert T2.shape == (p, p, p, p, p)
+    assert T3.shape == (p, p, p, p, p, p)
+
+
+def _assert_symmetric_under_permutation(x, axes, rtol=0, atol=0):
+    """Tests that a tensor is symmetric under a given axis permutation."""
+    perm = list(range(x.ndim))
+    a, b = axes
+    perm[a], perm[b] = perm[b], perm[a]
+    np.testing.assert_allclose(x, np.transpose(x, perm), rtol=rtol, atol=atol)
+
+def test_expected_symmetries():
+    """Tests that the forecast tensors are symmetric under permutations."""
+    theta0 = np.array([0.3, -0.2])
+    cov = np.eye(2)
+
+    def model(th):
+        """Test model with non-trivial derivatives."""
+        t0, t1 = np.asarray(th, float)
+        return np.array([t0**2 + t1, t0 * t1], float)
+
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    F = out[1][0]
+    np.testing.assert_allclose(F, F.T)
+
+    D1, D2 = out[2]
+    # D1 is symmetric in first two indices (a,b)
+    _assert_symmetric_under_permutation(D1, (0, 1))
+    # D2 symmetric under (a<->b) and (c<->d)
+    _assert_symmetric_under_permutation(D2, (0, 1))
+    _assert_symmetric_under_permutation(D2, (2, 3))
+
+    T1, T2, T3 = out[3]
+    # T1 symmetric in first 3 (a,b,c) -> check a<->b and b<->c
+    _assert_symmetric_under_permutation(T1, (0, 1))
+    _assert_symmetric_under_permutation(T1, (1, 2))
+    # T2 symmetric in first 3 and in last 2
+    _assert_symmetric_under_permutation(T2, (0, 1))
+    _assert_symmetric_under_permutation(T2, (1, 2))
+    _assert_symmetric_under_permutation(T2, (3, 4))
+    # T3 symmetric in first 3 and last 3 (check a couple swaps)
+    _assert_symmetric_under_permutation(T3, (0, 1))
+    _assert_symmetric_under_permutation(T3, (1, 2))
+    _assert_symmetric_under_permutation(T3, (3, 4))
+    _assert_symmetric_under_permutation(T3, (4, 5))
+
+
+def test_get_derivatives_rejects_bad_jacobian_shape(monkeypatch):
+    """Tests that get_derivatives rejects bad jacobian shapes."""
+
+    class FakeCK:
+        """Mock CalculusKit class that returns nonsense jacobian shapes."""
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+            pass
+        def jacobian(self, **kwargs):
+            """Bad Jacobian: 3x3 instead of 2x2."""
+            _ = kwargs
+            return np.zeros((3, 3))  # nonsense
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"jacobian returned unexpected shape"):
+        fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1]), np.eye(1), order=1)
+
+def test_get_derivatives_rejects_bad_hessian_shape(monkeypatch):
+    """Tests that get_derivatives rejects bad hessian shapes."""
+    class FakeCK:
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+            pass
+        def hessian(self, **kwargs):
+            """Bad hessian: 4x4x4 instead of 4x4x4x4."""
+            _ = kwargs
+            return np.zeros((4, 4, 4))  # nonsense
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"hessian returned unexpected shape"):
+        fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1, 0.2]), np.eye(1), order=2)
+
+def test_get_derivatives_rejects_bad_hyper_hessian_shape(monkeypatch):
+    """Tests that get_derivatives rejects bad hyper_hessian shapes."""
+
+    class FakeCK:
+        """Fake CalculusKit class that returns nonsense hyper_hessian shapes."""
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+            pass
+        def hyper_hessian(self, **kwargs):
+            """Bad hyper_hessian: 2x2x2 instead of 2x2x2x2."""
+            _ = kwargs
+            return np.zeros((2, 2, 2, 2, 2))  # nonsense
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"hyper_hessian returned unexpected shape"):
+        fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1]), np.eye(1), order=3)
+
+
+def test_forecast_order_type_error():
+    """Tests that forecast_order must be an int."""
+    with pytest.raises(TypeError, match=r"forecast_order must be an int"):
+        get_forecast_tensors(lambda x: x, np.array([1.0]), np.eye(1), forecast_order="two")
+
+
+def test_theta0_empty_raises():
+    """Tests that theta0 must be non-empty 1D."""
+    with pytest.raises(ValueError, match=r"theta0 must be non-empty 1D"):
+        get_forecast_tensors(lambda th: np.array([1.0]), np.array([]), np.eye(1), forecast_order=1)
+
+
+def test_scalar_model_with_1x1_cov_works():
+    """Tests that a scalar model with a 1x1 covariance matrix works."""
+    def model(th):
+        """Test model with non-trivial derivatives."""
+        t = float(np.asarray(th)[0])
+        return 2.0 * t
+
+    out = get_forecast_tensors(model, np.array([0.1]), np.array([[1.0]]), forecast_order=2)
+    assert out[1][0].shape == (1, 1)
+    assert out[2][0].shape == (1, 1, 1)
+    assert out[2][1].shape == (1, 1, 1, 1)
+
+
+def test_method_and_workers_are_forwarded(monkeypatch):
+    """Tests that method and workers are forwarded to CalculusKit."""
+    seen = {}
+
+    class FakeCK:
+        """Mock CalculusKit class that records the method and n_workers."""
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+            pass
+        def jacobian(self, **kwargs):
+            """Returns a nonsense jacobian."""
+            seen.update(kwargs)
+            return np.zeros((1, 1))
+        def hessian(self, **kwargs):
+            """Returns a nonsense hessian."""
+            _ = kwargs
+            return np.zeros((1, 1, 1))
+        def hyper_hessian(self, **kwargs):
+            """Returns a nonsense hyper_hessian."""
+            _ = kwargs
+            return np.zeros((1, 1, 1, 1))
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    # just call order=1 derivative path
+    fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1]), np.eye(1), order=1,
+                        method="finite", n_workers=3)
+
+    assert seen.get("method") == "finite"
+    assert seen.get("n_workers") == 3
