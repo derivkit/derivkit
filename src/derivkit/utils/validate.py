@@ -434,8 +434,8 @@ def validate_dali_shape(
 
         keys_sorted = sorted(keys)
         if keys_sorted[0] != 1:
-            raise ValueError(f"DALI dict must start at key=1; got keys {
-            keys_sorted}.")
+            raise ValueError(f"DALI dict must start at key=1;"
+                             f" got keys {keys_sorted}.")
         if keys_sorted != list(range(1, keys_sorted[-1] + 1)):
             raise ValueError(
                 f"DALI dict keys must be consecutive 1..K; got keys {
