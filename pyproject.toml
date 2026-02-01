@@ -141,10 +141,12 @@ commands = [
 
 
 [tool.tox.env.do]
-# Local convenience: same as docs, plus open HTML index (cross-platform).
+# Local convenience: build docs and open HTML index (Mac only).
+# If posargs are given, they are treated as FILENAMES passed to sphinx-build.
 description = "(Mac only) Build and test docs and open docs in browser"
 extras = ["docs"]
 allowlist_externals = ["open"]
+change_dir = "{tox_root}"
 commands = [
   [
     "sphinx-apidoc",
@@ -155,6 +157,8 @@ commands = [
     "--separate",
     "-f",
   ],
+
+  # Doctest (full docs by default; or specific files if provided)
   [
     "sphinx-build",
     "-c", "{tox_root}/docs",
@@ -162,14 +166,21 @@ commands = [
     "{tox_root}/docs",
     "{tox_root}/docs/_build/doctest",
     "--fail-on-warning",
+    { replace = "posargs", extend = true },
   ],
+
+  # HTML (full docs by default; or specific files if provided)
   [
     "sphinx-build",
+    "-c", "{tox_root}/docs",
     "-b", "html",
     "{tox_root}/docs",
     "{tox_root}/docs/_build/html",
     "--fail-on-warning",
+    { replace = "posargs", extend = true },
   ],
+
+  # Open either the built page (if one file was requested) or the index.
   [
     "open",
     "{tox_root}/docs/_build/html/index.html",
