@@ -37,7 +37,7 @@ from numpy.typing import NDArray
 
 from derivkit.utils.linalg import solve_or_pinv
 from derivkit.utils.validate import (
-    validate_fisher_shapes,
+    validate_fisher_shape,
     validate_square_matrix,
 )
 
@@ -151,7 +151,7 @@ def kernel_samples_from_fisher(
 
     theta0_vec = np.asarray(theta0, dtype=float)
     fisher_matrix = np.asarray(fisher, dtype=float)
-    validate_fisher_shapes(theta0_vec, fisher_matrix)
+    validate_fisher_shape(theta0_vec, fisher_matrix)
 
     kernel_cov = kernel_cov_from_fisher(fisher_matrix, kernel_scale=float(kernel_scale))
     chol_lower = stabilized_cholesky(kernel_cov)
@@ -243,7 +243,7 @@ def log_gaussian_kernel(
     """
     theta0_vec = np.asarray(theta0, dtype=float)
     fisher_matrix = np.asarray(fisher, dtype=float)
-    validate_fisher_shapes(theta0_vec, fisher_matrix)
+    validate_fisher_shape(theta0_vec, fisher_matrix)
     sample_array = np.asarray(samples, dtype=np.float64)
 
     if sample_array.ndim != 2:
@@ -320,7 +320,7 @@ def init_walkers_from_fisher(
     """
     theta0 = np.asarray(theta0, float)
     fisher = np.asarray(fisher, float)
-    validate_fisher_shapes(theta0, fisher)
+    validate_fisher_shape(theta0, fisher)
 
     if sampler_bounds is not None and len(sampler_bounds) != theta0.size:
         raise ValueError(
