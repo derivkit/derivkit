@@ -166,14 +166,7 @@ def get_forecast_tensors(
                 ).astype(np.float64, copy=False)
             )
 
-        if order1 == 1:
-            # Store Fisher as a 1-tuple multiplet (F,)
-            forecast_tensors[1] = (tensors_at_order[0],)
-        else:
-            # Store only tensors introduced at this order
-            # order 2: (D1, D2)
-            # order 3: (T1, T2, T3)
-            forecast_tensors[order1] = tuple(tensors_at_order)
+        forecast_tensors[order1] = tuple(tensors_at_order)
 
     expected_keys = set(range(1, forecast_order + 1))
     if set(forecast_tensors.keys()) != expected_keys:
