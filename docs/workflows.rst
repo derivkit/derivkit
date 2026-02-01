@@ -497,7 +497,7 @@ sampling Fisher, DALI, or Laplace posteriors.
 **Expecting priors to be applied automatically**
 
 DerivKit treats likelihood information and priors separately by design. Priors
-must be applied explicitly during sampling; they are not folded into Fisher,
+must be applied explicitly during sampling; they are not combined with Fisher,
 DALI, or Laplace objects automatically.
 
 
