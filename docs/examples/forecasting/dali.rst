@@ -6,8 +6,8 @@
 |dklogo| DALI tensors
 =====================
 
-This section shows how to construct DALI (Derivative Approximation for
-LIkelihoods) tensors using :class:`derivkit.forecast_kit.ForecastKit`.
+This section shows how to construct Derivative Approximation for
+LIkelihoods (DALI) tensors using :class:`derivkit.forecast_kit.ForecastKit`.
 
 The DALI expansion extends the Fisher matrix by including higher-order
 derivative information, allowing non-Gaussian structure in the likelihood
