@@ -384,6 +384,35 @@ No. Fisher and Laplace methods make local Gaussian approximations, while DALI
 systematically captures non-Gaussian structure through higher-order terms.
 
 
+**My DALI doublet and triplet contours look identical. Is something wrong?**
+
+Usually not. Triplet DALI only modifies the posterior where higher-order
+corrections are non-negligible at the typical posterior radius. If most of the
+posterior mass lies close to the expansion point ``theta0`` or if you are using
+importance sampling, higher-order terms can be strongly suppressed and contours
+may look identical. Remember that DALI is a local expansion: it captures local
+skewness and curvature, but cannot reproduce global structure or multiple modes.
+For triplet DALI to show significant differences from doublet DALI, the posterior
+must extend far enough from ``theta0`` for cubic terms to become important. We
+recommend always using emcee sampling for triplet DALI to fully capture its effects.
+If in doubt, compare results across expansion orders and sampling methods.
+
+
+**Why does DALI behave poorly far from the expansion point?**
+
+DALI is based on a Taylor expansion and is only expected to be accurate within a
+finite neighborhood around ``theta0``. Far from this point, higher-order terms
+can dominate and lead to unphysical behavior. For this reason, sampling bounds
+and diagnostic checks are strongly recommended.
+
+
+**Should I always use the highest DALI expansion order available?**
+
+No. Higher-order expansions are more expensive and not always informative.
+If increasing the expansion order does not change posterior summaries, lower
+orders are usually sufficient and preferable for robustness.
+
+
 **Where do my model and covariance come from?**
 
 DerivKit is agnostic to how models and covariances are constructed. Users are
@@ -423,3 +452,115 @@ https://github.com/derivkit/derivkit-demos
 
 Please open an issue on the DerivKit GitHub repository.
 Go to :doc:`contributing` for contribution guidelines and support options.
+
+
+Common mistakes
+---------------
+
+
+**Using local approximations for global inference**
+
+Fisher, DALI, and Laplace are local approximations around a chosen expansion
+point. They are not designed to recover global posterior structure, multiple
+modes, or long nonlocal tails. If your inference problem is strongly nonlocal,
+full MCMC or nested sampling is required.
+
+
+**Expanding around a poorly chosen expansion point**
+
+All local methods assume that ``theta0`` (or the MAP for Laplace) is close to the
+region of highest posterior support. Expanding far from the true posterior peak
+can lead to misleading forecasts or unstable higher-order corrections.
+
+
+**Relying on importance sampling for strongly non-Gaussian posteriors**
+
+Importance sampling is fast but fragile. For curved, skewed, or bounded
+posteriors it can severely underestimate higher-order effects. In these cases,
+use MCMC sampling (e.g. ``emcee``) instead.
+
+
+**Assuming higher-order expansions always improve results**
+
+Increasing the DALI expansion order does not guarantee better accuracy. If
+higher-order terms are numerically small where the posterior mass lies, results
+may be unchanged. Unnecessary higher-order terms can also reduce robustness.
+
+
+**Ignoring sampling bounds and priors**
+
+Sampling without explicit bounds or priors can lead to unphysical regions where
+local approximations break down. Always include realistic bounds or priors when
+sampling Fisher, DALI, or Laplace posteriors.
+
+
+**Expecting priors to be applied automatically**
+
+DerivKit treats likelihood information and priors separately by design. Priors
+must be applied explicitly during sampling; they are not folded into Fisher,
+DALI, or Laplace objects automatically.
+
+
+**Over-interpreting Laplace approximations**
+
+The Laplace approximation provides a Gaussian approximation around the MAP. It
+does not capture skewness, curvature, or truncation effects and should not be
+used for strongly non-Gaussian posteriors.
+
+
+**Using very tight data covariances without diagnostics**
+
+When the posterior is extremely narrow, higher-order corrections can be
+numerically suppressed and indistinguishable from Fisher. Always check the
+typical posterior radius relative to the expansion point.
+
+
+**Assuming numerical derivatives are exact**
+
+All derivatives in DerivKit are computed numerically. Poorly scaled parameters,
+discontinuous models, or insufficient step-size control can degrade derivative
+accuracy. Diagnostic checks are recommended for sensitive applications.
+
+
+**Assuming automatic differentiation is always correct**
+
+Automatic differentiation (e.g. JAX) can silently fail for non-smooth models,
+conditionals, or interpolations; derivative validation is still recommended,
+especially for higher-order forecasts.
+
+
+**Confusing likelihood curvature with posterior uncertainty**
+
+Fisher, DALI, and Laplace characterize the local curvature of the likelihood.
+Posterior uncertainties can differ significantly once priors, bounds, or
+nonlinear transformations are applied. Always interpret results in the context
+of the full posterior definition.
+
+
+**Using overly informative priors without realizing it**
+
+Strong priors can dominate posterior constraints and mask the information
+content of the likelihood. When comparing Fisher, DALI, or Laplace results,
+check whether constraints are prior-dominated rather than data-driven.
+
+
+**Interpreting Fisher or DALI contours as exact confidence regions**
+
+Contours produced from Fisher or DALI approximations are not guaranteed to have
+exact frequentist or Bayesian coverage. They should be interpreted as
+approximate summaries, not as precise confidence regions.
+
+
+**Mixing Bayesian and frequentist interpretations**
+
+Fisher matrices originate from frequentist theory, while posterior sampling and
+priors are Bayesian concepts. Mixing interpretations without care can lead to
+incorrect conclusions about parameter uncertainties or coverage.
+
+
+**Ignoring parameter reparameterization effects**
+
+Local approximations depend on the chosen parameterization. Strong nonlinear
+transformations can change the apparent degree of non-Gaussianity and affect
+Fisher or DALI performance. Reparameterization may improve stability and
+interpretability.
