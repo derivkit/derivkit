@@ -9,7 +9,7 @@ Typical usage example:
 >>> import numpy as np
 >>> from derivkit.derivatives.fornberg import FornbergDerivative
 >>> x0 = np.pi/4
->>> grid = x0 + np.array([-0.3, -0.25, -0.1, 0, 0.12])
+>>> grid = np.array([-0.3, -0.25, -0.1, 0, 0.12])
 >>> fornberg = FornbergDerivative(lambda x: np.tan(x), x0)
 >>> bool(np.isclose(
 ...     fornberg.differentiate(grid=grid, order=1),
@@ -48,7 +48,10 @@ class FornbergDerivative:
             x0: the evaluation points for the derivative.
         """
         self.function = function
-        self.x0 = np.asarray(x0)
+
+        temp_array = np.asarray(x0)
+        self.original_shape = temp_array.shape
+        self.x0 = np.ravel(temp_array)
 
 
     def differentiate(
@@ -76,12 +79,26 @@ class FornbergDerivative:
                 f" (the function itself), but is {order}."
             )
 
-        y = self.function(grid)
-        weights = np.zeros((*grid.shape, order+1), dtype=np.float64)
+        if grid.ndim == 1:
+            input_grid = self.x0 + grid[:, np.newaxis]
+        else:
+            input_grid = self.x0 + grid.reshape(grid.shape[0], -1)
 
-        self._get_weights(weights, grid, order)
+        y = self.function(input_grid)
+        weights = np.zeros((*input_grid.shape, order+1), dtype=np.float64)
 
-        return np.dot(y.T, np.swapaxes(weights, 0, 1))[..., -1, -1]
+        self._get_weights(weights, input_grid, order)
+        # np.dot contracts the last axis of its first argument with the
+        # second to last index of its second argument. The axes are permuted
+        # to ensure that the function values are contracted with the
+        # coefficients corresponding with the ``order``-th order derivative.
+        # TODO: See if this can be made more transparant.
+        derivatives = np.dot(
+            y.T,
+            np.swapaxes(weights, 0, 1)
+        )[np.arange(self.x0.size), np.arange(self.x0.size), -1]
+
+        return derivatives.reshape(self.original_shape)
 
     def _get_weights(
         self,
