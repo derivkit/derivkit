@@ -284,7 +284,7 @@ def test_dali_to_getdist_importance_raises_if_missing_fisher_key():
     theta0, dali = _toy_dali_dict(2)
     dali = {k: v for k, v in dali.items() if k != 1}
 
-    with pytest.raises(ValueError, match=r"dali must contain key 1"):
+    with pytest.raises(ValueError, match=r"start at key=1"):
         dali_to_getdist_importance(theta0, dali, names=["a", "b"], labels=["a", "b"], n_samples=10)
 
 
@@ -293,7 +293,7 @@ def test_dali_to_getdist_emcee_raises_if_missing_fisher_key():
     theta0, dali = _toy_dali_dict(2)
     dali = {k: v for k, v in dali.items() if k != 1}
 
-    with pytest.raises(ValueError, match=r"dali must contain key 1"):
+    with pytest.raises(ValueError, match=r"start at key=1"):
         dali_to_getdist_emcee(theta0, dali, names=["a", "b"], labels=["a", "b"], n_steps=10, burn=0, thin=1)
 
 
