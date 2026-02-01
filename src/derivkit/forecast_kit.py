@@ -24,10 +24,13 @@ Typical usage example:
 >>> fisher_matrix = fk.fisher(method="finite", n_workers=1)
 >>> fisher_matrix.shape
 (2, 2)
+>>> dali = fk.dali(forecast_order=2, method="finite", n_workers=1)
+>>> F = dali[1][0]
+>>> D1, D2 = dali[2]
 >>>
 >>> data_unbiased = model(theta0)
 >>> data_biased = data_unbiased + np.array([1e-3, -2e-3])
->>> dn = fk.delta_nu(data_biased=data_biased, data_unbiased=data_unbiased)
+>>> dn = fk.delta_nu(data_unbiased=data_unbiased, data_biased=data_biased)
 >>> dn.shape
 (2,)
 >>>
@@ -44,10 +47,9 @@ Typical usage example:
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 import numpy as np
-from numpy.typing import NDArray
 
 from derivkit.forecasting.dali import build_dali
 from derivkit.forecasting.expansions import (
@@ -78,6 +80,7 @@ from derivkit.forecasting.laplace import (
     build_laplace_hessian,
     build_negative_logposterior,
 )
+from derivkit.utils.types import FloatArray
 from derivkit.utils.validate import (
     require_callable,
     resolve_covariance_input,
@@ -86,9 +89,9 @@ from derivkit.utils.validate import (
 
 _RESERVED_KWARGS = {"theta0"}
 
-class ForecastKit:
-    """Provides access to Fisher and DALI likelihoods-expansion tensors."""
 
+class ForecastKit:
+    """Provides access to forecasting workflows."""
     def __init__(
             self,
             function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
@@ -207,11 +210,6 @@ class ForecastKit:
             A tuple ``(bias_vec, delta_theta)`` of 1D arrays with length ``p``,
             where ``bias_vec`` is the parameter-space bias vector
             and ``delta_theta`` are the corresponding parameter shifts.
-
-        Raises:
-          ValueError: If input shapes are inconsistent with the stored model,
-            covariance, or the Fisher matrix dimensions.
-          FloatingPointError: If the difference vector contains ``NaN``.
         """
         function = require_callable(self.function, context="ForecastKit.fisher_bias")
 
@@ -258,11 +256,6 @@ class ForecastKit:
             element-wise difference between the input with systematic and the
             input without systematic, flattened if necessary to match the
             expected observable ordering.
-
-        Raises:
-          ValueError: If input shapes differ, inputs are not 1D/2D, or the
-            flattened length does not match ``n_observables``.
-          FloatingPointError: If non-finite values are detected in the result.
         """
         nu = build_delta_nu(
             cov=self.cov0,
@@ -275,15 +268,10 @@ class ForecastKit:
         self,
         *,
         method: str | None = None,
-        forecast_order: int | None = 2,
-        single_forecast_order: bool = True,
+        forecast_order: int = 2,
         n_workers: int = 1,
         **dk_kwargs: Any,
-    ) -> Union[
-            NDArray[np.floating],
-            tuple[NDArray[np.floating],...],
-            dict[int, tuple[NDArray[np.floating],...]]
-        ]:
+    ) -> dict[int, tuple[FloatArray, ...]]:
         """Builds the DALI expansion for the given model up to the given order.
 
         Args:
@@ -293,9 +281,6 @@ class ForecastKit:
             forecast_order: The requested order of the forecast.
                 Currently supported values and their meaning are given in
                 :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
-            single_forecast_order: If set to ``True``, the function will return only
-                the requested order. If set to ``False``, the function will return
-                the tensors up to the requested order.
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
@@ -303,24 +288,21 @@ class ForecastKit:
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
-            If ``single_forecast_order`` is ``False`` the result is a dictionary
-            with the keys equal to the order of the DALI expansion and values
-            equal to the DALI multiplet at that order. For example, for
-            ``forecast_order == 3`` the result is::
+            A dict mapping ``order -> multiplet`` for all ``order = 1..forecast_order``.
 
-                {
-                    1: DALI_singlet,
-                    2: DALI_doublet,
-                    3: DALI_triplet,
-                }
+            For each forecast order k, the returned multiplet contains the tensors
+            introduced at that order. Concretely:
 
-            where ``DALI_singlet`` contains the Fisher matrix, ``DALI_doublet``
-            contains the DALI doublet tensors, etc.
+            - order 1: ``(F_{(1,1)},)`` (Fisher matrix)
+            - order 2: ``(D_{(2,1)}, D_{(2,2)})``
+            - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``
 
-            If ``single_forecast_order`` is ``True`` the result instead is the
-            multiplet of the requested order. Using the example above the output
-            would be ``DALI_triplet``. In the case that ``forecast_order == 1``
-            the Fisher matrix itself is returned instead of ``DALI_singlet``.
+            Here ``D_{(k,l)}`` and ``T_{(k,l)}`` denote contractions of the
+            ``k``-th and ``l``-th order derivatives via the inverse covariance.
+
+            Each tensor axis has length ``p = len(self.theta0)``. The
+            additional tensors at
+            order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
         """
         function = require_callable(self.function, context="ForecastKit.dali")
 
@@ -330,20 +312,19 @@ class ForecastKit:
             cov=self.cov0,
             method=method,
             forecast_order=forecast_order,
-            single_forecast_order=single_forecast_order,
             n_workers=n_workers,
             **dk_kwargs,
         )
         return dali_tensors
 
     def gaussian_fisher(
-            self,
-            *,
-            method: str | None = None,
-            n_workers: int = 1,
-            rcond: float = 1e-12,
-            symmetrize_dcov: bool = True,
-            **dk_kwargs: Any,
+        self,
+        *,
+        method: str | None = None,
+        n_workers: int = 1,
+        rcond: float = 1e-12,
+        symmetrize_dcov: bool = True,
+        **dk_kwargs: Any,
     ) -> np.ndarray:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
@@ -395,9 +376,6 @@ class ForecastKit:
 
         Returns:
             Scalar delta chi-squared value.
-
-        Raises:
-            ValueError: If shapes are inconsistent.
         """
         return build_delta_chi2_fisher(theta=theta, theta0=self.theta0, fisher=fisher)
 
@@ -405,43 +383,30 @@ class ForecastKit:
         self,
         *,
         theta: np.ndarray,
-        fisher: np.ndarray,
-        g_tensor: np.ndarray,
-        h_tensor: np.ndarray | None,
-        convention: str = "delta_chi2",
+        dali: dict[int, tuple[np.ndarray, ...]],
+        forecast_order: int | None = 2,
     ) -> float:
         """Computes a displacement chi-squared under the DALI approximation.
 
         This evaluates a scalar ``delta_chi2`` from the displacement
         ``d = theta - theta0`` using the Fisher matrix and (optionally) the cubic
-        and quartic DALI tensors. The ``convention`` parameter controls the
-        numerical prefactors applied to the cubic/quartic contractions.
+        and quartic DALI tensors.
 
         The expansion point is taken from :attr:`ForecastKit.theta0`.
 
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
-            fisher: Fisher matrix with shape ``(p, p)``.
-            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
-            convention: Controls the prefactors used in the cubic/quartic tensor
-                contractions. Supported conventions are ``"delta_chi2"`` and
-                ``"matplotlib_loglike"``.
+            dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            forecast_order: Order of the forecast to use for the DALI contractions.
 
         Returns:
             Scalar delta chi-squared value.
-
-        Raises:
-            ValueError: If an unknown ``convention`` is provided.
-            ValueError: If input shapes are inconsistent.
         """
         return build_delta_chi2_dali(
             theta=theta,
             theta0=self.theta0,
-            fisher=fisher,
-            g_tensor=g_tensor,
-            h_tensor=h_tensor,
-            convention=convention,
+            dali=dali,
+            forecast_order=forecast_order,
         )
 
     def logposterior_fisher(
@@ -480,9 +445,6 @@ class ForecastKit:
 
         Returns:
             Scalar log posterior value, defined up to an additive constant.
-
-        Raises:
-            ValueError: If shapes are inconsistent or if both prior styles are provided.
         """
         return build_logposterior_fisher(
             theta=theta,
@@ -497,10 +459,8 @@ class ForecastKit:
         self,
         *,
         theta: np.ndarray,
-        fisher: np.ndarray,
-        g_tensor: np.ndarray,
-        h_tensor: np.ndarray | None,
-        convention: str = "delta_chi2",
+        dali: dict[int, tuple[np.ndarray, ...]],
+        forecast_order: int | None = 2,
         prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
         prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
         logprior: Callable[[np.ndarray], float] | None = None,
@@ -512,18 +472,12 @@ class ForecastKit:
         ``logprior(theta)`` callable or as a lightweight prior specification via
         ``prior_terms`` and/or ``prior_bounds``.
 
-        The ``convention`` parameter controls the numerical prefactors used in the
-        cubic/quartic contractions and matches the underlying expansion helpers.
-
         The expansion point is taken from the stored ``self.theta0``.
 
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
-            fisher: Fisher matrix with shape ``(p, p)``.
-            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-            h_tensor: DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
-            convention: The normalization to use (``"delta_chi2"`` or
-                ``"matplotlib_loglike"``).
+            dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            forecast_order: Order of the forecast to use for the DALI contractions.
             prior_terms: Prior term specification passed to the underlying prior
                 builder. Use this only if ``logprior`` is not provided.
             prior_bounds: Global hard bounds passed to the underlying prior builder.
@@ -535,18 +489,12 @@ class ForecastKit:
 
         Returns:
             Scalar log posterior value, defined up to an additive constant.
-
-        Raises:
-            ValueError: If an unknown ``convention`` is provided.
-            ValueError: If shapes are inconsistent or if both prior styles are provided.
         """
         return build_logposterior_dali(
             theta=theta,
             theta0=self.theta0,
-            fisher=fisher,
-            g_tensor=g_tensor,
-            h_tensor=h_tensor,
-            convention=convention,
+            dali=dali,
+            forecast_order=forecast_order,
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
             logprior=logprior,
@@ -570,21 +518,17 @@ class ForecastKit:
 
         Returns:
             Negative log-posterior value as a float.
-
-        Raises:
-            ValueError: If ``theta`` is not a finite 1D vector or if the negative log-posterior
-                evaluates to a non-finite value.
         """
         return build_negative_logposterior(theta, logposterior=logposterior)
 
     def laplace_hessian(
-            self,
-            *,
-            neg_logposterior: Callable[[np.ndarray], float],
-            theta_map: Sequence[float] | np.ndarray | None = None,
-            method: str | None = None,
-            n_workers: int = 1,
-            **dk_kwargs: Any,
+        self,
+        *,
+        neg_logposterior: Callable[[np.ndarray], float],
+        theta_map: Sequence[float] | np.ndarray | None = None,
+        method: str | None = None,
+        n_workers: int = 1,
+        **dk_kwargs: Any,
     ) -> np.ndarray:
         """Computes the Hessian of the negative log-posterior at ``theta_map``.
 
@@ -607,10 +551,6 @@ class ForecastKit:
         Returns:
             A symmetric 2D array with shape ``(p, p)`` giving the Hessian of
             ``neg_logposterior`` evaluated at ``theta_map``.
-
-        Raises:
-            TypeError: If ``neg_logposterior`` is not scalar-valued (Hessian is not 2D).
-            ValueError: If inputs are invalid or the Hessian is not a finite square matrix.
         """
         theta = self.theta0 if theta_map is None else theta_map
         return build_laplace_hessian(
@@ -639,22 +579,19 @@ class ForecastKit:
 
         Returns:
             A 2D symmetric covariance matrix with the same shape as ``hessian``.
-
-        Raises:
-            ValueError: If ``hessian`` is not a finite square matrix.
         """
         return build_laplace_covariance(hessian, rcond=rcond)
 
     def laplace_approximation(
-            self,
-            *,
-            neg_logposterior: Callable[[np.ndarray], float],
-            theta_map: Sequence[float] | np.ndarray | None = None,
-            method: str | None = None,
-            n_workers: int = 1,
-            ensure_spd: bool = True,
-            rcond: float = 1e-12,
-            **dk_kwargs: Any,
+        self,
+        *,
+        neg_logposterior: Callable[[np.ndarray], float],
+        theta_map: Sequence[float] | np.ndarray | None = None,
+        method: str | None = None,
+        n_workers: int = 1,
+        ensure_spd: bool = True,
+        rcond: float = 1e-12,
+        **dk_kwargs: Any,
     ) -> dict[str, Any]:
         """Computes a Laplace (Gaussian) approximation around ``theta_map``.
 
@@ -682,11 +619,6 @@ class ForecastKit:
         Returns:
             Dictionary with the Laplace approximation outputs (theta_map, neg_logposterior_at_map,
             hessian, cov, and jitter).
-
-        Raises:
-            TypeError: If ``neg_logposterior`` is not scalar-valued.
-            ValueError: If inputs are invalid or non-finite values are encountered.
-            np.linalg.LinAlgError: If ``ensure_spd=True`` and the Hessian cannot be regularized to be SPD.
         """
         theta = self.theta0 if theta_map is None else theta_map
         return build_laplace_approximation(
@@ -700,12 +632,12 @@ class ForecastKit:
         )
 
     def getdist_fisher_gaussian(
-            self,
-            *,
-            fisher: np.ndarray,
-            names: Sequence[str] | None = None,
-            labels: Sequence[str] | None = None,
-            **kwargs: Any,
+        self,
+        *,
+        fisher: np.ndarray,
+        names: Sequence[str] | None = None,
+        labels: Sequence[str] | None = None,
+        **kwargs: Any,
     ):
         """Converts a Fisher Gaussian into a GetDist :class:`getdist.gaussian_mixtures.GaussianND`.
 
@@ -734,12 +666,12 @@ class ForecastKit:
         )
 
     def getdist_fisher_samples(
-            self,
-            *,
-            fisher: np.ndarray,
-            names: Sequence[str],
-            labels: Sequence[str],
-            **kwargs: Any,
+        self,
+        *,
+        fisher: np.ndarray,
+        names: Sequence[str],
+        labels: Sequence[str],
+        **kwargs: Any,
     ):
         """Draws GetDist :class:`getdist.MCSamples` from the Fisher Gaussian at ``self.theta0``.
 
@@ -768,14 +700,12 @@ class ForecastKit:
         )
 
     def getdist_dali_importance(
-            self,
-            *,
-            fisher: np.ndarray,
-            g_tensor: np.ndarray,
-            h_tensor: np.ndarray | None,
-            names: Sequence[str],
-            labels: Sequence[str],
-            **kwargs: Any,
+        self,
+        *,
+        dali: dict[int, tuple[np.ndarray, ...]],
+        names: Sequence[str],
+        labels: Sequence[str],
+        **kwargs: Any,
     ):
         """Returns GetDist :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
@@ -784,15 +714,14 @@ class ForecastKit:
         that fixes the expansion point to ``self.theta0``.
 
         Args:
-            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
-            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
                 :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
-                (e.g. ``n_samples``, ``kernel_scale``, ``convention``, ``seed``,
-                ``prior_terms``, ``prior_bounds``, ``logprior``, ``sampler_bounds``, ``label``).
+                (e.g. ``n_samples``, ``kernel_scale``, ``seed``,
+                ``prior_terms``, ``prior_bounds``, ``logprior``,
+                ``sampler_bounds``, ``label``).
 
         Returns:
             A :class:`getdist.MCSamples` with importance weights.
@@ -801,23 +730,19 @@ class ForecastKit:
 
         return dali_to_getdist_importance(
             theta0=self.theta0,
-            fisher=fisher,
-            g_tensor=g_tensor,
-            h_tensor=h_tensor,
+            dali=dali,
             names=names,
             labels=labels,
             **kwargs,
         )
 
     def getdist_dali_emcee(
-            self,
-            *,
-            fisher: np.ndarray,
-            g_tensor: np.ndarray,
-            h_tensor: np.ndarray | None,
-            names: Sequence[str],
-            labels: Sequence[str],
-            **kwargs: Any,
+        self,
+        *,
+        dali: dict[int, tuple[np.ndarray, ...]],
+        names: Sequence[str],
+        labels: Sequence[str],
+        **kwargs: Any,
     ):
         """Returns GetDist :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
 
@@ -826,32 +751,23 @@ class ForecastKit:
         that fixes the expansion point to ``self.theta0``.
 
         Args:
-            fisher: Fisher matrix with shape ``(p, p)`` at ``self.theta0``.
-            g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-            h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``.
+            dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
                 :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
                 (e.g. ``n_steps``, ``burn``, ``thin``, ``n_walkers``, ``init_scale``, ``seed``,
-                ``convention``, ``prior_terms``, ``prior_bounds``, ``logprior``,
+                ``prior_terms``, ``prior_bounds``, ``logprior``,
                 ``sampler_bounds``, ``label``).
 
         Returns:
             A :class:`getdist.MCSamples` containing MCMC chains.
-
-        Raises:
-            TypeError: If ``theta0`` is provided (ForecastKit always uses ``self.theta0``).
-            ValueError: If shapes are inconsistent or mutually exclusive options are provided.
-            RuntimeError: If walker initialization fails.
         """
         kwargs = _drop_reserved_kwargs(kwargs, reserved=_RESERVED_KWARGS)
 
         return dali_to_getdist_emcee(
             theta0=self.theta0,
-            fisher=fisher,
-            g_tensor=g_tensor,
-            h_tensor=h_tensor,
+            dali=dali,
             names=names,
             labels=labels,
             **kwargs,
@@ -863,4 +779,5 @@ def _drop_reserved_kwargs(
     *,
     reserved: set[str]
 ) -> dict[str, Any]:
+    """Removes reserved keyword arguments from a dictionary."""
     return {k: v for k, v in kwargs.items() if k not in reserved}
