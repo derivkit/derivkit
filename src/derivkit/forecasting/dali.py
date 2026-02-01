@@ -32,7 +32,8 @@ def build_dali(
             values as input and return either a scalar or a
             :class:`np.ndarray` of observable values.
         theta0: The expansion point (a 1D parameter vector) at which
-            derivatives are evaluated. Accepts a list/array of length ``p``.
+            derivatives are evaluated. Accepts a list/array of length ``p``,
+            with ``p`` the number of parameters.
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where
             ``n_observables`` is the number of observables returned by the
