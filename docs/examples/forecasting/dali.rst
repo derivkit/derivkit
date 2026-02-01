@@ -6,43 +6,54 @@
 |dklogo| DALI tensors
 =====================
 
-This section shows how to construct the DALI (Derivative Approximation for
+This section shows how to construct DALI (Derivative Approximation for
 LIkelihoods) tensors using :class:`derivkit.forecast_kit.ForecastKit`.
 
 The DALI expansion extends the Fisher matrix by including higher-order
-derivative information, allowing non-Gaussian structure in the likelihood to
-be approximated locally around a fiducial parameter point ``theta0``.
+derivative information, allowing non-Gaussian structure in the likelihood
+to be approximated locally around a fiducial parameter point ``theta0``.
 
-In DerivKit, the doublet-DALI expansion returns two tensors, commonly denoted
-``G`` and ``H``.
+In DerivKit, DALI tensors are returned using an *introduced-at-order*
+convention: each forecast order contributes a tuple of tensors, and all
+orders up to the requested one are returned.
 
 The model must map parameters ``theta`` to a 1D data vector, and the observable
 covariance matrix must have shape ``(n, n)``, where ``n`` is the length of the
 data vector.
 
-For a conceptual overview of DALI forecasting, its interpretation, and
-other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit`.
+For a conceptual overview of DALI forecasting and its interpretation, see
+:doc:`../../about/kits/forecast_kit`.
 
-If you want to visualize parameter contours from the DALI tensors, see the
-example :doc:`dali_contours`, which shows how to generate GetDist samples and
-plot confidence regions from ``(G, H)``.
+If you want to visualize parameter contours from DALI tensors, see the example
+:doc:`dali_contours`, which shows how to generate GetDist samples and plot
+confidence regions from the returned multiplets.
 
 
 DALI tensor shapes
 ------------------
 
-For ``p`` model parameters:
+For ``p`` model parameters, the DALI expansion returns tensors with the
+following shapes:
 
-- the third-order tensor ``G`` has shape ``(p, p, p)``
-- the fourth-order tensor ``H`` has shape ``(p, p, p, p)``
+- order 1 (Fisher):
+  - ``F`` with shape ``(p, p)``
 
-These tensors are evaluated at the fiducial parameter point ``theta0``.
+- order 2 (doublet-DALI):
+  - ``D1`` with shape ``(p, p, p)``
+  - ``D2`` with shape ``(p, p, p, p)``
+
+- order 3 (triplet-DALI):
+  - ``T1`` with shape ``(p, p, p, p)``
+  - ``T2`` with shape ``(p, p, p, p, p)``
+  - ``T3`` with shape ``(p, p, p, p, p, p)``
+
+All tensors are evaluated at the fiducial parameter point ``theta0``.
 
 
 Basic usage
 -----------
 
-The example below constructs the DALI tensors around a fiducial parameter
+The example below constructs DALI tensors around a fiducial parameter
 point ``theta0`` using a simple toy model.
 
 .. doctest:: dali_basic
@@ -57,12 +68,16 @@ point ``theta0`` using a simple toy model.
    >>> # Fiducial parameters and covariance
    >>> theta0 = np.array([1.0, 2.0])
    >>> cov = np.eye(3)
-   >>> # Build ForecastKit and compute DALI tensors
+   >>> # Build ForecastKit and compute DALI tensors up to second order
    >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
-   >>> g_tensor, h_tensor = fk.dali()
-   >>> print(g_tensor.shape)
+   >>> dali = fk.dali(forecast_order=2)
+   >>> F = dali[1][0]
+   >>> D1, D2 = dali[2]
+   >>> print(F.shape)
+   (2, 2)
+   >>> print(D1.shape)
    (2, 2, 2)
-   >>> print(h_tensor.shape)
+   >>> print(D2.shape)
    (2, 2, 2, 2)
 
 
@@ -80,16 +95,14 @@ All keyword arguments are forwarded to
    >>> import numpy as np
    >>> from derivkit.forecast_kit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
-   >>> # Define the model
    >>> def model(theta):
    ...     a, b = theta
    ...     return np.array([a, b, a + 2.0 * b], dtype=float)
-   >>> # Fiducial setup
    >>> theta0 = np.array([1.0, 2.0])
    >>> cov = np.eye(3)
    >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
-   >>> # Use a finite-difference derivative backend
-   >>> g_tensor, h_tensor = fk.dali(
+   >>> dali = fk.dali(
+   ...     forecast_order=2,
    ...     method="finite",
    ...     n_workers=2,
    ...     stepsize=1e-2,
@@ -97,9 +110,10 @@ All keyword arguments are forwarded to
    ...     extrapolation="ridders",
    ...     levels=4,
    ... )
-   >>> print(g_tensor.shape)
+   >>> D1, D2 = dali[2]
+   >>> print(D1.shape)
    (2, 2, 2)
-   >>> print(h_tensor.shape)
+   >>> print(D2.shape)
    (2, 2, 2, 2)
 
 
@@ -114,15 +128,18 @@ This parallelizes derivative evaluations across parameters and tensor entries.
 
    >>> import numpy as np
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> # Define the model
    >>> def model(theta):
    ...     return np.array([theta[0], theta[1], theta[0] + 2.0 * theta[1]])
-   >>> # Enable parallel execution
-   >>> fk = ForecastKit(function=model, theta0=np.array([1.0, 2.0]), cov=np.eye(3))
-   >>> g_tensor, h_tensor = fk.dali(n_workers=4)
-   >>> print(g_tensor.shape)
+   >>> fk = ForecastKit(
+   ...     function=model,
+   ...     theta0=np.array([1.0, 2.0]),
+   ...     cov=np.eye(3),
+   ... )
+   >>> dali = fk.dali(forecast_order=2, n_workers=4)
+   >>> D1, D2 = dali[2]
+   >>> print(D1.shape)
    (2, 2, 2)
-   >>> print(h_tensor.shape)
+   >>> print(D2.shape)
    (2, 2, 2, 2)
 
 
@@ -130,10 +147,9 @@ Notes
 -----
 
 - DALI tensors are evaluated locally at ``theta0``.
-- The expansion captures non-Gaussian structure in parameter space through
-  higher-order derivatives of the model.
-- In the current implementation, the likelihood is assumed to be Gaussian
-  in the data with fixed covariance.
-- Higher-order derivatives increase computational cost relative to Fisher.
-- Changing the derivative backend affects numerical accuracy but not the
-  structure of the DALI expansion.
+- Each forecast order contributes a multiplet of tensors, returned via an
+  introduced-at-order convention.
+- The likelihood is assumed Gaussian in the data with fixed covariance.
+- Higher-order forecasts increase computational cost relative to Fisher.
+- Changing the derivative backend affects numerical accuracy but not tensor
+  structure.
