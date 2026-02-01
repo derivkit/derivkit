@@ -9,8 +9,8 @@ Two backends are provided:
 - ``emcee`` ensemble MCMC targeting the same DALI log-posterior.
 
 The target log-posterior is evaluated with
-:func:`derivkit.forecasting.expansions.logposterior_dali`, optionally including
-user-defined priors and parameter support bounds.
+:func:`derivkit.forecasting.expansions.build_logposterior_dali`, optionally
+including user-defined priors and parameter support bounds.
 
 Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihoods)``.
 """
@@ -33,7 +33,7 @@ from derivkit.forecasting.sampling_utils import (
     kernel_samples_from_fisher,
     log_gaussian_kernel,
 )
-from derivkit.utils.validate import validate_dali_shapes
+from derivkit.utils.validate import validate_dali_shape
 
 __all__ = [
     "dali_to_getdist_importance",
@@ -106,15 +106,13 @@ def _resolve_support_bounds(
 
 def dali_to_getdist_importance(
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
+    dali: dict[int, tuple[NDArray[np.floating], ...]],
     *,
+    forecast_order: int | None = 2,
     names: Sequence[str],
     labels: Sequence[str],
     n_samples: int = 50_000,
     kernel_scale: float = 1.5,
-    convention: str = "delta_chi2",
     seed: int | None = None,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
@@ -125,20 +123,20 @@ def dali_to_getdist_importance(
     """Returns :class:`getdist.MCSamples` for a DALI posterior via importance sampling.
 
     The target log-posterior is evaluated with
-    :func:`derivkit.forecasting.expansions.logposterior_dali`. Samples are drawn from
-    a Fisher–Gaussian kernel centered on ``theta0`` and reweighted by the difference
-    between the target log-posterior and the kernel log-density.
+    :func:`derivkit.forecasting.expansions.build_logposterior_dali`. Samples
+    are drawn from a Fisher–Gaussian kernel centered on ``theta0`` and
+    reweighted by the difference between the target log-posterior and the
+    kernel log-density.
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
-        fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
-        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
-        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
+        dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
+        forecast_order: Maximum order of the DALI expansion to include
+            (e.g., 2 for doublet, 3 for triplet).
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_samples: Number of importance samples to draw.
         kernel_scale: Scale factor applied to the Fisher covariance for the kernel.
-        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for kernel sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
@@ -165,11 +163,19 @@ def dali_to_getdist_importance(
             or the effective support bounds are invalid (e.g., an empty intersection).
         RuntimeError: If all samples are rejected by bounds or prior support.
     """
-    fiducial = np.asarray(theta0, dtype=float)
-    fisher_matrix = np.asarray(fisher, dtype=float)
-    dali_g = np.asarray(g_tensor, dtype=float)
-    dali_h = None if h_tensor is None else np.asarray(h_tensor, dtype=float)
-    validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
+    fiducial = np.asarray(theta0, dtype=float).reshape(-1)
+
+    if not isinstance(dali, dict):
+        raise TypeError(
+            "dali must be the dict form returned by build_dali.")
+
+    validate_dali_shape(fiducial, dali)
+
+    # Fisher for the Gaussian proposal kernel comes from dali[1]
+    if 1 not in dali:
+        raise ValueError("dali must contain key 1 with dali[1] == (F,).")
+
+    fisher_matrix = np.asarray(dali[1][0], dtype=float)
 
     n_params = int(fiducial.size)
     n_names = len(names)
@@ -191,7 +197,10 @@ def dali_to_getdist_importance(
     )
 
     # Computing the prior once prevents rebuilding inside logposterior_dali
-    logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
+    logprior_fn = logprior
+    if logprior_fn is None and (
+            prior_terms is not None or prior_bounds is not None):
+        logprior_fn = build_prior(terms=prior_terms, bounds=prior_bounds)
 
     kernel_samples = kernel_samples_from_fisher(
         fiducial,
@@ -210,10 +219,8 @@ def dali_to_getdist_importance(
             build_logposterior_dali(
                 theta,
                 fiducial,
-                fisher_matrix,
-                dali_g,
-                dali_h,
-                convention=convention,
+                dali,
+                forecast_order=forecast_order,
                 logprior=logprior_fn,
             )
             for theta in kernel_samples
@@ -226,7 +233,8 @@ def dali_to_getdist_importance(
     target_logpost = target_logpost[keep]
     if kernel_samples.shape[0] == 0:
         raise RuntimeError(
-            "All kernel samples were rejected: the target log-posterior was -inf for every sample "
+            "All kernel samples were rejected: the target log-posterior "
+            "was -inf for every sample "
             "(outside prior/support bounds or invalid model evaluation)."
         )
 
@@ -260,10 +268,9 @@ def dali_to_getdist_importance(
 
 def dali_to_getdist_emcee(
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
+    dali: dict[int, tuple[NDArray[np.floating], ...]],
     *,
+    forecast_order: int | None = 2,
     names: Sequence[str],
     labels: Sequence[str],
     n_steps: int = 10_000,
@@ -271,7 +278,6 @@ def dali_to_getdist_emcee(
     thin: int = 2,
     n_walkers: int | None = None,
     init_scale: float = 0.5,
-    convention: str = "delta_chi2",
     seed: int | None = None,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
@@ -281,15 +287,16 @@ def dali_to_getdist_emcee(
 ) -> MCSamples:
     """Returns :class:`getdist.MCSamples` from ``emcee`` sampling of a DALI posterior.
 
-    The target log-posterior is evaluated with :func:`derivkit.forecasting.expansions.logposterior_dali`.
-    Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and evolved with
-    :class:`emcee.EnsembleSampler`. Optional priors and support bounds are applied through the target log-posterior.
+    The target log-posterior is evaluated with
+    :func:`derivkit.forecasting.expansions.build_logposterior_dali`.
+    Walkers are initialized from a Fisher–Gaussian cloud around ``theta0`` and
+    evolved with :class:`emcee.EnsembleSampler`. Optional priors and support
+    bounds are applied through the target log-posterior.
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
-        fisher: Fisher matrix at ``theta0`` with shape ``(p, p)``.
-        g_tensor: Third-order DALI tensor with shape ``(p, p, p)``.
-        h_tensor: Optional fourth-order DALI tensor with shape ``(p, p, p, p)``.
+        dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
+        forecast_order: Maximum order of the DALI expansion to include (e.g., 2 for doublet, 3 for triplet).
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
@@ -299,7 +306,6 @@ def dali_to_getdist_emcee(
             to reduce autocorrelation in the chain.
         n_walkers: Number of walkers. Defaults to ``max(32, 8 * p)``.
         init_scale: Initial scatter scale for walker initialization.
-        convention: DALI convention passed through to :func:`derivkit.forecasting.expansions.logposterior_dali`.
         seed: Random seed for walker initialization.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
@@ -326,11 +332,18 @@ def dali_to_getdist_emcee(
             or the effective support bounds are invalid (e.g., an empty intersection).
         RuntimeError: If walker initialization fails (no valid starting points).
     """
-    fiducial = np.asarray(theta0, dtype=float)
-    fisher_matrix = np.asarray(fisher, dtype=float)
-    dali_g = np.asarray(g_tensor, dtype=float)
-    dali_h = None if h_tensor is None else np.asarray(h_tensor, dtype=float)
-    validate_dali_shapes(fiducial, fisher_matrix, dali_g, dali_h)
+    fiducial = np.asarray(theta0, dtype=float).reshape(-1)
+
+    if not isinstance(dali, dict):
+        raise TypeError(
+            "dali must be the dict form returned by build_dali.")
+
+    validate_dali_shape(fiducial, dali)
+
+    if 1 not in dali:
+        raise ValueError("dali must contain key 1 with dali[1] == (F,).")
+
+    fisher_matrix = np.asarray(dali[1][0], dtype=float)
 
     n_params = int(fiducial.size)
     n_names = len(names)
@@ -355,7 +368,10 @@ def dali_to_getdist_emcee(
     )
 
     # Compute prior once, as this prevents rebuilding inside logposterior_dali.
-    logprior_fn = logprior if logprior is not None else build_prior(terms=prior_terms, bounds=prior_bounds)
+    logprior_fn = logprior
+    if logprior_fn is None and (
+            prior_terms is not None or prior_bounds is not None):
+        logprior_fn = build_prior(terms=prior_terms, bounds=prior_bounds)
 
     walker_init = init_walkers_from_fisher(
         fiducial,
@@ -374,15 +390,21 @@ def dali_to_getdist_emcee(
             "Try loosening bounds, increasing init_scale, or checking theta0 is inside support."
         )
 
-    log_prob = partial(
+    _base_log_prob = partial(
         build_logposterior_dali,
         theta0=fiducial,
-        fisher=fisher_matrix,
-        g_tensor=dali_g,
-        h_tensor=dali_h,
-        convention=convention,
+        dali=dali,
+        forecast_order=forecast_order,
         logprior=logprior_fn,
     )
+
+    def log_prob(theta: NDArray[np.floating]) -> float:
+        """Target log-posterior with hard support bounds (returns -inf outside)."""
+        if support_bounds is not None:
+            th = np.asarray(theta, dtype=float).reshape(1, -1)
+            if apply_parameter_bounds(th, support_bounds).shape[0] == 0:
+                return -np.inf
+        return float(_base_log_prob(theta))
 
     sampler = emcee.EnsembleSampler(int(n_walkers), n_params, log_prob)
     sampler.run_mcmc(walker_init, int(n_steps), progress=True)
