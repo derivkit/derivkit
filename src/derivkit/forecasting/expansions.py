@@ -1,52 +1,44 @@
-"""Utilities for evaluating Fisher and DALI likelihoods expansions.
+"""Utilities for evaluating Fisher and DALI likelihood expansions.
 
 This module provides functional helpers to evaluate approximate likelihoods
-(or posterior) surfaces from forecast tensors:
-
-- Fisher quadratic approximation (``F``)
-- Doublet-DALI cubic/quartic corrections (``F``, ``G``, ``H``)
+(or posterior) surfaces from forecast tensors.
 
 Conventions
 -----------
 
-We expose two conventions that are common in the codebase:
+This module uses a single convention throughout:
 
-- ``convention="delta_chi2"``:
-    Uses the standard DALI ``delta_chi2`` form::
+- ``delta_chi2`` is defined from the displacement ``d = theta - theta0``.
+- The log posterior is returned (up to an additive constant) as::
 
-        delta_chi2 = d.T @ F @ d + (1/3) einsum(G, d, d, d) + (1/12) einsum(H, d, d, d, d)
+    log p(theta) = logprior(theta) - 0.5 * delta_chi2(theta)
 
-    and returns log posterior (up to a constant) as::
+With the forecast tensors returned by :func:`derivkit.forecasting.get_forecast_tensors`
+(using the introduced-at-order convention):
 
-        log p = -0.5 * delta_chi2.
+- ``dali[1] == (F,)``
+- ``dali[2] == (D1, D2)``
+- ``dali[3] == (T1, T2, T3)``
 
-- ``convention="matplotlib_loglike"``:
-    Matches the prefactors used in some matplotlib contour scripts::
+the DALI ``delta_chi2`` is:
 
-        log p = -0.5 d.T @ F @ d - 0.5 einsum(G, d, d, d) - 0.125 einsum(H, d, d, d, d)
-
-    which corresponds to::
-
-        delta_chi2 = d.T @ F @ d + einsum(G, d, d, d) + 0.25 einsum(H, d, d, d, d)
-
-    so that again ``log p = -0.5 * delta_chi2``.
+- order 1 (Fisher): ``d.T @ F @ d``
+- order 2 (doublet): add ``(1/3) D1[d,d,d] + (1/12) D2[d,d,d,d]``
+- order 3 (triplet): add ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``
 
 GetDist convention
 ------------------
 
-GetDist expects ``loglikes`` to be the negative log posterior::
+GetDist expects ``loglikes`` to be the negative log posterior, up to a constant.
+Since this module defines::
 
-    loglikes = -log(posterior)
+    log p = logprior - 0.5 * delta_chi2 + const
 
-up to an additive constant. Since this module defines::
+a compatible choice for GetDist is::
 
-    log(posterior) = -0.5 * delta_chi2 + const
+    loglikes = -logprior + 0.5 * delta_chi2
 
-a compatible choice for GetDist is therefore::
-
-    loglikes = 0.5 * delta_chi2
-
-(optionally shifted by a constant for numerical stability).
+(optionally shifted by an additive constant for numerical stability).
 """
 
 from __future__ import annotations
@@ -56,216 +48,129 @@ from typing import Any, Callable, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from derivkit.forecasting.forecast_core import SUPPORTED_FORECAST_ORDERS
 from derivkit.forecasting.priors_core import build_prior
 from derivkit.utils.validate import (
-    validate_dali_shapes,
-    validate_fisher_shapes,
+    validate_dali_shape,
+    validate_fisher_shape,
 )
 
 __all__ = [
-    "build_submatrix_fisher",
-    "build_submatrix_dali",
+    "build_subspace",
     "build_delta_chi2_fisher",
     "build_delta_chi2_dali",
     "build_logposterior_fisher",
     "build_logposterior_dali",
-    "build_subspace",
 ]
 
 
-def build_submatrix_fisher(
-    fisher: NDArray[np.floating],
-    idx: Sequence[int],
-) -> NDArray[np.float64]:
-    """Extracts a sub-Fisher matrix for a subset of parameter indices.
-
-    The submatrix is constructed by selecting rows and columns of ``fisher``
-    at the indices such that ``F_sub[a, b] = fisher[idx[a], idx[b]]``.
-
-    The indices in ``idx`` may be any subset and any order. They do not need to
-    correspond to a contiguous block in the original matrix. For example, selecting
-    two parameters that appear at opposite corners of the full Fisher matrix
-    produces the full 2x2 Fisher submatrix for those parameters, including their
-    off-diagonal correlation.
-
-    This operation is useful for extracting a lower-dimensional slice of a Fisher
-    matrix for plotting or evaluation while holding all other parameters fixed at
-    their expansion values. It represents a slice through parameter space rather
-    than a marginalization. Marginalized constraints instead require operating on
-    the covariance matrix obtained by inverting the full Fisher matrix.
+def _validate_and_normalize_idx(idx: Sequence[int], *, p: int) -> list[int]:
+    """Validates and normalizes a sequence of parameter indices.
 
     Args:
-        fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
-        idx: Sequence of parameter indices to extract.
+        idx: Sequence of parameter indices.
+        p: Total number of parameters.
 
     Returns:
-        Sub-Fisher matrix ``(len(idx), len(idx))``.
+        Indices as a list of Python ``int``.
 
     Raises:
-        ValueError: If ``fisher`` is not square 2D.
-        TypeError: If ``idx`` contains non-integer indices.
-        IndexError: If any index in ``idx`` is out of bounds.
+        TypeError: If any entry of ``idx`` is not an integer.
+        IndexError: If any index is out of bounds for ``p``.
     """
-    idx = list(idx)
-    fisher = np.asarray(fisher, float)
-    if fisher.ndim != 2 or fisher.shape[0] != fisher.shape[1]:
-        raise ValueError(f"fisher must be square 2D, got {fisher.shape}")
-
-    p = int(fisher.shape[0])
-
-    if not all(isinstance(i, (int, np.integer)) for i in idx):
+    idx_list = list(idx)
+    if not all(isinstance(i, (int, np.integer)) for i in idx_list):
         raise TypeError("idx must contain integer indices")
-
-    if any((i < 0) or (i >= p) for i in idx):
-        raise IndexError(f"idx contains out-of-bounds indices for p={p}: {idx}")
-
-    return fisher[np.ix_(idx, idx)]
+    if any((i < 0) or (i >= p) for i in idx_list):
+        raise IndexError(f"idx contains out-of-bounds indices for p={p}: {idx_list}")
+    return idx_list
 
 
-def build_submatrix_dali(
-    theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
-    idx: Sequence[int],
-) -> tuple[
-    NDArray[np.float64],
-    NDArray[np.float64],
-    NDArray[np.float64],
-    NDArray[np.float64] | None,
-]:
-    """Extracts sub-DALI tensors for a subset of parameter indices.
+def _slice_param_tensor(t: NDArray[np.floating], idx: list[int]) -> NDArray[np.float64]:
+    """Slices a parameter-space tensor along all axes.
 
-    The tensors are constructed by selecting entries of ``theta0`` and the
-    corresponding rows and columns of the Fisher, cubic, and quartic tensors
-    using the indices in ``idx``. The indices may be any subset and any order
-    and do not need to correspond to a contiguous block.
-
-    This operation is useful for evaluating a DALI expansion on a lower-dimensional
-    parameter subspace while holding all other parameters fixed at their expansion
-    values. It represents a slice through parameter space rather than a marginalization.
+    This helper assumes ``t`` is a tensor whose every axis indexes parameters,
+    e.g. Fisher ``(p, p)``, a cubic tensor ``(p, p, p)``, etc.
 
     Args:
-        theta0: Full expansion point with shape ``(p,)`` with ``p`` the number of parameters.
-        fisher: Full Fisher matrix with shape ``(p, p)``.
-        g_tensor: Full DALI cubic tensor with shape ``(p, p, p)``.
-        h_tensor: Full DALI quartic tensor with shape ``(p, p, p, p)`` or ``None``.
-        idx: Sequence of parameter indices to extract.
+        t: Tensor to slice.
+        idx: Parameter indices to keep.
 
     Returns:
-        A tuple ``(theta0_sub, f_sub, g_sub, h_sub)`` where each entry is selected
-        using the specified indices. Shapes are:
-
-        - ``theta0_sub``: ``(len(idx),)``
-        - ``f_sub``: ``(len(idx), len(idx))``
-        - ``g_sub``: ``(len(idx), len(idx), len(idx))``
-        - ``h_sub``: ``(len(idx), len(idx), len(idx), len(idx))`` or ``None``.
-
-    Raises:
-        ValueError: If input tensors have invalid shapes.
-        TypeError: If ``idx`` contains non-integer indices.
-        IndexError: If any index in ``idx`` is out of bounds.
+        Sliced tensor as ``float64``.
     """
-    idx = list(idx)
-
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
-
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
-
-    p = int(theta0.shape[0])
-
-    if not all(isinstance(i, (int, np.integer)) for i in idx):
-        raise TypeError("idx must contain integer indices")
-
-    if any((i < 0) or (i >= p) for i in idx):
-        raise IndexError(f"idx contains out-of-bounds indices for p={p}: {idx}")
-
-    t0 = theta0[idx]
-    f2 = fisher[np.ix_(idx, idx)]
-    g2 = g_tensor[np.ix_(idx, idx, idx)]
-    h2 = None if h_tensor is None else h_tensor[np.ix_(idx, idx, idx, idx)]
-    return t0, f2, g2, h2
+    t64 = np.asarray(t, np.float64)
+    sl = np.ix_(*([idx] * t64.ndim))
+    return t64[sl]
 
 
 def build_subspace(
     idx: Sequence[int],
     *,
-    fisher: NDArray[np.floating],
     theta0: NDArray[np.floating],
-    g_tensor: NDArray[np.floating] | None = None,
-    h_tensor: NDArray[np.floating] | None = None,
+    fisher: NDArray[np.floating] | None = None,
+    dali: dict[int, tuple[NDArray[np.floating], ...]] | None = None,
 ) -> dict[str, Any]:
     """Extracts a parameter subspace for Fisher or DALI expansions.
 
-    This function selects the parameters specified by ``idx`` and extracts the
-    corresponding entries of the expansion point and tensors.
+    This returns a *slice* through parameter space: parameters not in ``idx`` are
+    held fixed at their expansion values. This is not a marginalization.
+
+    Provide exactly one of ``fisher`` or ``dali``:
+
+    - Fisher: ``fisher`` has shape ``(p, p)`` and the return dict contains
+      ``{"theta0": theta0_sub, "fisher": fisher_sub}``.
+    - DALI: ``dali`` is the dict form returned by
+      :func:`derivkit.forecasting.get_forecast_tensors` using the introduced-at-order
+      convention, and the return dict contains ``{"theta0": theta0_sub, "dali": dali_sub}``.
 
     Args:
-        idx: Sequence of parameter indices to extract.
-        fisher: Full Fisher matrix of shape ``(p, p)`` with ``p`` the number of parameters.
+        idx: Parameter indices to extract.
         theta0: Expansion point of shape ``(p,)``.
-        g_tensor: Optional DALI cubic tensor of shape ``(p, p, p)``.
-        h_tensor: Optional DALI quartic tensor of shape ``(p, p, p, p)`` or ``None``.
+        fisher: Fisher matrix of shape ``(p, p)``.
+        dali: Forecast tensors as a dict mapping ``order -> multiplet``.
 
     Returns:
-        Dictionary containing the sliced objects. Let ``m = len(idx)``. The Fisher
-        submatrix has shape ``(m, m)`` and the expansion point has shape ``(m,)``.
-        If ``g_tensor`` is provided, the cubic tensor has shape ``(m, m, m)``.
-        If ``h_tensor`` is provided, the quartic tensor has shape ``(m, m, m, m)``.
-        Keys use the same names as the inputs.
+        A dict containing the sliced objects. Always includes ``"theta0"``.
+        Includes ``"fisher"`` if ``fisher`` was provided, or ``"dali"`` if ``dali``
+        was provided.
 
     Raises:
-        TypeError: If ``idx`` contains non-integer indices.
+        ValueError: If not exactly one of ``fisher`` or ``dali`` is provided.
+        TypeError: If ``idx`` contains non-integers, or if ``dali`` is not a dict.
         IndexError: If any index in ``idx`` is out of bounds.
-        ValueError: If the provided arrays have incompatible shapes, or if ``h_tensor``
-            is provided without ``g_tensor``.
+        ValueError: If the provided arrays have incompatible shapes.
     """
-    idx = list(idx)
-    if not all(isinstance(i, (int, np.integer)) for i in idx):
-        raise TypeError("idx must contain integer indices")
+    theta0_arr = np.asarray(theta0, np.float64).reshape(-1)
+    p = int(theta0_arr.shape[0])
 
-    fisher = np.asarray(fisher, float)
-    theta0 = np.asarray(theta0, float)
+    if (fisher is None) == (dali is None):
+        raise ValueError("Provide exactly one of `fisher` or `dali`.")
 
-    dali_mode = (g_tensor is not None) or (h_tensor is not None)
-
-    if not dali_mode:
-        validate_fisher_shapes(theta0, fisher)
-        p = int(theta0.shape[0])
-        if any((i < 0) or (i >= p) for i in idx):
-            raise IndexError(
-                f"idx contains out-of-bounds indices for p={p}: {idx}")
-
+    if fisher is not None:
+        fisher_arr = np.asarray(fisher, np.float64)
+        validate_fisher_shape(theta0_arr, fisher_arr)
+        idx_list = _validate_and_normalize_idx(idx, p=p)
         return {
-            "theta0": theta0[idx],
-            "fisher": fisher[np.ix_(idx, idx)],
+            "theta0": theta0_arr[idx_list],
+            "fisher": fisher_arr[np.ix_(idx_list, idx_list)],
         }
 
-    if g_tensor is None:
-        raise ValueError(
-            "DALI subspace extraction requires `g_tensor` when `h_tensor` is provided.")
+    # dali is not None
+    if not isinstance(dali, dict):
+        raise TypeError("dali must be the dict form returned by get_forecast_tensors.")
 
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
+    validate_dali_shape(theta0_arr, dali)
+    idx_list = _validate_and_normalize_idx(idx, p=p)
 
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+    dali_sub: dict[int, tuple[NDArray[np.float64], ...]] = {}
+    for k, multiplet in dali.items():
+        dali_sub[int(k)] = tuple(_slice_param_tensor(t, idx_list) for t in multiplet)
 
-    p = int(theta0.shape[0])
-    if any((i < 0) or (i >= p) for i in idx):
-        raise IndexError(
-            f"idx contains out-of-bounds indices for p={p}: {idx}")
-
-    out = {
-        "theta0": theta0[idx],
-        "fisher": fisher[np.ix_(idx, idx)],
-        "g_tensor": g_tensor[np.ix_(idx, idx, idx)],
+    return {
+        "theta0": theta0_arr[idx_list],
+        "dali": dali_sub,
     }
-    if h_tensor is not None:
-        out["h_tensor"] = h_tensor[np.ix_(idx, idx, idx, idx)]
-    return out
 
 
 def build_delta_chi2_fisher(
@@ -278,9 +183,9 @@ def build_delta_chi2_fisher(
     Args:
         theta: Evaluation point in parameter space. This is the trial parameter vector
             at which the Fisher expansion is evaluated.
-        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
-            DALI tensors are assumed to have been computed at this point, and the
-            expansion is taken in the displacement ``theta - theta0``.
+        theta0: Expansion point (reference parameter vector). The Fisher matrix
+            is assumed to have been computed at this point, and the expansion is
+            taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
 
     Returns:
@@ -289,7 +194,7 @@ def build_delta_chi2_fisher(
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
     fisher = np.asarray(fisher, float)
-    validate_fisher_shapes(theta0, fisher)
+    validate_fisher_shape(theta0, fisher)
 
     displacement = theta - theta0
     return float(displacement @ fisher @ displacement)
@@ -389,7 +294,7 @@ def build_logposterior_fisher(
     theta = np.asarray(theta, float)
     theta0 = np.asarray(theta0, float)
     fisher = np.asarray(fisher, float)
-    validate_fisher_shapes(theta0, fisher)
+    validate_fisher_shape(theta0, fisher)
 
     logprior_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
 
@@ -407,158 +312,175 @@ def build_logposterior_fisher(
 def build_delta_chi2_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
+    dali: Any,
     *,
-    convention: str = "delta_chi2",
+    forecast_order: int | None = 2,
 ) -> float:
-    """Computes a displacement chi-squared under the DALI approximation.
+    """Compute ``delta_chi2`` under the DALI approximation.
 
-    This function evaluates a scalar ``delta_chi2`` from the displacement
-    ``d = theta - theta0`` using the Fisher matrix and (optionally) the cubic
-    and quartic DALI tensors.
+    This evaluates a scalar ``delta_chi2`` from the displacement ``d = theta - theta0``
+    using forecast tensors returned by :func:`derivkit.forecasting.get_forecast_tensors`.
 
-    The ``convention`` parameter controls the numerical prefactors applied to
-    the cubic/quartic contractions, i.e. it changes the *scaling* of the higher-
-    order corrections relative to the quadratic Fisher term:
+    The input must be the dict form using the introduced-at-order convention:
 
-    - ``convention="delta_chi2"``:
-        ``delta_chi2 = d.T @ F @ d + (1/3) * G[d,d,d] + (1/12) * H[d,d,d,d]``
+    - ``dali[1] == (F,)`` with ``F`` of shape ``(p, p)``
+    - ``dali[2] == (D1, D2)`` with shapes ``(p, p, p)`` and ``(p, p, p, p)``
+    - ``dali[3] == (T1, T2, T3)`` with shapes ``(p,)*4``, ``(p,)*5``, ``(p,)*6``
 
-    - ``convention="matplotlib_loglike"``:
-        ``delta_chi2 = d.T @ F @ d + 1 * G[d,d,d] + (1/4) * H[d,d,d,d]``
+    The evaluated quantity is:
+
+    - order 2: ``d.T @ F @ d + (1/3) D1[d^3] + (1/12) D2[d^4]``
+    - order 3: order 2 plus ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``.
 
     Args:
-        theta: Evaluation point in parameter space. This is the trial parameter vector
-            at which the Fisher/DALI expansion is evaluated.
-        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
-            DALI tensors are assumed to have been computed at this point, and the
-            expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix ``(p, p)`` with ``p`` the number of parameters.
-        g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-        h_tensor: DALI quartic tensor ``(p, p, p, p)`` or ``None``.
-        convention: Controls the prefactors used in the cubic/quartic tensor
-            contractions inside ``delta_chi2``.
+        theta: Evaluation point in parameter space.
+        theta0: Expansion point (fiducial parameters).
+        dali: Forecast tensors as a dict.
+        forecast_order: Maximum order to include. If ``None``, uses the highest key in
+            ``dali`` and requires it to be at least 2.
 
     Returns:
-        The scalar delta chi-squared value.
+        Scalar ``delta_chi2``.
 
     Raises:
-        ValueError: If an unknown ``convention`` is provided.
+        TypeError: If ``dali`` is not a dict.
+        ValueError: If required tensor orders are missing or have incompatible shapes.
     """
-    if convention not in ("delta_chi2", "matplotlib_loglike"):
-        raise ValueError(f"Unknown convention='{convention}'. Supported: 'delta_chi2', 'matplotlib_loglike'.")
+    theta = np.asarray(theta, float).reshape(-1)
+    theta0 = np.asarray(theta0, float).reshape(-1)
 
-    theta = np.asarray(theta, float)
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+    if theta.shape != theta0.shape:
+        raise ValueError(
+            f"theta and theta0 must have the same shape; got {theta.shape} and {theta0.shape}.")
 
-    displacement = theta - theta0
-    quad = float(displacement @ fisher @ displacement)
-    g3 = float(np.einsum(
-        "ijk,i,j,k->",
-        g_tensor,
-        displacement,
-        displacement,
-        displacement
-    )
-    )
-    h4 = 0.0 if h_tensor is None else float(np.einsum("ijkl,i,j,k,l->",
-                                                      h_tensor,
-                                                      displacement,
-                                                      displacement,
-                                                      displacement,
-                                                      displacement
-                                                      ))
+    # DALI evaluation requires the dict form (needs Fisher inside dali[1]).
+    if not isinstance(dali, dict):
+        raise TypeError(
+            "build_delta_chi2_dali expects the dict form from get_forecast_tensors "
+            "(needs dali[1]=(F,) plus higher-order tensors)."
+        )
 
-    conv_dict = {
-        "delta_chi2": quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4,
-        "matplotlib_loglike": quad + g3 + 0.25 * h4,
-    }
-    return conv_dict[convention]
+    validate_dali_shape(theta0, dali)
+
+    # Choose order
+    if forecast_order is None:
+        chosen = max(dali.keys())
+    else:
+        try:
+            chosen = int(forecast_order)
+        except Exception as e:
+            raise TypeError(
+                f"forecast_order must be an int or None;"
+                f" got {type(forecast_order)}.") from e
+
+    if chosen not in SUPPORTED_FORECAST_ORDERS:
+        raise ValueError(
+            f"forecast_order={chosen} is not supported."
+            f" Supported values: {SUPPORTED_FORECAST_ORDERS}."
+        )
+
+    if chosen < 2:
+        raise ValueError(
+            "build_delta_chi2_dali requires forecast_order >= 2. "
+            "Use your Fisher delta-chi2 function for forecast_order=1."
+        )
+
+    # Require the needed keys exist
+    if 1 not in dali or 2 not in dali:
+        raise ValueError(
+            "dali must contain keys 1 and 2 (Fisher + doublet tensors).")
+    if chosen >= 3 and 3 not in dali:
+        raise ValueError(
+            "forecast_order=3 requires dali to contain key 3 (triplet tensors).")
+
+    fisher = np.asarray(dali[1][0], dtype=np.float64)
+    d = theta - theta0
+    chi2 = float(d @ fisher @ d)
+
+    # doublet
+    d1 = np.asarray(dali[2][0], dtype=np.float64)
+    d2 = np.asarray(dali[2][1], dtype=np.float64)
+    chi2 += (1.0 / 3.0) * float(np.einsum("ijk,i,j,k->",
+                                          d1, d, d, d))
+    chi2 += (1.0 / 12.0) * float(np.einsum("ijkl,i,j,k,l->",
+                                           d2, d, d, d, d))
+
+    if chosen == 2:
+        return chi2
+
+    t1 = np.asarray(dali[3][0], dtype=np.float64)
+    t2 = np.asarray(dali[3][1], dtype=np.float64)
+    t3 = np.asarray(dali[3][2], dtype=np.float64)
+
+    t1_4 = float(np.einsum("ijkl,i,j,k,l->",
+                           t1, d, d, d, d))
+    t2_5 = float(np.einsum("ijklm,i,j,k,l,m->",
+                           t2, d, d, d, d, d))
+    t3_6 = float(np.einsum("ijklmn,i,j,k,l,m,n->",
+                           t3, d, d, d, d, d, d))
+
+    chi2 = chi2 + (1.0 / 3.0) * t1_4 + (1.0 / 6.0) * t2_5 + (1.0 / 36.0) * t3_6
+    return chi2
 
 
 def build_logposterior_dali(
     theta: NDArray[np.floating],
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
+    dali: Any,
     *,
-    convention: str = "delta_chi2",
+    forecast_order: int | None = 2,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
 ) -> float:
-    """Computes the log posterior (up to a constant) under the DALI approximation.
+    """Compute the log posterior under the DALI approximation.
 
-    If no prior is provided, this returns the DALI log-likelihoods expansion with
-    a flat prior and no hard cutoffs.
+    The posterior is evaluated as::
+
+        log p(theta) = logprior(theta) - 0.5 * delta_chi2(theta)
+
+    where ``delta_chi2`` is computed from the dict-form forecast tensors ``dali``
+    using :func:`build_delta_chi2_dali`.
 
     Args:
-        theta: Evaluation point in parameter space. This is the trial parameter vector
-            at which the Fisher/DALI expansion is evaluated.
-        theta0: Expansion point (reference parameter vector). The Fisher matrix and any
-            DALI tensors are assumed to have been computed at this point, and the
-            expansion is taken in the displacement ``theta - theta0``.
-        fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
-        g_tensor: DALI cubic tensor ``(p, p, p)``.
-        h_tensor: DALI quartic tensor ``(p, p, p, p)`` or ``None``.
-        convention: The normalization to use (``"delta_chi2"`` or
-            ``"matplotlib_loglike"``).
-        prior_terms: prior term specification passed to
-            :func:`derivkit.forecasting.priors.core.build_prior`.
-        prior_bounds: Global hard bounds passed to
-            :func:`derivkit.forecasting.priors.core.build_prior`.
-        logprior: Optional custom log-prior callable. If it returns a non-finite value,
-            the posterior is treated as zero at that point and the function returns ``-np.inf``.
+        theta: Evaluation point in parameter space.
+        theta0: Expansion point (fiducial parameters).
+        dali: Forecast tensors as a dict in the introduced-at-order convention.
+        forecast_order: Maximum order to include in ``delta_chi2``. If ``None``, uses
+            the highest key in ``dali``.
+        prior_terms: Prior term specification passed to :func:`build_prior`.
+        prior_bounds: Global hard bounds passed to :func:`build_prior`.
+        logprior: Optional custom log-prior callable.
 
     Returns:
-        Scalar log posterior value, defined up to an additive constant.
-
-    Raises:
-        ValueError: If an unknown ``convention`` is provided.
+        Scalar log posterior value (up to an additive constant). If the prior evaluates
+        to a non-finite value, returns ``-np.inf``.
     """
-    theta = np.asarray(theta, float)
-    theta0 = np.asarray(theta0, float)
-    fisher = np.asarray(fisher, float)
-    g_tensor = np.asarray(g_tensor, float)
-    h_tensor = None if h_tensor is None else np.asarray(h_tensor, float)
-    validate_dali_shapes(theta0, fisher, g_tensor, h_tensor)
+    theta = np.asarray(theta, float).reshape(-1)
+    theta0 = np.asarray(theta0, float).reshape(-1)
 
-    logprior_fn = _resolve_logprior(prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior)
+    if theta.shape != theta0.shape:
+        raise ValueError(
+            f"theta and theta0 must have the same shape; got {theta.shape} and {theta0.shape}."
+        )
 
+    if not isinstance(dali, dict):
+        raise TypeError(
+            "build_logposterior_dali expects the dict form from get_forecast_tensors."
+        )
+
+    validate_dali_shape(theta0, dali)
+
+    logprior_fn = _resolve_logprior(
+        prior_terms=prior_terms, prior_bounds=prior_bounds, logprior=logprior
+    )
     logprior_val = 0.0
     if logprior_fn is not None:
         logprior_val = float(logprior_fn(theta))
         if not np.isfinite(logprior_val):
             return -np.inf
 
-    displacement = theta - theta0
-    quad = float(displacement @ fisher @ displacement)
-    g3 = float(np.einsum("ijk,i,j,k->",
-                         g_tensor,
-                         displacement,
-                         displacement,
-                         displacement
-                         ))
-    h4 = 0.0 if h_tensor is None else float(np.einsum("ijkl,i,j,k,l->",
-                                                      h_tensor,
-                                                      displacement,
-                                                      displacement,
-                                                      displacement,
-                                                      displacement
-                                                      ))
-
-    if convention == "delta_chi2":
-        chi2 = quad + (1.0 / 3.0) * g3 + (1.0 / 12.0) * h4
-    elif convention == "matplotlib_loglike":
-        chi2 = quad + g3 + 0.25 * h4
-    else:
-        raise ValueError(f"Unknown convention='{convention}'")
+    chi2 = build_delta_chi2_dali(theta, theta0, dali,
+                                 forecast_order=forecast_order)
 
     return logprior_val - 0.5 * chi2
