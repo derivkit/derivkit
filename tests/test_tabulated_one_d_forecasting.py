@@ -148,27 +148,38 @@ def test_dali_from_tabulated_quadratic_model(method: str):
     model, theta0, cov = make_quadratic_tabulated_setup()
     fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 
-    g, h = fk.dali(method=method)
+    dali = fk.dali(method=method, forecast_order=2)
+    assert set(dali.keys()) == {1, 2}
 
-    assert g.shape == (1, 1, 1)
-    assert h.shape == (1, 1, 1, 1)
+    f = dali[1][0]
+    d1, d2 = dali[2]
 
-    assert np.all(np.isfinite(g))
-    assert np.all(np.isfinite(h))
+    assert f.shape == (1, 1)
+    assert d1.shape == (1, 1, 1)
+    assert d2.shape == (1, 1, 1, 1)
 
-    assert np.any(np.abs(g) > 0.0) or np.any(np.abs(h) > 0.0)
+    assert np.all(np.isfinite(f))
+    assert np.all(np.isfinite(d1))
+    assert np.all(np.isfinite(d2))
+
+    assert np.any(np.abs(d1) > 0.0) or np.any(np.abs(d2) > 0.0)
 
 
 @pytest.mark.parametrize("method", ["adaptive"])
 def test_dali_nontrivial_symmetry_from_cubic_model(method: str):
     """Tests that DALI from tabulated cubic model is non-trivial."""
     model, theta0, cov = make_cubic_tabulated_setup()
-
     fk = ForecastKit(function=model, theta0=theta0, cov=cov)
-    g, h = fk.dali(method=method)
 
-    assert g.shape == (1, 1, 1)
-    assert h.shape == (1, 1, 1, 1)
+    dali = fk.dali(method=method, forecast_order=2)
+    assert set(dali.keys()) == {1, 2}
 
-    assert not np.allclose(g, 0.0)
-    assert not np.allclose(h, 0.0)
+    f = dali[1][0]
+    d1, d2 = dali[2]
+
+    assert f.shape == (1, 1)
+    assert d1.shape == (1, 1, 1)
+    assert d2.shape == (1, 1, 1, 1)
+
+    assert not np.allclose(d1, 0.0)
+    assert not np.allclose(d2, 0.0)
