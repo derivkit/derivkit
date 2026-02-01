@@ -7,7 +7,7 @@
 ======================
 
 This page shows how to visualize DALI-expanded posteriors using GetDist,
-starting from DALI tensors (Fisher ``F`` and higher-order tensors ``G`` and ``H``).
+starting from DALI tensors (Fisher ``F`` and higher-order DALI tensors).
 
 The focus here is what to do next once you already have a DALI expansion:
 how to draw samples for inspection, comparison, and posterior analysis.
@@ -52,12 +52,11 @@ Sampling the DALI posterior with emcee
    >>> cov = np.array([[1.0, 0.95],
    ...                 [0.95, 1.0]], dtype=float)
    >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
-   >>> fisher = fk.fisher()
-   >>> g_tensor, h_tensor = fk.dali()
+   >>> dali = fk.dali(forecast_order=2)
+   >>> F = dali[1][0]
+   >>> D1, D2 = dali[2]
    >>> samples = fk.getdist_dali_emcee(
-   ...     fisher=fisher,
-   ...     g_tensor=g_tensor,
-   ...     h_tensor=h_tensor,
+   ...     dali=dali,
    ...     names=["x", "eps"],
    ...     labels=[r"x", r"\epsilon"],
    ...     label="DALI (emcee)",
@@ -108,13 +107,10 @@ Sampling the DALI posterior with emcee
 
    fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
 
-   fisher = fk.fisher()
-   g_tensor, h_tensor = fk.dali()
+   dali = fk.dali(forecast_order=2)
 
    samples = fk.getdist_dali_emcee(
-       fisher=fisher,
-       g_tensor=g_tensor,
-       h_tensor=h_tensor,
+       dali=dali,
        names=["x", "eps"],
        labels=[r"x", r"\epsilon"],
        label="DALI (emcee)",
@@ -162,12 +158,9 @@ Sampling the DALI posterior with importance sampling
    >>> cov = np.array([[1.0, 0.95],
    ...                 [0.95, 1.0]], dtype=float)
    >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
-   >>> fisher = fk.fisher()
-   >>> g_tensor, h_tensor = fk.dali()
+   >>> dali = fk.dali(forecast_order=2)
    >>> samples = fk.getdist_dali_importance(
-   ...     fisher=fisher,
-   ...     g_tensor=g_tensor,
-   ...     h_tensor=h_tensor,
+   ...     dali=dali,
    ...     names=["x", "eps"],
    ...     labels=[r"x", r"\epsilon"],
    ...     label="DALI (importance)",
@@ -220,13 +213,10 @@ Sampling the DALI posterior with importance sampling
 
    fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
 
-   fisher = fk.fisher()
-   g_tensor, h_tensor = fk.dali()
+   dali = fk.dali(forecast_order=2)
 
    samples = fk.getdist_dali_importance(
-       fisher=fisher,
-       g_tensor=g_tensor,
-       h_tensor=h_tensor,
+       dali=dali,
        names=["x", "eps"],
        labels=[r"x", r"\epsilon"],
        label="DALI (importance)",
@@ -252,6 +242,7 @@ Sampling the DALI posterior with importance sampling
        contour_lws=[line_width],
        contour_ls=["-"],
    )
+
 
 Three-parameter nonlinear example (emcee)
 -----------------------------------------
@@ -287,12 +278,9 @@ while preserving the dominant nonlinear features.
    ...                 [0.95, 1.0]], dtype=float)
    >>> prior_bounds = [(-0.4, 0.8), (-0.25, 0.25), (-0.4, 0.4)]
    >>> fk = ForecastKit(function=model_3d, theta0=theta0, cov=cov)
-   >>> fisher = fk.fisher()
-   >>> g_tensor, h_tensor = fk.dali()
+   >>> dali = fk.dali(forecast_order=2)
    >>> samples = fk.getdist_dali_emcee(
-   ...     fisher=fisher,
-   ...     g_tensor=g_tensor,
-   ...     h_tensor=h_tensor,
+   ...     dali=dali,
    ...     names=["x", "eps", "y"],
    ...     labels=[r"x", r"\epsilon", r"y"],
    ...     label="DALI (emcee, 3D)",
@@ -347,13 +335,10 @@ while preserving the dominant nonlinear features.
    prior_bounds = [(-0.4, 0.8), (-0.25, 0.25), (-0.4, 0.4)]
 
    fk = ForecastKit(function=model_3d, theta0=theta0, cov=cov)
-   fisher = fk.fisher()
-   g_tensor, h_tensor = fk.dali()
+   dali = fk.dali(forecast_order=2)
 
    samples = fk.getdist_dali_emcee(
-       fisher=fisher,
-       g_tensor=g_tensor,
-       h_tensor=h_tensor,
+       dali=dali,
        names=["x", "eps", "y"],
        labels=[r"x", r"\epsilon", r"y"],
        label="DALI (emcee, 3D)",
@@ -410,13 +395,10 @@ of the contours.
    >>> cov = np.array([[1.0, 0.95],
    ...                 [0.95, 1.0]], dtype=float)
    >>> fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
-   >>> fisher = fk.fisher()
-   >>> g_tensor, h_tensor = fk.dali()
+   >>> dali = fk.dali(forecast_order=2)
    >>> # Baseline: no priors
    >>> samples_base = fk.getdist_dali_emcee(
-   ...     fisher=fisher,
-   ...     g_tensor=g_tensor,
-   ...     h_tensor=h_tensor,
+   ...     dali=dali,
    ...     names=["x", "eps"],
    ...     labels=[r"x", r"\epsilon"],
    ...     label="DALI",
@@ -433,9 +415,7 @@ of the contours.
    ... )
    >>> prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
    >>> samples_prior = fk.getdist_dali_emcee(
-   ...     fisher=fisher,
-   ...     g_tensor=g_tensor,
-   ...     h_tensor=h_tensor,
+   ...     dali=dali,
    ...     names=["x", "eps"],
    ...     labels=[r"x", r"\epsilon"],
    ...     label="DALI + correlated prior",
@@ -485,13 +465,10 @@ of the contours.
                    [0.95, 1.0]], dtype=float)
 
    fk = ForecastKit(function=model_2d, theta0=theta0, cov=cov)
-   fisher = fk.fisher()
-   g_tensor, h_tensor = fk.dali()
+   dali = fk.dali(forecast_order=2)
 
    samples_base = fk.getdist_dali_emcee(
-       fisher=fisher,
-       g_tensor=g_tensor,
-       h_tensor=h_tensor,
+       dali=dali,
        names=["x", "eps"],
        labels=[r"x", r"\epsilon"],
        label="DALI",
@@ -511,9 +488,7 @@ of the contours.
    prior_terms = [("gaussian", {"mean": mu, "cov": cov_prior})]
 
    samples_prior = fk.getdist_dali_emcee(
-       fisher=fisher,
-       g_tensor=g_tensor,
-       h_tensor=h_tensor,
+       dali=dali,
        names=["x", "eps"],
        labels=[r"x", r"\epsilon"],
        label="DALI + correlated prior",
@@ -559,7 +534,7 @@ Notes and conventions
 Typical workflow
 ----------------
 
-1. Compute Fisher ``F`` and higher-order tensors ``(G, H)`` with :class:`ForecastKit`.
+1. Compute DALI tensors with :class:`ForecastKit` (e.g. ``dali = fk.dali(forecast_order=2)``).
 2. Use importance sampling for fast visualization and iteration.
 3. Switch to ``emcee`` when robustness is required or strong non-Gaussianity
    leads to unstable importance weights.
