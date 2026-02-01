@@ -123,11 +123,14 @@ def get_forecast_tensors(
     cov_arr = validate_covariance_matrix_shape(cov)
     n_observables = cov_arr.shape[0]
 
-    y0 = np.atleast_1d(function(theta0_arr))
-    if y0.shape[0] != n_observables:
+    y0 = np.asarray(function(theta0_arr), dtype=float)
+    y0_flat = y0.reshape(-1)
+
+    if y0_flat.size != n_observables:
         raise ValueError(
-            f"Expected {n_observables} observables from model (from cov {cov_arr.shape}), "
-            f"but got {y0.shape[0]} (output shape {y0.shape})."
+            f"Expected {n_observables} observables from model "
+            f"(from cov {cov_arr.shape}), "
+            f"but got {y0_flat.size} (output shape {y0.shape})."
         )
 
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
