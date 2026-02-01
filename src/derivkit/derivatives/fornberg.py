@@ -33,22 +33,22 @@ class FornbergDerivative:
 
     Attributes:
         function: the function to be differentiated.
-        x0: the evaluation point for the derivative.
+        x0: the evaluation points for the derivative.
     """
 
     def __init__(
         self,
         function: Callable,
-        x0: np.float64,
+        x0: np.float64 | NDArray[np.floating],
     ) -> None:
         """Initialises the class.
 
         Args:
             function: the function to be differentiated.
-            x0: the evaluation point for the derivative.
+            x0: the evaluation points for the derivative.
         """
         self.function = function
-        self.x0 = x0
+        self.x0 = np.asarray(x0)
 
 
     def differentiate(
@@ -56,7 +56,7 @@ class FornbergDerivative:
         *,
         grid: NDArray[np.float64],
         order: int = 1,
-    ) -> np.float64:
+    ) -> NDArray[np.float64]:
         """Constructs the derivative of a given order of a function at a point.
 
         Currently only the derivative of order ``order`` is returned.
@@ -77,16 +77,18 @@ class FornbergDerivative:
             )
 
         y = self.function(grid)
-        weights = self.get_weights(grid, order)[-1]
-        result = np.dot(y, weights)
+        weights = np.zeros((*grid.shape, order+1), dtype=np.float64)
 
-        return result
+        self._get_weights(weights, grid, order)
 
-    def get_weights(
+        return np.dot(y.T, np.swapaxes(weights, 0, 1))[..., -1, -1]
+
+    def _get_weights(
         self,
+        weights: NDArray[np.float64],
         grid: NDArray[np.float64],
         order: int = 1,
-    ) -> np.ndarray:
+    ) -> None:
         """Constructs the weights needed for derivatives up to a given order.
 
         Args:
@@ -99,32 +101,29 @@ class FornbergDerivative:
             0th row corresponding with the function itself.
         """
         c1 = 1.0
-        c4 = grid[0] - self.x0
-        weights = np.zeros((grid.size, order+1), dtype=np.float64)
-        weights[0, 0] = 1.0
+        c4 = grid[0, :] - self.x0
+        weights[0, ..., 0] = 1.0
 
-        for i in range(1, grid.size):
+        for i in range(1, grid.shape[0]):
             mn = min(i, order)
             c2 = 1.0
             c5 = c4
-            c4 = grid[i] - self.x0
+            c4 = grid[i, :] - self.x0
 
             for j in range(i):
-                c3 = grid[i] - grid[j]
+                c3 = grid[i, ...] - grid[j, ...]
                 c2 *= c3
 
                 if i == j + 1:
                     for k in range(mn, 0, -1):
-                        weights[i, k] = c1 * (
-                            k * weights[i-1, k-1]
-                            - c5 * weights[i-1, k]
+                        weights[i, ..., k] = c1 * (
+                            k * weights[i-1, ..., k-1]
+                            - c5 * weights[i-1, ..., k]
                         ) / c2
-                    weights[i, 0] = -c1 * c5 * weights[i-1, 0] / c2
+                    weights[i, ..., 0] = -c1 * c5 * weights[i-1, ..., 0] / c2
 
                 for k in range(mn, 0, -1):
-                    weights[j, k] = (c4 * weights[j, k] - k * weights[j, k-1]) / c3
-                weights[j, 0] = c4 * weights[j, 0] / c3
+                    weights[j, ..., k] = (c4 * weights[j, ..., k] - k * weights[j, ..., k-1]) / c3
+                weights[j, ..., 0] = c4 * weights[j, ..., 0] / c3
 
             c1 = c2
-
-        return weights.T
