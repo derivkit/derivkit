@@ -35,7 +35,7 @@ DALI tensor shapes
 For ``p`` model parameters, the DALI expansion returns tensors with the
 following shapes:
 
-- order 1 (Fisher):
+- order 1 (Fisher; "singlet-DALI"):
   - ``F`` with shape ``(p, p)``
 
 - order 2 (doublet-DALI):
