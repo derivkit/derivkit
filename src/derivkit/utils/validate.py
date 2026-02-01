@@ -438,8 +438,8 @@ def validate_dali_shape(
                              f" got keys {keys_sorted}.")
         if keys_sorted != list(range(1, keys_sorted[-1] + 1)):
             raise ValueError(
-                f"DALI dict keys must be consecutive 1..K; got keys {
-                keys_sorted}."
+                f"DALI dict keys must be consecutive 1..K;"
+                f" got keys {keys_sorted}."
             )
 
         for order in keys_sorted:
@@ -495,7 +495,8 @@ def resolve_dali_introduced_multiplet(
     theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta0_arr.size == 0:
         raise ValueError(
-            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
+            f"theta0 must be non-empty 1D;"
+            f" got shape {np.asarray(theta0).shape}."
         )
 
     validate_dali_shape(theta0_arr, dali, check_finite=check_finite)
@@ -504,8 +505,8 @@ def resolve_dali_introduced_multiplet(
         available = sorted(dali.keys())
         chosen = available[-1] if forecast_order is None else int(forecast_order)
         if chosen not in dali:
-            raise ValueError(f"forecast_order={chosen} not in DALI dict keys {
-            available}.")
+            raise ValueError(f"forecast_order={chosen} "
+                             f"not in DALI dict keys {available}.")
         multiplet = tuple(np.asarray(x, dtype=np.float64) for x in dali[chosen])
         return chosen, multiplet
 
