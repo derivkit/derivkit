@@ -389,9 +389,10 @@ def test_flatten_matrix_c_order_returns_row_major_flattening() -> None:
     theta = np.array([0.0, 0.0], dtype=float)
     out = flatten_matrix_c_order(cov_fn, theta, n_observables=2)
 
-    np.testing.assert_allclose(out,
-                               np.array([1.0, 2.0, 3.0, 4.0],
-                                        dtype=float))
+    np.testing.assert_allclose(
+        out,
+        np.array([1.0, 2.0, 3.0, 4.0],
+                 dtype=float))
     assert out.shape == (4,)
 
 
