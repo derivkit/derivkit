@@ -29,7 +29,7 @@ from derivkit.forecasting.sampling_utils import (
     fisher_to_cov,
     kernel_samples_from_fisher,
 )
-from derivkit.utils.validate import validate_fisher_shapes
+from derivkit.utils.validate import validate_fisher_shape
 
 __all__ = [
     "fisher_to_getdist_gaussiannd",
@@ -66,7 +66,7 @@ def fisher_to_getdist_gaussiannd(
     """
     theta0 = np.asarray(theta0, dtype=float)
     fisher = np.asarray(fisher, dtype=float)
-    validate_fisher_shapes(theta0, fisher)
+    validate_fisher_shape(theta0, fisher)
 
     n_params = int(theta0.size)
 
@@ -159,7 +159,7 @@ def fisher_to_getdist_samples(
     """
     theta0 = np.asarray(theta0, dtype=float)
     fisher = np.asarray(fisher, dtype=float)
-    validate_fisher_shapes(theta0, fisher)
+    validate_fisher_shape(theta0, fisher)
 
     n_params = int(theta0.size)
 
