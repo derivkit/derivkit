@@ -141,10 +141,10 @@ def get_forecast_tensors(
     contractions = {
         1: {1: "ai,ij,bj->ab"},
         2: {1: "abi,ij,cj->abc",
-            2: "abi,ij,cdj->abcd"},
-        3: {1: "abci,ij,dj->abcd",
-            2: "abci,ij,dej->abcde",
-            3: "abci,ij,defj->abcdef"},
+            2: "abi,ij,cdj->abcd",},
+        3: {1: "iabc,ij,dj->abcd",
+            2: "iabc,ij,dej->abcde",
+            3: "iabc,ij,jdef->abcdef",},
     }
 
     for order1 in range(1, 1 + forecast_order):
@@ -307,24 +307,16 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        if hh_raw.shape == (n_observables,
-                            n_parameters,
-                            n_parameters,
+        # hyper_hessian is defined to return (*out_shape, p, p, p).
+        # For a vector of observables, out_shape == (n_observables,).
+        if hh_raw.shape != (n_observables, n_parameters, n_parameters,
                             n_parameters):
-            # (n_obs, p, p, p) -> (p, p, p, n_obs)
-            return np.moveaxis(hh_raw, 0, -1)
-
-        elif hh_raw.shape == (n_parameters, n_parameters, n_parameters,
-                              n_observables):
-            # already (p, p, p, n_obs)
-            return hh_raw
-
-        else:
             raise ValueError(
                 f"hyper_hessian returned unexpected shape {hh_raw.shape}; "
-                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters}) or "
-                f"({n_parameters},{n_parameters},{n_parameters},{n_observables})."
+                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters})."
             )
+
+        return hh_raw
 
     else:
         raise ValueError(f"Unsupported value of {order}.")
