@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 Float: TypeAlias = np.floating
 Array: TypeAlias = NDArray[np.floating]
+FloatArray: TypeAlias = NDArray[np.float64]
 
 ArrayLike1D: TypeAlias = Sequence[float] | NDArray[np.floating]
 ArrayLike2D: TypeAlias = Sequence[Sequence[float]] | NDArray[np.floating]
