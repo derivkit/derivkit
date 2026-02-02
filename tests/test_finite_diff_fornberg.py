@@ -179,3 +179,34 @@ def test_fornberg_docstring_tan_example() -> None:
         atol=0.0,
         extra={"x0": x0, "grid": np.array2string(grid, precision=6, separator=", ")},
     )
+
+
+def test_fornberg_array_support() -> None:
+    """Tests that arrays of evaluation points are handled correctly."""
+    x0 = np.array([2, 7, 10, -np.pi])
+    offsets = np.array([
+        [-0.34, -0.02, 0.1, 0.34, 0.98],
+        [-0.4,  -0.2, -0.1, 0.14, 0.68],
+        [-0.5,  -0.12, 0.15, 0.64, 0.78],
+        [-0.1,   0,    0.06, 0.24, 0.8]
+    ]).T
+    fornberg = FornbergDerivative(lambda x: np.cos(x), x0)
+
+    # Tests that a single array of offsets is applied correctly to each
+    # input value. Note that this array must be appropriate for all input
+    # values, so the method may not compute the correct values with
+    # sufficient precision for arbitrary offset grids.
+    assert np.allclose(
+        fornberg.differentiate(grid=offsets[2], order=1),
+        -np.sin(x0),
+        rtol=1e-4,
+        atol=1e-4,
+    )
+    # Tests that the method computes the correct result for different offsets
+    # for each evaluation point.
+    assert np.allclose(
+        fornberg.differentiate(grid=offsets, order=1),
+        -np.sin(x0),
+        rtol=1e-4,
+        atol=1e-4,
+    )
