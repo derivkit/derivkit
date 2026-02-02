@@ -26,16 +26,9 @@ based methods, forecasting, and likelihood approximations are useful.
 
       An overview of DerivKit’s modular kits and how they fit together.
 
-   .. grid-item-card:: Cheatsheet
-      :link: cheatsheet
-      :link-type: doc
-
-      A concise reference for common tasks and APIs.
-
 .. toctree::
    :maxdepth: 1
    :hidden:
 
    overview
    kits/index
-   cheatsheet
