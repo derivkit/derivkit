@@ -1,36 +1,83 @@
 .. |dklogo| image:: /assets/logos/logo-black.png
-   :alt: DerivKit logo black
+   :alt: ``DerivKit`` logo black
    :width: 32px
 
 
 |dklogo| Workflows
 ==================
 
-
-Common workflows / FAQ
-----------------------
-
-This page helps you decide **which DerivKit tool to use** based on your scientific use case.
-Each section starts from a concrete question and points you to the appropriate
-workflow and examples.
+This page helps you decide **which DerivKit tool to use** based on your
+scientific use case. Each section starts from a concrete question and points
+you to the appropriate workflow and examples.
 
 It is intended as a **decision guide**, not a full tutorial.
 
-DerivKit does **not** construct data covariances or define scientific models.
+Using ``DerivKit`` effectively requires an understanding of the assumptions,
+strengths, and limitations of the chosen method. Fisher, DALI, Laplace, and
+sampling-based approaches make different approximations and are suited to
+different inference regimes. ``DerivKit`` does not guarantee the validity of any
+approximation for a given problem; assessing whether a method is appropriate
+for a specific model, parameterization, prior choice, and scientific goal
+requires scientific judgment from the user.
+
+``DerivKit`` does **not** construct data covariances or define scientific models.
 Users are expected to provide:
 
 - their own model mapping parameters to observables
 - their own data covariance (or a function returning one)
 
-DerivKit focuses on derivative evaluation, local likelihood approximations,
+``DerivKit`` focuses on derivative evaluation, local likelihood approximations,
 and fast forecasting utilities built on top of these inputs.
 
 If you are looking for short answers to common questions, you can jump directly
 to the :ref:`workflows-faq` section below.
+Some common mistakes are discussed in the :ref:`workflows-mistakes` section.
 
+
+Quick decision guide
+--------------------
+
+This table provides a fast, high-level guide for choosing a numerical
+differentiation strategy in DerivKit. It is intended as a quick reference;
+for detailed workflows and examples, see the sections below.
+
+
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 28 44
+
+   * - **Situation**
+     - **Recommended method**
+     - **Why**
+   * - Smooth, cheap function
+     - Finite differences
+     - Fast and accurate for smooth functions
+   * - Slightly noisy function
+     - Ridders finite differences
+     - Richardson extrapolation improves stability over simple finite differences
+   * - Moderate or structured noise
+     - Local polynomial fit
+     - Local regression smooths noise better than finite differences
+   * - High noise / messy signal
+     - Adaptive polynomial fit (Chebyshev)
+     - Robust trimming, Chebyshev grid, and fit diagnostics
+   * - Expensive function
+     - Adaptive polynomial fit (Chebyshev)
+     - Achieves stable derivatives with fewer function evaluations near ``x0``
+   * - Need robustness and diagnostics
+     - Adaptive polynomial fit (Chebyshev)
+     - Provides fit quality metrics, degree adjustment, and suggestions
+   * - Unsure / first attempt
+     - Local polynomial fit
+     - Good default when function behavior is not well known
+
+
+Choose a workflow
+-----------------
 
 I want Fisher constraints on my parameters
-------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -43,7 +90,7 @@ I want Fisher constraints on my parameters
 - the Fisher information matrix
 - the Gaussian parameter covariance via inversion
 - approximate posterior samples
-- GetDist-compatible outputs for visualization
+- ``GetDist``-compatible outputs for visualization
 
 **Use**
 
@@ -61,23 +108,24 @@ See :doc:`examples/forecasting/fisher` and :doc:`examples/forecasting/fisher_con
 
 
 I expect non-Gaussian posteriors (banana-shaped, skewed, etc.)
---------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
 - a nonlinear model
 - parameters where Fisher may underestimate uncertainties
-- parameters with physical bounds or informative priors that truncate the Gaussian approximation
+- parameters with physical bounds or informative priors that truncate the
+  Gaussian approximation
 - a data covariance matrix
 
 **We compute**
 
 - a DALI expansion up to a chosen order:
-  - order 2: Fisher
-  - order 3: Fisher + G
-  - order 4: Fisher + G + H
+  - order 2: Fisher matrix
+  - order 3: doublet DALI tensors (D1 and D2)
+  - order 4: triplet DALI tensors (T1, T2, and T3)
 - approximate posterior samples
-- GetDist-compatible outputs for visualization
+- ``GetDist``-compatible outputs for visualization
 
 **Use**
 
@@ -94,21 +142,21 @@ See :doc:`examples/forecasting/dali` and :doc:`examples/forecasting/dali_contour
 - You do not need to manipulate DALI tensors directly.
 - Sampling bounds and informative priors can make posteriors non-Gaussian even
   when the forward model is close to linear.
-- Fisher/DALI describe the *likelihood* locally; prior truncation effects are only
-  captured when you sample with explicit priors.
+- Fisher/DALI describe the *likelihood* locally; prior truncation effects are
+  only captured when you sample with explicit priors.
 
 
-I already have Fisher / DALI tensors. What do I do next?
---------------------------------------------------------
+I already have Fisher matrix / DALI tensors. What do I do next?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
-- Fisher ``F`` and optionally higher-order tensors ``G``, ``H``, …
+- Fisher ``F`` and optionally higher-order tensors ``D1``, ``D2``, …
 
 **We compute**
 
 - approximate posterior samples
-- GetDist-compatible outputs for visualization
+- ``GetDist``-compatible outputs for visualization
 
 **Use**
 
@@ -126,41 +174,8 @@ See :doc:`examples/forecasting/dali_contours`
 - If importance sampling fails, switch to MCMC sampling via ``emcee``.
 
 
-I have a parameter dependent covariance, can I still use Fisher / DALI?
------------------------------------------------------------------------
-
-**You have**
-
-- a model with parameter-dependent covariance
-- a parameter vector ``theta0``
-- a data covariance function
-
-**We compute**
-
-- the Fisher expansion accounting for covariance derivatives
-- approximate posterior samples
-- GetDist-compatible outputs for visualization
-
-**Use**
-
-- :class:`ForecastKit` with a callable covariance input
-- :meth:`ForecastKit.gaussian_fisher` for parameter-dependent covariances
-- :doc:`examples/forecasting/fisher_xy` for the X–Y Gaussian case
-
-**Minimal example**
-
-See :doc:`examples/forecasting/fisher_xy`.
-
-**Notes**
-
-- Parameter-dependent covariances are supported for Gaussian Fisher forecasts.
-- DALI currently assumes a fixed covariance evaluated at ``theta0``; support for
-  parameter-dependent covariances is planned.
-
-
-
 I want a Gaussian approximation around a MAP
---------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -187,7 +202,7 @@ See :doc:`examples/forecasting/laplace_approx` and :doc:`examples/forecasting/la
 
 
 I want to include priors
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -214,7 +229,7 @@ See the DALI sampling examples with priors in :doc:`examples/forecasting/dali_co
 
 
 My model is tabulated or expensive to evaluate
-----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -236,11 +251,11 @@ See :doc:`examples/derivatives/tabulated`
 **Notes**
 
 - This is especially useful when model evaluations are costly.
-- Tabulated models are treated as callables by DerivKit.
+- Tabulated models are treated as callables by ``DerivKit``.
 
 
 I only want numerical derivatives (no forecasting yet)
-------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -261,9 +276,15 @@ I only want numerical derivatives (no forecasting yet)
 
 See :doc:`examples/derivatives/index`
 
+**Notes**
+
+- Use :class:`CalculusKit` when you want direct access to gradients/Hessians.
+- Use :class:`DerivativeKit` for higher-level derivative workflows and diagnostics.
+
+
 
 I want Fisher bias / parameter shifts
--------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -283,8 +304,45 @@ I want Fisher bias / parameter shifts
 See :doc:`examples/forecasting/fisher_bias`
 
 
+My covariance depends on parameters. What do I do?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**You have**
+
+- a model mapping parameters to observables, and
+- a covariance that depends on parameters, :math:`C(\theta)`, **or**
+- noisy inputs and outputs with a block covariance (the X–Y case)
+
+**We compute**
+
+- a **Gaussian Fisher matrix** that includes covariance-derivative terms when
+  :math:`C(\theta)` depends on the parameters
+- (optional) X–Y Gaussian Fisher constraints where input uncertainties are
+  propagated into an effective output covariance
+
+**Use**
+
+- :meth:`ForecastKit.gaussian_fisher` for parameter-dependent covariances
+- :func:`derivkit.forecasting.fisher_xy.build_xy_gaussian_fisher_matrix` for the
+  X–Y Gaussian case (noisy inputs *and* outputs)
+
+**Minimal examples**
+
+See :doc:`examples/forecasting/fisher_gauss` and
+:doc:`examples/forecasting/fisher_xy`.
+
+**Notes**
+
+- :meth:`ForecastKit.fisher` uses a fixed covariance :math:`C(\theta_0)` and
+  computes only the mean-derivative term.
+- :meth:`ForecastKit.gaussian_fisher` adds the covariance-derivative contribution
+  when a callable covariance :math:`C(\theta)` is provided.
+- DALI currently assumes a fixed covariance evaluated at :math:`\theta_0`;
+  parameter-dependent covariance support for DALI is planned.
+
+
 I have many parameters and derivative evaluation is expensive
--------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -304,12 +362,12 @@ I have many parameters and derivative evaluation is expensive
 
 **Notes**
 
-- DerivKit parallelizes derivative evaluations across parameters and outputs.
+- ``DerivKit`` parallelizes derivative evaluations across parameters and outputs.
 - This is especially useful for large Fisher or DALI expansions.
 
 
 I want to compare Fisher and DALI forecasts
--------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **You have**
 
@@ -325,7 +383,7 @@ I want to compare Fisher and DALI forecasts
 
 - :class:`ForecastKit.fisher`
 - :class:`ForecastKit.dali`
-- GetDist-based visualization utilities
+- ``GetDist``-based visualization utilities
 
 **Notes**
 
@@ -366,15 +424,15 @@ results across orders can help diagnose when Fisher assumptions break down.
 
 **Why are priors not included automatically?**
 
-DerivKit separates likelihood information from prior assumptions by design.
+``DerivKit`` separates likelihood information from prior assumptions by design.
 This keeps approximations explicit and easier to reason about.
 
 
 **Can I use DerivKit with MCMC samplers?**
 
-Yes. DerivKit likelihoods and priors can be used with any sampler that accepts
+Yes. ``DerivKit`` likelihoods and priors can be used with any sampler that accepts
 log-posterior functions. We provide examples using ``emcee`` and importance
-sampling, but DerivKit is sampler-agnostic and can be integrated with other
+sampling, but ``DerivKit`` is sampler-agnostic and can be integrated with other
 sampling frameworks by implementing a thin wrapper around the log-posterior API.
 
 
@@ -394,8 +452,9 @@ may look identical. Remember that DALI is a local expansion: it captures local
 skewness and curvature, but cannot reproduce global structure or multiple modes.
 For triplet DALI to show significant differences from doublet DALI, the posterior
 must extend far enough from ``theta0`` for cubic terms to become important. We
-recommend always using emcee sampling for triplet DALI to fully capture its effects.
-If in doubt, compare results across expansion orders and sampling methods.
+recommend always using emcee sampling for triplet DALI to fully capture its
+effects. If in doubt, compare results across expansion orders and sampling
+methods.
 
 
 **Why does DALI behave poorly far from the expansion point?**
@@ -415,28 +474,28 @@ orders are usually sufficient and preferable for robustness.
 
 **Where do my model and covariance come from?**
 
-DerivKit is agnostic to how models and covariances are constructed. Users are
-expected to supply these based on their scientific application, while DerivKit
-provides derivative evaluation and inference utilities built on top of them.
+``DerivKit`` is agnostic to how models and covariances are constructed. Users are
+expected to supply these based on their scientific application, while ``DerivKit``
+provides derivative evaluation and inference utilities.
 
 
 **Can I use my own likelihood with DerivKit?**
 
-Yes. DerivKit is agnostic to how likelihoods are defined. Users can supply their
-own likelihood or log-posterior functions, which DerivKit treats as external
+Yes. ``DerivKit`` is agnostic to how likelihoods are defined. Users can supply their
+own likelihood or log-posterior functions, which ``DerivKit`` treats as external
 inputs for derivative evaluation, local approximations, and sampling.
 
 
-**Can I use DerivKit within an existing inference pipeline?**
+**Can I use ``DerivKit`` within an existing inference pipeline?**
 
-Yes. DerivKit is designed to integrate with externally defined models,
+Yes. ``DerivKit`` is designed to integrate with externally defined models,
 likelihoods, and covariances, and can be used alongside other inference or
 sampling frameworks.
 
 
 **Are derivatives computed analytically or numerically?**
 
-DerivKit computes derivatives numerically using robust finite-difference and
+``DerivKit`` computes derivatives numerically using robust finite-difference and
 polynomial-based methods. Optional automatic differentiation backends may be
 used for validation, but numerical methods are the default and primary focus.
 
@@ -450,9 +509,11 @@ https://github.com/derivkit/derivkit-demos
 
 **Who do I contact for support?**
 
-Please open an issue on the DerivKit GitHub repository.
+Please open an issue on the ``DerivKit`` GitHub repository.
 Go to :doc:`contributing` for contribution guidelines and support options.
 
+
+.. _workflows-mistakes:
 
 Common mistakes
 ---------------
@@ -461,10 +522,10 @@ Common mistakes
 **Using local approximations for global inference**
 
 Fisher, DALI, and Laplace are local approximations around a chosen expansion
-point. They are not designed to recover global posterior structure, multiple
-modes, or long nonlocal tails. If your inference problem is strongly nonlocal,
+point. As such, they may not reliably recover global posterior structure, multiple
+modes, or long nonlocal tails beyond the radius of convergence of the local
+expansion. If your inference problem is strongly nonlocal,
 full MCMC or nested sampling is required.
-
 
 **Expanding around a poorly chosen expansion point**
 
@@ -496,7 +557,7 @@ sampling Fisher, DALI, or Laplace posteriors.
 
 **Expecting priors to be applied automatically**
 
-DerivKit treats likelihood information and priors separately by design. Priors
+``DerivKit`` treats likelihood information and priors separately by design. Priors
 must be applied explicitly during sampling; they are not combined with Fisher,
 DALI, or Laplace objects automatically.
 
@@ -517,7 +578,7 @@ typical posterior radius relative to the expansion point.
 
 **Assuming numerical derivatives are exact**
 
-All derivatives in DerivKit are computed numerically. Poorly scaled parameters,
+All derivatives in ``DerivKit`` are computed numerically. Poorly scaled parameters,
 discontinuous models, or insufficient step-size control can degrade derivative
 accuracy. Diagnostic checks are recommended for sensitive applications.
 
