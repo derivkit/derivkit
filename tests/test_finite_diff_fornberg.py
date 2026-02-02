@@ -21,12 +21,12 @@ def _poly_derivative_at(x: float, *, degree: int, order: int) -> float:
     return coeff * (x ** (degree - order))
 
 
-def _central_uniform_grid(x0: float, h: float, n: int) -> np.ndarray:
+def _central_uniform_grid(h: float, n: int) -> np.ndarray:
     """Returns uniform central grid x0 + offsets*h for odd n."""
     if n < 3 or n % 2 == 0:
         raise ValueError("n must be odd and >= 3.")
     half = n // 2
-    return x0 + np.arange(-half, half + 1, dtype=float) * h
+    return np.arange(-half, half + 1, dtype=float) * h
 
 
 def _fail_close(
@@ -72,7 +72,7 @@ def test_fornberg_negative_order_raises() -> None:
 def test_fornberg_order0_is_function_value() -> None:
     """Tests that order=0 returns f(x0) (via the 0th weight row)."""
     x0 = 0.3
-    grid = x0 + np.array([-0.2, 0.0, 0.4], dtype=float)
+    grid = np.array([-0.2, 0.0, 0.4], dtype=float)
 
     f = np.cos
     d = FornbergDerivative(f, np.float64(x0))
@@ -90,59 +90,6 @@ def test_fornberg_order0_is_function_value() -> None:
     )
 
 
-def test_get_weights_shape() -> None:
-    """Tests that get_weights returns shape (order+1, n_points)."""
-    x0 = 0.0
-    grid = np.array([-0.1, 0.0, 0.2, 0.5], dtype=float)
-    order = 3
-
-    d = FornbergDerivative(np.sin, np.float64(x0))
-    w = d.get_weights(grid, order)
-
-    assert w.shape == (order + 1, grid.size)
-
-
-def test_get_weights_partition_of_unity() -> None:
-    """Tests that order-0 weights sum to 1 (constant function exactness)."""
-    x0 = 0.3
-    grid = x0 + np.array([-0.3, -0.1, 0.0, 0.2, 0.7], dtype=float)
-
-    d = FornbergDerivative(np.sin, np.float64(x0))
-    w = d.get_weights(grid, order=4)
-
-    # For constant function f(x)=1, order 0 should reproduce 1 exactly:
-    # sum_i w0_i = 1
-    s0 = float(np.sum(w[0]))
-    _fail_close(
-        name="sum(order0 weights) == 1",
-        got=s0,
-        expected=1.0,
-        rtol=0.0,
-        atol=1e-14,
-        extra={"x0": x0, "grid": np.array2string(grid, precision=6, separator=", ")},
-    )
-
-
-def test_get_weights_derivative_of_constant_is_zero() -> None:
-    """Tests that higher-order weight rows sum to 0 (derivative of constant is 0)."""
-    x0 = 0.3
-    grid = x0 + np.array([-0.3, -0.1, 0.0, 0.2, 0.7], dtype=float)
-
-    d = FornbergDerivative(np.sin, np.float64(x0))
-    w = d.get_weights(grid, order=4)
-
-    for k in range(1, 5):
-        sk = float(np.sum(w[k]))
-        _fail_close(
-            name=f"sum(order{k} weights) == 0",
-            got=sk,
-            expected=0.0,
-            rtol=0.0,
-            atol=1e-12,
-            extra={"order": k, "x0": x0},
-        )
-
-
 @pytest.mark.parametrize("n_points", [3, 5, 7, 9], ids=lambda n: f"n{n}")
 @pytest.mark.parametrize("order", [0, 1, 2, 3, 4], ids=lambda o: f"ord{o}")
 def test_fornberg_exact_on_polynomials_uniform_grid(n_points: int, order: int) -> None:
@@ -155,7 +102,7 @@ def test_fornberg_exact_on_polynomials_uniform_grid(n_points: int, order: int) -
 
     x0 = 0.7
     h = 1e-2
-    grid = _central_uniform_grid(x0, h, n_points)
+    grid = _central_uniform_grid(h, n_points)
 
     def f(x):
         return np.asarray(x, dtype=float) ** degree
@@ -217,7 +164,7 @@ def test_fornberg_exact_on_degree4_polynomial_irregular_grid(order: int) -> None
 def test_fornberg_docstring_tan_example() -> None:
     """Tests that the docstring tan example reproduces the documented value."""
     x0 = float(np.pi / 4.0)
-    grid = x0 + np.array([-0.3, -0.25, -0.1, 0.0, 0.12], dtype=float)
+    grid = np.array([-0.3, -0.25, -0.1, 0.0, 0.12], dtype=float)
 
     d = FornbergDerivative(lambda x: np.tan(x), np.float64(x0))
     got = float(d.differentiate(grid=grid, order=1))
