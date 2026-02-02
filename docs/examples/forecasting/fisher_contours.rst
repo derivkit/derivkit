@@ -236,8 +236,10 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
    )
 
 
-Gaussian priors
----------------
+.. _fisher-including-priors:
+
+Including Gaussian priors in Fisher forecast
+--------------------------------------------
 
 Gaussian priors can be included by adding their precision matrix
 (the inverse prior covariance) to the Fisher matrix before converting to GetDist
