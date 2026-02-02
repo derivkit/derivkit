@@ -366,6 +366,9 @@ while preserving the dominant nonlinear features.
    )
 
 
+
+.. _dali-including-priors:
+
 Including priors in DALI contours
 ---------------------------------
 
