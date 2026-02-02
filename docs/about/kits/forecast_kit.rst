@@ -54,14 +54,24 @@ As a result, Fisher matrix methods offer a fast and computationally efficient
 way to forecast expected parameter constraints without performing full
 likelihood sampling.
 
-**Interpretation:**
+
+Interpretation
+^^^^^^^^^^^^^^
 
 The Fisher matrix provides a fast, local forecast of expected parameter constraints
 under a Gaussian likelihood approximation.
 
-**Example:**
 
-A basic Fisher matrix computation is shown in :doc:`../../examples/forecasting/fisher`
+Examples
+^^^^^^^^
+
+The following examples illustrate typical Fisher-forecast workflows:
+
+- A basic Fisher matrix computation:
+  :doc:`../../examples/forecasting/fisher`
+
+- Visualization of Fisher constraints using ``GetDist``:
+  :doc:`../../examples/forecasting/fisher_contours`
 
 
 
@@ -98,13 +108,15 @@ Here :math:`C_{,\alpha} \equiv \partial C / \partial \theta_\alpha` and
 This expression reduces to the standard Fisher matrix when the covariance
 is independent of the parameters.
 
-**Interpretation:**
+Interpretation
+^^^^^^^^^^^^^^
 
 The generalized Gaussian Fisher provides a consistent local approximation
 when both the signal and noise depend on the model parameters.
 
 
-**Example:**
+Examples
+^^^^^^^^
 
 A worked example is provided in :doc:`../../examples/forecasting/fisher_gauss`.
 
@@ -172,13 +184,15 @@ with the replacement :math:`C \rightarrow R`:
    \mu_{,\beta}.
 
 
-**Interpretation:**
+Interpretation
+^^^^^^^^^^^^^^
 
 The X–Y Fisher matrix consistently propagates uncertainty in the measured
 inputs into the output covariance, enabling Fisher forecasts when both inputs
 and outputs are noisy.
 
-**Example:**
+Examples
+^^^^^^^^
 
 A worked example is provided in :doc:`../../examples/forecasting/fisher_xy`.
 
@@ -211,7 +225,8 @@ ForecastKit returns:
 - the induced parameter shift
 - optional visualization of the bias relative to Fisher contours
 
-**Interpretation:**
+Interpretation
+^^^^^^^^^^^^^^
 
 Fisher bias estimates how small systematic errors in the observables translate
 into shifts in best-fit parameters.
@@ -219,7 +234,8 @@ into shifts in best-fit parameters.
 .. image:: ../../assets/plots/fisher_bias_demo_1and2sigma.png
    :width: 60%
 
-**Example:**
+Examples
+^^^^^^^^
 
 A worked example is provided in :doc:`../../examples/forecasting/fisher_bias`.
 
@@ -285,6 +301,132 @@ In the special case of a flat prior and a Gaussian likelihood, the Hessian
 reduces to the Fisher information matrix, and the Laplace approximation
 coincides with the Fisher forecast.
 
+
+Examples
+^^^^^^^^
+
+The following examples illustrate the Laplace approximation workflow:
+
+- A basic Laplace approximation of the posterior:
+  :doc:`../../examples/forecasting/laplace_approx`
+
+- Visualization of Laplace-approximated posteriors using ``GetDist``:
+  :doc:`../../examples/forecasting/laplace_contours`
+
+
+
+
+Priors
+------
+
+ForecastKit methods can be used either as *likelihood* approximations or as
+*posterior* approximations. The distinction is whether a prior contribution is
+included.
+
+Given data :math:`d`, the posterior is
+
+.. math::
+
+   \log p(\theta \mid d)
+   =
+   \log p(d \mid \theta)
+   +
+   \log p(\theta)
+   + \mathrm{const}.
+
+ForecastKit represents priors as callables that evaluate a log-density
+(up to an additive constant). Hard exclusions are encoded by returning
+``-np.inf``, corresponding to zero probability outside the allowed region
+of parameter space.
+
+Where Priors Enter
+^^^^^^^^^^^^^^^^^^
+
+Priors affect different forecasting methods in distinct ways:
+
+- **Fisher and generalized Fisher**
+
+  Fisher forecasts are Gaussian *likelihood* approximations by default.
+  A Gaussian prior may be incorporated analytically by adding its precision
+  matrix to the Fisher matrix.
+
+  For a Gaussian prior with covariance :math:`C_{\mathrm{prior}}`,
+
+  .. math::
+
+     F_{\mathrm{post}}
+     =
+     F_{\mathrm{like}} + C_{\mathrm{prior}}^{-1}.
+
+  This yields a Gaussian approximation to the *posterior* and preserves the
+  Fisher formalism.
+
+- **Laplace and DALI approximations**
+
+  Laplace and DALI operate directly on the log-posterior when a prior is
+  supplied. In this case, the prior contribution is evaluated explicitly
+  alongside the likelihood expansion, and hard bounds may exclude regions
+  of parameter space.
+
+- **Sampling and visualization**
+
+  Plotting tools such as ``GetDist`` do not apply priors implicitly. If samples
+  are drawn from a Fisher, Laplace, or DALI approximation without including
+  a prior term, the resulting contours correspond to the likelihood
+  approximation alone.
+
+  To visualize posterior constraints, the prior must be included explicitly
+  when generating samples.
+
+Prior Construction
+^^^^^^^^^^^^^^^^^^
+
+ForecastKit provides a unified prior interface via
+:func:`derivkit.forecasting.priors_core.build_prior`.
+
+A prior is constructed by combining one or more *prior terms*, each of which
+defines a log-density contribution, and optional hard bounds. The resulting
+callable evaluates
+
+.. math::
+
+   \log p(\theta) = \sum_k \log p_k(\theta),
+
+returning ``-np.inf`` if any term or bound is violated.
+
+Supported prior terms include:
+
+- uniform (hard bounds)
+- multivariate Gaussian and diagonal Gaussian
+- log-uniform / Jeffreys
+- half-normal and half-Cauchy
+- log-normal
+- Beta distributions
+- Gaussian mixture priors
+
+Interpretation
+^^^^^^^^^^^^^^
+
+Priors control identifiability and regularization in local forecasts. They can:
+
+- stabilize ill-conditioned Fisher matrices,
+- enforce physical parameter support (e.g. positivity),
+- encode external information or weakly informative assumptions,
+- determine whether a local approximation should be interpreted as a
+  likelihood forecast or a posterior forecast.
+
+Care should be taken to distinguish numerical regularization from genuine
+prior information when interpreting forecasted parameter constraints.
+
+Examples
+^^^^^^^^
+
+Practical examples demonstrating how priors are incorporated are provided in:
+
+- :ref:`Including priors in Fisher contours <fisher-including-priors>`
+  for Fisher forecasts
+- :ref:`Including priors in DALI contours <dali-including-priors>`
+  for DALI-based posterior sampling
 
 
 DALI (Higher-Order Forecasting)
@@ -367,7 +509,8 @@ Keep in mind that:
   the approximation.
 
 
-**Interpretation:**
+Interpretation
+^^^^^^^^^^^^^^
 
 DALI provides a controlled hierarchy of local posterior approximations,
 reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
@@ -379,9 +522,17 @@ reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
    :width: 60%
 
 
-**Example:**
+Examples
+^^^^^^^^
 
-A worked example is provided in :doc:`../../examples/forecasting/dali`.
+The following examples illustrate the DALI approximation workflow:
+
+- A basic DALI expansion of the posterior:
+  :doc:`../../examples/forecasting/dali`
+
+- Visualization of DALI-expanded posteriors using ``GetDist``:
+  :doc:`../../examples/forecasting/dali_contours`
+
 
 
 Posterior Sampling and Visualization
@@ -402,7 +553,8 @@ These workflows are designed for forecasting and local posterior analysis,
 providing fast and controlled approximations to parameter constraints without
 requiring full likelihood evaluations with MCMC or nested sampling methods.
 
-**Examples:**
+Examples:
+^^^^^^^^^
 Worked examples are provided in:
 - :doc:`../../examples/forecasting/fisher_contours` for Fisher-based GetDist samples
 - :doc:`../../examples/forecasting/dali_contours` for DALI-based posterior sampling
