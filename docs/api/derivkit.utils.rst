@@ -13,6 +13,7 @@ Submodules
    derivkit.utils.logger
    derivkit.utils.numerics
    derivkit.utils.sandbox
+   derivkit.utils.types
    derivkit.utils.validate
 
 Module contents

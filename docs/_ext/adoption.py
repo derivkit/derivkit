@@ -101,19 +101,21 @@ class AdoptionDirective(SphinxDirective):
 
         node_list = []
         for entry in adoption_entries:
-                entry_section = nodes.section(ids=[entry.name])
-                entry_section += nodes.title(text=entry.name)
-                entry_section += nodes.paragraph(text=entry.description)
-                if len(entry.citation) > 0:
-                    entry_section += nodes.paragraph(text=entry.citation)
-                if len(entry.link) > 0:
-                    entry_section += nodes.paragraph(
-                        "",
-                        "",
-                        nodes.reference("", "Project website", refuri=entry.link),
-                    )
+            entry_section = nodes.section(ids=[nodes.make_id(entry.name)])
+            entry_section += nodes.title(text=entry.name)
+            entry_section += nodes.paragraph(text=entry.description)
 
-                node_list += entry_section
+            if len(entry.citation) > 0:
+                entry_section += nodes.paragraph(text=entry.citation)
+
+            if len(entry.link) > 0:
+                entry_section += nodes.paragraph(
+                    "",
+                    "",
+                    nodes.reference("", "Project website", refuri=entry.link),
+                )
+
+            node_list.append(entry_section)
 
         if len(node_list) == 0:
             node_list.append(nodes.paragraph(text=f"No {adoption_type} adoptions yet."))
