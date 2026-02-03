@@ -5,8 +5,7 @@ Bengt Fornberg, *Calculation of Weights in Finite Difference Formulas*,
 SIAM Review, vol. 40, No. 3, pp. 685–691, September 1998
 
 Examples:
-=========
-
+---------
 Calculating the derivative at a single value::
 >>> import numpy as np
 >>> from derivkit.derivatives.fornberg import FornbergDerivative
