@@ -88,6 +88,7 @@ class AdoptionDirective(SphinxDirective):
     required_arguments = 1
 
     def run(self) -> list[nodes.Node]:
+        """Render the adoption list into docutils nodes."""
         docs_dir = Path(__file__).resolve().parents[1]
         adoption_dir = docs_dir / "adoption"
 
