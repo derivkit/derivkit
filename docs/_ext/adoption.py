@@ -42,7 +42,10 @@ def _iter_entry_files(path: Path) -> list[Path]:
     Files whose names start with an underscore are treated as templates or
     placeholders and are ignored.
     """
-    return sorted(p for p in path.glob("*.yml"))
+    return sorted(
+        p for p in path.glob("*.yml")
+        if not p.name.startswith("_")
+    )
 
 
 def _require_str(data: dict[str, Any], key: str, *, path: Path) -> str:
@@ -85,42 +88,50 @@ class AdoptionDirective(SphinxDirective):
     required_arguments = 1
 
     def run(self) -> list[nodes.Node]:
-        """Runs the directive and returns the resulting nodes."""
         docs_dir = Path(__file__).resolve().parents[1]
         adoption_dir = docs_dir / "adoption"
 
         match self.arguments[0]:
-            case "publications":
-                adoption_type = "publications"
-            case "software":
-                adoption_type = "software"
+            case "publications" | "software":
+                adoption_type = self.arguments[0]
             case _:
                 raise ValueError("Unexpected adoption type.")
 
         adoption_entries = load_adoption_entries(adoption_dir / adoption_type)
 
-        node_list = []
+        if not adoption_entries:
+            return [nodes.paragraph(text=f"No {adoption_type} adoptions yet.")]
+
+        dl = nodes.definition_list(classes=["adoption-list"])
+
         for entry in adoption_entries:
-            entry_section = nodes.section(ids=[nodes.make_id(entry.name)])
-            entry_section += nodes.title(text=entry.name)
-            entry_section += nodes.paragraph(text=entry.description)
+            item = nodes.definition_list_item()
 
-            if len(entry.citation) > 0:
-                entry_section += nodes.paragraph(text=entry.citation)
+            # term (the "name") — keep this clean: no ids/targets near it
+            term = nodes.term()
+            term += nodes.strong(text=entry.name)
+            item += term
 
-            if len(entry.link) > 0:
-                entry_section += nodes.paragraph(
-                    "",
-                    "",
-                    nodes.reference("", "Project website", refuri=entry.link),
-                )
+            definition = nodes.definition()
 
-            node_list.append(entry_section)
+            # put the anchor *inside* the definition, so themes don't style it as a heading
+            target_id = nodes.make_id(entry.name)
+            definition += nodes.target(ids=[target_id])
 
-        if len(node_list) == 0:
-            node_list.append(nodes.paragraph(text=f"No {adoption_type} adoptions yet."))
+            definition += nodes.paragraph(text=entry.description)
 
-        return node_list
+            if entry.citation:
+                definition += nodes.paragraph(text=entry.citation)
+
+            if entry.link:
+                p = nodes.paragraph()
+                p += nodes.reference("", "Project website", refuri=entry.link)
+                definition += p
+
+            item += definition
+            dl += item
+
+        return [dl]
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
