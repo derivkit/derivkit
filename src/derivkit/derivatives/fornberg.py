@@ -82,7 +82,7 @@ class FornbergDerivative:
             and return a float.
         x0: the evaluation points for the derivative. Must be a float or a
             structure castable to a Numpy array. If it castable to a Numpy array
-            the function and its derivative will be vectorised over the array.
+            the function and its derivative will be vectorized over the array.
     """
 
     def __init__(
@@ -97,7 +97,7 @@ class FornbergDerivative:
                 float and return a float.
             x0: the evaluation points for the derivative. Must be a float or a
                 structure castable to a Numpy array. If it castable to a Numpy
-                array the function and its derivative will be vectorised over
+                array the function and its derivative will be vectorized over
                 the array.
         """
         self.function = function
