@@ -1,6 +1,6 @@
 """Implementation of Fornberg's algorithm for numerical derivatives.
 
-The algorithm was publised by Fornberg in:
+The algorithm was published by Fornberg in:
 Bengt Fornberg, *Calculation of Weights in Finite Difference Formulas*,
 SIAM Review, vol. 40, No. 3, pp. 685–691, September 1998
 
