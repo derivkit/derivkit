@@ -108,14 +108,12 @@ class AdoptionDirective(SphinxDirective):
         for entry in adoption_entries:
             item = nodes.definition_list_item()
 
-            # term (the "name") — keep this clean: no ids/targets near it
             term = nodes.term()
             term += nodes.strong(text=entry.name)
             item += term
 
             definition = nodes.definition()
 
-            # put the anchor *inside* the definition, so themes don't style it as a heading
             target_id = nodes.make_id(entry.name)
             definition += nodes.target(ids=[target_id])
 
