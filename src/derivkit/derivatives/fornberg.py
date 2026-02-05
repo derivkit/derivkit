@@ -67,6 +67,8 @@ from collections.abc import Callable
 import numpy as np
 from numpy.typing import NDArray
 
+from derivkit.utils.types import Array
+
 
 class FornbergDerivative:
     """Supplies the Fornberg derivative.
@@ -111,7 +113,7 @@ class FornbergDerivative:
         *,
         grid: NDArray[np.float64],
         order: int = 1,
-    ) -> NDArray[np.float64]:
+    ) -> Array:
         """Constructs the derivative of a given order of a function at a point.
 
         The derivative is constructed by recursively differentiating the
