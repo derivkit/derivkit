@@ -90,7 +90,7 @@ I want Fisher constraints on my parameters
 - the Fisher information matrix
 - the Gaussian parameter covariance via inversion
 - approximate posterior samples
-- ``GetDist``-compatible outputs for visualization
+- :class:`GetDist`-compatible outputs for visualization
 
 **Use**
 
@@ -121,9 +121,9 @@ I expect non-Gaussian posteriors (banana-shaped, skewed, etc.)
 **We compute**
 
 - a DALI expansion up to a chosen order:
-  - order 2: Fisher matrix
-  - order 3: doublet DALI tensors (D1 and D2)
-  - order 4: triplet DALI tensors (T1, T2, and T3)
+  - order 1: Fisher matrix
+  - order 2: doublet DALI tensors (D1 and D2)
+  - order 3: triplet DALI tensors (T1, T2, and T3)
 - approximate posterior samples
 - ``GetDist``-compatible outputs for visualization
 
