@@ -172,7 +172,7 @@ def dali_to_getdist_importance(
     validate_dali_shape(fiducial, dali)
 
     # Fisher for the Gaussian proposal kernel comes from dali[1]
-    if 1 not in dali:
+    if 1 not in dali.keys():
         raise ValueError("dali must contain key 1 with dali[1] == (F,).")
 
     fisher_matrix = np.asarray(dali[1][0], dtype=float)
