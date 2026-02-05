@@ -340,7 +340,7 @@ def dali_to_getdist_emcee(
 
     validate_dali_shape(fiducial, dali)
 
-    if 1 not in dali:
+    if 1 not in dali.keys():
         raise ValueError("dali must contain key 1 with dali[1] == (F,).")
 
     fisher_matrix = np.asarray(dali[1][0], dtype=float)
