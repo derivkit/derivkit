@@ -278,10 +278,10 @@ class DerivativeKit:
             shape ``(5, 2, 3)``.
 
         Notes:
-            The ``n_workers`` keyword (passed via ``**kwargs``) controls thread-level
-            parallelism across derivative evaluations. It does not launch separate
-            Python processes; all work occurs within a single process using worker
-            threads.
+            Thread-level parallelism across derivative evaluations can be
+            controlled by passing ``n_workers`` via ``**kwargs``. Note that
+            this does not launch separate Python processes. All work occurs
+            within a single process using worker threads.
 
         Raises:
             ValueError: If ``method`` is not recognized.
