@@ -90,13 +90,14 @@ def build_gaussian_fisher_matrix(
         if n_observables != 1:
             raise ValueError(
                 "function(theta0) returned a scalar, "
-                "but cov implies n_observables={n_observables}. "
+                f"but cov implies n_observables={n_observables}. "
                 "Return a 1D mean vector with length n_observables."
             )
+
     elif _mu0.ndim != 1 or _mu0.shape[0] != n_observables:
         raise ValueError(
             f"function(theta0) must return shape ({n_observables},); "
-            "got {_mu0.shape}."
+            f"got {_mu0.shape}."
         )
 
     # Term with derivatives of covariance matrices:
@@ -144,19 +145,27 @@ def build_gaussian_fisher_matrix(
 
     # Term with derivatives of model mean functions:
     # mu_{,i}^T C^{-1} mu_{,j}
-    fisher_mean = np.zeros((n_parameters, n_parameters), dtype=np.float64)
-    fisher_mean = np.asarray(
-        get_forecast_tensors(
-            function=function,
-            theta0=theta0,
-            cov=cov0,
-            forecast_order=1,
-            method=method,
-            n_workers=n_workers,
-            **dk_kwargs,
-        ),
-        dtype=np.float64,
+    out = get_forecast_tensors(
+        function=function,
+        theta0=theta0,
+        cov=cov0,
+        forecast_order=1,
+        method=method,
+        n_workers=n_workers,
+        **dk_kwargs,
     )
+
+    if isinstance(out, dict):
+        # introduced-at-order dict: {1: (F,), ...}
+        fisher_mean = out[1][0]
+    elif isinstance(out, tuple):
+        # single multiplet: (F,)
+        fisher_mean = out[0]
+    else:
+        # already an array-like Fisher matrix
+        fisher_mean = out
+
+    fisher_mean = np.asarray(fisher_mean, dtype=np.float64)
 
     fisher = fisher_mean + fisher_cov
     return 0.5 * (fisher + fisher.T)

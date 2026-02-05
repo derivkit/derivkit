@@ -26,15 +26,14 @@ def test_forecastkit_delegates(monkeypatch):
         return np.full((2, 2), 42.0)
 
     def fake_build_dali(
-        function,
-        theta0,
-        cov,
-        *,
-        forecast_order,
-        single_forecast_order,
-        method=None,
-        n_workers=1,
-        **dk_kwargs
+            function,
+            theta0,
+            cov,
+            *,
+            forecast_order,
+            method=None,
+            n_workers=1,
+            **dk_kwargs
     ):
         """Returns mock DALI tensors."""
         calls["dali"] = {
@@ -43,13 +42,15 @@ def test_forecastkit_delegates(monkeypatch):
             "cov": np.asarray(cov),
             "method": method,
             "forecast_order": forecast_order,
-            "single_forecast_order": single_forecast_order,
             "n_workers": n_workers,
             "dk_kwargs": dk_kwargs,
         }
-        g_tensor = np.zeros((2, 2, 2))
-        h_tensor = np.ones((2, 2, 2, 2))
-        return g_tensor, h_tensor
+
+        p = len(np.asarray(theta0))
+        F = np.eye(p)
+        D1 = np.zeros((p, p, p))
+        D2 = np.ones((p, p, p, p))
+        return {1: (F,), 2: (D1, D2)}
 
     # Patch the helpers that ForecastKit uses internally
     monkeypatch.setattr(
@@ -81,14 +82,17 @@ def test_forecastkit_delegates(monkeypatch):
     assert calls["fisher"]["n_workers"] == 3
 
     # Define a few mock variables. Their value doesn't matter.
-    mock_forecast_order = "forecast_order"
-    mock_single_forecast_order = 0
-    # The DALI computation delegates to the helper function and forwards n_workers.
-    D1, D2 = fk.dali(
-                        forecast_order=mock_forecast_order,
-                        single_forecast_order=mock_single_forecast_order,
-                        n_workers=4
-                    )
+    mock_forecast_order = 2
+
+    dali = fk.dali(
+        forecast_order=mock_forecast_order,
+        n_workers=4,
+    )
+
+    F = dali[1][0]
+    D1, D2 = dali[2]
+
+    assert F.shape == (2, 2)
     assert D1.shape == (2, 2, 2)
     assert D2.shape == (2, 2, 2, 2)
 
@@ -97,7 +101,6 @@ def test_forecastkit_delegates(monkeypatch):
     np.testing.assert_allclose(calls["dali"]["cov"], cov)
     assert calls["dali"]["function"] is model
     assert calls["dali"]["forecast_order"] == mock_forecast_order
-    assert calls["dali"]["single_forecast_order"] == mock_single_forecast_order
     assert calls["dali"]["n_workers"] == 4
 
 
@@ -111,7 +114,10 @@ def test_default_n_workers_forwarded(monkeypatch):
 
     def fake_build_dali(*args, n_workers=1, **kwargs):
         n_workers_seen["dali"] = n_workers
-        return np.zeros((1, 1, 1)), np.zeros((1, 1, 1, 1))
+        F = np.zeros((1, 1))
+        D1 = np.zeros((1, 1, 1))
+        D2 = np.zeros((1, 1, 1, 1))
+        return {1: (F,), 2: (D1, D2)}
 
     monkeypatch.setattr(
         "derivkit.forecast_kit.build_fisher_matrix", fake_build_fisher_matrix, raising=True
@@ -137,7 +143,10 @@ def test_return_types_match_helpers(monkeypatch):
 
     def fake_build_dali(*args, **kwargs):
         """Returns mock DALI tensors."""
-        return np.zeros((2, 2, 2)), np.zeros((2, 2, 2, 2))
+        F = np.eye(1)
+        D1 = np.zeros((1, 1, 1))
+        D2 = np.zeros((1, 1, 1, 1))
+        return {1: (F,), 2: (D1, D2)}
 
     monkeypatch.setattr(
         "derivkit.forecast_kit.build_fisher_matrix",
@@ -155,9 +164,13 @@ def test_return_types_match_helpers(monkeypatch):
     fish = fk.fisher()
     assert isinstance(fish, np.ndarray)
 
-    g_tensor, h_tensor = fk.dali()
-    assert isinstance(g_tensor, np.ndarray)
-    assert isinstance(h_tensor, np.ndarray)
+    dali = fk.dali()
+    assert isinstance(dali, dict)
+    assert 1 in dali
+    assert 2 in dali
+    assert isinstance(dali[1][0], np.ndarray)
+    assert isinstance(dali[2][0], np.ndarray)
+    assert isinstance(dali[2][1], np.ndarray)
 
 
 def test_init_resolves_covariance_callable_caches_cov0():
@@ -373,14 +386,12 @@ def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monk
     """Tests that ForecastKit.delta_chi2_dali delegates and forwards convention."""
     seen: dict[str, object] = {}
 
-    def fake_delta_chi2_dali(*, theta, theta0, fisher, g_tensor, h_tensor, convention="delta_chi2"):
+    def fake_delta_chi2_dali(*, theta, theta0, dali, forecast_order=2):
         """Mock delta_chi2_dali that records inputs and returns fixed output."""
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
-        seen["fisher"] = np.asarray(fisher)
-        seen["g_tensor"] = np.asarray(g_tensor)
-        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
-        seen["convention"] = convention
+        seen["dali"] = dali
+        seen["forecast_order"] = forecast_order
         return 456.0
 
     monkeypatch.setattr(
@@ -393,24 +404,19 @@ def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monk
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     theta = np.array([0.3, 0.4])
-    fisher = np.eye(2)
-    g = np.zeros((2, 2, 2))
+    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.zeros((2, 2, 2, 2)))}
 
     out = fk.delta_chi2_dali(
         theta=theta,
-        fisher=fisher,
-        g_tensor=g,
-        h_tensor=None,
-        convention="matplotlib_loglike",
+        dali=dali,
+        forecast_order=2,
     )
 
     assert out == 456.0
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
-    np.testing.assert_allclose(seen["fisher"], fisher)
-    np.testing.assert_allclose(seen["g_tensor"], g)
-    assert seen["h_tensor"] is None
-    assert seen["convention"] == "matplotlib_loglike"
+    assert seen["dali"] is dali
+    assert seen["forecast_order"] == 2
 
 
 def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monkeypatch):
@@ -477,10 +483,8 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         *,
         theta,
         theta0,
-        fisher,
-        g_tensor,
-        h_tensor,
-        convention="delta_chi2",
+        dali,
+        forecast_order=2,
         prior_terms=None,
         prior_bounds=None,
         logprior=None,
@@ -488,10 +492,8 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         """Mock logposterior_dali that records inputs and returns fixed output."""
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
-        seen["fisher"] = np.asarray(fisher)
-        seen["g_tensor"] = np.asarray(g_tensor)
-        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
-        seen["convention"] = convention
+        seen["dali"] = dali
+        seen["forecast_order"] = forecast_order
         seen["prior_terms"] = prior_terms
         seen["prior_bounds"] = prior_bounds
         seen["logprior"] = logprior
@@ -507,18 +509,15 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     theta = np.array([0.3, 0.4])
-    fisher = np.eye(2)
-    g = np.zeros((2, 2, 2))
-    h = np.ones((2, 2, 2, 2))
 
     prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
 
+    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+
     out = fk.logposterior_dali(
         theta=theta,
-        fisher=fisher,
-        g_tensor=g,
-        h_tensor=h,
-        convention="matplotlib_loglike",
+        dali=dali,
+        forecast_order=2,
         prior_terms=prior_terms,
         prior_bounds=None,
         logprior=None,
@@ -527,10 +526,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     assert out == -7.0
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
-    np.testing.assert_allclose(seen["fisher"], fisher)
-    np.testing.assert_allclose(seen["g_tensor"], g)
-    np.testing.assert_allclose(seen["h_tensor"], h)
-    assert seen["convention"] == "matplotlib_loglike"
+    assert seen["dali"] is dali
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] is None
     assert seen["logprior"] is None
@@ -841,21 +837,10 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.dali_to_getdist_importance delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_dali_to_getdist_importance(
-        theta0,
-        fisher,
-        g_tensor,
-        h_tensor,
-        *,
-        names,
-        labels,
-        **kwargs,
-    ):
+    def fake_dali_to_getdist_importance(theta0, dali, *, names, labels, **kwargs):
         """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
-        seen["fisher"] = np.asarray(fisher)
-        seen["g_tensor"] = np.asarray(g_tensor)
-        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["dali"] = dali
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -870,33 +855,26 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
-    fisher = np.eye(2)
-    g = np.zeros((2, 2, 2))
-    h = np.ones((2, 2, 2, 2))
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
+    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+
     out = fk.getdist_dali_importance(
-        fisher=fisher,
-        g_tensor=g,
-        h_tensor=h,
+        dali=dali,
         names=names,
         labels=labels,
         n_samples=1000,
         seed=11,
-        convention="matplotlib_loglike",
     )
 
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
-    np.testing.assert_allclose(seen["fisher"], fisher)
-    np.testing.assert_allclose(seen["g_tensor"], g)
-    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["dali"] is dali
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["n_samples"] == 1000
     assert seen["kwargs"]["seed"] == 11
-    assert seen["kwargs"]["convention"] == "matplotlib_loglike"
 
 
 def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
@@ -905,9 +883,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
 
     def fake_dali_to_getdist_emcee(
         theta0,
-        fisher,
-        g_tensor,
-        h_tensor,
+        dali,
         *,
         names,
         labels,
@@ -915,9 +891,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     ):
         """Mock dali_to_getdist_emcee that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
-        seen["fisher"] = np.asarray(fisher)
-        seen["g_tensor"] = np.asarray(g_tensor)
-        seen["h_tensor"] = None if h_tensor is None else np.asarray(h_tensor)
+        seen["dali"] = dali
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -932,16 +906,13 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
-    fisher = np.eye(2)
-    g = np.zeros((2, 2, 2))
-    h = np.ones((2, 2, 2, 2))
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
+    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+
     out = fk.getdist_dali_emcee(
-        fisher=fisher,
-        g_tensor=g,
-        h_tensor=h,
+        dali=dali,
         names=names,
         labels=labels,
         n_steps=50,
@@ -954,9 +925,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
 
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
-    np.testing.assert_allclose(seen["fisher"], fisher)
-    np.testing.assert_allclose(seen["g_tensor"], g)
-    np.testing.assert_allclose(seen["h_tensor"], h)
+    assert seen["dali"] is dali
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["n_steps"] == 50

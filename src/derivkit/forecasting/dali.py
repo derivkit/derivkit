@@ -7,7 +7,7 @@ from typing import Any, Callable
 import numpy as np
 
 from derivkit.forecasting.forecast_core import get_forecast_tensors
-from derivkit.utils.types import Array, ArrayLike1D, ArrayLike2D
+from derivkit.utils.types import Array, ArrayLike1D, ArrayLike2D, FloatArray
 
 __all__ = [
     "build_dali",
@@ -20,11 +20,10 @@ def build_dali(
     cov: ArrayLike2D,
     *,
     method: str | None = None,
-    forecast_order: int | None = 2,
-    single_forecast_order: bool = False,
+    forecast_order: int = 2,
     n_workers: int = 1,
     **dk_kwargs: Any,
-) -> Array | tuple[Array, ...] | dict[int, tuple[Array, ...]]:
+) -> dict[int, tuple[FloatArray, ...]]:
     """Builds the DALI expansion for the given model of the supplied order.
 
     Args:
@@ -32,9 +31,9 @@ def build_dali(
             differentiate. It should accept a list or array of parameter
             values as input and return either a scalar or a
             :class:`np.ndarray` of observable values.
-        theta0: The points at which the
-            derivative is evaluated. A 1D array or list of parameter values
-            matching the expected input of the function.
+        theta0: The expansion point (a 1D parameter vector) at which
+            derivatives are evaluated. Accepts a list/array of length ``p``,
+            with ``p`` the number of parameters.
         cov: The covariance matrix of the observables. Should be a square
             matrix with shape ``(n_observables, n_observables)``, where
             ``n_observables`` is the number of observables returned by the
@@ -45,39 +44,28 @@ def build_dali(
         forecast_order: The requested order of the forecast.
             Currently supported values and their meaning are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
-        single_forecast_order: If set to ``True``, the function will return only
-            the requested order. If set to ``False``, the function will return
-            the tensors up to the requested order.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid oversubscription.
-        dk_kwargs: Additional keyword arguments passed to
+        **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.calculus_kit.CalculusKit`.
 
     Returns:
-        If ``single_forecast_order`` is ``False`` the result is a dictionary
-        with the keys equal to the order of the DALI expansion and values
-        equal to the DALI multiplet at that order. For example, for
-        ``forecast_order == 3`` the result is::
+        A dictionary with the keys equal to the order of the DALI expansion
+        and values equal to the DALI multiplet at that order.
 
-            {
-                1: DALI_singlet,
-                2: DALI_doublet,
-                3: DALI_triplet,
-            }
+        For each forecast order k, the returned multiplet contains the tensors
+        introduced at that order. Concretely:
 
-        where ``DALI_singlet`` contains the Fisher matrix, ``DALI_doublet``
-        contains the DALI doublet tensors, etc.
+        - order 1: ``(F_{(1,1)},)`` (DALI singlet: Fisher matrix)
+        - order 2: ``(D_{(2,1)}, D_{(2,2)})`` (DALI doublet tensors)
+        - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` (DALI triplet tensors)
 
-        If ``single_forecast_order`` is ``True`` the result instead is the
-        multiplet of the requested order. Using the example above the output
-        would be ``DALI_triplet``. In the case that ``forecast_order == 1``
-        the Fisher matrix itself is returned instead of ``DALI_singlet``.
+        Here ``D_{(k,l)}`` and ``T_{(k,l)}`` denote contractions of the
+        ``k``-th and ``l``-th order derivatives via the inverse covariance.
 
-        The tensors in the multiplet at order ``O`` have parameter axes that
-        increase in number from ``O+1`` to ``2*O`` inclusive. For example, the
-        DALI doublet tensors have 3 and 4 axes, respectively. All axes have
-        length ``len(theta0)``.
+        Each tensor axis has length ``p = len(theta0)``. The additional tensors at
+        order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
     """
     return get_forecast_tensors(
         function,
@@ -85,7 +73,6 @@ def build_dali(
         cov,
         method=method,
         forecast_order=forecast_order,
-        single_forecast_order=single_forecast_order,
         n_workers=n_workers,
         **dk_kwargs,
-)
+    )

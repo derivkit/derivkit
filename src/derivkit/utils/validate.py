@@ -16,8 +16,10 @@ __all__ = [
     "validate_tabulated_xy",
     "validate_covariance_matrix_shape",
     "validate_symmetric_psd",
-    "validate_fisher_shapes",
-    "validate_dali_shapes",
+    "validate_fisher_shape",
+    "validate_dali_shape",
+    "resolve_dali_introduced_multiplet",
+    "resolve_dali_assembled_multiplet",
     "validate_square_matrix",
     "ensure_finite",
     "normalize_theta",
@@ -199,78 +201,415 @@ def validate_symmetric_psd(
     return a
 
 
-def validate_fisher_shapes(
+def validate_fisher_shape(
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
+    fisher: Any,
+    *,
+    check_finite: bool = False,
 ) -> None:
-    """Validates shapes for Fisher forecasting inputs.
+    """Validates Fisher matrix shape (and optionally finiteness).
 
-    Checks that:
-
-    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-    - ``fisher`` is a square matrix with shape ``(p, p)``, where ``p = len(theta0)``
-      with ``p`` being the number of parameters.
+    Requirements:
+      - ``theta0`` is a non-empty 1D array of length ``p``.
+      - ``fisher`` is a 2D array with shape ``(p, p)``.
 
     Args:
-      theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
-      fisher: Fisher information matrix as a 2D array with shape ``(p, p)``.
+        theta0: Fiducial parameter vector with shape ``(p,)``.
+        fisher: Fisher matrix with shape ``(p, p)``.
+        check_finite: If ``True``, require all entries of ``fisher`` to be finite.
 
     Raises:
-      ValueError: If ``theta0`` is not 1D, or if ``fisher`` does not have shape
-        ``(p, p)``.
+        ValueError: If ``theta0`` is empty or if ``fisher`` does not have shape ``(p, p)``.
+        FloatingPointError: If ``check_finite=True`` and ``fisher`` contains non-finite values.
     """
-    theta0 = np.asarray(theta0)
-    fisher = np.asarray(fisher)
+    theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta0_arr.size == 0:
+        raise ValueError(
+            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
+        )
+    p = int(theta0_arr.size)
 
-    if theta0.ndim != 1:
-        raise ValueError(f"theta0 must be 1D, got {theta0.shape}")
+    f_arr = np.asarray(fisher, dtype=np.float64)
+    if f_arr.ndim != 2 or f_arr.shape != (p, p):
+        raise ValueError(
+            f"fisher must have shape {(p, p)}; got {f_arr.shape}.")
 
-    p = theta0.shape[0]
-    if fisher.shape != (p, p):
-        raise ValueError(f"fisher must have shape {(p, p)}, got {fisher.shape}")
+    if check_finite and not np.isfinite(f_arr).all():
+        raise FloatingPointError("fisher contains non-finite values.")
 
 
-def validate_dali_shapes(
+def validate_dali_shape(
     theta0: NDArray[np.floating],
-    fisher: NDArray[np.floating],
-    g_tensor: NDArray[np.floating],
-    h_tensor: NDArray[np.floating] | None,
+    dali: Any,
+    *,
+    check_finite: bool = False,
 ) -> None:
-    """Validates shapes for DALI expansion inputs.
+    """Validates forecast tensor shapes.
 
-    Checks that:
+    The accepted input forms match the conventions used by
+    :func:`derivkit.forecasting.get_forecast_tensors`:
 
-    - ``theta0`` is a 1D parameter vector with shape ``(p,)``.
-    - ``fisher`` has shape ``(p, p)``.
-    - ``g_tensor`` (third-derivative tensor) has shape ``(p, p, p)``.
-    - ``h_tensor`` (fourth-derivative tensor), if provided, has shape
-      ``(p, p, p, p)``  with ``p`` being the number of parameters.
+    - A dict mapping ``order -> multiplet`` for consecutive orders starting at 1.
+    - A single multiplet tuple.
+
+    With ``p = len(theta0)``, the required shapes are:
+
+    - order 1 multiplet: ``(F,)`` with ``F`` of shape ``(p, p)``.
+    - order 2 multiplet: ``(D_{(2,1)}, D_{(2,2)})`` with shapes
+      ``(p, p, p)`` and ``(p, p, p, p)``.
+    - order 3 multiplet: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
+      ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
 
     Args:
-      theta0: Expansion point (fiducial parameters) as a 1D array of length ``p``.
-      fisher: Fisher information matrix as a 2D array with shape ``(p, p)``.
-      g_tensor: DALI cubic tensor with shape ``(p, p, p)``.
-      h_tensor: Optional DALI quartic tensor with shape ``(p, p, p, p)``. If
-        ``None``, no quartic shape check is performed.
+        theta0: Fiducial parameter vector with shape ``(p,)``.
+        dali: Forecast tensors to validate. Must be either:
+
+            - ``dict[int, tuple[...]]`` where each value is a multiplet for that order, or
+            - ``tuple[...]`` which is a single multiplet.
+
+        check_finite: If ``True``, require all validated arrays to be finite.
 
     Raises:
-      ValueError: If any input does not have the expected dimensionality/shape.
+        TypeError: If ``dali`` has an unsupported type, if dict keys are not ints,
+            or if any multiplet is not a tuple.
+        ValueError: If dict keys are not consecutive starting at 1, if a multiplet
+            has the wrong length for its order, or if any tensor has the wrong
+            dimension/shape.
+        FloatingPointError: If ``check_finite=True`` and any validated array contains
+            non-finite values.
     """
-    validate_fisher_shapes(theta0, fisher)
+    theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta0_arr.size == 0:
+        raise ValueError(
+            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
+        )
+    p = int(theta0_arr.size)
 
-    theta0 = np.asarray(theta0)
-    g_tensor = np.asarray(g_tensor)
+    def _require_tensor(arr_like: Any, *, idx: int, expected_ndim: int) -> None:
+        """Validate a single forecast tensor against the expected ``(p,)*ndim`` shape.
 
-    p = theta0.shape[0]
-    if g_tensor.shape != (p, p, p):
-        raise ValueError(f"g_tensor must have shape {(p, p, p)}, got {g_tensor.shape}")
+        This helper enforces the core tensor contract used by forecast tensors:
+        each axis has length ``p = len(theta0)`` and the tensor has a fixed rank
+        determined by its position in the multiplet.
 
-    if h_tensor is not None:
-        h_tensor = np.asarray(h_tensor)
-        if h_tensor.shape != (p, p, p, p):
+        Args:
+            arr_like: Array-like object to validate.
+            idx: Index of the tensor within its multiplet. Used only for error messages.
+            expected_ndim: Expected tensor rank.
+
+        Raises:
+            ValueError: If the array does not have ``expected_ndim`` dimensions or does
+                not have shape ``(p,) * expected_ndim``.
+            FloatingPointError: If ``check_finite=True`` in the enclosing scope and the
+                array contains non-finite values.
+        """
+        arr = np.asarray(arr_like, dtype=np.float64)
+        if arr.ndim != expected_ndim:
             raise ValueError(
-                f"h_tensor must have shape {(p, p, p, p)}, got {h_tensor.shape}"
+                f"DALI tensor at position {idx} must have ndim"
+                f"={expected_ndim}; got ndim={arr.ndim}."
             )
+        expected_shape = (p,) * expected_ndim
+        if arr.shape != expected_shape:
+            raise ValueError(
+                f"DALI tensor at position {idx} must have shape"
+                f" {expected_shape}; got {arr.shape}."
+            )
+        if check_finite and not np.isfinite(arr).all():
+            raise FloatingPointError(
+                f"DALI tensor at position {idx} contains non-finite values."
+            )
+
+    def _validate_order_multiplet(order: int, m: Any) -> None:
+        """Validate the multiplet structure for a specific forecast order.
+
+        This helper checks that ``m`` is a tuple of the correct length for the given
+        ``order`` and validates the shape of each tensor in the tuple.
+
+        Conventions with ``p = len(theta0)``:
+
+          - ``order == 1``: ``m == (F,)`` with ``F`` of shape ``(p, p)``.
+          - ``order == 2``: ``m == (D_{(2,1)}, D_{(2,2)})`` with shapes
+            ``(p, p, p)`` and ``(p, p, p, p)``.
+          - ``order == 3``: ``m == (T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
+            ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
+
+        Args:
+            order: Forecast order associated with this multiplet.
+            m: Candidate multiplet tuple to validate.
+
+        Raises:
+            TypeError: If ``m`` is not a tuple.
+            ValueError: If ``order`` is unsupported or if the tuple length does not
+                match the expected structure for that order, or if any tensor shape
+                is invalid.
+            FloatingPointError: If ``check_finite=True`` in the enclosing scope and any
+                tensor contains non-finite values.
+        """
+        if not isinstance(m, tuple):
+            raise TypeError(f"dali[order={order}] must be a tuple; got {type(m)}.")
+
+        if order == 1:
+            if len(m) != 1:
+                raise ValueError(f"dali[1] must be a 1-tuple (F,); got length {len(m)}.")
+            validate_fisher_shape(theta0_arr, m[0], check_finite=check_finite)
+            return
+
+        if order == 2:
+            if len(m) != 2:
+                raise ValueError(f"dali[2] must be a 2-tuple (D21, D22); got length {len(m)}.")
+            _require_tensor(m[0], idx=0, expected_ndim=3)
+            _require_tensor(m[1], idx=1, expected_ndim=4)
+            return
+
+        if order == 3:
+            if len(m) != 3:
+                raise ValueError(
+                    f"dali[3] must be a 3-tuple (T31, T32, T33); got length {len(m)}."
+                )
+            _require_tensor(m[0], idx=0, expected_ndim=4)
+            _require_tensor(m[1], idx=1, expected_ndim=5)
+            _require_tensor(m[2], idx=2, expected_ndim=6)
+            return
+
+        raise ValueError(f"Unsupported forecast order={order}. Expected 1, 2, or 3.")
+
+    def _validate_tuple_multiplet(m: tuple[Any, ...]) -> None:
+        """Validate a single multiplet tuple and infer its forecast order from structure.
+
+        The order is inferred using the tuple length together with the rank of the first
+        entry:
+
+          - ``(F,)``: length 1 and ``ndim(F) == 2``.
+          - ``(D_{(2,1)}, D_{(2,2)})``: length 2 and ``ndim(D_{(2,1)}) == 3``.
+          - ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``: length 3 and ``ndim(T_{(3,1)}) == 4``.
+
+        This helper exists to accept tuple inputs in a way that is consistent with the
+        per-order multiplet convention.
+
+        Args:
+            m: Candidate multiplet tuple.
+
+        Raises:
+            ValueError: If ``m`` is empty or does not match one of the supported tuple
+                structures.
+            TypeError/FloatingPointError: Propagated from the order-specific validation
+                helpers when shapes or finiteness checks fail.
+        """
+        if len(m) == 0:
+            raise ValueError("DALI tuple must be non-empty.")
+
+        first_ndim = np.asarray(m[0], dtype=np.float64).ndim
+
+        # Disambiguate strictly by (len, ndim of first tensor).
+        if len(m) == 1 and first_ndim == 2:
+            _validate_order_multiplet(1, m)
+            return
+        if len(m) == 2 and first_ndim == 3:
+            _validate_order_multiplet(2, m)
+            return
+        if len(m) == 3 and first_ndim == 4:
+            _validate_order_multiplet(3, m)
+            return
+
+        raise ValueError(
+            "Unrecognized DALI tuple form."
+            " Expected (F,)"
+            " or (D21,D22) or"
+            " (T31,T32,T33)."
+        )
+
+    # dict[int, tuple[...]]: get_forecast_tensors output
+    if isinstance(dali, dict):
+        if len(dali) == 0:
+            raise ValueError("DALI dict is empty.")
+
+        # keys must be int, consecutive, starting at 1
+        keys: list[int] = []
+        for k in dali.keys():
+            if not isinstance(k, int):
+                raise TypeError(f"DALI dict keys must be int;"
+                                f" got {k!r} ({type(k)}).")
+            keys.append(k)
+
+        keys_sorted = sorted(keys)
+        if keys_sorted[0] != 1:
+            raise ValueError(f"DALI dict must start at key=1;"
+                             f" got keys {keys_sorted}.")
+        if keys_sorted != list(range(1, keys_sorted[-1] + 1)):
+            raise ValueError(
+                f"DALI dict keys must be consecutive 1..K;"
+                f" got keys {keys_sorted}."
+            )
+
+        for order in keys_sorted:
+            _validate_order_multiplet(order, dali[order])
+        return
+
+    # tuple: single introduced-at-order multiplet
+    if isinstance(dali, tuple):
+        _validate_tuple_multiplet(dali)
+        return
+
+    raise TypeError(
+        "Invalid DALI type. Expected dict[int, tuple[...]] or tuple[...] "
+        "containing an introduced-at-order multiplet."
+    )
+
+
+def resolve_dali_introduced_multiplet(
+    theta0: NDArray[np.floating],
+    dali: Any,
+    *,
+    forecast_order: int | None = None,
+    check_finite: bool = False,
+) -> tuple[int, tuple[NDArray[np.float64], ...]]:
+    """"Returns ``(order, multiplet)`` from any accepted forecast tensor output.
+
+    The accepted input forms match the conventions used by
+     :func:`derivkit.forecasting.get_forecast_tensors`:
+
+    - A dict mapping ``order -> multiplet`` for consecutive orders starting at 1.
+    - A single multiplet tuple.
+
+    If ``dali`` is a dict and ``forecast_order`` is not provided, the highest
+    available order is selected. If ``forecast_order`` is provided, it must be
+    present in the dict.
+
+    If ``dali`` is a tuple, the order is inferred from the tuple structure.
+
+    Args:
+        theta0: Fiducial parameter vector with shape ``(p,)``.
+        dali: Forecast tensors in one of the accepted forms.
+        forecast_order: Optional order selector when ``dali`` is a dict.
+        check_finite: If ``True``, require all selected arrays to be finite.
+
+    Returns:
+        Tuple ``(order, multiplet)`` where ``multiplet`` is a tuple of float64 arrays.
+
+    Raises:
+        TypeError/ValueError/FloatingPointError: If ``dali`` is invalid, if the
+            selected order does not exist, or if array shapes/values do not satisfy
+            the validation rules.
+    """
+    theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta0_arr.size == 0:
+        raise ValueError(
+            f"theta0 must be non-empty 1D;"
+            f" got shape {np.asarray(theta0).shape}."
+        )
+
+    validate_dali_shape(theta0_arr, dali, check_finite=check_finite)
+
+    if isinstance(dali, dict):
+        available = sorted(dali.keys())
+        chosen = available[-1] if forecast_order is None else int(forecast_order)
+        if chosen not in dali:
+            raise ValueError(f"forecast_order={chosen} "
+                             f"not in DALI dict keys {available}.")
+        multiplet = tuple(np.asarray(x, dtype=np.float64) for x in dali[chosen])
+        return chosen, multiplet
+
+    # tuple: infer order from strict (len, first_ndim)
+    m = dali  # validated as tuple by validate_dali_shape
+    first_ndim = np.asarray(m[0], dtype=np.float64).ndim
+
+    if len(m) == 1 and first_ndim == 2:
+        order = 1
+    elif len(m) == 2 and first_ndim == 3:
+        order = 2
+    elif len(m) == 3 and first_ndim == 4:
+        order = 3
+    else:
+        # Should be unreachable because validate_dali_shape already enforced.
+        raise RuntimeError("internal error: could not infer order from validated tuple.")
+
+    if forecast_order is not None and int(forecast_order) != order:
+        raise ValueError(
+            f"forecast_order={int(forecast_order)} does not match inferred order={order}."
+        )
+
+    multiplet = tuple(np.asarray(x, dtype=np.float64) for x in m)
+    return order, multiplet
+
+
+def resolve_dali_assembled_multiplet(
+    theta0: NDArray[np.floating],
+    dali: Any,
+    *,
+    forecast_order: int | None = None,
+    check_finite: bool = False,
+) -> tuple[int, tuple[NDArray[np.float64], ...]]:
+    """Return ``(order, multiplet)`` where multiplet is assembled up to ``order``.
+
+    Accepted inputs (matching get_forecast_tensors):
+      - dict[int, tuple[...]]: per-order "introduced-at-order" multiplets
+      - tuple[...]: a single introduced-at-order multiplet
+
+    Returned multiplets are *assembled* as:
+      - order 1: (F,)
+      - order 2: (F, D1, D2)
+      - order 3: (F, D1, D2, T1, T2, T3)
+
+    Notes:
+      - Tuple inputs cannot be assembled for order>1 because they do not include F.
+        For order>1 evaluation, pass the dict form from get_forecast_tensors.
+    """
+    theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    if theta0_arr.size == 0:
+        raise ValueError(
+            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
+        )
+
+    validate_dali_shape(theta0_arr, dali, check_finite=check_finite)
+
+    if isinstance(dali, dict):
+        available = sorted(dali.keys())
+        chosen = available[-1] if forecast_order is None else int(forecast_order)
+        if chosen not in dali:
+            raise ValueError(f"forecast_order={chosen} not in DALI dict keys {available}.")
+        if chosen not in (1, 2, 3):
+            raise ValueError(f"forecast_order must be 1, 2, or 3; got {chosen}.")
+
+        # Always include Fisher
+        f = np.asarray(dali[1][0], dtype=np.float64)
+
+        if chosen == 1:
+            return 1, (f,)
+
+        d1 = np.asarray(dali[2][0], dtype=np.float64)
+        d2 = np.asarray(dali[2][1], dtype=np.float64)
+
+        if chosen == 2:
+            return 2, (f, d1, d2)
+
+        t1 = np.asarray(dali[3][0], dtype=np.float64)
+        t2 = np.asarray(dali[3][1], dtype=np.float64)
+        t3 = np.asarray(dali[3][2], dtype=np.float64)
+        return 3, (f, d1, d2, t1, t2, t3)
+
+    # tuple input: can only safely support Fisher-only (because order>1 tuples have no F)
+    m = dali  # validated as tuple
+    first_ndim = np.asarray(m[0], dtype=np.float64).ndim
+
+    if len(m) == 1 and first_ndim == 2:
+        if forecast_order is not None and int(forecast_order) != 1:
+            raise ValueError(
+                "forecast_order>1 requires the dict form from get_forecast_tensors "
+                "(tuple multiplets do not include Fisher for order>1)."
+            )
+        f = np.asarray(m[0], dtype=np.float64)
+        return 1, (f,)
+
+    # If it's an introduced-at-order tuple of order 2 or 3, we refuse assembly.
+    if (len(m) == 2 and first_ndim == 3) or (len(m) == 3 and first_ndim == 4):
+        raise ValueError(
+            "Order>1 evaluation requires the dict form from get_forecast_tensors, "
+            "because introduced-at-order tuples do not include the Fisher matrix."
+        )
+
+    # Should be unreachable because validate_dali_shape already enforced allowed tuple forms.
+    raise RuntimeError("internal error: could not infer order from validated tuple.")
 
 
 def validate_square_matrix(a: Any, *, name: str = "matrix") -> NDArray[np.float64]:
