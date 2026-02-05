@@ -6,18 +6,14 @@
 |dklogo| Installation
 =====================
 
-DerivKit can be installed from `PyPI <https://pypi.org>`_ through _e.g._ ``pip``:
+DerivKit can be installed from `PyPI <https://pypi.org>`_ through _e.g._ ``pip``::
 
-.. code-block:: bash
    pip install derivkit
 
 DerivKit can additionally be installed from source.
-To create an editable installation, run
-
-.. code-block:: bash
+To create an editable installation, run::
 
    pip install -e derivkit@git+https://github.com/derivkit/derivkit
-
 
 
 Optional dependencies
