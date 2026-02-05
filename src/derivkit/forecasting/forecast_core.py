@@ -216,11 +216,11 @@ def _get_derivatives(
 
     Returns:
         Array of derivative values. For ``order == 1``, the
-        shape is ``(n_parameters, n_observables)`` (first-order derivatives).
+        shape is ``(n_observables, n_parameters)`` (first-order derivatives).
         For ``order == 2``, the shape is
-        ``(n_parameters, n_parameters, n_observables)`` (second-order derivatives).
+        ``(n_observables, n_parameters, n_parameters)`` (second-order derivatives).
         For ``order == 3``, the shape is
-        ``(n_parameters, n_parameters, n_parameters, n_observables)`` (third-order derivatives).
+        ``(n_observables, n_parameters, n_parameters, n_parameters)`` (third-order derivatives).
 
     Raises:
         ValueError: An error occurred if a derivative was requested of
