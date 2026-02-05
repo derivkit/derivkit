@@ -18,7 +18,7 @@ To create an editable installation, run
 
    git clone https://github.com/derivkit/derivkit.git
    cd derivkit
-   pip install -e .
+  pip install -e derivkit@git+https://github.com/derivkit/derivkit
 
 
 
