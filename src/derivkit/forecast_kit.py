@@ -389,7 +389,7 @@ class ForecastKit:
         """Computes a displacement chi-squared under the DALI approximation.
 
         This evaluates a scalar ``delta_chi2`` from the displacement
-        ``d = theta - theta0`` using the Fisher matrix and (optionally) the
+        ``d = theta - theta0`` using the provided
         DALI tensors.
 
         The expansion point is taken from :attr:`ForecastKit.theta0`.
