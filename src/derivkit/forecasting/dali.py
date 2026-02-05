@@ -51,14 +51,15 @@ def build_dali(
             :class:`derivkit.calculus_kit.CalculusKit`.
 
     Returns:
-        A dict mapping ``order -> multiplet`` for all ``order = 1..forecast_order``.
+        A dictionary with the keys equal to the order of the DALI expansion
+        and values equal to the DALI multiplet at that order.
 
         For each forecast order k, the returned multiplet contains the tensors
         introduced at that order. Concretely:
 
-        - order 1: ``(F_{(1,1)},)`` (Fisher matrix)
-        - order 2: ``(D_{(2,1)}, D_{(2,2)})``
-        - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``
+        - order 1: ``(F_{(1,1)},)`` (DALI singlet: Fisher matrix)
+        - order 2: ``(D_{(2,1)}, D_{(2,2)})`` (DALI doublet tensors)
+        - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` (DALI triplet tensors)
 
         Here ``D_{(k,l)}`` and ``T_{(k,l)}`` denote contractions of the
         ``k``-th and ``l``-th order derivatives via the inverse covariance.
