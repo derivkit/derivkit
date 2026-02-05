@@ -159,6 +159,8 @@ class FornbergDerivative:
 
         Raises:
             ValueError: if ``order`` is smaller than ``0``.
+            RuntimeWarning: if ``grid`` contains duplicate offsets for
+                a given point.
         """
         if order < 0:
             raise ValueError(
@@ -172,7 +174,15 @@ class FornbergDerivative:
             input_grid = self.x0 + grid.reshape(grid.shape[0], -1)
 
         y = self.function(input_grid)
-        weights = np.zeros((*input_grid.shape, order+1), dtype=np.float64)
+        try:
+            weights = np.zeros((*input_grid.shape, order+1), dtype=np.float64)
+        except:
+            raise RuntimeError(
+                "Fornberg derivative failed. "
+                "Normally this means that the offset grid does not allow for "
+                "valid Lagrange polynomials. Make sure that the offsets are "
+                "unique for each point."
+            )
 
         # Numpy passes around references to the array data so the weights
         # are updated in-place. No assignment is necessary.
