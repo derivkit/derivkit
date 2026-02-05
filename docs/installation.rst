@@ -16,9 +16,7 @@ To create an editable installation, run
 
 .. code-block:: bash
 
-   git clone https://github.com/derivkit/derivkit.git
-   cd derivkit
-  pip install -e derivkit@git+https://github.com/derivkit/derivkit
+   pip install -e derivkit@git+https://github.com/derivkit/derivkit
 
 
 
