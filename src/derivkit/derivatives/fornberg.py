@@ -80,7 +80,7 @@ class FornbergDerivative:
 
     Attributes:
         function: the function to be differentiated. Must accept a single float
-            and return a float.
+            and return a float, and must be vectorizable.
         x0: the evaluation points for the derivative. Must be a float or a
             structure castable to a Numpy array. If it castable to a Numpy array
             the function and its derivative will be vectorized over the array.
@@ -88,14 +88,14 @@ class FornbergDerivative:
 
     def __init__(
         self,
-        function: Callable,
+        function: Callable[[np.floating], np.floating],
         x0: np.float64 | NDArray[np.floating],
     ) -> None:
         """Initialises the class.
 
         Args:
             function: the function to be differentiated. Must accept a single
-                float and return a float.
+                float and return a float, and must be vectorizable.
             x0: the evaluation points for the derivative. Must be a float or a
                 structure castable to a Numpy array. If it castable to a Numpy
                 array the function and its derivative will be vectorized over
