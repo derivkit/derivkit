@@ -460,9 +460,9 @@ methods.
 **Why does DALI behave poorly far from the expansion point?**
 
 DALI is based on a Taylor expansion and is only expected to be accurate within a
-finite neighborhood around ``theta0``. Far from this point, higher-order terms
-can dominate and lead to unphysical behavior. For this reason, sampling bounds
-and diagnostic checks are strongly recommended.
+finite neighborhood around ``theta0``. As a result, DALI is not expected to be
+accurate for values far away from theta0. For this reason, sampling bounds and
+diagnostic checks are strongly recommended.
 
 
 **Should I always use the highest DALI expansion order available?**
