@@ -6,7 +6,7 @@
 |dklogo| Installation
 =====================
 
-DerivKit can be installed from `PyPI <https://pypi.org>`_ through _e.g._ ``pip``::
+DerivKit can be installed from `PyPI <https://pypi.org>`_ through *e.g.* ``pip``::
 
    pip install derivkit
 
