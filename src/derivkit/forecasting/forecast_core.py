@@ -263,7 +263,13 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        return j_raw
+        if j_raw.shape == (n_observables, n_parameters):
+            return j_raw
+        else:
+            raise ValueError(
+                f"jacobian returned unexpected shape {j_raw.shape}; "
+                f"expected ({n_observables},{n_parameters})."
+            )
 
     elif order == 2:
         # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
@@ -276,7 +282,13 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        return h_raw
+        if h_raw.shape == (n_observables, n_parameters, n_parameters):
+            return h_raw
+        else:
+            raise ValueError(
+                f"hessian returned unexpected shape {h_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters})."
+            )
 
 
     elif order == 3:
@@ -288,7 +300,14 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        return hh_raw
+        if hh_raw.shape == (n_observables, n_parameters, n_parameters, n_parameters):
+            return hh_raw
+        else:
+            raise ValueError(
+                f"hyper_hessian returned unexpected shape {hh_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters})."
+            )
+        
 
     else:
         raise ValueError(f"Unsupported value of {order}.")
