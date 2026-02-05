@@ -307,7 +307,7 @@ def _get_derivatives(
                 f"hyper_hessian returned unexpected shape {hh_raw.shape}; "
                 f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters})."
             )
-        
+ 
 
     else:
         raise ValueError(f"Unsupported value of {order}.")
