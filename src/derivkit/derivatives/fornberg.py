@@ -176,7 +176,10 @@ class FornbergDerivative:
         y = self.function(input_grid)
         try:
             weights = np.zeros((*input_grid.shape, order+1), dtype=np.float64)
-        except:
+        # If the algorithm fails then most likely the Lagrange polyonial is not
+        # defined for input_grid. This usually means that the grid has duplicate
+        # entries for a given point, so the algorithm has a divide-by-zero problem.
+        except RuntimeWarning:
             raise RuntimeError(
                 "Fornberg derivative failed. "
                 "Normally this means that the offset grid does not allow for "
