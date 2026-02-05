@@ -139,12 +139,12 @@ def get_forecast_tensors(
     derivatives: dict[int, NDArray[np.float64]] = {}
 
     contractions = {
-        1: {1: "ai,ij,bj->ab"},
-        2: {1: "abi,ij,cj->abc",
-            2: "abi,ij,cdj->abcd",},
-        3: {1: "iabc,ij,dj->abcd",
-            2: "iabc,ij,dej->abcde",
-            3: "iabc,ij,jdef->abcdef",},
+        1: {1: "ia,ij,jb->ab"},
+        2: {1: "iab,ij,jc->abc",
+            2: "iab,ij,jcd->abcd"},
+        3: {1: "iabc,ij,jd->abcd",
+            2: "iabc,ij,jde->abcde",
+            3: "iabc,ij,jdef->abcdef"},
     }
 
     for order1 in range(1, 1 + forecast_order):
@@ -263,17 +263,7 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        # Accept (N, P) or (P, N); return (P, N)
-        if j_raw.shape == (n_observables, n_parameters):
-            return j_raw.T
-        elif j_raw.shape == (n_parameters, n_observables):
-            return j_raw
-        else:
-            raise ValueError(
-                f"jacobian returned unexpected shape {j_raw.shape}; "
-                f"expected ({n_observables},{n_parameters}) or "
-                f"({n_parameters},{n_observables})."
-            )
+        return j_raw
 
     elif order == 2:
         # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
@@ -286,16 +276,7 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        if h_raw.shape == (n_observables, n_parameters, n_parameters):
-            return np.moveaxis(h_raw, [1, 2], [0, 1])
-        elif h_raw.shape == (n_parameters, n_parameters, n_observables):
-            return h_raw
-        else:
-            raise ValueError(
-                f"hessian returned unexpected shape {h_raw.shape}; "
-                f"expected ({n_observables},{n_parameters},{n_parameters}) or "
-                f"({n_parameters},{n_parameters},{n_observables})."
-            )
+        return h_raw
 
 
     elif order == 3:
@@ -307,15 +288,6 @@ def _get_derivatives(
             ),
             dtype=float,
         )
-        # hyper_hessian is defined to return (*out_shape, p, p, p).
-        # For a vector of observables, out_shape == (n_observables,).
-        if hh_raw.shape != (n_observables, n_parameters, n_parameters,
-                            n_parameters):
-            raise ValueError(
-                f"hyper_hessian returned unexpected shape {hh_raw.shape}; "
-                f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters})."
-            )
-
         return hh_raw
 
     else:
