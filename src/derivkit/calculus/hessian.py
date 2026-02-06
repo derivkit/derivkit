@@ -160,14 +160,14 @@ def _build_hessian_full(
     k = 0
     vals = np.array(vals_list, dtype=float)
     for i in range(p):
-        hess[:,i, i] = vals[k]
+        hess[..., i, i] = vals[k]
         k += 1
     for i in range(p):
         for j in range(i + 1, p):
             hij = vals[k]
             k += 1
-            hess[:,i, j] = hij
-            hess[:,j, i] = hij
+            hess[...,i, j] = hij
+            hess[...,j, i] = hij
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in Hessian.")
