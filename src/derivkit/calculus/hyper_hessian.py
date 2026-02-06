@@ -1,19 +1,14 @@
-"""Construct third-derivative tensors ("hyper-Hessians") for scalar- or tensor-valued functions."""
+"""Construct third-derivative tensors ("hyper-Hessians") for scalar- or vector-valued functions."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from functools import partial
 from itertools import permutations
 from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.calculus.calculus_core import (
-    component_scalar_eval,
-    dispatch_tensor_output,
-)
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
@@ -77,32 +72,20 @@ def build_hyper_hessian(
         else resolve_inner_from_outer(outer_workers)
     )
 
-    if y0.ndim == 0:
-        out = _build_hyper_hessian_scalar(
-            function=function,
-            theta=theta,
-            method=method,
-            inner_workers=inner_workers,
-            outer_workers=outer_workers,
-            **dk_kwargs,
-        )
-
-        ensure_finite(out, msg="Non-finite values encountered in hyper-Hessian.")
-        return out
-
-    # Tensor output: compute per-component scalar hyper-Hessian and reshape it back.
-    return dispatch_tensor_output(
+    out = _build_hyper_hessian(
         function=function,
         theta=theta,
         method=method,
-        outer_workers=outer_workers,
         inner_workers=inner_workers,
-        dk_kwargs=dk_kwargs,
-        build_component=_compute_component_hyper_hessian,
+        outer_workers=outer_workers,
+        **dk_kwargs,
     )
 
+    ensure_finite(out, msg="Non-finite values encountered in hyper-Hessian.")
+    return out
 
-def _build_hyper_hessian_scalar(
+
+def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
     method: str | None,
@@ -110,10 +93,10 @@ def _build_hyper_hessian_scalar(
     outer_workers: int,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
-    """Returns a hyper-Hessian for a scalar-valued function.
+    """Returns a hyper-Hessian for a scalar- or vector-valued function.
 
     Args:
-        function: Scalar-valued function to differentiate.
+        function: Scalar- or vector-valued function to differentiate.
         theta: 1D parameter vector where the derivatives are evaluated..
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
@@ -122,15 +105,15 @@ def _build_hyper_hessian_scalar(
         **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
     Returns:
-        Hyper-Hessian array with shape ``(p, p, p)`` with ``p`` the number of parameters.
+        The full hyper-Hessian array for the scalar- or vector-valued function.
 
     Raises:
-        TypeError: If ``function`` does not return a scalar.
+        TypeError: If ``function`` does not return a scalar or a vector.
     """
     probe = np.asarray(function(theta), dtype=np.float64)
-    if probe.ndim != 0:
+    if probe.ndim not in [0,1]:
         raise TypeError(
-            "Scalar hyper-Hessian path expects a scalar-valued function; "
+            "Hyper-Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."
         )
 
@@ -171,11 +154,13 @@ def _build_hyper_hessian_scalar(
         inner_workers=iw,
     )
 
-    hess = np.zeros((p, p, p), dtype=np.float64)
+    y0 = np.asarray(function(theta))
+    out_shape = y0.shape
+    hess = np.empty((*out_shape, p, p, p), dtype=float)
     for (i, j, k), v in zip(triplets, vals, strict=True):
-        v = float(np.asarray(v).item())
+        v = np.asarray(v, dtype=float)
         for a, b, c in set(permutations((i, j, k), 3)):
-            hess[a, b, c] = v
+            hess[..., a, b, c] = v
 
     ensure_finite(hess, msg="Non-finite values encountered in hyper-Hessian.")
     return hess
@@ -195,7 +180,7 @@ def _third_derivative_entry(
     """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
 
     Args:
-        function: Scalar-valued function to differentiate.
+        function: Scalar- or vector-valued function to differentiate.
         theta0: 1D parameter vector at which the derivative is evaluated.
         i: First parameter index.
         j: Second parameter index.
@@ -215,7 +200,7 @@ def _third_derivative_entry(
         f1 = get_partial_function(function, ii, theta0)
         kit = DerivativeKit(f1, float(theta0[ii]))
         val = kit.differentiate(order=3, method=method, n_workers=n_workers, **dk_kwargs)
-        return float(np.asarray(val).item())
+        return np.asarray(val, dtype=float)
 
     def g_func(t: float) -> float:
         """Function for derivative with respect to parameter kk.
@@ -234,7 +219,7 @@ def _third_derivative_entry(
             f1 = get_partial_function(function, ii, th)
             kit2 = DerivativeKit(f1, float(th[ii]))
             v2 = kit2.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
-            return float(np.asarray(v2).item())
+            return np.asarray(v2, dtype=float)
 
         # mixed second derivative via nested 1D partials
         def h_func(yj: float) -> float:
@@ -251,46 +236,12 @@ def _third_derivative_entry(
             f_ii = get_partial_function(function, ii, th2)
             kit1 = DerivativeKit(f_ii, float(th2[ii]))
             v1 = kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-            return float(np.asarray(v1).item())
+            return np.asarray(v1, dtype=float)
 
         kitm = DerivativeKit(h_func, float(th[jj]))
         vm = kitm.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-        return float(np.asarray(vm).item())
+        return np.asarray(vm, dtype=float)
 
     kit3 = DerivativeKit(g_func, float(theta0[kk]))
     v3 = kit3.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-    return float(np.asarray(v3).item())
-
-
-def _compute_component_hyper_hessian(
-    idx: int,
-    theta: NDArray[np.float64],
-    method: str | None,
-    inner_workers: int | None,
-    dk_kwargs: dict[str, Any],
-    function: Callable[[ArrayLike], float | np.ndarray],
-) -> NDArray[np.float64]:
-    """Computes the hyper-Hessian for one output component of a tensor-valued function.
-
-    Args:
-        idx: Index of the output component to differentiate.
-        theta: Parameter vector where the derivatives are evaluated.
-        method: Derivative method name or alias. If ``None``,
-            the :class:`derivkit.DerivativeKit` default is used.
-        inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
-        dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
-        function: Original tensor-valued function.
-
-    Returns:
-        Hyper-Hessian array with shape ``(p, p, p)`` with ``p`` the number of parameters.
-    """
-    g = partial(component_scalar_eval, function=function, idx=int(idx))
-    # Use scalar builder with outer_workers=1 (parallel computation is already over components outside)
-    return _build_hyper_hessian_scalar(
-        g,
-        theta,
-        method=method,
-        inner_workers=inner_workers,
-        outer_workers=1,
-        **dk_kwargs,
-    )
+    return np.asarray(v3, dtype=float)
