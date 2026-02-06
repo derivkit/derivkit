@@ -8,20 +8,12 @@ and tensor-valued functions using DerivativeKit.
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import partial
-from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.utils.concurrency import (
-    parallel_execute,
-)
-from derivkit.utils.validate import ensure_finite
-
 __all__ = [
     "component_scalar_eval",
-    "dispatch_tensor_output",
 ]
 
 
