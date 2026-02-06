@@ -44,14 +44,19 @@ Basic usage
    >>> def func(theta):
    ...     return theta[0] ** 3 + 2.0 * theta[0] * theta[1] + theta[1] ** 2
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(func, theta0)
+   >>> hess3 = build_hyper_hessian(
+   ...     func,
+   ...     theta0,
+   ...     method="finite",
+   ...     extrapolation="ridders",
+   ... )
    >>> print(hess3.shape)
    (2, 2, 2)
    >>> # Analytic reference:
    >>> # d^3 f / dtheta0^3 = 6, and all other third partials are zero.
    >>> ref = np.zeros((2, 2, 2), dtype=float)
    >>> ref[0, 0, 0] = 6.0
-   >>> np.allclose(hess3, ref, atol=1e-6, rtol=0.0)
+   >>> np.allclose(hess3, ref, atol=5e-3, rtol=0.0)
    True
 
 
@@ -95,17 +100,22 @@ for each output component and afterwards reshaped back to ``(*out_shape, p, p, p
    ...         theta[0] * theta[1] + theta[1] ** 2,
    ...     ])
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(func, theta0)
+   >>> hess3 = build_hyper_hessian(
+   ...     func,
+   ...     theta0,
+   ...     method="finite",
+   ...     extrapolation="ridders",
+   ... )
    >>> print(hess3.shape)
    (2, 2, 2, 2)
    >>>
    >>> # Component 0: only d^3/dtheta0^3 = 6 is non-zero.
    >>> ref0 = np.zeros((2, 2, 2), dtype=float)
    >>> ref0[0, 0, 0] = 6.0
-   >>> np.allclose(hess3[0], ref0, atol=1e-6, rtol=0.0)
+   >>> np.allclose(hess3[0], ref0, atol=5e-3, rtol=0.0)
    True
    >>> # Component 1: all third derivatives are zero (quadratic/linear terms only).
-   >>> np.allclose(hess3[1], 0.0, atol=1e-6, rtol=0.0)
+   >>> np.allclose(hess3[1], 0.0, atol=5e-3, rtol=0.0)
    True
 
 
