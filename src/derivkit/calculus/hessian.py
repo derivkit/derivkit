@@ -419,7 +419,7 @@ def _build_hessian_internal(
     theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
-    
+
     y0 = np.asarray(function(theta))
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
