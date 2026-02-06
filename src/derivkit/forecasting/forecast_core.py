@@ -17,6 +17,7 @@ from typing import Any, Callable
 import numpy as np
 from numpy.typing import NDArray
 
+from derivkit.calculus.calculus_core import cache_theta_function
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
@@ -120,10 +121,13 @@ def get_forecast_tensors(
     if theta0_arr.size == 0:
         raise ValueError("theta0 must be non-empty 1D.")
 
+    function_cached = cache_theta_function(function)
+
     cov_arr = validate_covariance_matrix_shape(cov)
     n_observables = cov_arr.shape[0]
 
-    y0 = np.asarray(function(theta0_arr), dtype=float)
+    y0 = np.asarray(function_cached(theta0_arr), dtype=float)
+
     y0_flat = y0.reshape(-1)
 
     if y0_flat.size != n_observables:
@@ -149,7 +153,7 @@ def get_forecast_tensors(
 
     for order1 in range(1, 1 + forecast_order):
         derivatives[order1] = _get_derivatives(
-            function,
+            function_cached,
             theta0_arr,
             cov_arr,
             order=order1,
