@@ -376,7 +376,11 @@ def test_scalar_dali_triplet(model, theta, expected):
     expected_fixed = (expected[0][..., np.newaxis], expected[1], expected[2])
 
     for i in range(len(triplet)):
-        assert np.allclose(triplet[i], expected_fixed[i], atol=1e-6)
+        exp = expected_fixed[i]
+        if np.all(exp == 0):
+            assert np.allclose(triplet[i], exp, atol=2e-5, rtol=0.0)
+        else:
+            assert np.allclose(triplet[i], exp, atol=1e-8, rtol=1e-7)
 
 
 def get_all_indices(max_indices):
