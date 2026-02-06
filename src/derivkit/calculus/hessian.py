@@ -258,10 +258,6 @@ def _hessian_component_worker(
         A single number showing how the rate of change in one parameter
         depends on another.
     """
-    # debug
-    print(i)
-    print(j)
-    print('--')
     val = _hessian_component(
         function=function,
         theta0=theta0,
@@ -317,7 +313,6 @@ def _hessian_component(
     # Then we take the derivative of that helper with respect to parameter j.
     if i == j:
         partial_vec1 = get_partial_function(function, i, theta0)
-        probe = np.asarray(partial_vec1(float(theta0[i])), dtype=float)
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
         return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
 
@@ -450,21 +445,17 @@ def _build_hessian_internal(
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
-
     inner_override = dk_kwargs.pop("inner_workers", None)
     outer = int(n_workers) if n_workers is not None else 1
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
-    if True:
-        if diag:
-            arr = _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
-            if not np.isfinite(arr).all():
-                raise FloatingPointError("Non-finite values encountered in Hessian.")
-            return arr
-        else:
-            arr = _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
-            if not np.isfinite(arr).all():
-                raise FloatingPointError("Non-finite values encountered in Hessian.")
-            return arr
+    if diag:
+        arr = _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+        if not np.isfinite(arr).all():
+            raise FloatingPointError("Non-finite values encountered in Hessian.")
+        return arr
+    else:
+        arr = _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
+        if not np.isfinite(arr).all():
+            raise FloatingPointError("Non-finite values encountered in Hessian.")
+        return arr
