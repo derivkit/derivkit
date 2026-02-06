@@ -109,7 +109,13 @@ def _build_hessian_full(
     inner_workers: int | None,
     **dk_kwargs: Any,
 ) -> np.ndarray:
-    """Returns the full (p, p) Hessian for a scalar- or vector-valued function.
+    """Returns the full Hessian for a scalar- or vector-valued function.
+    
+    The shape of the Hessian contains two additional axes, each of which
+    have length ``len(theta)``. These axes are appended to the shape of the
+    original function, so e.g. a function of 3 parameters returning a vector
+    with 4 components would have shape ``(4, 3, 3)``, while a scalar-valued
+    function with 2 components would have shape ``(2, 2)``.
 
     Args:
         function: The function to be differentiated.
