@@ -101,44 +101,6 @@ def gauss_newton_hessian(*args, **kwargs):
     raise NotImplementedError
 
 
-def _compute_component_hessian(
-        idx: int,
-        theta: NDArray[np.floating],
-        method: str | None,
-        inner_workers: int | None,
-        return_diag: bool,
-        dk_kwargs: dict,
-        function: Callable[[ArrayLike], float | np.ndarray]
-    ,) -> NDArray[np.floating]:
-    """Compute the Hessian (or its diagonal) for one output component.
-
-    When ``function(theta)`` is tensor-valued, we ravel the output and take the
-    scalar component at flat index ``idx``. We then differentiate that scalar
-    component with respect to all parameters in ``theta``.
-
-    Args:
-        idx: Flat index into ``function(theta)`` after raveling.
-        theta: Parameter vector where derivatives are evaluated.
-        method: Derivative method name or alias
-            (e.g., ``"adaptive"``, ``"finite"``).
-        inner_workers: Optional parallelism hint for the differentiation engine.
-        return_diag: If True, return only the diagonal entries.
-        dk_kwargs: Extra options forwarded to
-            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-        function: Original function to differentiate.
-
-    Returns:
-        (p, p) array for full Hessian or (p,) array for diagonal only,
-        where ``p = theta.size``.
-    """
-    g = partial(_component_scalar_eval, function=function, idx=int(idx))
-
-    if return_diag:
-        return _build_hessian_scalar_diag(g, theta, method, 1, inner_workers, **dk_kwargs)
-    else:
-        return _build_hessian_scalar_full(g, theta, method, 1, inner_workers, **dk_kwargs)
-
-
 def _component_scalar_eval(
     theta_vec: NDArray[np.floating],
     *,
@@ -200,24 +162,27 @@ def _build_hessian_scalar_full(
         for i in range(p) for j in range(i + 1, p)
     ]
 
-    vals = parallel_execute(
+    vals_list = parallel_execute(
         _hessian_component_worker,
         tasks,
         outer_workers=outer_workers,
         inner_workers=inner_workers,
     )
-
-    hess = np.empty((p, p), dtype=float)
+    y0 = np.asarray(function(theta))
+    out_shape = y0.shape
+    o = int(out_shape[0])
+    hess = np.empty((o, p, p), dtype=float)
     k = 0
+    vals = np.array(vals_list, dtype=float)
     for i in range(p):
-        hess[i, i] = float(vals[k])
+        hess[:,i, i] = vals[k]
         k += 1
     for i in range(p):
         for j in range(i + 1, p):
-            hij = float(vals[k])
+            hij = vals[k]
             k += 1
-            hess[i, j] = hij
-            hess[j, i] = hij
+            hess[:,i, j] = hij
+            hess[:,j, i] = hij
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in Hessian.")
@@ -293,6 +258,10 @@ def _hessian_component_worker(
         A single number showing how the rate of change in one parameter
         depends on another.
     """
+    # debug
+    print(i)
+    print(j)
+    print('--')
     val = _hessian_component(
         function=function,
         theta0=theta0,
@@ -303,11 +272,7 @@ def _hessian_component_worker(
         **dk_kwargs,
     )
     val_arr = np.asarray(val, dtype=float)
-    if val_arr.size != 1:
-        raise TypeError(
-            f"Hessian component must be scalar; got array with shape {val_arr.shape}."
-        )
-    return float(val_arr.item())
+    return val_arr
 
 
 def _hessian_component(
@@ -353,8 +318,6 @@ def _hessian_component(
     if i == j:
         partial_vec1 = get_partial_function(function, i, theta0)
         probe = np.asarray(partial_vec1(float(theta0[i])), dtype=float)
-        if probe.size != 1:
-            raise TypeError("build_hessian() expects a scalar-valued function.")
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
         return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
 
@@ -418,11 +381,7 @@ def _mixed_partial_value(
         **dk_kwargs,
     )
     val_arr = np.asarray(val, dtype=float)
-    if val_arr.size != 1:
-        raise TypeError(
-            f"Mixed partial derivative must be scalar; got array with shape {val_arr.shape}."
-        )
-    return float(val_arr.item())
+    return val_arr
 
 
 def _build_hessian_internal(
@@ -498,31 +457,14 @@ def _build_hessian_internal(
     outer = int(n_workers) if n_workers is not None else 1
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
-    if y0.ndim == 0:
+    if True:
         if diag:
-            return _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+            arr = _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+            if not np.isfinite(arr).all():
+                raise FloatingPointError("Non-finite values encountered in Hessian.")
+            return arr
         else:
-            return _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
-
-    # Tensor output: flatten and compute per-component Hessians.
-    # Treat the function output as a vector of length m = prod(out_shape),
-    # compute one scalar Hessian (or diagonal) per component, then reshape
-    # the stacked results back to the original output shape.
-    m = y0.size
-    tasks = [(i, theta, method, inner, diag, dk_kwargs, function) for i in range(m)]
-    vals = parallel_execute(
-        _compute_component_hessian, tasks, outer_workers=outer, inner_workers=inner
-    )
-
-    # Stack per-component results:
-    # each entry in `vals` is a Hessian of shape (p, p) or a diagonal of shape (p,).
-    arr = np.stack(vals, axis=0)
-
-    # Restore the original output layout and append parameter axes.
-    # Result shape:
-    # - (*out_shape, p, p) for full Hessians.
-    # - (*out_shape, p)    for diagonals.
-    arr = arr.reshape(out_shape + arr.shape[1:])
-    if not np.isfinite(arr).all():
-        raise FloatingPointError("Non-finite values encountered in Hessian.")
-    return arr
+            arr = _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
+            if not np.isfinite(arr).all():
+                raise FloatingPointError("Non-finite values encountered in Hessian.")
+            return arr
