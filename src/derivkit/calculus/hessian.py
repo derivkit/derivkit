@@ -101,31 +101,7 @@ def gauss_newton_hessian(*args, **kwargs):
     raise NotImplementedError
 
 
-def _component_scalar_eval(
-    theta_vec: NDArray[np.floating],
-    *,
-    function: Callable[[ArrayLike], float | np.ndarray],
-    idx: int,
-) -> float:
-    """Returns a scalar from a function output.
-
-    The scalar can be the function output itself if the function is scalar-valued,
-    or a single component of the function output if the function is tensor-valued.
-    The function output is flattened before returning the component.
-
-    Args:
-        theta_vec: The parameter vector at which the function is evaluated.
-        function: The original function to be differentiated.
-        idx: The index of the flattened output component to extract.
-
-    Returns:
-        The value of the specified component.
-    """
-    val = np.asarray(function(theta_vec))
-    return float(val.ravel()[idx])
-
-
-def _build_hessian_scalar_full(
+def _build_hessian_full(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
@@ -133,7 +109,7 @@ def _build_hessian_scalar_full(
     inner_workers: int | None,
     **dk_kwargs: Any,
 ) -> np.ndarray:
-    """Returns the full (p, p) Hessian for a scalar-valued function.
+    """Returns the full (p, p) Hessian for a scalar- or vector-valued function.
 
     Args:
         function: The function to be differentiated.
@@ -145,11 +121,10 @@ def _build_hessian_scalar_full(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A 2D array representing the Hessian.
+        An ND array representing the Hessian.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
-        TypeError: If ``function`` does not return a scalar value.
     """
     p = int(theta.size)
 
@@ -169,9 +144,12 @@ def _build_hessian_scalar_full(
         inner_workers=inner_workers,
     )
     y0 = np.asarray(function(theta))
-    out_shape = y0.shape
-    o = int(out_shape[0])
-    hess = np.empty((o, p, p), dtype=float)
+    if y0.ndim == 0:
+        hess = np.empty((1, p, p), dtype=float)
+    else:
+        out_shape = y0.shape
+        o = int(out_shape[0])
+        hess = np.empty((o, p, p), dtype=float)
     k = 0
     vals = np.array(vals_list, dtype=float)
     for i in range(p):
@@ -189,7 +167,7 @@ def _build_hessian_scalar_full(
     return hess
 
 
-def _build_hessian_scalar_diag(
+def _build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
@@ -197,7 +175,7 @@ def _build_hessian_scalar_diag(
     inner_workers: int | None,
     **dk_kwargs: Any,
 ) -> np.ndarray:
-    """Returns the diagonal of the Hessian for a scalar-valued function.
+    """Returns the diagonal of the Hessian for a scalar- or vector-valued function.
 
     Args:
         function: The function to be differentiated.
@@ -213,7 +191,6 @@ def _build_hessian_scalar_diag(
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
-        TypeError: If ``function`` does not return a scalar value.
     """
     p = int(theta.size)
 
@@ -240,10 +217,10 @@ def _hessian_component_worker(
     inner_workers: int | None,
     dk_kwargs: dict,
 ) -> float:
-    """Returns one entry of the Hessian for a scalar-valued function.
+    """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     Args:
-        function: A function that returns a single value.
+        function: A function that returns a scalar or vector value.
         theta0: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
@@ -255,8 +232,8 @@ def _hessian_component_worker(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A single number showing how the rate of change in one parameter
-        depends on another.
+        A number or vector showing how the rate of change of the function
+        depends on the parameters.
     """
     val = _hessian_component(
         function=function,
@@ -280,7 +257,7 @@ def _hessian_component(
     n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> float:
-    """Returns one entry of the Hessian for a scalar-valued function.
+    """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     This function measures how the rate of change in one parameter depends
     on another. It handles both the pure and mixed second derivatives:
@@ -290,7 +267,7 @@ def _hessian_component(
         and then differentiating that result with respect to parameter j.
 
     Args:
-        function: A function that returns a single value.
+        function: A function that returns a scalar or vector value.
         theta0: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
@@ -302,11 +279,8 @@ def _hessian_component(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A single number showing how the rate of change in one parameter
+        A number or vector showing how the rate of change in one parameter
         depends on another.
-
-    Raises:
-        TypeError: If ``function`` does not return a scalar value.
     """
     # Mixed derivative path: define a helper that computes how the function changes with parameter i
     # when parameter j is temporarily set to a specific value.
@@ -350,7 +324,7 @@ def _mixed_partial_value(
 
     Args:
         y: The value to set for parameter j.
-        function: A function that returns a single value.
+        function: A function that returns a scalar or vector value.
         theta0: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
@@ -398,9 +372,7 @@ def _build_hessian_internal(
 
     Args:
         function:
-            Callable mapping parameters to a scalar or tensor. For tensor outputs,
-            the function is flattened and one scalar Hessian (or diagonal) is
-            computed per component, then reshaped back.
+            Callable mapping parameters to a scalar or tensor.
         theta0:
             Parameter vector (1D array) at which the Hessian is evaluated.
         method:
@@ -450,12 +422,12 @@ def _build_hessian_internal(
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
     if diag:
-        arr = _build_hessian_scalar_diag(function, theta, method, outer, inner, **dk_kwargs)
+        arr = _build_hessian_diag(function, theta, method, outer, inner, **dk_kwargs)
         if not np.isfinite(arr).all():
             raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr
     else:
-        arr = _build_hessian_scalar_full(function, theta, method, outer, inner, **dk_kwargs)
+        arr = _build_hessian_full(function, theta, method, outer, inner, **dk_kwargs)
         if not np.isfinite(arr).all():
             raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr
