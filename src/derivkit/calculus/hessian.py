@@ -409,7 +409,7 @@ def _build_hessian_internal(
         ValueError:
             If ``theta0`` is empty.
         TypeError:
-            If evaluating a single output component does not return a scalar.
+            If ``function`` does not return a scalar or a vector.
 
     Notes:
     - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
@@ -419,6 +419,13 @@ def _build_hessian_internal(
     theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
+
+    probe = np.asarray(function(theta0), dtype=np.float64)
+    if probe.ndim not in [0,1]:
+        raise TypeError(
+            "Hessian expects a scalar- or vector-valued function; "
+            f"got output with shape {probe.shape}."
+        )
 
     inner_override = dk_kwargs.pop("inner_workers", None)
     outer = int(n_workers) if n_workers is not None else 1
