@@ -48,9 +48,10 @@ def f_cubic2d(theta):
     return x**2 + 3.0 * x * y + 2.0 * y**3
 
 
-def f_finite_vec_model(_theta: np.ndarray) -> np.ndarray:
-    """Model returning finite values for testing."""
-    return np.array([0.0, 1.0], dtype=float)
+def f_nonfinite_hessian(theta: np.ndarray) -> np.ndarray:
+    """Model returning nonfinite Hessian."""
+    x = np.asarray(theta, float)
+    return np.pow(x,4/3)
 
 
 def rng_seed42():
@@ -226,14 +227,14 @@ def test_hessian_raises_on_nonfinite_model_output():
 
 def test_hessian_raises_on_nonfinite_component_result():
     """Tests that non-finite component results raise FloatingPointError."""
-    theta = np.array([1.0], dtype=float)
+    theta = np.array([0.0], dtype=float)
 
     with pytest.raises(
         FloatingPointError,
         match="Non-finite values encountered in Hessian",
     ):
         build_hessian(
-            function=f_finite_vec_model,
+            function=f_nonfinite_hessian,
             theta0=theta,
             method=None,
             n_workers=1,
