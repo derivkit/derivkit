@@ -151,12 +151,8 @@ def _build_hessian_full(
         inner_workers=inner_workers,
     )
     y0 = np.asarray(function(theta))
-    if y0.ndim == 0:
-        hess = np.empty((1, p, p), dtype=float)
-    else:
-        out_shape = y0.shape
-        o = int(out_shape[0])
-        hess = np.empty((o, p, p), dtype=float)
+    out_shape = y0.shape
+    hess = np.empty((*out_shape, p, p), dtype=float)
     k = 0
     vals = np.array(vals_list, dtype=float)
     for i in range(p):
@@ -171,10 +167,7 @@ def _build_hessian_full(
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in Hessian.")
-    if y0.ndim == 0:
-        return hess[0,:,:]
-    else:
-        return hess
+    return hess
 
 
 def _build_hessian_diag(
