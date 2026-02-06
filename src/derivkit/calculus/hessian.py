@@ -127,7 +127,8 @@ def _build_hessian_full(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        An ND array representing the Hessian.
+        An ND array representing the Hessian. The last two axes represent the
+        components of the derivatives.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
