@@ -48,6 +48,11 @@ def f_cubic2d(theta):
     return x**2 + 3.0 * x * y + 2.0 * y**3
 
 
+def f_finite_vec_model(_theta: np.ndarray) -> np.ndarray:
+    """Model returning finite values for testing."""
+    return np.array([0.0, 1.0], dtype=float)
+
+
 def rng_seed42():
     """Get a random number generator with a fixed seed (42) for reproducibility."""
     return np.random.default_rng(seed=42)
@@ -204,3 +209,36 @@ def test_build_hessian_parallel_equals_serial():
     hess1 = build_hessian(poly_trig_simple, t, n_workers=1)
     hess4 = build_hessian(poly_trig_simple, t, n_workers=8)
     np.testing.assert_allclose(hess4, hess1, rtol=1e-8, atol=1e-10)
+
+
+def test_hessian_raises_on_nonfinite_model_output():
+    """Tests that non-finite model outputs raise FloatingPointError."""
+    theta = np.array([1.0], dtype=float)
+
+    with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
+        dispatch_tensor_output(
+            function=f_nonfinite,
+            theta=theta,
+            method=None,
+            outer_workers=1,
+            inner_workers=1,
+            dk_kwargs={},
+        )
+
+
+def test_hessian_raises_on_nonfinite_component_result():
+    """Tests that non-finite component results raise FloatingPointError."""
+    theta = np.array([1.0], dtype=float)
+
+    with pytest.raises(
+        FloatingPointError,
+        match="Non-finite values encountered in Hessian",
+    ):
+        dispatch_tensor_output(
+            function=f_finite_vec_model,
+            theta=theta,
+            method=None,
+            outer_workers=1,
+            inner_workers=1,
+            dk_kwargs={},
+        )
