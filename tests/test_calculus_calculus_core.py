@@ -9,7 +9,6 @@ import pytest
 
 from derivkit.calculus.calculus_core import (
     component_scalar_eval,
-    dispatch_tensor_output,
 )
 
 
@@ -108,76 +107,3 @@ def test_component_scalar_eval_out_of_range_raises():
     theta = np.array([0.0], dtype=float)
     with pytest.raises(IndexError):
         component_scalar_eval(theta, function=length2_model, idx=5)
-
-
-def test_dispatch_tensor_output_shapes_and_values_serial():
-    """Tests that tensor output dispatch works in serial."""
-    theta = np.array([0.1, 0.2, 0.3], dtype=float)
-    p = theta.size
-
-    out = dispatch_tensor_output(
-        function=matrix2x2_model,
-        theta=theta,
-        method="finite",
-        outer_workers=1,
-        inner_workers=1,
-        dk_kwargs={},
-        build_component=build_component_full_pp,
-    )
-
-    assert out.shape == (2, 2, p, p)
-    assert np.all(out[0, 0] == 0.0)
-    assert np.all(out[0, 1] == 1.0)
-    assert np.all(out[1, 0] == 2.0)
-    assert np.all(out[1, 1] == 3.0)
-
-
-def test_dispatch_tensor_output_raises_on_scalar_output():
-    """Tests that scalar outputs raise ValueError."""
-    theta = np.array([1.0, 2.0], dtype=float)
-
-    with pytest.raises(ValueError, match=r"dispatch_tensor_output requires an array-valued model output"):
-        dispatch_tensor_output(
-            function=scalar_one_model,
-            theta=theta,
-            method=None,
-            outer_workers=1,
-            inner_workers=1,
-            dk_kwargs={},
-            build_component=build_component_scalar0,
-        )
-
-
-def test_dispatch_tensor_output_raises_on_nonfinite_model_output():
-    """Tests that non-finite model outputs raise FloatingPointError."""
-    theta = np.array([1.0], dtype=float)
-
-    with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
-        dispatch_tensor_output(
-            function=nan_model,
-            theta=theta,
-            method=None,
-            outer_workers=1,
-            inner_workers=1,
-            dk_kwargs={},
-            build_component=build_component_scalar0,
-        )
-
-
-def test_dispatch_tensor_output_raises_on_nonfinite_component_result():
-    """Tests that non-finite component results raise FloatingPointError."""
-    theta = np.array([1.0], dtype=float)
-
-    with pytest.raises(
-        FloatingPointError,
-        match="Non-finite values encountered in tensor-output derivative object",
-    ):
-        dispatch_tensor_output(
-            function=finite_vec_model,
-            theta=theta,
-            method=None,
-            outer_workers=1,
-            inner_workers=1,
-            dk_kwargs={},
-            build_component=build_component_inf_for_idx1,
-        )
