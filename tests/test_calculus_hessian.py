@@ -218,10 +218,9 @@ def test_hessian_raises_on_nonfinite_model_output():
     with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
         build_hessian(
             function=f_nonfinite,
-            theta=theta,
+            theta0=theta,
             method=None,
-            outer_workers=1,
-            inner_workers=1,
+            n_workers=1,
             dk_kwargs={},
         )
 
@@ -236,9 +235,8 @@ def test_hessian_raises_on_nonfinite_component_result():
     ):
         build_hessian(
             function=f_finite_vec_model,
-            theta=theta,
+            theta0=theta,
             method=None,
-            outer_workers=1,
-            inner_workers=1,
+            n_workers=1,
             dk_kwargs={},
         )
