@@ -216,7 +216,7 @@ def test_hessian_raises_on_nonfinite_model_output():
     theta = np.array([1.0], dtype=float)
 
     with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
-        dispatch_tensor_output(
+        build_hessian(
             function=f_nonfinite,
             theta=theta,
             method=None,
@@ -234,7 +234,7 @@ def test_hessian_raises_on_nonfinite_component_result():
         FloatingPointError,
         match="Non-finite values encountered in Hessian",
     ):
-        dispatch_tensor_output(
+        build_hessian(
             function=f_finite_vec_model,
             theta=theta,
             method=None,
