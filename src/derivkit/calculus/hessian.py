@@ -13,6 +13,7 @@ from derivkit.utils.concurrency import (
     resolve_inner_from_outer,
 )
 from derivkit.utils.sandbox import get_partial_function
+from derivkit.utils.validate import ensure_finite
 
 __all__ = [
     "build_hessian",
@@ -165,8 +166,7 @@ def _build_hessian_full(
             hess[...,i, j] = hij
             hess[...,j, i] = hij
 
-    if not np.isfinite(hess).all():
-        raise FloatingPointError("Non-finite values encountered in Hessian.")
+    ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
     return hess
 
 
@@ -419,6 +419,9 @@ def _build_hessian_internal(
     theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
+    
+    y0 = np.asarray(function(theta))
+    ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
     probe = np.asarray(function(theta0), dtype=np.float64)
     if probe.ndim not in [0,1]:
