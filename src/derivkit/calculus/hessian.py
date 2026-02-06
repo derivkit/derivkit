@@ -110,7 +110,7 @@ def _build_hessian_full(
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the full Hessian for a scalar- or vector-valued function.
-    
+
     The shape of the Hessian contains two additional axes, each of which
     have length ``len(theta)``. These axes are appended to the shape of the
     original function, so e.g. a function of 3 parameters returning a vector
