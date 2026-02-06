@@ -221,7 +221,6 @@ def test_hessian_raises_on_nonfinite_model_output():
             theta0=theta,
             method=None,
             n_workers=1,
-            dk_kwargs={},
         )
 
 
@@ -238,5 +237,4 @@ def test_hessian_raises_on_nonfinite_component_result():
             theta0=theta,
             method=None,
             n_workers=1,
-            dk_kwargs={},
         )
