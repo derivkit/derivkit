@@ -934,3 +934,22 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert seen["kwargs"]["n_walkers"] == 16
     assert seen["kwargs"]["init_scale"] == 1e-2
     assert seen["kwargs"]["seed"] == 5
+
+
+def test_forecastkit_dali_smoke_vector_model():
+    """Tests that ForecastKit.dali works on a vector model without heavy deps."""
+    def model(theta):
+        th = np.asarray(theta, float)
+        return np.array([th[0] + 2 * th[1], th[0] ** 2], float)
+
+    theta0 = np.array([0.3, 0.1], float)
+    cov = np.eye(2)
+
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+    dali = fk.dali(forecast_order=2, method="finite", n_workers=1)
+
+    # Just sanity-check structure (adapt to your actual dali return type).
+    assert 1 in dali and 2 in dali
+    assert dali[1][0].shape == (2, 2)
+    assert dali[2][0].shape == (2, 2, 2)
+    assert dali[2][1].shape == (2, 2, 2, 2)

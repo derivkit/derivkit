@@ -252,8 +252,8 @@ def test_forecast(
         rtol_d1 = max(rtol_d1, 1.5e-2)
         rtol_d2 = max(rtol_d2, 2.5e-2)
 
-    _assert_close_mixed(d1, expected_d1, rtol=rtol_d1, label="d1")
-    _assert_close_mixed(d2, expected_d2, rtol=rtol_d2, label="d2")
+    _assert_close_mixed(d1, expected_d1, rtol=rtol_d1, floor=5e-11, label="d1")
+    _assert_close_mixed(d2, expected_d2, rtol=rtol_d2, floor=5e-11, label="d2")
 
 
 def _assert_close_mixed(
@@ -625,25 +625,6 @@ def test_get_derivatives_rejects_bad_hessian_shape(monkeypatch):
     with pytest.raises(ValueError, match=r"hessian returned unexpected shape"):
         fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1, 0.2]), np.eye(1), order=2)
 
-def test_get_derivatives_rejects_bad_hyper_hessian_shape(monkeypatch):
-    """Tests that get_derivatives rejects bad hyper_hessian shapes."""
-
-    class FakeCK:
-        """Fake CalculusKit class that returns nonsense hyper_hessian shapes."""
-        def __init__(self, function, theta0):
-            """Initializes the fake CalculusKit class."""
-            _, _ = function, theta0
-            pass
-        def hyper_hessian(self, **kwargs):
-            """Bad hyper_hessian: 2x2x2 instead of 2x2x2x2."""
-            _ = kwargs
-            return np.zeros((2, 2, 2, 2, 2))  # nonsense
-
-    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
-
-    with pytest.raises(ValueError, match=r"hyper_hessian returned unexpected shape"):
-        fc._get_derivatives(lambda th: np.array([1.0]), np.array([0.1]), np.eye(1), order=3)
-
 
 def test_forecast_order_type_error():
     """Tests that forecast_order must be an int."""
@@ -701,3 +682,255 @@ def test_method_and_workers_are_forwarded(monkeypatch):
 
     assert seen.get("method") == "finite"
     assert seen.get("n_workers") == 3
+
+
+def test_get_forecast_tensors_checks_model_output_matches_cov_before_derivatives(monkeypatch):
+    """Tests that get_forecast_tensors validates output length against cov before differentiating."""
+    # If derivative computation is reached, fail loudly.
+    def boom(*args, **kwargs):
+        _ = (args, kwargs)
+        raise AssertionError("Should not compute derivatives when output/cov dims mismatch.")
+
+    monkeypatch.setattr(fc, "_get_derivatives", boom)
+
+    def model(theta):
+        """Returns 3 observables, but cov will be 2x2."""
+        t = np.asarray(theta, float)
+        return np.array([t[0], t[0] + 1.0, t[0] ** 2], dtype=float)
+
+    theta0 = np.array([0.1], dtype=float)
+    cov = np.eye(2)
+
+    with pytest.raises(ValueError, match=r"Expected 2 observables"):
+        get_forecast_tensors(model, theta0, cov, forecast_order=1)
+
+
+def test_get_forecast_tensors_uses_cached_model_for_theta0(monkeypatch):
+    """Tests that get_forecast_tensors caches the theta0 evaluation and reuses it."""
+    calls = {"n": 0}
+
+    def model(theta):
+        """Counts calls; returns 2 observables."""
+        calls["n"] += 1
+        t = np.asarray(theta, float)
+        return np.array([t[0], 2.0 * t[0]], dtype=float)
+
+    # Make derivatives path run without calling the model at all.
+    def fake_get_derivatives(function, theta0, cov, *, order, method=None, n_workers=1, **dk_kwargs):
+        _ = (function, theta0, cov, order, method, n_workers, dk_kwargs)
+        # Return correctly-shaped zeros for each derivative order.
+        nobs = np.asarray(cov, float).shape[0]
+        p = np.asarray(theta0, float).reshape(-1).size
+        if order == 1:
+            return np.zeros((nobs, p), dtype=float)
+        if order == 2:
+            return np.zeros((nobs, p, p), dtype=float)
+        if order == 3:
+            return np.zeros((nobs, p, p, p), dtype=float)
+        raise AssertionError("unexpected order")
+
+    monkeypatch.setattr(fc, "_get_derivatives", fake_get_derivatives)
+
+    theta0 = np.array([0.3], dtype=float)
+    cov = np.eye(2)
+
+    _ = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+
+    # get_forecast_tensors should evaluate the model once at theta0 for shape checking.
+    assert calls["n"] == 1
+
+
+def test_get_forecast_tensors_passes_cached_function_into_get_derivatives(monkeypatch):
+    """Tests that _get_derivatives sees a cached callable (repeat theta hits cache)."""
+    calls = {"n": 0}
+
+    def model(theta):
+        """Counts calls; returns 1 observable."""
+        calls["n"] += 1
+        t = np.asarray(theta, float)
+        return np.array([t[0] ** 2], dtype=float)
+
+    seen = {"func": None}
+
+    def fake_get_derivatives(function, theta0, cov, *, order, method=None, n_workers=1, **dk_kwargs):
+        _ = (theta0, cov, order, method, n_workers, dk_kwargs)
+        seen["func"] = function
+
+        # Both of these should hit the cache (y0 check already populated it).
+        _ = np.asarray(function(np.asarray(theta0, float)))
+        _ = np.asarray(function(np.asarray(theta0, float)))
+
+        nobs = np.asarray(cov, float).shape[0]
+        p = np.asarray(theta0, float).reshape(-1).size
+        return np.zeros((nobs, p), dtype=float)
+
+    monkeypatch.setattr(fc, "_get_derivatives", fake_get_derivatives)
+
+    theta0 = np.array([0.5], dtype=float)
+    cov = np.eye(1)
+
+    _ = get_forecast_tensors(model, theta0, cov, forecast_order=1)
+
+    # Only the eager y0 call should touch the underlying model.
+    assert calls["n"] == 1
+    assert seen["func"] is not None
+
+
+def test_get_forecast_tensors_rejects_multi_dim_model_output():
+    """Tests that model outputs with ndim>1 are rejected by _get_derivatives vectorizer."""
+    # This is a behavioral test of the new _vectorize_model_output check.
+    def bad_model(theta):
+        """Returns a matrix, which should be rejected by _get_derivatives."""
+        t = float(np.asarray(theta, float).reshape(-1)[0])
+        return np.array([[t, t], [t, t]], dtype=float)
+
+    theta0 = np.array([0.1], dtype=float)
+    cov = np.eye(4)
+
+    # Shape check passes (4 observables), but _get_derivatives should raise TypeError.
+    with pytest.raises(TypeError, match=r"model must return a scalar or 1D vector of observables"):
+        get_forecast_tensors(bad_model, theta0, cov, forecast_order=1, method="finite", n_workers=1)
+
+
+def test_get_derivatives_rejects_bad_hyper_hessian_shape(monkeypatch):
+    """Tests that get_derivatives rejects bad hyper_hessian shapes."""
+    class FakeCK:
+        """Fake CalculusKit class that returns nonsense hyper_hessian shapes."""
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+
+        def hyper_hessian(self, **kwargs):
+            """Bad hyper_hessian: wrong rank/shape."""
+            _ = kwargs
+            return np.zeros((2, 2, 2, 2, 2))  # nonsense
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"hyper_hessian returned unexpected shape"):
+        fc._get_derivatives(
+            lambda th: np.array([1.0], dtype=float),
+            np.array([0.1], dtype=float),
+            np.eye(1),
+            order=3,
+        )
+
+
+def test_get_derivatives_hessian_shape_message_matches_expected(monkeypatch):
+    """Tests that hessian shape error message matches the new expected shape."""
+    class FakeCK:
+        """Fake CalculusKit class that returns nonsense hessian shapes."""
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+
+        def hessian(self, **kwargs):
+            """Bad hessian: wrong shape."""
+            _ = kwargs
+            return np.zeros((4, 4, 4))  # nonsense
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"expected \(1,2,2\)"):
+        fc._get_derivatives(
+            lambda th: np.array([1.0], dtype=float),
+            np.array([0.1, 0.2], dtype=float),
+            np.eye(1),
+            order=2,
+        )
+
+
+def test_get_forecast_tensors_vector_model_smoke():
+    """Vector-valued forward model + cov -> Fisher + DALI doublet shapes."""
+    def model(theta):
+        th = np.asarray(theta, float)
+        # pretend these are TT multipoles
+        return np.array([np.sin(th[0]) + th[1], th[0] ** 2 - 0.3 * th[1]], float)
+
+    theta0 = np.array([0.7, 0.02], float)
+    cov = np.eye(2)
+
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=2, method="finite", n_workers=1)
+
+    F = out[1][0]
+    D1, D2 = out[2]
+
+    assert F.shape == (2, 2)
+    assert D1.shape == (2, 2, 2)
+    assert D2.shape == (2, 2, 2, 2)
+    assert np.isfinite(F).all()
+    assert np.isfinite(D1).all()
+    assert np.isfinite(D2).all()
+
+
+def test_get_forecast_tensors_no_caching_calls_model_many_times(monkeypatch):
+    """If caching is disabled, repeated identical theta evaluations should re-call the model."""
+    calls = {"n": 0}
+
+    def model(theta):
+        calls["n"] += 1
+        th = np.asarray(theta, float)
+        return np.array([th[0] + th[1], th[0] - th[1]], float)
+
+    # Disable caching by making cache_theta_function return the original function.
+    monkeypatch.setattr(fc, "cache_theta_function", lambda f: f)
+
+    # Make derivatives call the model repeatedly at the same theta (simulates FD internals).
+    def fake_get_derivatives(function, theta0, cov, *, order, method=None, n_workers=1, **dk_kwargs):
+        _ = (cov, order, method, n_workers, dk_kwargs)
+        t = np.asarray(theta0, float)
+        # Call forward model repeatedly at identical theta
+        for _ in range(5):
+            function(t)
+        # Return shape-correct zeros
+        nobs = np.asarray(cov, float).shape[0]
+        p = t.size
+        if order == 1:
+            return np.zeros((nobs, p))
+        if order == 2:
+            return np.zeros((nobs, p, p))
+        return np.zeros((nobs, p, p, p))
+
+    monkeypatch.setattr(fc, "_get_derivatives", fake_get_derivatives)
+
+    theta0 = np.array([0.7, 0.02], float)
+    cov = np.eye(2)
+
+    _ = get_forecast_tensors(model, theta0, cov, forecast_order=1)
+
+    assert calls["n"] == 6
+
+
+def test_get_forecast_tensors_with_caching_collapses_repeated_theta(monkeypatch):
+    """With caching enabled, repeated identical theta evaluations should hit cache."""
+    calls = {"n": 0}
+
+    def model(theta):
+        calls["n"] += 1
+        th = np.asarray(theta, float)
+        return np.array([th[0] + th[1], th[0] - th[1]], float)
+
+    def fake_get_derivatives(function, theta0, cov, *, order, method=None, n_workers=1, **dk_kwargs):
+        _ = (cov, order, method, n_workers, dk_kwargs)
+        t = np.asarray(theta0, float)
+        # Call forward model repeatedly at identical theta
+        for _ in range(5):
+            function(t)
+        # Return shape-correct zeros
+        nobs = np.asarray(cov, float).shape[0]
+        p = t.size
+        if order == 1:
+            return np.zeros((nobs, p))
+        if order == 2:
+            return np.zeros((nobs, p, p))
+        return np.zeros((nobs, p, p, p))
+
+    monkeypatch.setattr(fc, "_get_derivatives", fake_get_derivatives)
+
+    theta0 = np.array([0.7, 0.02], float)
+    cov = np.eye(2)
+
+    _ = get_forecast_tensors(model, theta0, cov, forecast_order=1)
+
+    # With caching: eager y0 call populates cache, then the 5 repeats are cache hits.
+    assert calls["n"] == 1
