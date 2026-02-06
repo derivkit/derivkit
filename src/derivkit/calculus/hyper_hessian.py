@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from functools import partial
 from itertools import permutations
 from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from derivkit.calculus.calculus_core import (
-    component_scalar_eval,
-    dispatch_tensor_output,
-)
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
