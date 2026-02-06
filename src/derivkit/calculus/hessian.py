@@ -164,7 +164,10 @@ def _build_hessian_full(
 
     if not np.isfinite(hess).all():
         raise FloatingPointError("Non-finite values encountered in Hessian.")
-    return hess
+    if y0.ndim == 0:
+        return hess[0,:,:]
+    else:
+        return hess
 
 
 def _build_hessian_diag(
