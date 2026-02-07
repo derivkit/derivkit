@@ -31,7 +31,7 @@ import pytest
 
 try:
     import camb  # type: ignore
-except Exception:  # ImportError is not enough for CAMB sometimes
+except Exception:
     camb = None  # type: ignore
 
 try:
@@ -188,6 +188,9 @@ def _make_camb_model(
     ells: np.ndarray
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict]:
     """Make a CAMB model function and metadata."""
+    if camb is None:
+        pytest.skip("CAMB not available (pip install camb)")
+
     ells = np.asarray(ells, int).reshape(-1)
     if np.any(ells < 2) or np.any(ells > lmax):
         raise ValueError("Bad ells for CAMB.")
@@ -254,6 +257,9 @@ def _make_ccl_model(
     z_n: int
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict]:
     """Make a PyCCL model function and metadata."""
+    if ccl is None:
+        pytest.skip("PyCCL not available (pip install pyccl)")
+
     # grids
     ell = np.unique(np.round(np.geomspace(20, 2000, n_ell)).astype(int))
     z = np.linspace(0.0, 3.5, z_n)
