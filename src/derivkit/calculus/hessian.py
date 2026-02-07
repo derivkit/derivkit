@@ -1,4 +1,4 @@
-"""Contains functions used in constructing the Hessian of a scalar-valued function."""
+"""Contains functions used in constructing the Hessian."""
 
 from collections.abc import Callable
 from functools import partial
@@ -213,18 +213,18 @@ def _build_hessian_diag(
 
 def _hessian_component_worker(
     function: Callable[[ArrayLike], float | np.ndarray],
-    theta0: np.ndarray,
+    theta: np.ndarray,
     i: int,
     j: int,
     method: str | None,
     inner_workers: int | None,
     dk_kwargs: dict,
-) -> float:
+) -> np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     Args:
         function: A function that returns a scalar or vector value.
-        theta0: The parameter values where the derivative is evaluated.
+        theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -240,26 +240,26 @@ def _hessian_component_worker(
     """
     val = _hessian_component(
         function=function,
-        theta0=theta0,
+        theta=theta,
         i=i,
         j=j,
         method=method,
         n_workers=inner_workers or 1,
         **dk_kwargs,
     )
-    val_arr = np.asarray(val, dtype=float)
-    return val_arr
+
+    return np.asarray(val, dtype=float)
 
 
 def _hessian_component(
     function: Callable[[ArrayLike], float | np.ndarray],
-    theta0: np.ndarray,
+    theta: np.ndarray,
     i: int,
     j: int,
     method: str | None = None,
     n_workers: int = 1,
     **dk_kwargs: Any,
-) -> float:
+) -> np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     This function measures how the rate of change in one parameter depends
@@ -271,7 +271,7 @@ def _hessian_component(
 
     Args:
         function: A function that returns a scalar or vector value.
-        theta0: The parameter values where the derivative is evaluated.
+        theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -289,21 +289,21 @@ def _hessian_component(
     # when parameter j is temporarily set to a specific value.
     # Then we take the derivative of that helper with respect to parameter j.
     if i == j:
-        partial_vec1 = get_partial_function(function, i, theta0)
-        kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
+        partial_vec1 = get_partial_function(function, i, theta)
+        kit1 = DerivativeKit(partial_vec1, float(theta[i]))
         return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
 
     path = partial(
         _mixed_partial_value,
         function=function,
-        theta0=theta0,
+        theta=theta,
         i=i,
         j=j,
         method=method,
         n_workers=n_workers,
         dk_kwargs=dk_kwargs,
     )
-    kit2 = DerivativeKit(path, float(theta0[j]))
+    kit2 = DerivativeKit(path, float(theta[j]))
     return kit2.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
 
 
@@ -311,7 +311,7 @@ def _mixed_partial_value(
     y: float,
     *,
     function: Callable[[ArrayLike], float | np.ndarray],
-    theta0: np.ndarray,
+    theta: np.ndarray,
     i: int,
     j: int,
     method: str | None,
@@ -328,7 +328,7 @@ def _mixed_partial_value(
     Args:
         y: The value to set for parameter j.
         function: A function that returns a scalar or vector value.
-        theta0: The parameter values where the derivative is evaluated.
+        theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
@@ -342,7 +342,7 @@ def _mixed_partial_value(
         The value of the partial derivative with respect to parameter i
         when parameter j is set to y.
     """
-    theta = theta0.copy()
+    theta = theta.copy()
     theta[j] = float(y)
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
@@ -420,11 +420,10 @@ def _build_hessian_internal(
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.asarray(function(theta))
-    ensure_finite(y0, msg="Non-finite values in model output at theta0.")
-
     probe = np.asarray(function(theta), dtype=np.float64)
-    if probe.ndim not in [0,1]:
+    ensure_finite(probe, msg="Non-finite values in model output at theta0.")
+
+    if probe.ndim not in (0, 1):
         raise TypeError(
             "Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."
