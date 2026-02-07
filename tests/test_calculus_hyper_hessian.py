@@ -38,7 +38,7 @@ def f_nonfinite(theta):
 def f_nonfinite_hyper_hessian(theta: np.ndarray) -> np.ndarray:
     """Model returning nonfinite hyper-Hessian."""
     x = np.asarray(theta, float)
-    return np.pow(x,4/3)
+    return np.power(x,4/3)
 
 
 @pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
@@ -95,7 +95,7 @@ def test_build_hyper_hessian_tensor_outputs_have_expected_shapes():
     """Tests that scalar path rejects non-scalar output."""
     theta0 = np.array([1.0, 2.0, 3.0], dtype=float)
 
-    def not_scalar(theta):
+    def not_scalar(_theta):
         return np.array([1.0, 2.0], dtype=float)
 
     # Force scalar helper by calling it indirectly: build_hyper_hessian will route to tensor path,
@@ -124,6 +124,7 @@ def test_hyper_hessian_raises_on_nonfinite_model_output():
         )
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in power:RuntimeWarning")
 def test_hyper_hessian_raises_on_nonfinite_component_result():
     """Tests that non-finite component results raise FloatingPointError."""
     theta = np.array([0.0], dtype=float)

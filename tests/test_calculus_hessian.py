@@ -51,7 +51,7 @@ def f_cubic2d(theta):
 def f_nonfinite_hessian(theta: np.ndarray) -> np.ndarray:
     """Model returning nonfinite Hessian."""
     x = np.asarray(theta, float)
-    return np.pow(x,4/3)
+    return np.power(x,4/3)
 
 
 def rng_seed42():
@@ -225,6 +225,7 @@ def test_hessian_raises_on_nonfinite_model_output():
         )
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in power:RuntimeWarning")
 def test_hessian_raises_on_nonfinite_component_result():
     """Tests that non-finite component results raise FloatingPointError."""
     theta = np.array([0.0], dtype=float)
