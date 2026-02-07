@@ -29,6 +29,9 @@ from typing import Callable
 import numpy as np
 import pytest
 
+from derivkit.forecast_kit import ForecastKit
+
+# Optional deps (runtime-checked)
 try:
     import camb  # type: ignore
 except Exception:
@@ -43,8 +46,6 @@ try:
     import psutil  # type: ignore
 except Exception:
     psutil = None  # type: ignore
-
-from derivkit.forecast_kit import ForecastKit
 
 _CURRENT_PHASE = "init"
 
@@ -409,9 +410,10 @@ def _run_one_backend(
         return
 
     _stamp(
-        f"y0: n_data={y0.size} | preview={np.array2string(np.asarray(y0)[:5],
-                                                          precision=3)} ..."
+        f"y0: n_data={y0.size} | "
+        f"preview={np.array2string(np.asarray(y0)[:5], precision=3)} ..."
     )
+
     _report_counters(f"{backend_name}: y0 counters", counters)
 
     cov = _toy_cov(y0, cov_frac)
