@@ -423,7 +423,7 @@ def _build_hessian_internal(
     y0 = np.asarray(function(theta))
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
-    probe = np.asarray(function(theta0), dtype=np.float64)
+    probe = np.asarray(function(theta), dtype=np.float64)
     if probe.ndim not in [0,1]:
         raise TypeError(
             "Hessian expects a scalar- or vector-valued function; "
