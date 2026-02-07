@@ -95,8 +95,7 @@ def test_build_hyper_hessian_tensor_outputs_have_expected_shapes():
     """Tests that scalar path rejects non-scalar output."""
     theta0 = np.array([1.0, 2.0, 3.0], dtype=float)
 
-    def not_scalar(theta):
-        _ = theta
+def not_scalar(_theta):
         return np.array([1.0, 2.0], dtype=float)
 
     # Force scalar helper by calling it indirectly: build_hyper_hessian will route to tensor path,
