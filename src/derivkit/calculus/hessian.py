@@ -105,6 +105,7 @@ def gauss_newton_hessian(*args, **kwargs):
 def _build_hessian_full(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
+    out_shape: tuple[int, ...],
     method: str | None,
     outer_workers: int,
     inner_workers: int | None,
@@ -121,6 +122,7 @@ def _build_hessian_full(
     Args:
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
+        out_shape: Shape of the output of ``function``.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
         outer_workers: Number of outer parallel workers for Hessian entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
@@ -151,10 +153,11 @@ def _build_hessian_full(
         outer_workers=outer_workers,
         inner_workers=inner_workers,
     )
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
+
     hess = np.empty((*out_shape, p, p), dtype=float)
+
     k = 0
+
     vals = np.array(vals_list, dtype=float)
     for i in range(p):
         hess[..., i, i] = vals[k]
@@ -206,8 +209,8 @@ def _build_hessian_diag(
     )
 
     diag = np.asarray(vals, dtype=float)
-    if not np.isfinite(diag).all():
-        raise FloatingPointError("Non-finite values encountered in Hessian diagonal.")
+    ensure_finite(diag, msg="Non-finite values encountered in Hessian diagonal.")
+
     return diag
 
 
@@ -342,10 +345,11 @@ def _mixed_partial_value(
         The value of the partial derivative with respect to parameter i
         when parameter j is set to y.
     """
-    theta = theta.copy()
-    theta[j] = float(y)
-    partial_vec1 = get_partial_function(function, i, theta)
-    kit1 = DerivativeKit(partial_vec1, float(theta[i]))
+    theta_local = theta.copy()
+    theta_local[j] = float(y)
+    partial_vec1 = get_partial_function(function, i, theta_local)
+    kit1 = DerivativeKit(partial_vec1, float(theta_local[i]))
+
     val = kit1.differentiate(
         order=1,
         method=method,
@@ -423,6 +427,8 @@ def _build_hessian_internal(
     probe = np.asarray(function(theta), dtype=np.float64)
     ensure_finite(probe, msg="Non-finite values in model output at theta0.")
 
+    out_shape = probe.shape
+
     if probe.ndim not in (0, 1):
         raise TypeError(
             "Hessian expects a scalar- or vector-valued function; "
@@ -434,12 +440,8 @@ def _build_hessian_internal(
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
     if diag:
-        arr = _build_hessian_diag(function, theta, method, outer, inner, **dk_kwargs)
-        if not np.isfinite(arr).all():
-            raise FloatingPointError("Non-finite values encountered in Hessian.")
-        return arr
+        return _build_hessian_diag(function, theta, method, outer, inner,
+                                   **dk_kwargs)
     else:
-        arr = _build_hessian_full(function, theta, method, outer, inner, **dk_kwargs)
-        if not np.isfinite(arr).all():
-            raise FloatingPointError("Non-finite values encountered in Hessian.")
-        return arr
+        return _build_hessian_full(function, theta, out_shape, method, outer,
+                                   inner, **dk_kwargs)
