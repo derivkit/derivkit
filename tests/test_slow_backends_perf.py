@@ -29,8 +29,22 @@ from typing import Callable
 import numpy as np
 import pytest
 
-from derivkit.forecast_kit import ForecastKit
+try:
+    import camb  # type: ignore
+except Exception:  # ImportError is not enough for CAMB sometimes
+    camb = None  # type: ignore
 
+try:
+    import pyccl as ccl  # type: ignore
+except Exception:
+    ccl = None  # type: ignore
+
+try:
+    import psutil  # type: ignore
+except Exception:
+    psutil = None  # type: ignore
+
+from derivkit.forecast_kit import ForecastKit
 
 _CURRENT_PHASE = "init"
 
@@ -79,9 +93,9 @@ def _cpu_time_s() -> float:
 
 def _rss_mb() -> float:
     """Get the current process resident set size in MB."""
+    if psutil is None:
+        return float("nan")
     try:
-        import psutil  # type: ignore
-
         p = psutil.Process(os.getpid())
         return float(p.memory_info().rss) / (1024.0**2)
     except Exception:
@@ -174,11 +188,6 @@ def _make_camb_model(
     ells: np.ndarray
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict]:
     """Make a CAMB model function and metadata."""
-    try:
-        import camb
-    except Exception as e:
-        pytest.skip(f"CAMB not available: {e!r}")
-
     ells = np.asarray(ells, int).reshape(-1)
     if np.any(ells < 2) or np.any(ells > lmax):
         raise ValueError("Bad ells for CAMB.")
@@ -245,11 +254,6 @@ def _make_ccl_model(
     z_n: int
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict]:
     """Make a PyCCL model function and metadata."""
-    try:
-        import pyccl as ccl
-    except Exception as e:
-        pytest.skip(f"PyCCL not available: {e!r}")
-
     # grids
     ell = np.unique(np.round(np.geomspace(20, 2000, n_ell)).astype(int))
     z = np.linspace(0.0, 3.5, z_n)

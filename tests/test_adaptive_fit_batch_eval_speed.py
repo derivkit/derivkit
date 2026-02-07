@@ -11,7 +11,6 @@ import pytest
 
 from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
 
-
 RUN_SLOW = os.environ.get("RUN_SLOW", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
 
 pytestmark = [
