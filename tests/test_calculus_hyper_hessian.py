@@ -29,6 +29,18 @@ def cubic_vector(theta):
     return np.array([x**3, y**3, z**3, x**3 + y**3 + z**3], dtype=float)
 
 
+def f_nonfinite(theta):
+    """Produces a non-finite output."""
+    x = np.asarray(theta, float)
+    return np.nan + x.sum()  # force NaN
+
+
+def f_nonfinite_hyper_hessian(theta: np.ndarray) -> np.ndarray:
+    """Model returning nonfinite hyper-Hessian."""
+    x = np.asarray(theta, float)
+    return np.pow(x,4/3)
+
+
 @pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
 def test_build_hyper_hessian_scalar_cubic(method, extra_kwargs):
     """Tests that cubic scalar function produces correct hyper-Hessian."""
@@ -97,3 +109,32 @@ def test_build_hyper_hessian_tensor_outputs_have_expected_shapes():
 
     hhh2 = build_hyper_hessian(not_scalar, theta0, method="finite")
     assert hhh2.shape == (2, 3, 3, 3)
+
+
+def test_hyper_hessian_raises_on_nonfinite_model_output():
+    """Tests that non-finite model outputs raise FloatingPointError."""
+    theta = np.array([1.0], dtype=float)
+
+    with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
+        build_hyper_hessian(
+            function=f_nonfinite,
+            theta0=theta,
+            method=None,
+            n_workers=1,
+        )
+
+
+def test_hyper_hessian_raises_on_nonfinite_component_result():
+    """Tests that non-finite component results raise FloatingPointError."""
+    theta = np.array([0.0], dtype=float)
+
+    with pytest.raises(
+        FloatingPointError,
+        match="Non-finite values encountered in hyper-Hessian",
+    ):
+        build_hyper_hessian(
+            function=f_nonfinite_hyper_hessian,
+            theta0=theta,
+            method=None,
+            n_workers=1,
+        )

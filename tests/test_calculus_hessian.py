@@ -48,6 +48,12 @@ def f_cubic2d(theta):
     return x**2 + 3.0 * x * y + 2.0 * y**3
 
 
+def f_nonfinite_hessian(theta: np.ndarray) -> np.ndarray:
+    """Model returning nonfinite Hessian."""
+    x = np.asarray(theta, float)
+    return np.pow(x,4/3)
+
+
 def rng_seed42():
     """Get a random number generator with a fixed seed (42) for reproducibility."""
     return np.random.default_rng(seed=42)
@@ -204,3 +210,32 @@ def test_build_hessian_parallel_equals_serial():
     hess1 = build_hessian(poly_trig_simple, t, n_workers=1)
     hess4 = build_hessian(poly_trig_simple, t, n_workers=8)
     np.testing.assert_allclose(hess4, hess1, rtol=1e-8, atol=1e-10)
+
+
+def test_hessian_raises_on_nonfinite_model_output():
+    """Tests that non-finite model outputs raise FloatingPointError."""
+    theta = np.array([1.0], dtype=float)
+
+    with pytest.raises(FloatingPointError, match="Non-finite values in model output"):
+        build_hessian(
+            function=f_nonfinite,
+            theta0=theta,
+            method=None,
+            n_workers=1,
+        )
+
+
+def test_hessian_raises_on_nonfinite_component_result():
+    """Tests that non-finite component results raise FloatingPointError."""
+    theta = np.array([0.0], dtype=float)
+
+    with pytest.raises(
+        FloatingPointError,
+        match="Non-finite values encountered in Hessian",
+    ):
+        build_hessian(
+            function=f_nonfinite_hessian,
+            theta0=theta,
+            method=None,
+            n_workers=1,
+        )
