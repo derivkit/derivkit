@@ -80,6 +80,7 @@ from derivkit.forecasting.laplace import (
     build_laplace_hessian,
     build_negative_logposterior,
 )
+from derivkit.utils.caching import wrap_theta_cache_builtin
 from derivkit.utils.types import FloatArray
 from derivkit.utils.validate import (
     require_callable,
@@ -98,8 +99,17 @@ class ForecastKit:
             theta0: Sequence[float] | np.ndarray,
             cov: np.ndarray
                  | Callable[[np.ndarray], np.ndarray],
+            *,
+            cache_theta: bool = False,
+            cache_theta_number_decimals: int = 14,
+            cache_theta_maxsize: int | None = 4096,
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
+
+        As an optimalization the class can cache function values, which speeds
+        up repeated function calls and their associated derivatives. In this
+        case the function will truncate the number of decimals of the input
+        parameters.
 
         Args:
             function: Callable returning the model mean vector :math:`\mu(\theta)`.
@@ -116,7 +126,21 @@ class ForecastKit:
                   matrix :math:`C(\theta)` evaluated at the parameter vector ``theta``,
                   with shape ``(n_obs, n_obs)``. The covariance at ``theta0`` is evaluated
                   once and cached.
+
+            cache_theta: A flag which, if set to ``True``, turns on caching of
+                function values.
+            cache_theta_number_decimals:  The number of decimals that are
+                included in the caching.
+            cache_theta_maxsize: The maximum size of the cache.
         """
+        if cache_theta:
+            function = wrap_theta_cache_builtin(
+                function,
+                number_decimals=cache_theta_number_decimals,
+                maxsize=cache_theta_maxsize,
+                copy=True,
+            )
+
         self.function = function
         self.theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
 
