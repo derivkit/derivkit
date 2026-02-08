@@ -11,16 +11,6 @@ import pytest
 
 from derivkit.derivatives.adaptive.batch_eval import eval_function_batch
 
-RUN_SLOW = os.environ.get("RUN_SLOW", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
-
-pytestmark = [
-    pytest.mark.slow,
-    pytest.mark.skipif(
-        not RUN_SLOW,
-        reason="slow test (set RUN_SLOW=1 to enable)",
-    ),
-]
-
 
 def cpu_heavy(x: float) -> float:
     """CPU-heavy function used to test parallel evaluation speed.
@@ -36,6 +26,7 @@ def cpu_heavy(x: float) -> float:
     return s
 
 
+@pytest.mark.slow
 def test_eval_function_batch_parallel_is_faster_and_equal(extra_threads_ok, threads_ok):
     """eval_function_batch should be faster with multiple workers and give identical results."""
     if not extra_threads_ok:
