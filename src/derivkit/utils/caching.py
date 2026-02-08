@@ -1,4 +1,5 @@
 """Provides :func:`wrap_theta_cache_builtin`."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -17,8 +18,8 @@ def wrap_theta_cache_builtin(
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict[str, Any]]:
     """Creates a cache for function values.
 
-    As part of the caching the input is truncated to a pre-set numbber
-    of digits.
+    As part of the caching the input is truncated to a pre-set number
+    of decimal digits.
 
     Args:
         function: The function to be cached.
