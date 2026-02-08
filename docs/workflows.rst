@@ -1,5 +1,5 @@
 .. |dklogo| image:: /assets/logos/logo-black.png
-   :alt: ``DerivKit`` logo black
+   :alt: DerivKit logo black
    :width: 32px
 
 
@@ -461,9 +461,8 @@ methods.
 
 DALI is based on a Taylor expansion and is only expected to be accurate within a
 finite neighborhood around ``theta0``. As a result, DALI is not expected to be
-accurate for values far away from ``theta0`. For this reason, sampling bounds
-and
-diagnostic checks are strongly recommended.
+accurate for values far away from ``theta0``. For this reason, sampling bounds
+and diagnostic checks are strongly recommended.
 
 
 **Should I always use the highest DALI expansion order available?**

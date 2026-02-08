@@ -558,7 +558,7 @@ class ForecastKit:
             theta_map=theta,
             method=method,
             n_workers=n_workers,
-            **dk_kwargs,
+            dk_kwargs=dk_kwargs,
         )
 
     def laplace_covariance(
@@ -628,7 +628,7 @@ class ForecastKit:
             n_workers=n_workers,
             ensure_spd=ensure_spd,
             rcond=rcond,
-            **dk_kwargs,
+            dk_kwargs=dk_kwargs,
         )
 
     def getdist_fisher_gaussian(

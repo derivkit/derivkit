@@ -252,7 +252,7 @@ def test_fisher_bias_delegates(monkeypatch):
         method="finite",
         n_workers=7,
         rcond=1e-9,
-        step=1e-4,
+        stepsize=1e-4,
     )
 
     np.testing.assert_allclose(bias_vec, np.array([0.1, 0.2]))
@@ -266,7 +266,7 @@ def test_fisher_bias_delegates(monkeypatch):
     assert seen["method"] == "finite"
     assert seen["n_workers"] == 7
     assert seen["rcond"] == 1e-9
-    assert seen["dk_kwargs"]["step"] == 1e-4
+    assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
 def test_delta_nu_delegates(monkeypatch):
@@ -338,7 +338,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
         n_workers=5,
         rcond=1e-8,
         symmetrize_dcov=False,
-        step=1e-4,
+        stepsize=1e-4,
     )
 
     np.testing.assert_allclose(out, np.full((2, 2), 9.0))
@@ -348,7 +348,7 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     assert seen["n_workers"] == 5
     assert seen["rcond"] == 1e-8
     assert seen["symmetrize_dcov"] is False
-    assert seen["dk_kwargs"]["step"] == 1e-4
+    assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
 def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
@@ -571,14 +571,13 @@ def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypa
         theta_map,
         method=None,
         n_workers=1,
-        **dk_kwargs,
+        dk_kwargs=None,
     ):
-        """Mock laplace_hessian that records inputs and returns fixed output."""
         seen["neg_logposterior"] = neg_logposterior
         seen["theta_map"] = np.asarray(theta_map)
         seen["method"] = method
         seen["n_workers"] = n_workers
-        seen["dk_kwargs"] = dk_kwargs
+        seen["dk_kwargs"] = {} if dk_kwargs is None else dict(dk_kwargs)
         return np.eye(2)
 
     monkeypatch.setattr(
@@ -599,7 +598,7 @@ def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypa
         theta_map=None,
         method="finite",
         n_workers=3,
-        step=1e-4,
+        stepsize=1e-4,
     )
 
     np.testing.assert_allclose(out, np.eye(2))
@@ -607,7 +606,7 @@ def test_laplace_hessian_delegates_uses_self_theta0_and_forwards_kwargs(monkeypa
     np.testing.assert_allclose(seen["theta_map"], theta0)
     assert seen["method"] == "finite"
     assert seen["n_workers"] == 3
-    assert seen["dk_kwargs"]["step"] == 1e-4
+    assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
 def test_laplace_hessian_delegates_uses_theta_map_override(monkeypatch):
@@ -668,14 +667,14 @@ def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(mo
     seen: dict[str, object] = {}
 
     def fake_laplace_approximation(
-        *,
-        neg_logposterior,
-        theta_map,
-        method=None,
-        n_workers=1,
-        ensure_spd=True,
-        rcond=1e-12,
-        **dk_kwargs,
+            *,
+            neg_logposterior,
+            theta_map,
+            method=None,
+            n_workers=1,
+            ensure_spd=True,
+            rcond=1e-12,
+            dk_kwargs=None,
     ):
         """Mock laplace_approximation that records inputs and returns fixed output."""
         seen["neg_logposterior"] = neg_logposterior
@@ -684,7 +683,7 @@ def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(mo
         seen["n_workers"] = n_workers
         seen["ensure_spd"] = ensure_spd
         seen["rcond"] = rcond
-        seen["dk_kwargs"] = dk_kwargs
+        seen["dk_kwargs"] = {} if dk_kwargs is None else dict(dk_kwargs)
         return {"ok": True}
 
     monkeypatch.setattr(
@@ -706,7 +705,7 @@ def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(mo
         n_workers=4,
         ensure_spd=False,
         rcond=1e-9,
-        step=1e-4,
+        stepsize=1e-4,
     )
 
     assert out == {"ok": True}
@@ -716,7 +715,7 @@ def test_laplace_approximation_delegates_uses_self_theta0_and_forwards_kwargs(mo
     assert seen["n_workers"] == 4
     assert seen["ensure_spd"] is False
     assert seen["rcond"] == 1e-9
-    assert seen["dk_kwargs"]["step"] == 1e-4
+    assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
 def test_laplace_approximation_delegates_uses_theta_map_override(monkeypatch):

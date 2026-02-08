@@ -1,4 +1,4 @@
-.. |dklogo| image:: ../../assets/logos/logo-black.png
+.. |dklogo| image:: /assets/logos/logo-black.png
    :alt: DerivKit logo black
    :width: 32px
 
@@ -7,7 +7,7 @@
 ==============================
 
 This section shows how to construct a Laplace approximation to a posterior using
-:func:`derivkit.forecasting.laplace.laplace_approximation`.
+:meth:`derivkit.forecast_kit.ForecastKit.laplace_approximation`.
 
 The Laplace approximation replaces a posterior near its maximum with a local Gaussian.
 It is defined by:
@@ -22,7 +22,7 @@ other forecasting frameworks in DerivKit see :doc:`../../about/kits/forecast_kit
 
 If you want to generate parameter samples or visualize confidence contours from the
 Laplace approximation, see the example :doc:`laplace_contours`, which shows how to
-construct GetDist objects and plot Laplace contours.
+construct ``GetDist`` objects and plot Laplace contours.
 
 
 Basic usage
@@ -37,8 +37,7 @@ The function must accept a 1D parameter vector and return a scalar.
 .. doctest:: laplace_basic
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import build_laplace_approximation
-   >>>
+   >>> from derivkit.forecast_kit import ForecastKit
    >>> # Toy 2D negative log-posterior: a Gaussian centered at mu
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -47,10 +46,10 @@ The function must accept a 1D parameter vector and return a scalar.
    ...     prec = np.linalg.pinv(cov)
    ...     d = theta - mu
    ...     return float(0.5 * d @ prec @ d)
-   >>>
    >>> # For this toy model, the MAP is known: theta_map = mu
    >>> theta_map_in = np.array([1.3, -0.5])
-   >>> out = build_laplace_approximation(
+   >>> fk = ForecastKit(function=None, theta0=theta_map_in, cov=np.eye(1))
+   >>> out = fk.laplace_approximation(
    ...     neg_logposterior=neg_log_posterior,
    ...     theta_map=theta_map_in,
    ... )
@@ -58,8 +57,6 @@ The function must accept a 1D parameter vector and return a scalar.
    >>> cov = np.asarray(out["cov"], dtype=float)
    >>> print(theta_map.shape, cov.shape)
    (2,) (2, 2)
-   >>> bool(np.all(np.isfinite(theta_map)) and np.all(np.isfinite(cov)))
-   True
 
 
 Interpreting the result
@@ -76,8 +73,8 @@ The Laplace Gaussian is centered on ``theta_map`` by construction.
 .. doctest:: laplace_shapes
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import build_laplace_approximation
-   >>>
+   >>> from derivkit.forecast_kit import ForecastKit
+   >>> # Toy 2D negative log-posterior: a Gaussian centered at mu
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
    ...     mu = np.array([1.3, -0.5])
@@ -85,10 +82,11 @@ The Laplace Gaussian is centered on ``theta_map`` by construction.
    ...     prec = np.linalg.pinv(cov)
    ...     d = theta - mu
    ...     return float(0.5 * d @ prec @ d)
-   >>>
-   >>> out = build_laplace_approximation(
+   >>> theta_map_in = np.array([1.3, -0.5])
+   >>> fk = ForecastKit(function=None, theta0=theta_map_in, cov=np.eye(1))
+   >>> out = fk.laplace_approximation(
    ...     neg_logposterior=neg_log_posterior,
-   ...     theta_map=np.array([1.3, -0.5]),
+   ...     theta_map=theta_map_in,
    ... )
    >>> theta_map = np.asarray(out["theta_map"], dtype=float)
    >>> cov = np.asarray(out["cov"], dtype=float)
@@ -102,12 +100,13 @@ Choosing a derivative backend
 
 The Laplace covariance is built from the Hessian of the negative log-posterior.
 You can control how derivatives are computed by passing ``method`` and a dictionary
-of derivative-engine options via ``dk_kwargs``.
+of derivative-engine options by passing method and derivative options directly
+(forwarded to the derivative engine).
 
 .. doctest:: laplace_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecasting.laplace import build_laplace_approximation
+   >>> from derivkit.forecast_kit import ForecastKit
    >>>
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -117,16 +116,16 @@ of derivative-engine options via ``dk_kwargs``.
    ...     d = theta - mu
    ...     return float(0.5 * d @ prec @ d)
    >>>
-   >>> out = build_laplace_approximation(
+   >>> theta_map_in = np.array([1.3, -0.5])
+   >>> fk = ForecastKit(function=None, theta0=theta_map_in, cov=np.eye(1))
+   >>> out = fk.laplace_approximation(
    ...     neg_logposterior=neg_log_posterior,
-   ...     theta_map=np.array([1.3, -0.5]),
+   ...     theta_map=theta_map_in,
    ...     method="finite",
-   ...     dk_kwargs={
-   ...         "stepsize": 1e-2,
-   ...         "num_points": 5,
-   ...         "extrapolation": "ridders",
-   ...         "levels": 4,
-   ...     },
+   ...     stepsize=1e-2,
+   ...     num_points=5,
+   ...     extrapolation="ridders",
+   ...     levels=4,
    ... )
    >>> bool(np.all(np.isfinite(out["cov"])) and np.all(np.isfinite(out["hessian"])))
    True
