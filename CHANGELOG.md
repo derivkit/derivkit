@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.0
+
+### Added
+
+* Added caching of function and derivative values for forecasting.
+
+
 ## v1.0.2
 
 ### Fixed
