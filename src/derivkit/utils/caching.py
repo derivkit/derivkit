@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import lru_cache, wraps
-from typing import Any
 
 import numpy as np
 
@@ -15,7 +14,7 @@ def wrap_theta_cache_builtin(
     number_decimal_places: int = 14,
     maxsize: int | None = 4096,
     copy: bool = True,
-) -> tuple[Callable[[np.ndarray], np.ndarray], dict[str, Any]]:
+) -> Callable[[np.ndarray], np.ndarray]:
     """Creates a cache for function values.
 
     As part of the caching the input is truncated to a pre-set number
@@ -35,8 +34,8 @@ def wrap_theta_cache_builtin(
     """
     @lru_cache(maxsize=maxsize)
     def cached_wrapper(
-        cachable_array: tuple[float, ...]
-    ) -> np.ndarray[float, ...]:
+            cachable_array: tuple[float, ...]
+    ) -> np.ndarray:
         """Creates a function value cache for the given function."""
         theta = np.asarray(cachable_array, dtype=float)
         y = np.round(
@@ -50,7 +49,7 @@ def wrap_theta_cache_builtin(
 
     @wraps(function)
     def wrapped(theta: np.ndarray) -> np.ndarray:
-        "Wrapper that connects like functions to the same cache."""
+        """Wrapper that connects like functions to the same cache."""
         arr = cached_wrapper(tuple(theta))
         return arr.copy() if copy else arr
 
