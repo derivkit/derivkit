@@ -417,7 +417,7 @@ to be biased.
 **How do I choose the DALI expansion order?**
 
 The appropriate expansion order depends on the degree of non-Gaussianity in the
-posterior. Order 2 corresponds to the Fisher approximation, while higher orders
+posterior. Order 1 corresponds to the Fisher approximation, while higher orders
 capture increasing levels of skewness and curvature. In practice, comparing
 results across orders can help diagnose when Fisher assumptions break down.
 
