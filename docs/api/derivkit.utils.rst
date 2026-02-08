@@ -7,6 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 2
 
+   derivkit.utils.caching
    derivkit.utils.concurrency
    derivkit.utils.extrapolation
    derivkit.utils.linalg
