@@ -34,6 +34,7 @@ def wrap_theta_cache_builtin(
     """
     @lru_cache(maxsize=maxsize)
     def cached_wrapper(
+        """Creates a function value cache for the given function."""
         cachable_array: tuple[float, ...]
     ) -> np.ndarray[float, ...]:
         theta = np.asarray(cachable_array, dtype=float)
@@ -48,6 +49,7 @@ def wrap_theta_cache_builtin(
 
     @wraps(function)
     def wrapped(theta: np.ndarray) -> np.ndarray:
+        "Wrapper that connects like functions to the same cache."""
         arr = cached_wrapper(tuple(theta))
         return arr.copy() if copy else arr
 
