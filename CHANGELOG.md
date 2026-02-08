@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.2
+
+### Fixed
+
+* Fixed how `dk_kwargs` are passed to `ForecastKit`.
+
+
 ## v1.0.1
 
 ### Fixed
