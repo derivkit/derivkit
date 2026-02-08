@@ -35,9 +35,9 @@ def wrap_theta_cache_builtin(
     """
     @lru_cache(maxsize=maxsize)
     def cached_wrapper(
-        """Creates a function value cache for the given function."""
         cachable_array: tuple[float, ...]
     ) -> np.ndarray[float, ...]:
+        """Creates a function value cache for the given function."""
         theta = np.asarray(cachable_array, dtype=float)
         y = np.round(
             np.asarray(
