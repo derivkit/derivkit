@@ -101,7 +101,7 @@ class ForecastKit:
                  | Callable[[np.ndarray], np.ndarray],
             *,
             cache_theta: bool = True,
-            cache_theta_number_decimals: int = 14,
+            cache_theta_number_decimal_places: int = 14,
             cache_theta_maxsize: int | None = 4096,
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
@@ -129,14 +129,14 @@ class ForecastKit:
 
             cache_theta: A flag which, if set to ``True``, turns on caching of
                 function values.
-            cache_theta_number_decimals:  The number of decimals that are
+            cache_theta_number_decimal_places:  The number of decimal places that are
                 included in the caching.
             cache_theta_maxsize: The maximum size of the cache.
         """
         if cache_theta:
             function = wrap_theta_cache_builtin(
                 function,
-                number_decimals=cache_theta_number_decimals,
+                number_decimal_places=cache_theta_number_decimal_places,
                 maxsize=cache_theta_maxsize,
                 copy=True,
             )

@@ -12,18 +12,18 @@ import numpy as np
 def wrap_theta_cache_builtin(
     function: Callable[[np.ndarray], np.ndarray],
     *,
-    number_decimals: int = 14,
+    number_decimal_places: int = 14,
     maxsize: int | None = 4096,
     copy: bool = True,
 ) -> tuple[Callable[[np.ndarray], np.ndarray], dict[str, Any]]:
     """Creates a cache for function values.
 
     As part of the caching the input is truncated to a pre-set number
-    of decimal digits.
+    of decimal places.
 
     Args:
         function: The function to be cached.
-        number_decimals: The number of decimals to include before
+        number_decimal_places: The number of decimal places to include before
             truncating.
         maxsize: The size of the cache.
         copy: A flag that, when set to ``True``, causes the function
@@ -44,7 +44,7 @@ def wrap_theta_cache_builtin(
                 function(theta),
                 dtype=float
             ).reshape(-1),
-            number_decimals
+            number_decimal_places
         )
         return y
 
