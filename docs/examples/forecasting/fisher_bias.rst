@@ -144,7 +144,6 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit.forecast_kit import ForecastKit
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> # Define a simple toy model
    >>> def model(theta0):
    ...     theta1, theta2 = theta0
@@ -161,15 +160,13 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
    >>> dn = fk.delta_nu(data_unbiased=data_unbiased, data_biased=data_biased)
    >>> bias_vec, delta_theta = fk.fisher_bias(fisher_matrix=fisher, delta_nu=dn)
    >>> # Convert Fisher matrices to GetDist Gaussians
-   >>> gnd_unbiased = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> gnd_unbiased = fk.getdist_fisher_gaussian(
    ...     fisher=fisher,
    ...     names=["theta1", "theta2"],
    ...     labels=[r"\theta_1", r"\theta_2"],
    ...     label="Unbiased",
    ... )
-   >>> gnd_biased = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0 + delta_theta,
+   >>> gnd_biased = fk.getdist_fisher_gaussian(
    ...     fisher=fisher,
    ...     names=["theta1", "theta2"],
    ...     labels=[r"\theta_1", r"\theta_2"],
@@ -203,7 +200,6 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
    import numpy as np
    from getdist import plots as getdist_plots
    from derivkit.forecast_kit import ForecastKit
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def model(theta):
        theta1, theta2 = theta
@@ -221,15 +217,13 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
 
    bias_vec, delta_theta = fk.fisher_bias(fisher_matrix=fisher, delta_nu=dn)
 
-   gnd_unbiased = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd_unbiased = fk.getdist_fisher_gaussian(
        fisher=fisher,
        names=["theta1", "theta2"],
        labels=[r"\theta_1", r"\theta_2"],
        label="Unbiased",
    )
-   gnd_biased = fisher_to_getdist_gaussiannd(
-       theta0=theta0 + delta_theta,
+   gnd_biased = fk.getdist_fisher_gaussian(
        fisher=fisher,
        names=["theta1", "theta2"],
        labels=[r"\theta_1", r"\theta_2"],
