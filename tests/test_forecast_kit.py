@@ -67,7 +67,7 @@ def test_forecastkit_delegates(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
-    fk = ForecastKit(function=model, theta0=theta0, cov=cov)
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, cache_theta=False)
 
     # The fisher() method defaults to forecast_order=1 and forwards n_workers.
     # The Fisher computation delegates to the helper function and forwards n_workers.
@@ -241,7 +241,7 @@ def test_fisher_bias_delegates(monkeypatch):
         return np.asarray(theta)
 
     theta0 = np.array([0.1, -0.2])
-    fk = ForecastKit(function=model, theta0=theta0, cov=np.eye(3))
+    fk = ForecastKit(function=model, theta0=theta0, cov=np.eye(3), cache_theta=False)
 
     fisher_matrix = np.eye(2)
     delta_nu = np.arange(3.0)

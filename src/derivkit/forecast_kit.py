@@ -100,7 +100,7 @@ class ForecastKit:
             cov: np.ndarray
                  | Callable[[np.ndarray], np.ndarray],
             *,
-            cache_theta: bool = False,
+            cache_theta: bool = True,
             cache_theta_number_decimals: int = 14,
             cache_theta_maxsize: int | None = 4096,
     ):
