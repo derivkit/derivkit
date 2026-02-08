@@ -63,7 +63,7 @@ jax = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 markers = [
-  "slow: slow tests (skipped by default; run with RUN_SLOW=1)",
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
 
