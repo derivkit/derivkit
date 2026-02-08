@@ -461,7 +461,8 @@ methods.
 
 DALI is based on a Taylor expansion and is only expected to be accurate within a
 finite neighborhood around ``theta0``. As a result, DALI is not expected to be
-accurate for values far away from theta0. For this reason, sampling bounds and
+accurate for values far away from ``theta0`. For this reason, sampling bounds
+and
 diagnostic checks are strongly recommended.
 
 
@@ -585,9 +586,9 @@ accuracy. Diagnostic checks are recommended for sensitive applications.
 
 **Assuming automatic differentiation is always correct**
 
-Automatic differentiation (e.g. JAX) can silently fail for non-smooth models,
-conditionals, or interpolations; derivative validation is still recommended,
-especially for higher-order forecasts.
+Automatic differentiation (e.g. ``JAX``) can silently fail for non-smooth
+models, conditionals, or interpolations; derivative validation is still
+recommended, especially for higher-order forecasts.
 
 
 **Confusing likelihood curvature with posterior uncertainty**
