@@ -4,7 +4,7 @@
 
 ### Fixed
 
-* Fixed how `dk_kwargs` are passed to `DerivativeKit`.
+* Fixed how `dk_kwargs` are passed to `ForecastKit`.
 
 
 ## v1.0.1
