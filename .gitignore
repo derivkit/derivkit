@@ -18,3 +18,8 @@ notebooks/plots/*.png
 notebooks/plots/*.pdf
 notebooks/logs/
 docs/_generated/
+
+# Paper build artefacts
+paper/paper.pdf
+**/inara.sif
+paper/jats
