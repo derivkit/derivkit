@@ -933,3 +933,133 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert seen["kwargs"]["n_walkers"] == 16
     assert seen["kwargs"]["init_scale"] == 1e-2
     assert seen["kwargs"]["seed"] == 5
+
+
+def test_forecastkit_cache_theta_adds_cache_api():
+    """Tests that cache_theta=True wraps the model with a cache API."""
+    def model(theta):
+        """Mock model that returns theta."""
+        return np.asarray(theta, dtype=float)
+
+    fk = ForecastKit(
+        function=model,
+        theta0=np.array([0.1, -0.2]),
+        cov=np.eye(2),
+        cache_theta=True,
+        cache_theta_number_decimal_places=14,
+        cache_theta_maxsize=128,
+    )
+
+    assert callable(fk.function)
+
+    # cache API should exist on the wrapped function
+    assert hasattr(fk.function, "cache_info")
+    assert hasattr(fk.function, "cache_clear")
+
+    cache_info = getattr(fk.function, "cache_info")
+    cache_clear = getattr(fk.function, "cache_clear")
+
+    assert callable(cache_info)
+    assert callable(cache_clear)
+
+    info = cache_info()
+    assert hasattr(info, "hits")
+    assert hasattr(info, "misses")
+    assert hasattr(info, "maxsize")
+    assert hasattr(info, "currsize")
+    assert getattr(info, "maxsize") == 128
+
+
+def test_forecastkit_cache_theta_caches_model_calls_without_breaking_fisher(monkeypatch):
+    """Tests that cache_theta=True prevents repeated model evaluation during fisher()."""
+    calls = {"n": 0}
+
+    def model(theta):
+        """Mock model that increments a counter and returns theta."""
+        calls["n"] += 1
+        return np.asarray(theta, dtype=float)
+
+    # Capture the function ForecastKit passes into build_fisher_matrix,
+    # then call it multiple times with the same theta to verify caching.
+    seen = {"function": None}
+
+    def fake_build_fisher_matrix(*, function, theta0, cov, method=None, n_workers=1, **dk_kwargs):
+        """Mock fisher builder that exercises the passed function repeatedly."""
+        seen["function"] = function
+
+        theta = np.asarray(theta0, dtype=float)
+
+        y1 = function(theta)
+        y2 = function(theta)
+        y3 = function(theta)
+
+        np.testing.assert_allclose(y1, y2)
+        np.testing.assert_allclose(y2, y3)
+
+        p = len(theta)
+        return np.eye(p)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_fisher_matrix",
+        fake_build_fisher_matrix,
+        raising=True,
+    )
+
+    fk = ForecastKit(
+        function=model,
+        theta0=np.array([0.1, -0.2]),
+        cov=np.eye(2),
+        cache_theta=True,
+        cache_theta_number_decimal_places=14,
+        cache_theta_maxsize=128,
+    )
+
+    out = fk.fisher(method="finite", n_workers=1)
+    assert out.shape == (2, 2)
+
+    # Without caching, the above would call model 3 times.
+    assert calls["n"] == 1
+
+    # And the wrapped function should report hits/misses consistent with caching.
+    assert seen["function"] is not None
+    assert hasattr(seen["function"], "cache_info")
+    info = getattr(seen["function"], "cache_info")()
+
+    assert getattr(info, "misses") == 1
+    assert getattr(info, "hits") == 2
+
+
+def test_forecastkit_cache_theta_false_does_not_cache_model_calls(monkeypatch):
+    """Tests that cache_theta=False leaves the model uncached during fisher()."""
+    calls = {"n": 0}
+
+    def model(theta):
+        """Mock model that increments a counter and returns theta."""
+        calls["n"] += 1
+        return np.asarray(theta, dtype=float)
+
+    def fake_build_fisher_matrix(*, function, theta0, cov, **_kwargs):
+        """Mock fisher builder that calls the passed function repeatedly."""
+        theta = np.asarray(theta0, dtype=float)
+        function(theta)
+        function(theta)
+        function(theta)
+        return np.eye(len(theta))
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_fisher_matrix",
+        fake_build_fisher_matrix,
+        raising=True,
+    )
+
+    fk = ForecastKit(
+        function=model,
+        theta0=np.array([0.1, -0.2]),
+        cov=np.eye(2),
+        cache_theta=False,
+    )
+
+    _ = fk.fisher(method="finite", n_workers=1)
+
+    # With caching off, we really evaluate 3 times.
+    assert calls["n"] == 3
