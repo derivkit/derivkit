@@ -242,7 +242,7 @@ given systematic can be safely ignored within a local Gaussian approximation.
 .. image:: ../../assets/plots/fisher_bias_demo_1and2sigma.png
    :width: 60%
 
-In a realistic analysis, the two data vectors entering :math:`\Delta\nu` are obtained
+In practice, the two data vectors entering :math:`\Delta\nu` are obtained
 by evaluating two models at the same fiducial parameters: a baseline model used
 for inference and a more complete model that includes additional physical or
 instrumental systematics. Fisher bias then estimates how the inferred parameters
