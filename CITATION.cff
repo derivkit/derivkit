@@ -2,18 +2,39 @@ cff-version: 1.2.0
 message: "If you use DerivKit, please cite it as below."
 title: "DerivKit"
 type: software
+
 authors:
   - given-names: "Nikolina"
     family-names: "Šarčević"
     email: "nikolina.sarcevic@gmail.com"
-    orcid: 0000-0001-7301-6415
+    orcid: "0000-0001-7301-6415"
   - given-names: "Matthijs"
     family-names: "van der Wild"
     email: "matthijs@vanderwild.com"
-    orcid: 0000-0002-3949-3063
+    orcid: "0000-0002-3949-3063"
   - given-names: "Cynthia"
     family-names: "Trendafilova"
     email: "cyntrendafilova@gmail.com"
-    orcid: 0000-0001-5500-4058
+    orcid: "0000-0001-5500-4058"
+
 license: "MIT"
 repository-code: "https://github.com/derivkit/derivkit"
+
+preferred-citation:
+  type: article
+  title: "DerivKit: stable numerical derivatives bridging Fisher forecasts and MCMC"
+  authors:
+    - given-names: "Nikolina"
+      family-names: "Šarčević"
+      orcid: "https://orcid.org/0000-0001-7301-6415"
+    - given-names: "Matthijs"
+      family-names: "van der Wild"
+      orcid: "https://orcid.org/0000-0002-3949-3063"
+    - given-names: "Cynthia"
+      family-names: "Trendafilova"
+      orcid: "https://orcid.org/0000-0001-5500-4058"
+  year: 2026
+  url: "https://arxiv.org/abs/2602.08078"
+  identifiers:
+    - type: other
+      value: "arXiv:2602.08078"
