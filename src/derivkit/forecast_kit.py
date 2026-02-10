@@ -66,6 +66,9 @@ from derivkit.forecasting.fisher import (
 from derivkit.forecasting.fisher_gaussian import (
     build_gaussian_fisher_matrix,
 )
+from derivkit.forecasting.fisher_xy import (
+    build_xy_gaussian_fisher_matrix,
+)
 from derivkit.forecasting.getdist_dali_samples import (
     dali_to_getdist_emcee,
     dali_to_getdist_importance,
@@ -81,6 +84,7 @@ from derivkit.forecasting.laplace import (
     build_negative_logposterior,
 )
 from derivkit.utils.caching import wrap_theta_cache_builtin
+from derivkit.utils.linalg import split_xy_covariance
 from derivkit.utils.types import FloatArray
 from derivkit.utils.validate import (
     require_callable,
@@ -106,7 +110,7 @@ class ForecastKit:
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
-        As an optimalization the class can cache function values, which speeds
+        As an optimization the class can cache function values, which speeds
         up repeated function calls and their associated derivatives. In this
         case the function will truncate the number of decimals of the input
         parameters.
@@ -365,7 +369,7 @@ class ForecastKit:
             **dk_kwargs: Forwarded to the internal derivative calls.
 
         Returns:
-            Fisher matrix with shape ``(p, p)``.
+            Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
         """
         cov_spec = self.cov_fn if self.cov_fn is not None else self.cov0
 
@@ -373,6 +377,85 @@ class ForecastKit:
             theta0=self.theta0,
             cov=cov_spec,
             function=self.function,
+            method=method,
+            n_workers=n_workers,
+            rcond=rcond,
+            symmetrize_dcov=symmetrize_dcov,
+            **dk_kwargs,
+        )
+
+    def xy_fisher(
+        self,
+        *,
+        x0: np.ndarray,
+        mu_xy: Callable[[np.ndarray, np.ndarray], np.ndarray],
+        cov_xy: np.ndarray,
+        method: str | None = None,
+        n_workers: int = 1,
+        rcond: float = 1e-12,
+        symmetrize_dcov: bool = True,
+        check_cyy_consistency: bool = True,
+        atol: float = 0.0,
+        rtol: float = 1e-12,
+        **dk_kwargs: Any,
+    ) -> np.ndarray:
+        r"""Computes the X–Y Gaussian Fisher matrix (noisy inputs and outputs).
+
+        This implements the X–Y Gaussian Fisher formalism where the measured inputs
+        and outputs are both noisy and may be correlated. Input uncertainty is
+        propagated into an effective output covariance via a local linearization of
+        ``mu_xy(x, theta)`` with respect to ``x`` at the measured inputs ``x0``.
+
+        Args:
+            x0: Measured inputs with shape ``(n_x,)``.
+            mu_xy: Model mean callable ``mu_xy(x, theta) -> y``.
+            cov_xy: Full covariance for the stacked vector ``[x, y]`` with shape
+                ``(n_x + n_y, n_x + n_y)``. Note that this is the joint covariance of the input
+                and output measurements, ordered as ``[x0, y0]`` (inputs first, then outputs),
+                so it contains the blocks ``Cxx``, ``Cxy``, and ``Cyy``.
+            method: Derivative method name/alias forwarded to the derivative backend.
+            n_workers: Number of workers for derivative evaluations.
+            rcond: Regularization cutoff used in linear solves / pseudoinverse fallback.
+            symmetrize_dcov: If ``True``, symmetrize each covariance derivative.
+            check_cyy_consistency: If ``True`` and this :class:`ForecastKit` was
+                initialized with a fixed output covariance ``cov=self.cov0`` (i.e.
+                :math:`C_{yy}`), verify that it matches the :math:`C_{yy}` block implied
+                by ``cov_xy``.
+            atol: Absolute tolerance for the :math:`C_{yy}` consistency check.
+            rtol: Relative tolerance for the :math:`C_{yy}` consistency check.
+            **dk_kwargs: Forwarded to the derivative backend.
+
+        Returns:
+            Fisher matrix with shape ``(p, p)``, where ``p`` is the number of parameters.
+
+        Raises:
+            ValueError: If ``check_cyy_consistency=True`` and ``self.cov0`` is compatible
+                with a :math:`C_{yy}` block but differs from the :math:`C_{yy}` block
+                extracted from ``cov_xy`` beyond ``rtol``/``atol``.
+        """
+        x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
+        cov_xy_arr = np.asarray(cov_xy, dtype=np.float64)
+
+        if check_cyy_consistency and getattr(self, "cov0", None) is not None:
+            nx = int(x0.size)
+            _, _, cyy_from_xy = split_xy_covariance(cov_xy_arr, nx=nx)
+
+            # Only check if self.cov0 looks like a Cyy (ny, ny) matrix.
+            if self.cov0.shape == cyy_from_xy.shape:
+                if not np.allclose(self.cov0, cyy_from_xy, rtol=rtol,
+                                   atol=atol):
+                    raise ValueError(
+                        "Inconsistent covariances: ForecastKit was initialized with cov=Cyy, "
+                        "but the Cyy block extracted from cov_xy differs. "
+                        "Either initialize ForecastKit with the same Cyy, or set "
+                        "check_cyy_consistency=False if you intentionally want them different."
+                    )
+
+        return build_xy_gaussian_fisher_matrix(
+            theta0=self.theta0,
+            x0=x0,
+            mu_xy=mu_xy,
+            cov=cov_xy_arr,
             method=method,
             n_workers=n_workers,
             rcond=rcond,

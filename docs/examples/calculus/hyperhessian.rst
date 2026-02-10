@@ -39,13 +39,14 @@ Basic usage
 .. doctest:: hyper_hessian_basic
 
    >>> import numpy as np
-   >>> from derivkit.calculus.hyper_hessian import build_hyper_hessian
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function with non-zero third derivatives.
    >>> def func(theta):
    ...     return theta[0] ** 3 + 2.0 * theta[0] * theta[1] + theta[1] ** 2
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(func, theta0)
-   >>> print(hess3.shape)
+   >>> ckit = CalculusKit(func, x0=theta0)
+   >>> hess3 = ckit.hyper_hessian()
+   >>> hess3.shape
    (2, 2, 2)
    >>> # Analytic reference:
    >>> # d^3 f / dtheta0^3 = 6, and all other third partials are zero.
@@ -53,6 +54,7 @@ Basic usage
    >>> ref[0, 0, 0] = 6.0
    >>> np.allclose(hess3, ref, atol=1e-6, rtol=0.0)
    True
+
 
 
 Symmetry
@@ -64,13 +66,12 @@ its parameter indices:
 .. doctest:: hyper_hessian_symmetry
 
    >>> import numpy as np
-   >>> from derivkit.calculus.hyper_hessian import build_hyper_hessian
-   >>>
+   >>> from derivkit import CalculusKit
    >>> def func(theta):
    ...     return theta[0] ** 3 + 2.0 * theta[0] * theta[1] + theta[1] ** 2
-   >>>
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(func, theta0)
+   >>> ckit = CalculusKit(func, x0=theta0)
+   >>> hess3 = ckit.hyper_hessian()
    >>> # Check symmetry for a representative index triplet.
    >>> bool(hess3[0, 1, 0] == hess3[1, 0, 0] == hess3[0, 0, 1])
    True
@@ -85,7 +86,7 @@ for each output component and afterwards reshaped back to ``(*out_shape, p, p, p
 .. doctest:: hyper_hessian_tensor
 
    >>> import numpy as np
-   >>> from derivkit.calculus.hyper_hessian import build_hyper_hessian
+   >>> from derivkit import CalculusKit
    >>> # Two-output function.
    >>> # f0(theta) = theta0^3
    >>> # f1(theta) = theta0*theta1 + theta1^2
@@ -93,10 +94,11 @@ for each output component and afterwards reshaped back to ``(*out_shape, p, p, p
    ...     return np.array([
    ...         theta[0] ** 3,
    ...         theta[0] * theta[1] + theta[1] ** 2,
-   ...     ])
+   ...     ], dtype=float)
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(func, theta0)
-   >>> print(hess3.shape)
+   >>> ckit = CalculusKit(func, x0=theta0)
+   >>> hess3 = ckit.hyper_hessian()
+   >>> hess3.shape
    (2, 2, 2, 2)
    >>>
    >>> # Component 0: only d^3/dtheta0^3 = 6 is non-zero.
@@ -118,13 +120,12 @@ options via ``**dk_kwargs``.
 .. doctest:: hyper_hessian_finite_ridders
 
    >>> import numpy as np
-   >>> from derivkit.calculus.hyper_hessian import build_hyper_hessian
+   >>> from derivkit import CalculusKit
    >>> def func(theta):
    ...     return theta[0] ** 3 + 2.0 * theta[0] * theta[1] + theta[1] ** 2
    >>> theta0 = np.array([0.5, 2.0])
-   >>> hess3 = build_hyper_hessian(
-   ...     func,
-   ...     theta0,
+   >>> ckit = CalculusKit(func, x0=theta0)
+   >>> hess3 = ckit.hyper_hessian(
    ...     method="finite",
    ...     n_workers=4,
    ...     extrapolation="ridders",
