@@ -12,7 +12,10 @@ try:
 except PackageNotFoundError:
     pass
 
-DerivativeKit.__module__ = "derivkit.derivative_kit"
+SUPPORTED_KITS = (CalculusKit, DerivativeKit, ForecastKit, LikelihoodKit)
+for kit in SUPPORTED_KITS:
+    kit.__module__ = "derivkit"
+
 
 __all__ = [
     "DerivativeKit",

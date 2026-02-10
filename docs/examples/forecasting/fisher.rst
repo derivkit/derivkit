@@ -37,7 +37,7 @@ The model must return a 1D array of length ``n`` for an input parameter vector
 .. doctest:: fisher_basic
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a simple toy model: R^2 -> R^3
    >>> def model(theta):
@@ -71,7 +71,7 @@ For ``p`` parameters, the Fisher matrix has shape ``(p, p)``.
 .. doctest:: fisher_inverse
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Same toy model as above
    >>> def model(theta):
    ...     a, b = theta
@@ -101,7 +101,7 @@ All keyword arguments are forwarded to
 .. doctest:: fisher_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define the model
    >>> def model(theta):
@@ -135,7 +135,7 @@ with many parameters and costly model evaluations.
 .. doctest:: fisher_parallel
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Model definition
    >>> def model(theta):
    ...     return np.array([theta[0], theta[1], theta[0] + 2.0 * theta[1]])

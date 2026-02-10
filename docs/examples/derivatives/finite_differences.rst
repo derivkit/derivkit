@@ -36,7 +36,7 @@ A single central-difference stencil evaluation (no extrapolation).
 .. doctest:: finite_basic
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Create a DerivativeKit at expansion point x0 for f(x)=sin(x)
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # First derivative using a 5-point central stencil with step h=1e-2
@@ -64,7 +64,7 @@ error estimate.
 .. doctest:: finite_plain_error
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv, err = dk.differentiate(
    ...     method="finite",
@@ -91,7 +91,7 @@ sizes. Use ``levels`` for a fixed number of extrapolation steps.
 .. doctest:: finite_richardson_fixed
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Richardson extrapolation using 4 refinement levels
    >>> deriv = dk.differentiate(
@@ -116,7 +116,7 @@ If ``levels=None`` (default), Richardson runs in adaptive mode.
 .. doctest:: finite_richardson_adaptive
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Adaptive Richardson extrapolation (stops when converged)
    >>> deriv = dk.differentiate(
@@ -141,7 +141,7 @@ often a good default when you want automatic error control.
 .. doctest:: finite_ridders_error
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Ridders extrapolation with a fixed number of levels
    >>> deriv, err = dk.differentiate(
@@ -169,7 +169,7 @@ Finite differences support vector outputs; derivatives are computed component-wi
 .. doctest:: finite_vector_output
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Define a vector-valued function
    >>> def vec_func(x):
    ...     return np.array([np.sin(x), np.cos(x)])
@@ -200,7 +200,7 @@ and stacked with leading shape ``x0.shape``.
 .. doctest:: finite_multiple_x0
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Define multiple expansion points
    >>> x0 = np.array([0.1, 0.7, 1.2])
    >>> dk = DerivativeKit(function=np.sin, x0=x0)

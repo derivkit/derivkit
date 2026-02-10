@@ -57,7 +57,7 @@ then plot contours using GetDist.
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Linear–Gaussian likelihood with Gaussian prior (posterior is exactly Gaussian).
    >>> observed_y = np.array([1.2, -0.4], dtype=float)
    >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -122,7 +122,7 @@ then plot contours using GetDist.
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    observed_y = np.array([1.2, -0.4], dtype=float)
    design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -195,7 +195,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>>
    >>> observed_y = np.array([1.2, -0.4], dtype=float)
    >>> design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)
@@ -262,7 +262,7 @@ samples), draw Monte Carlo samples from the Laplace Gaussian and plot them with 
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    observed_y = np.array([1.2, -0.4], dtype=float)
    design_matrix = np.array([[1.0, 0.5], [0.2, 1.3]], dtype=float)

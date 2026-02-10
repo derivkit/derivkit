@@ -29,7 +29,7 @@ Basic usage
 .. doctest:: tabulated_basic
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Tabulate y = x^2 on a coarse grid
    >>> x_tab = np.linspace(0.0, 3.0, 7)
    >>> y_tab = x_tab**2
@@ -49,7 +49,7 @@ Finite differences on tabulated data
 .. doctest:: tabulated_finite
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Tabulate y = sin(x) on a coarse grid
    >>> x_tab = np.linspace(0.0, 3.0, 21)
    >>> y_tab = np.sin(x_tab)
@@ -76,7 +76,7 @@ Adaptive fit on tabulated data
 .. doctest:: tabulated_adaptive
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Tabulate y = sin(x) on a coarse grid
    >>> x_tab = np.linspace(0.0, 3.0, 21)
    >>> y_tab = np.sin(x_tab)

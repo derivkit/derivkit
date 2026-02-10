@@ -45,7 +45,7 @@ for numerical stability.
 .. doctest:: poisson_loglike
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> # Observed counts (must be non-negative integers)
    >>> counts = np.array([1, 2, 3, 4])
    >>> # Expected counts (Poisson means)
@@ -70,7 +70,7 @@ If you explicitly need probability mass values, set ``return_log=False``.
 .. doctest:: poisson_pmf
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> counts = np.array([1, 2, 3, 4])
    >>> mu = np.array([0.8, 1.6, 2.4, 3.2])
    >>> lkit = LikelihoodKit(data=counts, model_parameters=mu)
@@ -91,7 +91,7 @@ Log/linear consistency
 .. doctest:: poisson_log_linear_consistency
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> counts = np.array([0, 1, 2, 3])
    >>> mu = np.array([0.5, 0.8, 1.6, 2.4])
    >>> lkit = LikelihoodKit(data=counts, model_parameters=mu)

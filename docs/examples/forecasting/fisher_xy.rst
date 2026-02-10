@@ -57,7 +57,7 @@ This example compares:
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> from derivkit.forecasting.fisher_xy import build_xy_gaussian_fisher_matrix
    >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> # Toy model: x in R^2, theta in R^2, y in R^3
@@ -154,7 +154,7 @@ This example compares:
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
    from derivkit.forecasting.fisher_xy import build_xy_gaussian_fisher_matrix
    from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 

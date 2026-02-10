@@ -5,7 +5,7 @@ A wrapper around the calculus helpers that exposes the gradient, Jacobian, and H
 Typical usage examples:
 
 >>> import numpy as np
->>> from derivkit.calculus_kit import CalculusKit
+>>> from derivkit import CalculusKit
 >>>
 >>> def sin_function(x):
 ...     # scalar-valued function: f(x) = sin(x[0])

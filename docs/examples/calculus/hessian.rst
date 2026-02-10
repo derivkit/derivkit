@@ -43,7 +43,7 @@ Basic usage (scalar-valued function)
 .. doctest:: hessian_basic
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
@@ -75,7 +75,7 @@ DerivKit provides a fast helper for this case.
 .. doctest:: hessian_diag
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2
@@ -100,7 +100,7 @@ The result is reshaped back to ``(*out_shape, p, p)``.
 .. doctest:: hessian_tensor
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a tensor-valued function
    >>> def func(theta):
    ...     return np.array([
@@ -134,7 +134,7 @@ Finite differences (Ridders) via ``dk_kwargs``
 .. doctest:: hessian_finite_ridders
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[0] * theta[1] + theta[1] ** 2

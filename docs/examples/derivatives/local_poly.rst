@@ -38,7 +38,7 @@ the backend configuration).
 .. doctest:: lp_basic
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Initialize DerivativeKit with the target function and expansion point
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Compute the first derivative
@@ -60,7 +60,7 @@ You can explicitly choose the polynomial degree (must satisfy
 .. doctest:: lp_degree
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv = dk.differentiate(method="lp", order=1, degree=5)
    >>> print(f"{deriv:.8f}")
@@ -80,7 +80,7 @@ or fails).
 .. doctest:: lp_error
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv, err = dk.differentiate(
    ...     method="local_polynomial",
@@ -106,7 +106,7 @@ basic metadata about the fit.
 .. doctest:: lp_diagnostics
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv, diagnostics = dk.differentiate(
    ...     method="local_polynomial",
@@ -135,7 +135,7 @@ function evaluations are noisy.
 .. doctest:: lp_noisy
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Build a deterministic "noisy" function: noise is sampled once and interpolated
    >>> rng = np.random.default_rng(42)
    >>> x_noise = np.linspace(0.0, 2.0, 2049)  # dense grid for stable interpolation
