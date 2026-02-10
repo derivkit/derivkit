@@ -6,15 +6,6 @@ import derivkit
 from derivkit import CalculusKit, DerivativeKit, ForecastKit, LikelihoodKit
 
 
-def test_kits_importable_from_top_level():
-    """Test that all public kits can be imported from top level."""
-    # Import happens at module scope; this test just ensures the module loads.
-    assert ForecastKit is not None
-    assert DerivativeKit is not None
-    assert CalculusKit is not None
-    assert LikelihoodKit is not None
-
-
 def test_public_all_contains_kits():
     """Test that __all__ contains the expected public kits."""
     expected = {"CalculusKit", "DerivativeKit", "ForecastKit", "LikelihoodKit"}
