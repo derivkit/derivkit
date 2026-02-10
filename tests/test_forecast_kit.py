@@ -1063,3 +1063,76 @@ def test_forecastkit_cache_theta_false_does_not_cache_model_calls(monkeypatch):
 
     # With caching off, we really evaluate 3 times.
     assert calls["n"] == 3
+
+
+def test_xy_fisher_delegates(monkeypatch):
+    """Tests that ForecastKit.xy_fisher delegates to build_xy_gaussian_fisher_matrix."""
+    seen: dict[str, object] = {}
+
+    def fake_build_xy_gaussian_fisher_matrix(
+        *,
+        theta0,
+        x0,
+        mu_xy,
+        cov,
+        method=None,
+        n_workers=1,
+        rcond=1e-12,
+        symmetrize_dcov=True,
+        **dk_kwargs,
+    ):
+        seen["theta0"] = np.asarray(theta0)
+        seen["x0"] = np.asarray(x0)
+        seen["mu_xy"] = mu_xy
+        seen["cov"] = np.asarray(cov)
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["rcond"] = rcond
+        seen["symmetrize_dcov"] = symmetrize_dcov
+        seen["dk_kwargs"] = dk_kwargs
+        return np.full((2, 2), 7.0)
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_xy_gaussian_fisher_matrix",
+        fake_build_xy_gaussian_fisher_matrix,
+        raising=True,
+    )
+
+    def mu_xy(x, theta):
+        return np.array([x[0] + theta[0], x[0] - theta[0]], dtype=float)
+
+    theta0 = np.array([0.1, -0.2])
+    cyy = np.eye(2)
+
+    # x has length 1, y has length 2 -> stacked cov is (3, 3)
+    x0 = np.array([0.7])
+    cxx = np.array([[0.06]])
+    cxy = np.array([[0.01, -0.02]])
+    top = np.hstack([cxx, cxy])
+    bot = np.hstack([cxy.T, cyy])
+    cov_xy = np.vstack([top, bot])
+
+    fk = ForecastKit(function=None, theta0=theta0, cov=cyy, cache_theta=False)
+
+    out = fk.xy_fisher(
+        x0=x0,
+        mu_xy=mu_xy,
+        cov_xy=cov_xy,
+        method="finite",
+        n_workers=3,
+        rcond=1e-9,
+        symmetrize_dcov=False,
+        stepsize=1e-4,
+    )
+
+    np.testing.assert_allclose(out, np.full((2, 2), 7.0))
+
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["x0"], x0)
+    assert seen["mu_xy"] is mu_xy
+    np.testing.assert_allclose(seen["cov"], cov_xy)
+    assert seen["method"] == "finite"
+    assert seen["n_workers"] == 3
+    assert seen["rcond"] == 1e-9
+    assert seen["symmetrize_dcov"] is False
+    assert seen["dk_kwargs"]["stepsize"] == 1e-4
