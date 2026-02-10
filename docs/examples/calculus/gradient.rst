@@ -38,7 +38,7 @@ Basic usage
 .. doctest:: gradient_basic
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -60,7 +60,7 @@ Finite differences (Ridders) via ``dk_kwargs``
 .. doctest:: gradient_finite_ridders
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -83,7 +83,7 @@ Adaptive backend via ``dk_kwargs``
 .. doctest:: gradient_adaptive
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def func(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2
@@ -108,7 +108,7 @@ The number of parallel processes can be tuned with the ``n_workers`` parameter.
 .. doctest:: gradient_parallel
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a scalar-valued function
    >>> def f(theta):
    ...     return np.sin(theta[0]) + theta[1] ** 2 + np.cos(theta[2])

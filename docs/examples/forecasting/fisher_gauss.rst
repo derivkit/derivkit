@@ -58,7 +58,7 @@ This example compares:
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Toy model: data vector in R^3, parameters in R^2
    >>> def model(theta):
    ...     a, b = theta
@@ -134,7 +134,7 @@ This example compares:
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model(theta):
        a, b = theta

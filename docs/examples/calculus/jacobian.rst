@@ -42,7 +42,7 @@ Basic usage
 .. doctest:: jacobian_basic
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([
@@ -74,7 +74,7 @@ Finite differences (Ridders) via ``dk_kwargs``
 .. doctest:: jacobian_finite_ridders
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])
@@ -99,7 +99,7 @@ Adaptive backend via ``dk_kwargs``
 .. doctest:: jacobian_adaptive
 
    >>> import numpy as np
-   >>> from derivkit.calculus_kit import CalculusKit
+   >>> from derivkit import CalculusKit
    >>> # Define a vector-valued function
    >>> def func(theta):
    ...     return np.array([np.sin(theta[0]) + theta[1], theta[0] * theta[1]])

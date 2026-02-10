@@ -59,7 +59,7 @@ point ``theta0`` using a simple toy model.
 .. doctest:: dali_basic
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a simple toy model: R^2 -> R^3
    >>> def model(theta):
@@ -93,7 +93,7 @@ All keyword arguments are forwarded to
 .. doctest:: dali_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> def model(theta):
    ...     a, b = theta
@@ -127,7 +127,7 @@ This parallelizes derivative evaluations across parameters and tensor entries.
 .. doctest:: dali_parallel
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> def model(theta):
    ...     return np.array([theta[0], theta[1], theta[0] + 2.0 * theta[1]])
    >>> fk = ForecastKit(

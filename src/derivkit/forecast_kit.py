@@ -10,7 +10,7 @@ API for Fisher and DALI tensors.
 Typical usage example:
 
 >>> import numpy as np
->>> from derivkit.forecast_kit import ForecastKit
+>>> from derivkit import ForecastKit
 >>>
 >>> # Toy linear model: 2 params -> 2 observables
 >>> def model(theta: np.ndarray) -> np.ndarray:

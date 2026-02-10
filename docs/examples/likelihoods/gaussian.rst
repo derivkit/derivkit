@@ -44,7 +44,7 @@ for numerical stability.
 .. doctest:: gaussian_loglikelihood
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> # Observed data samples
    >>> data = np.array([[0.2], [-0.1], [0.05]])
    >>> # Model prediction (Gaussian mean at each sample)
@@ -68,7 +68,7 @@ or high-dimensional problems), set ``return_log=False``.
 .. doctest:: gaussian_pdf
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> data = np.array([[0.2], [-0.1], [0.05]])
    >>> mu = np.array([0.0, 0.0, 0.0])
    >>> cov = np.array([0.1**2, 0.1**2, 0.1**2])
@@ -86,7 +86,7 @@ The covariance can be provided in several equivalent forms.
 .. doctest:: gaussian_covariance_forms
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> # Observed data samples and model prediction
    >>> data = np.array([[0.1], [-0.2]])
    >>> mu = np.array([0.0, 0.0])
@@ -116,7 +116,7 @@ The Gaussian likelihood returns a tuple ``(coordinate_grids, values)``.
 .. doctest:: gaussian_return_shapes
 
    >>> import numpy as np
-   >>> from derivkit.likelihood_kit import LikelihoodKit
+   >>> from derivkit import LikelihoodKit
    >>> data = np.array([[0.1], [-0.1]])
    >>> mu = np.array([0.0, 0.0])
    >>> cov = np.array([0.05**2, 0.05**2])

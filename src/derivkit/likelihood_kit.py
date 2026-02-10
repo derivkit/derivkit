@@ -4,7 +4,7 @@ Typical usage examples
 ----------------------
 
 >>> import numpy as np
->>> from derivkit.likelihood_kit import LikelihoodKit
+>>> from derivkit import LikelihoodKit
 >>>
 >>> # Gaussian example
 >>> data = np.linspace(-5.0, 5.0, 200)

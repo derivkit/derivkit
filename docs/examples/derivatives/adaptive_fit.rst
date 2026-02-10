@@ -32,7 +32,7 @@ By default, an adaptive Chebyshev grid is constructed automatically around
 .. doctest:: adaptive_basic
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Initialize DerivativeKit with the target function and expansion point
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Compute the first derivative (adaptive backend is the default)
@@ -60,7 +60,7 @@ Accepted forms for ``spacing`` are:
 .. doctest:: adaptive_sampling_control
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Initialize DerivativeKit with the target function and expansion point
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> # Compute the first derivative with custom sampling
@@ -84,7 +84,7 @@ The adaptive grid is clipped or transformed as needed to stay inside bounds.
 .. doctest:: adaptive_domain
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Define a function and an expansion point
    >>> f = np.log
    >>> x0 = 0.05
@@ -115,7 +115,7 @@ If zero is missing from an offsets grid, it is inserted automatically.
 .. doctest:: adaptive_custom_grid
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> offsets = np.array([-2e-2, -1e-2, 1e-2, 2e-2])  # no 0 (inserted automatically)
    >>> deriv = dk.differentiate(method="adaptive", order=1, grid=("offsets", offsets))
@@ -135,7 +135,7 @@ stability.
 .. doctest:: adaptive_ridge
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv = dk.differentiate(
    ...    method="adaptive",
@@ -159,7 +159,7 @@ You can request an error proxy and detailed diagnostics from the polynomial fit.
 .. doctest:: adaptive_diagnostics
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
    >>> deriv, err, diag = dk.differentiate(
    ...    method="adaptive",
@@ -186,7 +186,7 @@ function evaluations are noisy.
 .. doctest:: adaptive_noisy
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Deterministic "noise": sampled once on a grid and interpolated (stable across calls)
    >>> rng = np.random.default_rng(42)
    >>> x_noise = np.linspace(0.0, 2.0, 2049)

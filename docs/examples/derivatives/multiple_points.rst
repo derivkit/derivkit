@@ -20,7 +20,8 @@ Finite differences (Ridders)
 
 .. doctest:: multi_finite_ridders
 
-   >>> import numpy as np; from derivkit.derivative_kit import DerivativeKit
+   >>> import numpy as np
+   >>> from derivkit import DerivativeKit
    >>> # Define the function and multiple expansion points
    >>> f = np.sin
    >>> x0 = np.array([0.1, 0.5, 1.0])
@@ -47,7 +48,8 @@ Adaptive polynomial fit (Chebyshev)
 
 .. doctest:: multi_adaptive
 
-   >>> import numpy as np; from derivkit.derivative_kit import DerivativeKit
+   >>> import numpy as np
+   >>> from derivkit import DerivativeKit
    >>> # Same function and expansion points as above
    >>> f = np.sin; x0 = np.array([0.1, 0.5, 1.0])
    >>> dk = DerivativeKit(function=f, x0=x0)
@@ -74,7 +76,7 @@ If the function returns a vector, the stacked output has shape
 .. doctest:: multi_vector_output
 
    >>> import numpy as np
-   >>> from derivkit.derivative_kit import DerivativeKit
+   >>> from derivkit import DerivativeKit
    >>> # Define a vector-valued function
    >>> def vec_func(x): return np.array([np.sin(x), np.cos(x)])
    >>> # Multiple expansion points

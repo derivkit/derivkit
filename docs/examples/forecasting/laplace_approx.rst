@@ -37,7 +37,7 @@ The function must accept a 1D parameter vector and return a scalar.
 .. doctest:: laplace_basic
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Toy 2D negative log-posterior: a Gaussian centered at mu
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -73,7 +73,7 @@ The Laplace Gaussian is centered on ``theta_map`` by construction.
 .. doctest:: laplace_shapes
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Toy 2D negative log-posterior: a Gaussian centered at mu
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
@@ -106,7 +106,7 @@ of derivative-engine options by passing method and derivative options directly
 .. doctest:: laplace_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>>
    >>> def neg_log_posterior(theta):
    ...     theta = np.asarray(theta, dtype=float)
