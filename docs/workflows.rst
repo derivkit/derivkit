@@ -472,7 +472,9 @@ resulting first-order parameter shift under the assumed model. See
 
 The difference vector can be defined with either sign convention, *e.g.*
 :math:`\Delta\nu_i = \nu_i^{\mathrm{biased}} - \nu_i^{\mathrm{unbiased}}` or the
-reverse. Any consistent definition as a model–model difference is valid, but the
+reverse
+:math:`\Delta\nu_i = \nu_i^{\mathrm{unbiased}} - \nu_i^{\mathrm{biased}}`.
+Any consistent definition as a model–model difference is valid, but the
 chosen convention fixes the interpretation of the resulting parameter shift
 ``delta_theta``: changing the sign of ``Delta\nu`` simply reverses the direction
 of the inferred bias and must be interpreted accordingly.

@@ -251,8 +251,10 @@ baseline model alone. In this sense, Fisher bias quantifies the parameter impact
 of neglecting specific systematic effects, rather than correcting for them.
 
 The difference vector can be defined with either sign convention, *e.g.*
-:math:`\Delta\nu_i = \nu_i^{\mathrm{biased}} - \nu_i^{\mathrm{unbiased}}` or the
-reverse. The chosen convention fixes the interpretation of the resulting
+:math:`\Delta\nu_i = \nu_i^{\mathrm{biased}} - \nu_i^{\mathrm{unbiased}}` or
+the reverse
+:math:`\Delta\nu_i = \nu_i^{\mathrm{unbiased}} - \nu_i^{\mathrm{biased}}`.
+The chosen convention fixes the interpretation of the resulting
 parameter shift ``delta_theta``: changing the sign of ``Delta\nu`` simply
 reverses the direction of the inferred bias and must be interpreted
 accordingly.
