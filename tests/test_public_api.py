@@ -7,7 +7,6 @@ import derivkit
 
 def test_public_all_contains_kits():
     """Test that __all__ contains the expected public kits."""
-    expected = {"CalculusKit", "DerivativeKit", "ForecastKit", "LikelihoodKit"}
     assert derivkit.SUPPORTED_KITS.issubset(set(derivkit.__all__))
 
 
