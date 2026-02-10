@@ -9,14 +9,14 @@ Examples:
 Basic usage:
 
     >>> import numpy as np
-    >>> from derivkit.derivative_kit import DerivativeKit
+    >>> from derivkit import DerivativeKit
     >>> dk = DerivativeKit(function=np.cos, x0=1.0)
     >>> dk.differentiate(method="adaptive", order=1)  # doctest: +SKIP
 
 Using tabulated data directly:
 
     >>> import numpy as np
-    >>> from derivkit.derivative_kit import DerivativeKit
+    >>> from derivkit import DerivativeKit
     >>>
     >>> x_tab = np.array([0.0, 1.0, 2.0, 3.0])
     >>> y_tab = x_tab**2
@@ -202,7 +202,7 @@ class DerivativeKit:
 
     Example:
         >>> import numpy as np
-        >>> from derivkit.derivative_kit import DerivativeKit
+        >>> from derivkit import DerivativeKit
         >>> dk = DerivativeKit(np.cos, x0=1.0)
         >>> deriv = dk.differentiate(order=1)  # uses the default "adaptive" method
 

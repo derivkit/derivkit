@@ -42,7 +42,7 @@ then plot Fisher ellipses using GetDist.
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Define a simple toy model
    >>> def model(theta):
    ...     a, b = theta
@@ -90,7 +90,7 @@ then plot Fisher ellipses using GetDist.
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model(theta):
        a, b = theta
@@ -143,7 +143,7 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Define a simple toy model
    >>> def model(theta):
    ...     a, b = theta
@@ -192,7 +192,7 @@ samples), draw Monte Carlo samples from the Fisher Gaussian and plot them with G
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model(theta):
        a, b = theta
@@ -250,7 +250,7 @@ Fisher+prior contours (yellow).
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Same toy model as above
    >>> def model(theta):
@@ -305,7 +305,7 @@ Fisher+prior contours (yellow).
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model(theta):
        a, b = theta

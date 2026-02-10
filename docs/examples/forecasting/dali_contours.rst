@@ -37,7 +37,7 @@ Sampling the DALI posterior with emcee
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> def model_2d(theta):
    ...     # Nonlinear forward model with a curved parameter degeneracy
    ...     # (informally referred to as a "banana"-shaped posterior).
@@ -87,7 +87,7 @@ Sampling the DALI posterior with emcee
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model_2d(theta):
        # Nonlinear forward model with a curved parameter degeneracy
@@ -143,7 +143,7 @@ Sampling the DALI posterior with importance sampling
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> def model_2d(theta):
    ...     # Nonlinear forward model with a curved parameter degeneracy
    ...     # (informally referred to as a "banana"-shaped posterior).
@@ -193,7 +193,7 @@ Sampling the DALI posterior with importance sampling
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model_2d(theta):
        # Nonlinear forward model with a curved parameter degeneracy
@@ -261,7 +261,7 @@ while preserving the dominant nonlinear features.
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> def model_3d(theta):
    ...     # A nonlinear model with 3 parameters:
    ...     x, eps, y = float(theta[0]), float(theta[1]), float(theta[2])
@@ -313,7 +313,7 @@ while preserving the dominant nonlinear features.
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model_3d(theta):
        # A nonlinear model with 3 parameters:
@@ -385,7 +385,7 @@ of the contours.
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> def model_2d(theta):
    ...     x, eps = float(theta[0]), float(theta[1])
    ...     k = 3.0
@@ -452,7 +452,7 @@ of the contours.
    import numpy as np
    from getdist import plots as getdist_plots
 
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model_2d(theta):
        x, eps = float(theta[0]), float(theta[1])

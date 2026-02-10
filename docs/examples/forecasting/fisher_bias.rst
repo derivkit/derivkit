@@ -34,7 +34,7 @@ row-major ("C") order to match the package convention).
 .. doctest:: fisher_bias_delta_nu
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a simple toy model
    >>> def model(theta0):
@@ -64,7 +64,7 @@ vector and the corresponding parameter shift.
 .. doctest:: fisher_bias_compute
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a simple toy model
    >>> def model(theta0):
@@ -99,7 +99,7 @@ derivative control across Fisher and Fisher-bias calculations.
 .. doctest:: fisher_bias_backend_control
 
    >>> import numpy as np
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> # Define a simple toy model
    >>> def model(theta0):
@@ -143,7 +143,7 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
 
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
-   >>> from derivkit.forecast_kit import ForecastKit
+   >>> from derivkit import ForecastKit
    >>> # Define a simple toy model
    >>> def model(theta0):
    ...     theta1, theta2 = theta0
@@ -199,7 +199,7 @@ contours: plot the original Fisher Gaussian at ``theta0`` and the biased one at
 
    import numpy as np
    from getdist import plots as getdist_plots
-   from derivkit.forecast_kit import ForecastKit
+   from derivkit import ForecastKit
 
    def model(theta):
        theta1, theta2 = theta
