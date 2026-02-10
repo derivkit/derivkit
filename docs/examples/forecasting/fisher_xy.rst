@@ -58,8 +58,6 @@ This example compares:
    >>> import numpy as np
    >>> from getdist import plots as getdist_plots
    >>> from derivkit import ForecastKit
-   >>> from derivkit.forecasting.fisher_xy import build_xy_gaussian_fisher_matrix
-   >>> from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
    >>> # Toy model: x in R^2, theta in R^2, y in R^3
    >>> def mu_xy(x, theta):
    ...     x = np.asarray(x, dtype=float)
@@ -104,22 +102,20 @@ This example compares:
    >>> fk_std = ForecastKit(function=mu_theta, theta0=theta0, cov=cyy)
    >>> fisher_std = fk_std.fisher()
    >>> # X–Y Fisher: propagate input uncertainty from the stacked covariance
-   >>> fisher_xy = build_xy_gaussian_fisher_matrix(
-   ...     theta0=theta0,
+   >>> fk_xy = ForecastKit(function=None, theta0=theta0, cov=cyy)
+   >>> fisher_xy = fk_xy.xy_fisher(
    ...     x0=x0,
    ...     mu_xy=mu_xy,
-   ...     cov=cov_xy,
+   ...     cov_xy=cov_xy,
    ... )
-   >>> # Convert to GetDist GaussianND samples for visualization
-   >>> gnd_std = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> # Convert to GetDist GaussianND objects for visualization (via ForecastKit)
+   >>> gnd_std = fk_std.getdist_fisher_gaussian(
    ...     fisher=fisher_std,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
    ...     label="Standard Fisher",
    ... )
-   >>> gnd_xy = fisher_to_getdist_gaussiannd(
-   ...     theta0=theta0,
+   >>> gnd_xy = fk_xy.getdist_fisher_gaussian(
    ...     fisher=fisher_xy,
    ...     names=["a", "b"],
    ...     labels=[r"a", r"b"],
@@ -147,6 +143,7 @@ This example compares:
    ...     )
 
 
+
 .. plot::
    :include-source: False
    :width: 420
@@ -155,8 +152,6 @@ This example compares:
    from getdist import plots as getdist_plots
 
    from derivkit import ForecastKit
-   from derivkit.forecasting.fisher_xy import build_xy_gaussian_fisher_matrix
-   from derivkit.forecasting.getdist_fisher_samples import fisher_to_getdist_gaussiannd
 
    def mu_xy(x, theta):
        x = np.asarray(x, dtype=float)
@@ -203,24 +198,22 @@ This example compares:
    fk_std = ForecastKit(function=mu_theta, theta0=theta0, cov=cyy)
    fisher_std = fk_std.fisher()
 
-   fisher_xy = build_xy_gaussian_fisher_matrix(
-       theta0=theta0,
+   fk_xy = ForecastKit(function=None, theta0=theta0, cov=cyy)
+   fisher_xy = fk_xy.xy_fisher(
        x0=x0,
        mu_xy=mu_xy,
-       cov=cov_xy,
+       cov_xy=cov_xy,
        rcond=1e-12,
        symmetrize_dcov=True,
    )
 
-   gnd_std = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd_std = fk_std.getdist_fisher_gaussian(
        fisher=fisher_std,
        names=["a", "b"],
        labels=[r"a", r"b"],
        label="Standard Fisher",
    )
-   gnd_xy = fisher_to_getdist_gaussiannd(
-       theta0=theta0,
+   gnd_xy = fk_xy.getdist_fisher_gaussian(
        fisher=fisher_xy,
        names=["a", "b"],
        labels=[r"a", r"b"],
@@ -239,13 +232,14 @@ This example compares:
    plotter.triangle_plot(
        [gnd_std, gnd_xy],
        params=["a", "b"],
-       legend_labels=["Standard Fisher", "X-Y Fisher"],
+       legend_labels=["Standard Fisher", "X–Y Fisher"],
        legend_ncol=1,
        filled=[False, False],
        contour_colors=[dk_yellow, dk_red],
        contour_lws=[line_width, line_width],
        contour_ls=["-", "-"],
    )
+
 
 
 
