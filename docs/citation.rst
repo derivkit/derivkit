@@ -14,11 +14,14 @@ How to cite DerivKit
 
 .. code-block:: bibtex
 
-   @software{Sarcevic_DerivKit,
-     author  = {Šarčević, Nikolina and van der Wild, Matthijs and Trendafilova, Cynthia},
-     title   = {{DerivKit}},
-     license = {MIT},
-     url     = {https://github.com/derivkit/derivkit}
+   @misc{sarcevic2026derivkitstablenumericalderivatives,
+     title         = {DerivKit: stable numerical derivatives bridging Fisher forecasts and MCMC},
+     author        = {Šarčević, Nikolina and van der Wild, Matthijs and Trendafilova, Cynthia},
+     year          = {2026},
+     eprint        = {2602.08078},
+     archivePrefix = {arXiv},
+     primaryClass  = {astro-ph.IM},
+     url           = {https://arxiv.org/abs/2602.08078}
    }
 
 
