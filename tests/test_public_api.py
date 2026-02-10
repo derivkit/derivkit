@@ -7,7 +7,7 @@ import derivkit
 
 def test_public_all_contains_kits():
     """Test that __all__ contains the expected public kits."""
-    assert derivkit.SUPPORTED_KITS.issubset(set(derivkit.__all__))
+    assert set(derivkit.SUPPORTED_KITS).issubset(set(derivkit.__all__))
 
 
 def test_kits_report_top_level_module():
