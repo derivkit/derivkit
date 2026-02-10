@@ -255,8 +255,8 @@ The difference vector can be defined with either sign convention, *e.g.*
 the reverse
 :math:`\Delta\nu_i = \nu_i^{\mathrm{unbiased}} - \nu_i^{\mathrm{biased}}`.
 The chosen convention fixes the interpretation of the resulting
-parameter shift ``delta_theta``: changing the sign of ``Delta\nu`` simply
-reverses the direction of the inferred bias and must be interpreted
+parameter shift :math:`\Delta\theta`: changing the sign of :math:`\Delta\nu`
+simply reverses the direction of the inferred bias and must be interpreted
 accordingly.
 
 

@@ -476,8 +476,8 @@ reverse
 :math:`\Delta\nu_i = \nu_i^{\mathrm{unbiased}} - \nu_i^{\mathrm{biased}}`.
 Any consistent definition as a model–model difference is valid, but the
 chosen convention fixes the interpretation of the resulting parameter shift
-``delta_theta``: changing the sign of ``Delta\nu`` simply reverses the direction
-of the inferred bias and must be interpreted accordingly.
+:math:`\Delta\theta`: changing the sign of :math:`\Delta\nu` simply reverses
+the direction of the inferred bias and must be interpreted accordingly.
 
 
 **My DALI doublet and triplet contours look identical. Is something wrong?**
