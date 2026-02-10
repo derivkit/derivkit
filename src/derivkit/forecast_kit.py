@@ -195,7 +195,6 @@ class ForecastKit:
         self,
         *,
         fisher_matrix: np.ndarray,
-        theta: Sequence[float] | np.ndarray | None = None,
         delta_nu: np.ndarray,
         method: str | None = None,
         n_workers: int = 1,
@@ -241,9 +240,6 @@ class ForecastKit:
             and ``delta_theta`` are the corresponding parameter shifts.
         """
         function = require_callable(self.function, context="ForecastKit.fisher_bias")
-
-        theta0 = self.theta0 if theta is None else np.asarray(theta,
-                                                              dtype=float)
 
         bias = build_fisher_bias(
             function=function,
