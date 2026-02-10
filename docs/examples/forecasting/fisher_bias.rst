@@ -26,7 +26,7 @@ other forecasting frameworks in DerivKit see :ref:`forecastkit-fisher-bias`.
 
 **Note**:
 
-In realistic applications, ``delta_nu`` is **not** constructed by
+In practice, ``delta_nu`` is **not** constructed by
 arbitrarily perturbing the observable vector. Instead it is obtained by
 evaluating two model predictions at the same fiducial parameters: a baseline
 model used in inference and a more complete model that includes the relevant
