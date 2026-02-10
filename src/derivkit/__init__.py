@@ -12,7 +12,9 @@ try:
 except PackageNotFoundError:
     pass
 
-DerivativeKit.__module__ = "derivkit.derivative_kit"
+for _cls in (CalculusKit, DerivativeKit, ForecastKit, LikelihoodKit):
+    _cls.__module__ = "derivkit"
+
 
 __all__ = [
     "DerivativeKit",
