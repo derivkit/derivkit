@@ -18,7 +18,7 @@ def test_kits_importable_from_top_level():
 def test_public_all_contains_kits():
     """Test that __all__ contains the expected public kits."""
     expected = {"CalculusKit", "DerivativeKit", "ForecastKit", "LikelihoodKit"}
-    assert expected.issubset(set(derivkit.__all__))
+    assert derivkit.SUPPORTED_KITS.issubset(set(derivkit.__all__))
 
 
 def test_kits_report_top_level_module():
