@@ -25,23 +25,6 @@ How to cite DerivKit
    }
 
 
-Software citation (optional)
-----------------------------
-
-If you need to cite the software itself (e.g. for software-focused publications),
-you may use the following reference:
-
-.. code-block:: bibtex
-
-    @software{sarcevic_derivkit,
-      author  = {Šarčević, Nikolina and van der Wild, Matthijs and Trendafilova, Cynthia},
-      title   = {{DerivKit}},
-      year    = {2025},
-      license = {MIT},
-      url     = {https://github.com/derivkit/derivkit}
-    }
-
-
 Software using DerivKit
 -----------------------
 
