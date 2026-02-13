@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import contextvars
+import multiprocessing as mp
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator, Sequence, Tuple
 
@@ -93,6 +94,37 @@ def _detect_hw_threads() -> int:
     return max(1, min(hw, env_cap) if env_cap else hw)
 
 
+def _default_child_env() -> dict[str, str]:
+    # Safe defaults for OpenMP/BLAS thread pools.
+    return {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+    }
+
+
+def _run_in_child(
+    payload: tuple[Callable[..., Any],
+    tuple[Any, ...], int | None,
+    dict[str, str] | None]
+) -> Any:
+    worker, args, inner_workers, env = payload
+
+    # Clamp threads INSIDE the child process, before heavy imports happen there.
+    if env:
+        for k, v in env.items():
+            os.environ[k] = str(v)
+
+    # Propagate inner-workers setting in the child too
+    token = _inner_workers_var.set(None if inner_workers is None else int(inner_workers))
+    try:
+        return worker(*args)
+    finally:
+        _inner_workers_var.reset(token)
+
+
 def resolve_inner_from_outer(w_params: int) -> int | None:
     """Resolves the number of inner derivative workers based on outer workers and defaults.
 
@@ -120,6 +152,7 @@ def parallel_execute(
     outer_workers: int = 1,
     inner_workers: int | None = None,
     backend: str = "threads",
+    child_env: dict[str, str] | None = None,
 ) -> list[Any]:
     """Applies a function to groups of arguments in parallel.
 
@@ -131,29 +164,51 @@ def parallel_execute(
         arg_tuples: Argument tuples; each tuple is expanded into one ``worker(*args)`` call.
         outer_workers: Parallelism level for outer execution.
         inner_workers: Inner derivative worker setting to propagate via contextvar.
-        backend: Parallel backend. Currently supported: "threads".
+        backend: Parallel backend. Currently supported: "threads" and
+            "processes".
+        child_env: For "processes" backend, environment variables to set in each child process.
+            If None, defaults to a safe set of OpenMP/BLAS thread pool settings.
 
     Returns:
         List of worker return values.
     """
     backend_l = str(backend).lower()
-    if backend_l not in {"threads"}:
+    if backend_l not in {"threads", "processes"}:
         raise NotImplementedError(
             f"parallel_execute backend={backend!r} not supported yet."
-            f" Use backend='threads'."
+            f" Use backend='threads' or backend='processes'."
         )
 
+    # auto clamp for processes unless user explicitly overrides
+    if backend_l == "processes" and child_env is None:
+        child_env = _default_child_env()
+
     with set_inner_derivative_workers(inner_workers):
-        if outer_workers > 1:
+        if outer_workers <= 1:
+            return [worker(*args) for args in arg_tuples]
+
+        if backend_l == "threads":
             with ThreadPoolExecutor(max_workers=outer_workers) as ex:
                 futures = []
                 for args in arg_tuples:
-                    # Each task gets its own copy of the current context
                     ctx = contextvars.copy_context()
                     futures.append(ex.submit(ctx.run, worker, *args))
                 return [f.result() for f in futures]
-        else:
-            return [worker(*args) for args in arg_tuples]
+
+        # processes (spawn)
+        ctx = mp.get_context("spawn")
+        payloads = [(worker, args, _inner_workers_var.get(), child_env) for
+                    args in arg_tuples]
+
+        try:
+            with ProcessPoolExecutor(max_workers=outer_workers,
+                                     mp_context=ctx) as ex:
+                return list(ex.map(_run_in_child, payloads))
+        except Exception as e:
+            raise TypeError(
+                "parallel_execute backend='processes' requires a picklable worker "
+                "(define it at module scope; avoid lambdas/closures, especially in notebooks)."
+            ) from e
 
 
 def normalize_workers(

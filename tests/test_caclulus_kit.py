@@ -1,5 +1,8 @@
 """Tests for CalculusKit class."""
 
+import threading
+import time
+
 import numpy as np
 
 from derivkit.calculus_kit import CalculusKit
@@ -220,3 +223,95 @@ def test_hyper_hessian_delegates_to_build_hyper_hessian(monkeypatch):
     assert recorder.args == ()
     assert recorder.kwargs == {"ordering": "ijk"}
     np.testing.assert_allclose(out, np.ones((3, 3, 3)))
+
+
+def _make_concurrency_probe(*, sleep_s: float = 0.03):
+    """Returns (fn, get_max_active) to measure peak concurrent executions with a sleep delay."""
+    state_lock = threading.Lock()
+    state = {"active": 0, "max_active": 0}
+
+    def fn(x):
+        """Sleeps briefly and tracks concurrent entries before returning sum of squares."""
+        x = np.asarray(x, dtype=float)
+
+        with state_lock:
+            state["active"] += 1
+            state["max_active"] = max(state["max_active"], state["active"])
+
+        time.sleep(sleep_s)
+
+        with state_lock:
+            state["active"] -= 1
+
+        return float(np.sum(x**2))
+
+    def get_max_active():
+        """Returns the maximum number of overlapping fn calls observed."""
+        with state_lock:
+            return int(state["max_active"])
+
+    return fn, get_max_active
+
+
+def _run_concurrent_calls(callable_, *, n_threads: int = 40):
+    """Runs callable_ concurrently in threads and waits for completion."""
+    start = threading.Barrier(n_threads + 1)
+
+    def worker():
+        start.wait()
+        callable_([1.0, 2.0, 3.0])
+
+    threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+    for t in threads:
+        t.start()
+
+    start.wait()  # release all workers
+    for t in threads:
+        t.join()
+
+
+def test_thread_safe_wraps_function_with_given_lock(monkeypatch):
+    """Tests that thread_safe=True wraps function with given lock."""
+    lock = threading.RLock()
+    called = {}
+
+    def fake_wrap_with_lock(func, lock=None):
+        called["func"] = func
+        called["lock"] = lock
+
+        def wrapped(x):
+            return func(x)
+
+        return wrapped
+
+    monkeypatch.setattr(
+        "derivkit.calculus_kit.wrap_with_lock",
+        fake_wrap_with_lock,
+        raising=True,
+    )
+
+    ck = CalculusKit(lambda x: float(np.sum(np.asarray(x, float) ** 2)), [0.1], thread_safe=True, thread_lock=lock)
+
+    assert called["func"] is not None
+    assert called["lock"] is lock
+    assert ck.function is not called["func"]  # wrapped
+
+
+def test_thread_safe_serializes_direct_function_calls():
+    """Tests that thread_safe=True serializes direct function calls."""
+    fn, get_max_active = _make_concurrency_probe(sleep_s=0.03)
+    ck = CalculusKit(fn, [0.0], thread_safe=True)
+
+    _run_concurrent_calls(ck.function, n_threads=50)
+
+    assert get_max_active() == 1
+
+
+def test_thread_unsafe_allows_overlapping_function_calls():
+    """Tests that thread_safe=False allows overlapping function calls."""
+    fn, get_max_active = _make_concurrency_probe(sleep_s=0.03)
+    ck = CalculusKit(fn, [0.0], thread_safe=False)
+
+    _run_concurrent_calls(ck.function, n_threads=50)
+
+    assert get_max_active() > 1
