@@ -15,6 +15,16 @@ from derivkit.utils.concurrency import (
 )
 
 
+def _worker_return_inner(x: int):
+    """Worker function that returns the inner worker context."""
+    return x, conc._inner_workers_var.get()
+
+
+def _identity(x: int) -> int:
+    """Identity function used for testing."""
+    return x
+
+
 def _reset_inner_var() -> None:
     """Reset the contextvar to its default before each test that needs it."""
     # ContextVar has a default=None, so we just set it explicitly
@@ -112,10 +122,11 @@ def test_parallel_execute_threaded_propagates_inner_workers():
         return x, conc._inner_workers_var.get()
 
     results = conc.parallel_execute(
-        worker,
+        _worker_return_inner,
         arg_tuples=[(10,), (20,)],
         outer_workers=2,
         inner_workers=4,
+        backend="threads",
     )
 
     # Order is preserved because we collect futures in submission order
@@ -206,12 +217,9 @@ def test_parallel_execute_backend_threads_ok():
 
 def test_parallel_execute_backend_processes_not_implemented():
     """Tests that backend='processes' raises NotImplementedError."""
-    def identity(x: int) -> int:
-        """Identity function used for testing."""
-        return x
-
-    with pytest.raises(NotImplementedError):
-        parallel_execute(identity, [(1,)], backend="processes")
+    out = parallel_execute(_identity, [(1,), (2,)], outer_workers=2,
+                           backend="processes", child_env={})
+    assert sorted(out) == [1, 2]
 
 
 def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
@@ -233,7 +241,7 @@ def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
 
     tasks = [(i,) for i in range(n)]
 
-    out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1)
+    out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1, backend="threads")
 
     assert len(set(out)) > 1
     assert len(seen) > 1

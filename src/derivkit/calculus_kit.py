@@ -21,7 +21,9 @@ Typical usage examples:
 >>>
 >>> jac = CalculusKit(identity_function, x0=np.array([1.0, 2.0])).jacobian()
 """
+from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from typing import Sequence
 
@@ -35,6 +37,7 @@ from derivkit.calculus import (
     build_hyper_hessian,
     build_jacobian,
 )
+from derivkit.utils.thread_safety import wrap_with_lock
 
 
 class CalculusKit:
@@ -44,6 +47,8 @@ class CalculusKit:
         self,
         function: Callable[[Sequence[float] | np.ndarray], float | NDArray[np.floating]],
         x0: Sequence[float] | np.ndarray,
+        thread_safe: bool = False,
+        thread_lock: threading.RLock | None = None
     ):
         """Initialises class with function and expansion point.
 
@@ -53,7 +58,15 @@ class CalculusKit:
                 or a 1D array (for Jacobian).
             x0: Point at which to evaluate derivatives (shape ``(p,)``) for
                 ``p`` input parameters.
+            thread_safe: If ``True``, serialize calls to ``function`` using a
+                lock. This prevents concurrent evaluation when derivatives are
+                computed with parallel workers (e.g. thread-based execution).
+            thread_lock: Optional lock object to use when ``thread_safe=True``.
+                If ``None``, an internal lock is created.
         """
+        if thread_safe:
+            function = wrap_with_lock(function, lock=thread_lock)
+
         self.function = function
         self.x0 = np.asarray(x0, dtype=float)
 

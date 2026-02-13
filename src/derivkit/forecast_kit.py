@@ -46,6 +46,7 @@ Typical usage example:
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from typing import Any, Mapping, Sequence
 
@@ -85,6 +86,7 @@ from derivkit.forecasting.laplace import (
 )
 from derivkit.utils.caching import wrap_theta_cache_builtin
 from derivkit.utils.linalg import split_xy_covariance
+from derivkit.utils.thread_safety import wrap_with_lock
 from derivkit.utils.types import FloatArray
 from derivkit.utils.validate import (
     require_callable,
@@ -98,15 +100,17 @@ _RESERVED_KWARGS = {"theta0"}
 class ForecastKit:
     """Provides access to forecasting workflows."""
     def __init__(
-            self,
-            function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
-            theta0: Sequence[float] | np.ndarray,
-            cov: np.ndarray
-                 | Callable[[np.ndarray], np.ndarray],
-            *,
-            cache_theta: bool = True,
-            cache_theta_number_decimal_places: int = 14,
-            cache_theta_maxsize: int | None = 4096,
+        self,
+        function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
+        theta0: Sequence[float] | np.ndarray,
+        cov: np.ndarray
+             | Callable[[np.ndarray], np.ndarray],
+        *,
+        cache_theta: bool = True,
+        cache_theta_number_decimal_places: int = 14,
+        cache_theta_maxsize: int | None = 4096,
+        thread_safe: bool = False,
+        thread_lock: threading.RLock | None = None
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
@@ -136,6 +140,11 @@ class ForecastKit:
             cache_theta_number_decimal_places:  The number of decimal places that are
                 included in the caching.
             cache_theta_maxsize: The maximum size of the cache.
+            thread_safe: If ``True``, serialize calls to ``function`` using a
+                lock. This prevents concurrent evaluation when derivatives are
+                computed with parallel workers (e.g. thread-based execution).
+            thread_lock: Optional lock object to use when ``thread_safe=True``.
+                If ``None``, an internal lock is created.
         """
         if cache_theta:
             function = wrap_theta_cache_builtin(
@@ -144,6 +153,9 @@ class ForecastKit:
                 maxsize=cache_theta_maxsize,
                 copy=True,
             )
+
+        if thread_safe:
+            function = wrap_with_lock(function, lock=thread_lock)
 
         self.function = function
         self.theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
