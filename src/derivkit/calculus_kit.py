@@ -63,7 +63,8 @@ class CalculusKit:
                 (i.e. thread-based parallelism). It does not synchronize across
                 multiple processes.
             thread_lock: Optional lock object to use when ``thread_safe=True``.
-                If ``None``, an internal lock is created.
+                If ``None``, an internal lock is created. Ignored if
+                ``thread_safe=False``.
         """
         if thread_safe:
             function = wrap_with_lock(function, lock=thread_lock)
