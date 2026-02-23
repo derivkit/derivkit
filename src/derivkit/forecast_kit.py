@@ -140,9 +140,10 @@ class ForecastKit:
             cache_theta_number_decimal_places:  The number of decimal places that are
                 included in the caching.
             cache_theta_maxsize: The maximum size of the cache.
-            thread_safe: If ``True``, serialize calls to ``function`` using a
-                lock. This prevents concurrent evaluation when derivatives are
-                computed with parallel workers (e.g. thread-based execution).
+            thread_safe: If ``True``, serialize calls to ``function`` using a lock.
+                This prevents concurrent evaluation within a single Python process
+                (i.e. thread-based parallelism). It does not synchronize across
+                multiple processes.
             thread_lock: Optional lock object to use when ``thread_safe=True``.
                 If ``None``, an internal lock is created.
         """
