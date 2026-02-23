@@ -58,9 +58,10 @@ class CalculusKit:
                 or a 1D array (for Jacobian).
             x0: Point at which to evaluate derivatives (shape ``(p,)``) for
                 ``p`` input parameters.
-            thread_safe: If ``True``, serialize calls to ``function`` using a
-                lock. This prevents concurrent evaluation when derivatives are
-                computed with parallel workers (e.g. thread-based execution).
+            thread_safe: If ``True``, serialize calls to ``function`` using a lock.
+                This prevents concurrent evaluation within a single Python process
+                (i.e. thread-based parallelism). It does not synchronize across
+                multiple processes.
             thread_lock: Optional lock object to use when ``thread_safe=True``.
                 If ``None``, an internal lock is created.
         """
