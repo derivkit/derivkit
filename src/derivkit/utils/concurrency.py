@@ -230,7 +230,8 @@ def parallel_execute(
                     futures.append(ex.submit(ctx.run, worker, *args))
                 return [f.result() for f in futures]
 
-        # processes (spawn)
+        # processes backend: use multiprocessing with the "spawn" start method.
+        # ("spawn" starts fresh Python worker processes; it is not a thread pool.)
         ctx = mp.get_context("spawn")
         payloads = [(worker, args, _inner_workers_var.get(), child_env) for
                     args in arg_tuples]
