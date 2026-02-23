@@ -95,7 +95,17 @@ def _detect_hw_threads() -> int:
 
 
 def _default_child_env() -> dict[str, str]:
-    # Safe defaults for OpenMP/BLAS thread pools.
+    """Default environment for *child processes* when using backend="processes".
+
+    We cap common OpenMP/BLAS thread pools to 1 per child to avoid nested parallelism
+    (oversubscription), where N worker processes each spawn M internal threads
+    (N×M threads total). That pattern often hurts performance and can trigger
+    stability issues in some scientific stacks (notably on macOS).
+
+    This does NOT disable concurrency: parallelism still comes from multiple processes.
+    Users who intentionally want threaded BLAS/OpenMP inside each child can override
+    these env vars externally.
+    """
     return {
         "OMP_NUM_THREADS": "1",
         "OPENBLAS_NUM_THREADS": "1",
