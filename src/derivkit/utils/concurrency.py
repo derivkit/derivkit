@@ -195,8 +195,10 @@ def parallel_execute(
             - "processes": use multiprocessing (spawn-based), running each
               worker in a separate Python process. This avoids GIL contention
               and is safer for native/OpenMP/BLAS stacks.
-        child_env: For "processes" backend, environment variables to set in each child process.
-            If None, defaults to a safe set of OpenMP/BLAS thread pool settings.
+        child_env: Environment variables to set in each child process.
+            If ``None``, defaults to a safe set of OpenMP/BLAS thread pool.
+            Is ignored if ``backend`` is equal to ``"threads"``.
+            
 
     Returns:
         List of worker return values.
