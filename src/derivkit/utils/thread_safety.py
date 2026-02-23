@@ -12,7 +12,7 @@ def wrap_with_lock(
     fn: Callable[..., T] | None,
     lock: Any = None,
 ) -> Callable[..., T] | None:
-    """Wraps a function call with a lock."""
+    """Wraps a function call with a mutex lock."""
     if fn is None:
         return None
     lk = lock if lock is not None else threading.RLock()
