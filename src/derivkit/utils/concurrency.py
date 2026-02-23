@@ -122,7 +122,9 @@ def _run_in_child(
 ) -> Any:
     worker, args, inner_workers, env = payload
 
-    # Clamp threads INSIDE the child process, before heavy imports happen there.
+    # In backend="processes", this function runs inside each spawned worker process.
+    # Set env vars here (inside the child) before calling the worker (and any heavy
+    # native imports it may trigger), so OpenMP/BLAS thread pools are clamped per-process.
     if env:
         for k, v in env.items():
             os.environ[k] = str(v)
@@ -194,8 +196,12 @@ def parallel_execute(
         )
 
     # auto clamp for processes unless user explicitly overrides
-    if backend_l == "processes" and child_env is None:
-        child_env = _default_child_env()
+    if backend_l == "processes":
+        default_env = _default_child_env()
+        if child_env is None:
+            child_env = default_env
+        else:
+            child_env = {**default_env, **child_env}  # user overrides win
 
     with set_inner_derivative_workers(inner_workers):
         if outer_workers <= 1:
