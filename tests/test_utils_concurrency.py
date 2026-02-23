@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import contextvars
+import os
 import threading
+import time
 
 import pytest
 
@@ -244,3 +246,21 @@ def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
 
     assert len(set(out)) > 1
     assert len(seen) > 1
+
+
+def _pid_worker_sleep(_x: int) -> int:
+    """Returns PID after a short sleep (module-scope for pickling)."""
+    time.sleep(0.05)
+    return os.getpid()
+
+
+def test_parallel_execute_uses_multiple_processes_when_outer_workers_gt_1():
+    """Tests that parallel_execute uses multiple processes when outer_workers > 1."""
+    n = 4
+    out = parallel_execute(
+        _pid_worker_sleep,
+        [(i,) for i in range(n)],
+        outer_workers=2,
+        backend="processes",
+    )
+    assert len(set(out)) > 1
