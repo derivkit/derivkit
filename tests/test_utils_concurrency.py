@@ -215,10 +215,9 @@ def test_parallel_execute_backend_threads_ok():
     assert sorted(out) == [2, 3]
 
 
-def test_parallel_execute_backend_processes_not_implemented():
-    """Tests that backend='processes' raises NotImplementedError."""
-    out = parallel_execute(_identity, [(1,), (2,)], outer_workers=2,
-                           backend="processes", child_env={})
+def test_parallel_execute_backend_processes_ok():
+    """Tests that backend='processes' returns the correct results (not performance)."""
+    out = parallel_execute(_identity, [(1,), (2,)], outer_workers=2, backend="processes")
     assert sorted(out) == [1, 2]
 
 
