@@ -198,7 +198,6 @@ def parallel_execute(
         child_env: Environment variables to set in each child process.
             If ``None``, defaults to a safe set of OpenMP/BLAS thread pool.
             Is ignored if ``backend`` is equal to ``"threads"``.
-            
 
     Returns:
         List of worker return values.
