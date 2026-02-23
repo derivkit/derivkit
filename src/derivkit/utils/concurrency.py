@@ -123,6 +123,18 @@ def _run_in_child(
         dict[str, str] | None
     ]
 ) -> Any:
+    """Executes a function in a child process.
+
+    Args:
+        payload: the elements of the child process to run.
+            Is a tuple with the elements ``(f, args, pid, env)`` where
+            
+            * ``f`` is the function to evaluate.
+            * ``args`` is a tuple of arguments to which ``f`` is applied.
+            * ``pid`` is a token identifying the child process.
+              Note that ``pid`` is internal and not exposed to the operating system.
+            * ``env`` is a dictionary containing variables names with their values.
+    """
     worker, args, inner_workers, env = payload
 
     # In backend="processes", this function runs inside each spawned worker process.
