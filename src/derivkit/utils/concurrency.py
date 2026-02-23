@@ -120,26 +120,24 @@ def _run_in_child(
         Callable[..., Any],
         tuple[Any, ...],
         int | None,
-        dict[str, str] | None
+        dict[str, str] | None,
     ]
 ) -> Any:
-    """Executes a function in a child process.
+    """Entry point executed inside each spawned worker process.
 
     Args:
-        payload: the elements of the child process to run.
-            Is a tuple with the elements ``(f, args, pid, env)`` where
-            
-            * ``f`` is the function to evaluate.
-            * ``args`` is a tuple of arguments to which ``f`` is applied.
-            * ``pid`` is a token identifying the child process.
-              Note that ``pid`` is internal and not exposed to the operating system.
-            * ``env`` is a dictionary containing variables names with their values.
+        payload: Tuple of ``(worker, args, inner_workers, env)`` where:
+            - worker: picklable callable executed as ``worker(*args)``.
+            - args: positional arguments for ``worker``.
+            - inner_workers: inner derivative worker setting to propagate via contextvar.
+            - env: environment variables to set inside the child process (e.g. BLAS/OpenMP caps).
     """
     worker, args, inner_workers, env = payload
 
-    # In backend="processes", this function runs inside each spawned worker process.
-    # Set env vars here (inside the child) before calling the worker (and any heavy
-    # native imports it may trigger), so OpenMP/BLAS thread pools are clamped per-process.
+    # Called via ProcessPoolExecutor.map(...) in parallel_execute(backend="processes").
+    # This runs inside each spawned worker process. Set env vars here (inside the child)
+    # before calling the worker (and any heavy native imports it may trigger), so
+    # OpenMP/BLAS thread pools are clamped per-process.
     if env:
         for k, v in env.items():
             os.environ[k] = str(v)
