@@ -116,9 +116,12 @@ def _default_child_env() -> dict[str, str]:
 
 
 def _run_in_child(
-    payload: tuple[Callable[..., Any],
-    tuple[Any, ...], int | None,
-    dict[str, str] | None]
+    payload: tuple[
+        Callable[..., Any],
+        tuple[Any, ...],
+        int | None,
+        dict[str, str] | None
+    ]
 ) -> Any:
     worker, args, inner_workers, env = payload
 
