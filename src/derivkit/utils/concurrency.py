@@ -134,10 +134,12 @@ def _run_in_child(
     """
     worker, args, inner_workers, env = payload
 
-    # Called via ProcessPoolExecutor.map(...) in parallel_execute(backend="processes").
-    # This runs inside each spawned worker process. Set env vars here (inside the child)
-    # before calling the worker (and any heavy native imports it may trigger), so
-    # OpenMP/BLAS thread pools are clamped per-process.
+    # If backend="processes", this function runs inside each spawned worker process.
+    # Any provided environment variables (e.g. OMP_NUM_THREADS,
+    # OPENBLAS_NUM_THREADS, MKL_NUM_THREADS) are set here so that
+    # thread-pool sizes are explicitly fixed per process before the
+    # worker (and any heavy native imports it may trigger) is executed.
+    # Users may override these defaults by passing custom values.
     if env:
         for k, v in env.items():
             os.environ[k] = str(v)
