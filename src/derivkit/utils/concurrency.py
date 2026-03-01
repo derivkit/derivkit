@@ -127,6 +127,7 @@ def _run_in_child(
 
     Args:
         payload: Tuple of ``(worker, args, inner_workers, env)`` where:
+
             - worker: picklable callable executed as ``worker(*args)``.
             - args: positional arguments for ``worker``.
             - inner_workers: inner derivative worker setting to propagate via contextvar.
@@ -195,11 +196,13 @@ def parallel_execute(
         outer_workers: Parallelism level for outer execution.
         inner_workers: Inner derivative worker setting to propagate via contextvar.
         backend: Parallel backend.
+
             - "threads": use a ThreadPoolExecutor (same Python process,
               shared memory, subject to the GIL).
             - "processes": use multiprocessing (spawn-based), running each
               worker in a separate Python process. This avoids GIL contention
               and is safer for native/OpenMP/BLAS stacks.
+
         child_env: Environment variables to set in each child process.
             If ``None``, defaults to a safe set of OpenMP/BLAS thread pool.
             Is ignored if ``backend`` is equal to ``"threads"``.
