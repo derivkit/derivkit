@@ -130,7 +130,10 @@ def _run_in_child(
             - worker: picklable callable executed as ``worker(*args)``.
             - args: positional arguments for ``worker``.
             - inner_workers: inner derivative worker setting to propagate via contextvar.
-            - env: environment variables to set inside the child process (e.g. BLAS/OpenMP caps).
+            - env: Optional environment overrides applied inside the child process.
+                  Intended for controlling thread-pool settings in native libraries
+                  (OpenMP/BLAS/vecLib/NumExpr), but left generic so users
+                  can pass the relevant knobs for their stack.
     """
     worker, args, inner_workers, env = payload
 
