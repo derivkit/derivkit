@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import contextvars
+import os
 import threading
+import time
 
 import pytest
 
@@ -13,6 +15,16 @@ from derivkit.utils.concurrency import (
     parallel_execute,
     resolve_workers,
 )
+
+
+def _worker_return_inner(x: int):
+    """Worker function that returns the inner worker context."""
+    return x, conc._inner_workers_var.get()
+
+
+def _identity(x: int) -> int:
+    """Identity function used for testing."""
+    return x
 
 
 def _reset_inner_var() -> None:
@@ -112,10 +124,11 @@ def test_parallel_execute_threaded_propagates_inner_workers():
         return x, conc._inner_workers_var.get()
 
     results = conc.parallel_execute(
-        worker,
+        _worker_return_inner,
         arg_tuples=[(10,), (20,)],
         outer_workers=2,
         inner_workers=4,
+        backend="threads",
     )
 
     # Order is preserved because we collect futures in submission order
@@ -204,14 +217,10 @@ def test_parallel_execute_backend_threads_ok():
     assert sorted(out) == [2, 3]
 
 
-def test_parallel_execute_backend_processes_not_implemented():
-    """Tests that backend='processes' raises NotImplementedError."""
-    def identity(x: int) -> int:
-        """Identity function used for testing."""
-        return x
-
-    with pytest.raises(NotImplementedError):
-        parallel_execute(identity, [(1,)], backend="processes")
+def test_parallel_execute_backend_processes_ok():
+    """Tests that backend='processes' returns the correct results (not performance)."""
+    out = parallel_execute(_identity, [(1,), (2,)], outer_workers=2, backend="processes")
+    assert sorted(out) == [1, 2]
 
 
 def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
@@ -233,7 +242,25 @@ def test_parallel_execute_uses_multiple_threads_when_outer_workers_gt_1():
 
     tasks = [(i,) for i in range(n)]
 
-    out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1)
+    out = parallel_execute(worker, tasks, outer_workers=n, inner_workers=1, backend="threads")
 
     assert len(set(out)) > 1
     assert len(seen) > 1
+
+
+def _pid_worker_sleep(_x: int) -> int:
+    """Returns PID after a short sleep (module-scope for pickling)."""
+    time.sleep(0.05)
+    return os.getpid()
+
+
+def test_parallel_execute_uses_multiple_processes_when_outer_workers_gt_1():
+    """Tests that parallel_execute uses multiple processes when outer_workers > 1."""
+    n = 4
+    out = parallel_execute(
+        _pid_worker_sleep,
+        [(i,) for i in range(n)],
+        outer_workers=2,
+        backend="processes",
+    )
+    assert len(set(out)) > 1
