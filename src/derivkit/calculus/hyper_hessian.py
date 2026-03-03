@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from itertools import permutations
 from typing import Any
 
 import numpy as np
@@ -61,8 +60,16 @@ def build_hyper_hessian(
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.asarray(function(theta))
-    ensure_finite(y0, msg="Non-finite values in model output at theta0.")
+    probe = np.asarray(function(theta), dtype=np.float64)
+    ensure_finite(probe, msg="Non-finite values in model output at theta0.")
+
+    if probe.ndim not in (0, 1):
+        raise TypeError(
+            "Hyper-Hessian expects a scalar- or vector-valued function; "
+            f"got output with shape {probe.shape}."
+        )
+
+    out_shape = probe.shape
 
     inner_override = dk_kwargs.pop("inner_workers", None)
     outer_workers = int(n_workers) if n_workers is not None else 1
@@ -75,19 +82,20 @@ def build_hyper_hessian(
     out = _build_hyper_hessian(
         function=function,
         theta=theta,
+        out_shape=out_shape,
         method=method,
         inner_workers=inner_workers,
         outer_workers=outer_workers,
         **dk_kwargs,
     )
 
-    ensure_finite(out, msg="Non-finite values encountered in hyper-Hessian.")
     return out
 
 
 def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
+    out_shape: tuple[int, ...],
     method: str | None,
     inner_workers: int | None,
     outer_workers: int,
@@ -97,7 +105,8 @@ def _build_hyper_hessian(
 
     Args:
         function: Scalar- or vector-valued function to differentiate.
-        theta: 1D parameter vector where the derivatives are evaluated..
+        theta: 1D parameter vector where the derivatives are evaluated.
+        out_shape: Shape of the output array.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
@@ -110,13 +119,6 @@ def _build_hyper_hessian(
     Raises:
         TypeError: If ``function`` does not return a scalar or a vector.
     """
-    probe = np.asarray(function(theta), dtype=np.float64)
-    if probe.ndim not in [0,1]:
-        raise TypeError(
-            "Hyper-Hessian expects a scalar- or vector-valued function; "
-            f"got output with shape {probe.shape}."
-        )
-
     p = int(theta.size)
     iw = int(inner_workers or 1)
 
@@ -125,7 +127,7 @@ def _build_hyper_hessian(
         (i, j, k) for i in range(p) for j in range(i, p) for k in range(j, p)
     ]
 
-    def entry_worker(i: int, j: int, k: int) -> float:
+    def entry_worker(i: int, j: int, k: int) -> np.ndarray:
         """Worker to compute one hyper-Hessian entry.
 
         Args:
@@ -154,12 +156,27 @@ def _build_hyper_hessian(
         inner_workers=iw,
     )
 
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
     hess = np.empty((*out_shape, p, p, p), dtype=float)
+
+    def _perm_indices(i: int, j: int, k: int) -> list[tuple[int, int, int]]:
+        if i == j == k:
+            return [(i, j, k)]
+        if i == j != k:
+            return [(i, i, k), (i, k, i), (k, i, i)]
+        if i != j == k:
+            return [(i, j, j), (j, i, j), (j, j, i)]
+        return [
+            (i, j, k),
+            (i, k, j),
+            (j, i, k),
+            (j, k, i),
+            (k, i, j),
+            (k, j, i),
+        ]
+
     for (i, j, k), v in zip(triplets, vals, strict=True):
         v = np.asarray(v, dtype=float)
-        for a, b, c in set(permutations((i, j, k), 3)):
+        for a, b, c in _perm_indices(i, j, k):
             hess[..., a, b, c] = v
 
     ensure_finite(hess, msg="Non-finite values encountered in hyper-Hessian.")
@@ -176,7 +193,7 @@ def _third_derivative_entry(
     method: str | None,
     n_workers: int,
     dk_kwargs: dict[str, Any],
-) -> float:
+) -> np.ndarray:
     """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
 
     Args:
