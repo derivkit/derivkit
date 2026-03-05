@@ -50,7 +50,9 @@ Running ``derivkit`` workflows
 ******************************
 
 ``derivkit`` uses `tox <https://tox.wiki>`__ to run its workflows.
-It is installed along with  ``derivkit`` itself.
+It can be installed along with ``derivkit`` by adding the ``dev`` group::
+
+  pip install --group dev derivkit
 
 All workflows can be run consecutively by simply calling tox from the project root directory::
 

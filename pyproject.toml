@@ -35,14 +35,18 @@ dependencies = [
   "numpy",
   "multiprocess",
   "scipy",
-  "tox",
   "getdist",
   "emcee",
 ]
 
 
-[project.optional-dependencies]
-test = ["pytest"]
+[dependency-groups]
+dev = ["tox"]
+
+test = [
+    "pytest",
+    {include-group = "dev"},
+]
 
 docs = [
   "sphinx < 9",
@@ -50,10 +54,15 @@ docs = [
   "sphinx-multiversion",
   "furo",
   "sphinx-copybutton",
+  {include-group = "dev"},
 ]
 
-lint = ["ruff"]
+lint = [
+    "ruff",
+    {include-group = "dev"},
+]
 
+[project.optional-dependencies]
 jax = [
   "jax>=0.4",
   "jaxlib>=0.4",
@@ -105,7 +114,7 @@ envlist = [
 [tool.tox.env_run_base]
 description = "Run tests under {base_python}"
 change_dir = "{tox_root}/tests"
-extras = ["test"]
+dependency_groups = ["test"]
 allowlist_externals = ["pytest"]
 commands = [
   ["pytest", { replace = "posargs", extend = true }],
@@ -118,7 +127,7 @@ PIP_CACHE_DIR = "{tox_root}/.cache/pip"
 
 [tool.tox.env.docs]
 description = "Build docs with Sphinx and doctest"
-extras = ["docs"]
+dependency_groups = ["docs"]
 commands = [
   [
     "sphinx-apidoc",
@@ -144,7 +153,7 @@ commands = [
 # Local convenience: build docs and open HTML index (Mac only).
 # If posargs are given, they are treated as FILENAMES passed to sphinx-build.
 description = "(Mac only) Build and test docs and open docs in browser"
-extras = ["docs"]
+dependency_groups = ["docs"]
 allowlist_externals = ["open"]
 change_dir = "{tox_root}"
 commands = [
@@ -190,7 +199,7 @@ commands = [
 
 [tool.tox.env.docs-releases]
 description = "Build the documentation for derivkit releases using Sphinx"
-extras = ["docs"]
+dependency_groups = ["docs"]
 allowlist_externals = ["cp"]
 commands = [
   [
@@ -218,7 +227,7 @@ commands = [
 
 [tool.tox.env.lint]
 description = "Lint derivkit using Ruff"
-extras = ["lint"]
+dependency_groups = ["lint"]
 commands = [
   [
     "ruff",
