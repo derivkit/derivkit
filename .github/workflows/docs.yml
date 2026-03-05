@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e --group dev .
+          pip install --group dev -e .
 
       - name: Sphinx build
         run: |
