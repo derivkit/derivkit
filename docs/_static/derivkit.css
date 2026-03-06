@@ -194,3 +194,38 @@ div.figure img {
   max-width: 520px;
   height: auto;
 }
+
+/* ==========================================================================
+   DerivKit — Furo sidebar typography
+   ========================================================================== */
+
+/* Slightly larger sidebar base text */
+.sidebar-container {
+  font-size: 1.02rem !important;
+}
+
+/* Main navigation links (Furo) */
+.sidebar-tree a {
+  font-size: 1.08rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Section headers / captions inside the sidebar */
+.sidebar-tree .caption-text {
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+}
+
+/* Search box text */
+.sidebar-search input {
+  font-size: 1.02rem !important;
+}
+
+/* Optional: tiny spacing improvement */
+.sidebar-tree li {
+  margin-bottom: 0.15rem !important;
+}
+
+.sidebar-tree a {
+  padding: 0.15rem 0 !important;
+}
