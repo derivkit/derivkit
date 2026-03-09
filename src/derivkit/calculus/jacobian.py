@@ -77,7 +77,6 @@ def build_jacobian(
         function=function,
         theta0=theta,
         method=method,
-        inner_workers=inner_workers,
         expected_m=m,
         **dk_kwargs,
     )
@@ -99,8 +98,8 @@ def _column_derivative(
     function: Callable[[ArrayLike], ArrayLike | float],
     theta0: ArrayLike,
     method: str | None,
-    inner_workers: int | None,
     expected_m: int,
+    n_workers: int | None = 1,
     **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Derivative of function with respect to parameter j.
@@ -112,7 +111,7 @@ def _column_derivative(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
-        inner_workers: Number of workers used by
+        n_workers: Number of workers used by
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
         **dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
@@ -140,7 +139,7 @@ def _column_derivative(
 
     # Differentiate via new unified API (passes method through)
     kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **dk_kwargs)
+    g = kit.differentiate(method=method_norm, order=1, n_workers=n_workers, **dk_kwargs)
 
     g = np.atleast_1d(np.asarray(g, dtype=float)).reshape(-1)
     if g.size != expected_m:

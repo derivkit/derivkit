@@ -46,15 +46,13 @@ def build_gradient(
 
     check_scalar_valued(function, theta0, 0, n_workers)
 
-    inner = resolve_inner_from_outer(n_workers)
-
     # Bind shared kwargs once; tasks only carry (function, theta0, i)
     worker = partial(
         _grad_component,
         method=method,
-        n_workers=inner,
         dk_kwargs=dk_kwargs,
     )
+
     tasks = [(function, theta0, i) for i in range(theta0.size)]
 
     vals = parallel_execute(worker, tasks, n_workers=n_workers)

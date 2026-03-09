@@ -136,14 +136,8 @@ def _build_hessian_full(
     # Here we build a list of tasks for all unique Hessian entries (i, j).
     # We only compute the upper triangle and diagonal, then mirror the results.
     # This reduces computation by nearly half.
-    tasks: list[Tuple[Any, ...]] = [
-        (function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)
-    ]
-    tasks += [
-        (function, theta, i, j, method, inner_workers, dk_kwargs)
-        for i in range(p)
-        for j in range(i + 1, p)
-    ]
+    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, dk_kwargs) for i in range(p)]
+    tasks += [(function, theta, i, j, method, dk_kwargs) for i in range(p) for j in range(i + 1, p)]
 
     vals_list = parallel_execute(
         _hessian_component_worker,
@@ -173,7 +167,7 @@ def _build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
-    n_workers: int,
+    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian for a scalar- or vector-valued function.
@@ -194,9 +188,7 @@ def _build_hessian_diag(
     """
     p = int(theta.size)
 
-    tasks: list[Tuple[Any, ...]] = [
-        (function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)
-    ]
+    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, dk_kwargs) for i in range(p)]
     vals = parallel_execute(
         _hessian_component_worker,
         tasks,
@@ -215,7 +207,6 @@ def _hessian_component_worker(
     i: int,
     j: int,
     method: str | None,
-    inner_workers: int | None,
     dk_kwargs: dict,
 ) -> float:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
@@ -242,7 +233,7 @@ def _hessian_component_worker(
         i=i,
         j=j,
         method=method,
-        n_workers=inner_workers or 1,
+        n_workers=1,
         **dk_kwargs,
     )
     val_arr = np.asarray(val, dtype=float)
@@ -359,8 +350,8 @@ def _build_hessian_internal(
     theta0: np.ndarray,
     *,
     method: str | None,
-    n_workers: int,
     diag: bool,
+    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Core Hessian builder (internal).
@@ -411,8 +402,6 @@ def _build_hessian_internal(
 
     Notes:
     - When ``diag=True``, mixed partials are skipped for speed and memory efficiency.
-    - The inner worker count defaults to ``resolve_inner_from_outer(n_workers)`` unless
-      explicitly overridden via ``inner_workers`` in ``dk_kwargs``.
     """
     theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:
@@ -428,17 +417,13 @@ def _build_hessian_internal(
             f"got output with shape {probe.shape}."
         )
 
-    inner_override = dk_kwargs.pop("inner_workers", None)
-    outer = int(n_workers) if n_workers is not None else 1
-    inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
-
     if diag:
-        arr = _build_hessian_diag(function, theta, method, outer, inner, **dk_kwargs)
+        arr = _build_hessian_diag(function, theta, method, n_workers, **dk_kwargs)
         if not np.isfinite(arr).all():
             raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr
     else:
-        arr = _build_hessian_full(function, theta, method, outer, inner, **dk_kwargs)
+        arr = _build_hessian_full(function, theta, method, n_workers, **dk_kwargs)
         if not np.isfinite(arr).all():
             raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr

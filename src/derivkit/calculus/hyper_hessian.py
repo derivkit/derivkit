@@ -63,13 +63,11 @@ def build_hyper_hessian(
     y0 = np.asarray(function(theta))
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
-    n_workers = int(n_workers) if n_workers is not None else 1
-
     out = _build_hyper_hessian(
         function=function,
         theta=theta,
         method=method,
-        n_workers=outer_workers,
+        n_workers=n_workers,
         **dk_kwargs,
     )
 
@@ -81,7 +79,7 @@ def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
     method: str | None,
-    n_workers: int,
+    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns a hyper-Hessian for a scalar- or vector-valued function.
@@ -108,7 +106,6 @@ def _build_hyper_hessian(
         )
 
     p = int(theta.size)
-    iw = int(inner_workers or 1)
 
     # Compute only unique entries i<=j<=k, then symmetrize.
     triplets: list[tuple[int, int, int]] = [
@@ -133,8 +130,7 @@ def _build_hyper_hessian(
             j=j,
             k=k,
             method=method,
-            n_workers=iw,
-            dk_kwargs=dk_kwargs,
+            **dk_kwargs,
         )
 
     vals = parallel_execute(
@@ -163,8 +159,8 @@ def _third_derivative_entry(
     j: int,
     k: int,
     method: str | None,
-    n_workers: int,
-    dk_kwargs: dict[str, Any],
+    n_workers: int = 1,
+    **dk_kwargs: dict[str, Any],
 ) -> float:
     """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
 

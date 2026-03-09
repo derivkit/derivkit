@@ -24,7 +24,7 @@ def parallel_execute(
     arg_tuples: Sequence[Tuple[Any, ...]],
     *,
     n_workers: int = 1,
-    backend: str = "multiprocess",  # TODO: implement  MPI?
+    backend: str = "processes",  # TODO: implement  MPI or Dask?
 ) -> list[Any]:
     """Applies a function to groups of arguments in parallel.
 
