@@ -10,7 +10,6 @@ from numpy.typing import ArrayLike, NDArray
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
-    resolve_inner_from_outer,
 )
 from derivkit.utils.sandbox import get_partial_function
 from derivkit.utils.validate import ensure_finite
@@ -106,8 +105,7 @@ def _build_hessian_full(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
-    outer_workers: int,
-    inner_workers: int | None,
+    n_workers: int,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the full Hessian for a scalar- or vector-valued function.
@@ -122,8 +120,7 @@ def _build_hessian_full(
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-        outer_workers: Number of outer parallel workers for Hessian entries.
-        inner_workers: Optional inner parallelism for the differentiation engine.
+        n_workers: Number of outer parallel workers for Hessian entries.
         **dk_kwargs: Additional keyword arguments for
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -139,17 +136,19 @@ def _build_hessian_full(
     # Here we build a list of tasks for all unique Hessian entries (i, j).
     # We only compute the upper triangle and diagonal, then mirror the results.
     # This reduces computation by nearly half.
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)]
+    tasks: list[Tuple[Any, ...]] = [
+        (function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)
+    ]
     tasks += [
         (function, theta, i, j, method, inner_workers, dk_kwargs)
-        for i in range(p) for j in range(i + 1, p)
+        for i in range(p)
+        for j in range(i + 1, p)
     ]
 
     vals_list = parallel_execute(
         _hessian_component_worker,
         tasks,
-        outer_workers=outer_workers,
-        inner_workers=inner_workers,
+        n_workers=n_workers,
     )
     y0 = np.asarray(function(theta))
     out_shape = y0.shape
@@ -163,8 +162,8 @@ def _build_hessian_full(
         for j in range(i + 1, p):
             hij = vals[k]
             k += 1
-            hess[...,i, j] = hij
-            hess[...,j, i] = hij
+            hess[..., i, j] = hij
+            hess[..., j, i] = hij
 
     ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
     return hess
@@ -174,8 +173,7 @@ def _build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
-    outer_workers: int,
-    inner_workers: int | None,
+    n_workers: int,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian for a scalar- or vector-valued function.
@@ -184,8 +182,7 @@ def _build_hessian_diag(
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-        outer_workers: Number of outer parallel workers for diagonal entries.
-        inner_workers: Optional inner parallelism for the differentiation engine.
+        n_workers: Number of outer parallel workers for diagonal entries.
         **dk_kwargs: Additional keyword arguments for
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -197,12 +194,13 @@ def _build_hessian_diag(
     """
     p = int(theta.size)
 
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)]
+    tasks: list[Tuple[Any, ...]] = [
+        (function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)
+    ]
     vals = parallel_execute(
         _hessian_component_worker,
         tasks,
-        outer_workers=outer_workers,
-        inner_workers=inner_workers,
+        n_workers=n_workers,
     )
 
     diag = np.asarray(vals, dtype=float)
@@ -424,7 +422,7 @@ def _build_hessian_internal(
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
     probe = np.asarray(function(theta0), dtype=np.float64)
-    if probe.ndim not in [0,1]:
+    if probe.ndim not in [0, 1]:
         raise TypeError(
             "Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."

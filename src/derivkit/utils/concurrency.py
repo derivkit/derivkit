@@ -3,187 +3,28 @@
 from __future__ import annotations
 
 import contextvars
-import multiprocessing as mp
-import os
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from contextlib import contextmanager
-from typing import Any, Callable, Iterator, Sequence, Tuple
+from multiprocessing import Pool
+from typing import Any, Callable, Sequence, Tuple
 
 __all__ = [
-    "set_default_inner_derivative_workers",
-    "set_inner_derivative_workers",
-    "resolve_inner_from_outer",
     "parallel_execute",
-    "_inner_workers_var",
     "normalize_workers",
-    "resolve_workers",
 ]
 
+_BACKENDS = ["processes"]
 
 # Context-var and default
 _inner_workers_var: contextvars.ContextVar[int | None] = contextvars.ContextVar(
     "derivkit_inner_workers", default=None
 )
-_DEFAULT_INNER_WORKERS: int | None = None
-
-
-def set_default_inner_derivative_workers(n: int | None) -> None:
-    """Sets the module-wide default for inner derivative workers.
-
-    Args:
-        n: Number of inner derivative workers, or None for automatic policy.
-
-    Returns:
-        None
-    """
-    global _DEFAULT_INNER_WORKERS
-    _DEFAULT_INNER_WORKERS = None if n is None else int(n)
-
-
-@contextmanager
-def set_inner_derivative_workers(n: int | None) -> Iterator[int | None]:
-    """Temporarily sets the number of inner derivative workers.
-
-    Args:
-        n: Number of inner derivative workers, or ``None`` for automatic policy.
-
-    Yields:
-        int | None: The previous worker setting (restored on exit).
-    """
-    prev = _inner_workers_var.get()
-    token = _inner_workers_var.set(None if n is None else int(n))
-    try:
-        yield prev
-    finally:
-        _inner_workers_var.reset(token)
-
-
-def _int_env(name: str) -> int | None:
-    """Reads a positive integer from an environment variable, or None if unset/invalid.
-
-    Args:
-        name: Environment variable name.
-
-    Returns:
-        Positive integer value, or None.
-    """
-    v = os.getenv(name)
-    if not v:
-        return None
-    try:
-        i = int(v)
-        return i if i > 0 else None
-    except ValueError:
-        return None
-
-def _detect_hw_threads() -> int:
-    """Detects the number of hardware threads, capped by relevant environment variables.
-
-    Returns:
-        Number of hardware threads (at least 1).
-    """
-    hints = [
-        _int_env("OMP_NUM_THREADS"),
-        _int_env("MKL_NUM_THREADS"),
-        _int_env("OPENBLAS_NUM_THREADS"),
-        _int_env("VECLIB_MAXIMUM_THREADS"),
-        _int_env("NUMEXPR_NUM_THREADS"),
-    ]
-    env_cap = min([h for h in hints if h is not None], default=None)
-    hw = os.cpu_count() or 1
-    return max(1, min(hw, env_cap) if env_cap else hw)
-
-
-def _default_child_env() -> dict[str, str]:
-    """Default environment for *child processes* when using backend="processes".
-
-    We cap common OpenMP/BLAS thread pools to 1 per child to avoid nested parallelism
-    (oversubscription), where N worker processes each spawn M internal threads
-    (N×M threads total). That pattern often hurts performance and can trigger
-    stability issues in some scientific stacks (notably on macOS).
-
-    This does NOT disable concurrency: parallelism still comes from multiple processes.
-    Users who intentionally want threaded BLAS/OpenMP inside each child can override
-    these env vars externally.
-    """
-    return {
-        "OMP_NUM_THREADS": "1",
-        "OPENBLAS_NUM_THREADS": "1",
-        "MKL_NUM_THREADS": "1",
-        "VECLIB_MAXIMUM_THREADS": "1",
-        "NUMEXPR_NUM_THREADS": "1",
-    }
-
-
-def _run_in_child(
-    payload: tuple[
-        Callable[..., Any],
-        tuple[Any, ...],
-        int | None,
-        dict[str, str] | None,
-    ]
-) -> Any:
-    """Entry point executed inside each spawned worker process.
-
-    Args:
-        payload: Tuple of ``(worker, args, inner_workers, env)`` where:
-
-            - worker: picklable callable executed as ``worker(*args)``.
-            - args: positional arguments for ``worker``.
-            - inner_workers: inner derivative worker setting to propagate via contextvar.
-            - env: Optional environment overrides applied inside the child process.
-                  Intended for controlling thread-pool settings in native libraries
-                  (OpenMP/BLAS/vecLib/NumExpr), but left generic so users
-                  can pass the relevant knobs for their stack.
-    """
-    worker, args, inner_workers, env = payload
-
-    # If backend="processes", this runs inside each spawned worker process.
-    # Set environment variables here (inside the child) *before* running the worker
-    # (and before any heavy native imports it may trigger). This is primarily used to
-    # control native thread pools (OpenMP/BLAS/vecLib/NumExpr) per process.
-    # By default, parallel_execute sets common thread-count variables to "1" in each child
-    # (see _default_child_env), unless the user overrides them via child_env.
-    if env:
-        for k, v in env.items():
-            os.environ[k] = str(v)
-
-    # Propagate inner-workers setting in the child too
-    token = _inner_workers_var.set(None if inner_workers is None else int(inner_workers))
-    try:
-        return worker(*args)
-    finally:
-        _inner_workers_var.reset(token)
-
-
-def resolve_inner_from_outer(w_params: int) -> int | None:
-    """Resolves the number of inner derivative workers based on outer workers and defaults.
-
-    Args:
-        w_params: Number of outer derivative workers.
-
-    Returns:
-        Number of inner derivative workers, or None for automatic policy.
-    """
-    w = _inner_workers_var.get()
-    if w is not None:
-        return w
-    if _DEFAULT_INNER_WORKERS is not None:
-        return _DEFAULT_INNER_WORKERS
-    cores = _detect_hw_threads()
-    if w_params > 1:
-        return min(4, max(1, cores // w_params))
-    return min(4, cores)
 
 
 def parallel_execute(
     worker: Callable[..., Any],
     arg_tuples: Sequence[Tuple[Any, ...]],
     *,
-    outer_workers: int = 1,
-    inner_workers: int | None = None,
-    backend: str = "threads",
-    child_env: dict[str, str] | None = None,
+    n_workers: int = 1,
+    backend: str = "multiprocess",  # TODO: implement  MPI?
 ) -> list[Any]:
     """Applies a function to groups of arguments in parallel.
 
@@ -193,70 +34,32 @@ def parallel_execute(
     Args:
         worker: Function applied to each entry in ``arg_tuples`` (called as ``worker(*args)``).
         arg_tuples: Argument tuples; each tuple is expanded into one ``worker(*args)`` call.
-        outer_workers: Parallelism level for outer execution.
-        inner_workers: Inner derivative worker setting to propagate via contextvar.
+        n_workers: Parallelism level for outer execution.
         backend: Parallel backend.
-
-            - "threads": use a ThreadPoolExecutor (same Python process,
-              shared memory, subject to the GIL).
             - "processes": use multiprocessing (spawn-based), running each
               worker in a separate Python process. This avoids GIL contention
               and is safer for native/OpenMP/BLAS stacks.
 
-        child_env: Environment variables to set in each child process.
-            If ``None``, defaults to a safe set of OpenMP/BLAS thread pool.
-            Is ignored if ``backend`` is equal to ``"threads"``.
 
     Returns:
         List of worker return values.
     """
     backend_l = str(backend).lower()
-    if backend_l not in {"threads", "processes"}:
+    if backend_l not in _BACKENDS:
         raise NotImplementedError(
             f"parallel_execute backend={backend!r} not supported yet."
-            f" Use backend='threads' or backend='processes'."
+            f" Use one of: {', '.join(_BACKENDS)}."
         )
 
-    # auto clamp for processes unless user explicitly overrides
-    if backend_l == "processes":
-        default_env = _default_child_env()
-        if child_env is None:
-            child_env = default_env
-        else:
-            child_env = {**default_env, **child_env}  # user overrides win
+    if n_workers <= 1:  # No need of using a parallel backend
+        return [worker(*args) for args in arg_tuples]
 
-    with set_inner_derivative_workers(inner_workers):
-        if outer_workers <= 1:
-            return [worker(*args) for args in arg_tuples]
-
-        if backend_l == "threads":
-            with ThreadPoolExecutor(max_workers=outer_workers) as ex:
-                futures = []
-                for args in arg_tuples:
-                    ctx = contextvars.copy_context()
-                    futures.append(ex.submit(ctx.run, worker, *args))
-                return [f.result() for f in futures]
-
-        # processes backend: use multiprocessing with the "spawn" start method.
-        # ("spawn" starts fresh Python worker processes; it is not a thread pool.)
-        ctx = mp.get_context("spawn")
-        payloads = [(worker, args, _inner_workers_var.get(), child_env) for
-                    args in arg_tuples]
-
-        try:
-            with ProcessPoolExecutor(max_workers=outer_workers,
-                                     mp_context=ctx) as ex:
-                return list(ex.map(_run_in_child, payloads))
-        except Exception as e:
-            raise TypeError(
-                "parallel_execute backend='processes' requires a picklable worker "
-                "(define it at module scope; avoid lambdas/closures, especially in notebooks)."
-            ) from e
+    elif backend_l == "processes":
+        with Pool(processes=normalize_workers(n_workers)) as pool:
+            return pool.starmap(worker, arg_tuples)
 
 
-def normalize_workers(
-    n_workers: Any
-) -> int:
+def normalize_workers(n_workers: Any) -> int:
     """Ensures n_workers is a positive integer, defaulting to 1.
 
     Args:
@@ -273,39 +76,3 @@ def normalize_workers(
     except (TypeError, ValueError):
         n = 1
     return 1 if n < 1 else n
-
-
-def resolve_workers(
-    n_workers: Any,
-    dk_kwargs: dict[str, Any],
-) -> tuple[int, int | None, dict[str, Any]]:
-    """Decides how parallel work is split between outer calculus routines and the inner derivative engine.
-
-    Outer workers parallelize across independent derivative tasks (e.g. parameters,
-    output components, Hessian entries). Inner workers control parallelism inside
-    each derivative evaluation (within DerivativeKit).
-
-    If both levels spawn workers simultaneously, nested parallelism can cause
-    oversubscription. By default, the inner worker count is derived from the
-    outer worker count to avoid that. You can override this by passing
-    ``inner_workers=<int>`` via ``dk_kwargs``.
-
-    Args:
-        n_workers: Number of outer workers. If ``None``, defaults to 1.
-        dk_kwargs: Keyword arguments forwarded to DerivativeKit.differentiate.
-            May include ``inner_workers`` to override the default policy.
-
-    Returns:
-        (outer_workers, inner_workers, dk_kwargs_cleaned), where ``dk_kwargs_cleaned``
-        has any ``inner_workers`` entry removed.
-    """
-    dk_kwargs_cleaned = dict(dk_kwargs)
-    inner_override = dk_kwargs_cleaned.pop("inner_workers", None)
-
-    outer = normalize_workers(n_workers)
-    if inner_override is None:
-        inner = resolve_inner_from_outer(outer)
-    else:
-        inner = normalize_workers(inner_override)
-
-    return outer, inner, dk_kwargs_cleaned

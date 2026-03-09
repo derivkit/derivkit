@@ -10,7 +10,6 @@ from numpy.typing import ArrayLike, NDArray
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
-    resolve_inner_from_outer,
 )
 from derivkit.utils.sandbox import get_partial_function
 
@@ -68,10 +67,9 @@ def build_jacobian(
 
     # Resolve parallelism policy
     try:
-        outer_workers = max(1, int(n_workers or 1))
+        n_workers = max(1, int(n_workers or 1))
     except (TypeError, ValueError):
-        outer_workers = 1
-    inner_workers = resolve_inner_from_outer(outer_workers)
+        n_workers = 1
 
     # Prepare worker
     worker = partial(
@@ -88,8 +86,7 @@ def build_jacobian(
     cols = parallel_execute(
         worker,
         arg_tuples=[(j,) for j in range(n)],
-        outer_workers=outer_workers,
-        inner_workers=inner_workers,  # passed for context; we also pass explicitly to worker
+        n_workers=n_workers,
     )
 
     # Stack columns → (m, n)

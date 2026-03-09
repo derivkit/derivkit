@@ -8,18 +8,18 @@ import numpy as np
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
-    resolve_inner_from_outer,
 )
 from derivkit.utils.sandbox import get_partial_function
 from derivkit.utils.validate import check_scalar_valued
 
 
-def build_gradient(function: Callable,
-                   theta0: np.ndarray,
-                   method: str | None = None,
-                   n_workers=1,
-                   **dk_kwargs: dict
-                   ) -> np.ndarray:
+def build_gradient(
+    function: Callable,
+    theta0: np.ndarray,
+    method: str | None = None,
+    n_workers=1,
+    **dk_kwargs: dict,
+) -> np.ndarray:
     """Returns the gradient of a scalar-valued function.
 
     Args:
@@ -57,7 +57,7 @@ def build_gradient(function: Callable,
     )
     tasks = [(function, theta0, i) for i in range(theta0.size)]
 
-    vals = parallel_execute(worker, tasks, outer_workers=n_workers, inner_workers=inner)
+    vals = parallel_execute(worker, tasks, n_workers=n_workers)
     grad = np.asarray(vals, dtype=float)
     if not np.isfinite(grad).all():
         raise FloatingPointError("Non-finite values encountered in build_gradient.")
@@ -65,12 +65,12 @@ def build_gradient(function: Callable,
 
 
 def _grad_component(
-        function: Callable,
-        theta0: np.ndarray,
-        i:int,
-        method: str | None = None,
-        n_workers: int = 1,
-        dk_kwargs: dict | None = None,
+    function: Callable,
+    theta0: np.ndarray,
+    i: int,
+    method: str | None = None,
+    n_workers: int = 1,
+    dk_kwargs: dict | None = None,
 ) -> float:
     """Returns one entry of the gradient for a scalar-valued function.
 

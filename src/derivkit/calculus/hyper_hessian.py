@@ -12,7 +12,6 @@ from numpy.typing import ArrayLike, NDArray
 from derivkit.derivative_kit import DerivativeKit
 from derivkit.utils.concurrency import (
     parallel_execute,
-    resolve_inner_from_outer,
 )
 from derivkit.utils.sandbox import get_partial_function
 from derivkit.utils.validate import ensure_finite
@@ -64,20 +63,13 @@ def build_hyper_hessian(
     y0 = np.asarray(function(theta))
     ensure_finite(y0, msg="Non-finite values in model output at theta0.")
 
-    inner_override = dk_kwargs.pop("inner_workers", None)
-    outer_workers = int(n_workers) if n_workers is not None else 1
-    inner_workers = (
-        int(inner_override)
-        if inner_override is not None
-        else resolve_inner_from_outer(outer_workers)
-    )
+    n_workers = int(n_workers) if n_workers is not None else 1
 
     out = _build_hyper_hessian(
         function=function,
         theta=theta,
         method=method,
-        inner_workers=inner_workers,
-        outer_workers=outer_workers,
+        n_workers=outer_workers,
         **dk_kwargs,
     )
 
@@ -89,8 +81,7 @@ def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
     method: str | None,
-    inner_workers: int | None,
-    outer_workers: int,
+    n_workers: int,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns a hyper-Hessian for a scalar- or vector-valued function.
@@ -100,8 +91,7 @@ def _build_hyper_hessian(
         theta: 1D parameter vector where the derivatives are evaluated..
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
-        inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
-        outer_workers: Number of outer workers for parallelism over entries.
+        n_workers: Number of outer workers for parallelism over entries.
         **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
 
     Returns:
@@ -111,7 +101,7 @@ def _build_hyper_hessian(
         TypeError: If ``function`` does not return a scalar or a vector.
     """
     probe = np.asarray(function(theta), dtype=np.float64)
-    if probe.ndim not in [0,1]:
+    if probe.ndim not in [0, 1]:
         raise TypeError(
             "Hyper-Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."
@@ -150,8 +140,7 @@ def _build_hyper_hessian(
     vals = parallel_execute(
         entry_worker,
         arg_tuples=triplets,
-        outer_workers=outer_workers,
-        inner_workers=iw,
+        n_workers=n_workers,
     )
 
     y0 = np.asarray(function(theta))

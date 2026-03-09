@@ -8,7 +8,6 @@ import numpy as np
 
 from derivkit.utils.concurrency import (
     parallel_execute,
-    resolve_inner_from_outer,
 )
 
 __all__ = ["eval_points"]
@@ -55,16 +54,14 @@ def eval_points(
     scalar_like = _all_scalar_like(xs_list)
     args = _to_eval_args(xs_list, scalar_like)
 
-    outer_workers = _cap_outer_workers(n_workers, len(args))
-    inner_workers = resolve_inner_from_outer(outer_workers)
+    n_workers = _cap_outer_workers(n_workers, len(args))
 
     # parallel_execute handles both outer >1 and outer == 1 paths.
     arg_tuples = [(x,) for x in args]
     vals = parallel_execute(
         worker=func,
         arg_tuples=arg_tuples,
-        outer_workers=outer_workers,
-        inner_workers=inner_workers,
+        n_workers=n_workers,
     )
 
     return np.asarray(vals)
