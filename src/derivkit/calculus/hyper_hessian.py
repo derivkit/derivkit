@@ -10,9 +10,6 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils.concurrency import (
-    parallel_execute,
-)
 from derivkit.utils.sandbox import get_partial_function
 from derivkit.utils.validate import ensure_finite
 
@@ -86,11 +83,13 @@ def _build_hyper_hessian(
 
     Args:
         function: Scalar- or vector-valued function to differentiate.
-        theta: 1D parameter vector where the derivatives are evaluated..
+        theta: 1D parameter vector where the derivatives are evaluated.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Number of outer workers for parallelism over entries.
         **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
+            Pass ``inner_workers=<int>`` to control parallelism inside each
+            derivative evaluation.
 
     Returns:
         The full hyper-Hessian array for the scalar- or vector-valued function.
@@ -98,6 +97,8 @@ def _build_hyper_hessian(
     Raises:
         TypeError: If ``function`` does not return a scalar or a vector.
     """
+    import dask
+
     probe = np.asarray(function(theta), dtype=np.float64)
     if probe.ndim not in [0, 1]:
         raise TypeError(
@@ -106,38 +107,30 @@ def _build_hyper_hessian(
         )
 
     p = int(theta.size)
+    inner_workers = dk_kwargs.get("inner_workers", 1)
+    clean_kwargs = {kw: v for kw, v in dk_kwargs.items() if kw != "inner_workers"}
 
     # Compute only unique entries i<=j<=k, then symmetrize.
     triplets: list[tuple[int, int, int]] = [
         (i, j, k) for i in range(p) for j in range(i, p) for k in range(j, p)
     ]
 
-    def entry_worker(i: int, j: int, k: int) -> float:
-        """Worker to compute one hyper-Hessian entry.
-
-        Args:
-            i: First parameter index.
-            j: Second parameter index.
-            k: Third parameter index.
-
-        Returns:
-            Value of the third order derivative of the function at theta0.
-        """
-        return _third_derivative_entry(
+    lazy_vals = [
+        dask.delayed(_third_derivative_entry)(
             function=function,
             theta0=theta,
             i=i,
             j=j,
             k=k,
             method=method,
-            **dk_kwargs,
+            n_workers=inner_workers,
+            **clean_kwargs,
         )
+        for (i, j, k) in triplets
+    ]
 
-    vals = parallel_execute(
-        entry_worker,
-        arg_tuples=triplets,
-        n_workers=n_workers,
-    )
+    scheduler = "threads" if n_workers <= 1 else None
+    vals = list(dask.compute(*lazy_vals, scheduler=scheduler))
 
     y0 = np.asarray(function(theta))
     out_shape = y0.shape

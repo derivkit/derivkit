@@ -30,6 +30,7 @@ __all__ = [
     "require_callable",
 ]
 
+
 def is_finite_and_differentiable(
     function: Callable[[float], Any],
     x: float,
@@ -53,7 +54,7 @@ def is_finite_and_differentiable(
     return np.isfinite(f0).all() and np.isfinite(f1).all()
 
 
-def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
+def check_scalar_valued(function, theta0: np.ndarray, i: int):
     """Helper used by ``build_gradient`` and ``build_hessian``.
 
     Args:
@@ -72,7 +73,6 @@ def check_scalar_valued(function, theta0: np.ndarray, i: int, n_workers: int):
         TypeError: If ``function`` does not return a scalar value.
     """
     partial_vec = get_partial_function(function, i, theta0)
-    _ = n_workers
 
     probe = np.asarray(partial_vec(theta0[i]), dtype=float)
     if probe.size != 1:
@@ -224,15 +224,12 @@ def validate_fisher_shape(
     """
     theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta0_arr.size == 0:
-        raise ValueError(
-            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
-        )
+        raise ValueError(f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}.")
     p = int(theta0_arr.size)
 
     f_arr = np.asarray(fisher, dtype=np.float64)
     if f_arr.ndim != 2 or f_arr.shape != (p, p):
-        raise ValueError(
-            f"fisher must have shape {(p, p)}; got {f_arr.shape}.")
+        raise ValueError(f"fisher must have shape {(p, p)}; got {f_arr.shape}.")
 
     if check_finite and not np.isfinite(f_arr).all():
         raise FloatingPointError("fisher contains non-finite values.")
@@ -280,9 +277,7 @@ def validate_dali_shape(
     """
     theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta0_arr.size == 0:
-        raise ValueError(
-            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
-        )
+        raise ValueError(f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}.")
     p = int(theta0_arr.size)
 
     def _require_tensor(arr_like: Any, *, idx: int, expected_ndim: int) -> None:
@@ -312,13 +307,10 @@ def validate_dali_shape(
         expected_shape = (p,) * expected_ndim
         if arr.shape != expected_shape:
             raise ValueError(
-                f"DALI tensor at position {idx} must have shape"
-                f" {expected_shape}; got {arr.shape}."
+                f"DALI tensor at position {idx} must have shape {expected_shape}; got {arr.shape}."
             )
         if check_finite and not np.isfinite(arr).all():
-            raise FloatingPointError(
-                f"DALI tensor at position {idx} contains non-finite values."
-            )
+            raise FloatingPointError(f"DALI tensor at position {idx} contains non-finite values.")
 
     def _validate_order_multiplet(order: int, m: Any) -> None:
         """Validate the multiplet structure for a specific forecast order.
@@ -364,9 +356,7 @@ def validate_dali_shape(
 
         if order == 3:
             if len(m) != 3:
-                raise ValueError(
-                    f"dali[3] must be a 3-tuple (T31, T32, T33); got length {len(m)}."
-                )
+                raise ValueError(f"dali[3] must be a 3-tuple (T31, T32, T33); got length {len(m)}.")
             _require_tensor(m[0], idx=0, expected_ndim=4)
             _require_tensor(m[1], idx=1, expected_ndim=5)
             _require_tensor(m[2], idx=2, expected_ndim=6)
@@ -413,10 +403,7 @@ def validate_dali_shape(
             return
 
         raise ValueError(
-            "Unrecognized DALI tuple form."
-            " Expected (F,)"
-            " or (D21,D22) or"
-            " (T31,T32,T33)."
+            "Unrecognized DALI tuple form. Expected (F,) or (D21,D22) or (T31,T32,T33)."
         )
 
     # dict[int, tuple[...]]: get_forecast_tensors output
@@ -428,19 +415,14 @@ def validate_dali_shape(
         keys: list[int] = []
         for k in dali.keys():
             if not isinstance(k, int):
-                raise TypeError(f"DALI dict keys must be int;"
-                                f" got {k!r} ({type(k)}).")
+                raise TypeError(f"DALI dict keys must be int; got {k!r} ({type(k)}).")
             keys.append(k)
 
         keys_sorted = sorted(keys)
         if keys_sorted[0] != 1:
-            raise ValueError(f"DALI dict must start at key=1;"
-                             f" got keys {keys_sorted}.")
+            raise ValueError(f"DALI dict must start at key=1; got keys {keys_sorted}.")
         if keys_sorted != list(range(1, keys_sorted[-1] + 1)):
-            raise ValueError(
-                f"DALI dict keys must be consecutive 1..K;"
-                f" got keys {keys_sorted}."
-            )
+            raise ValueError(f"DALI dict keys must be consecutive 1..K; got keys {keys_sorted}.")
 
         for order in keys_sorted:
             _validate_order_multiplet(order, dali[order])
@@ -464,7 +446,7 @@ def resolve_dali_introduced_multiplet(
     forecast_order: int | None = None,
     check_finite: bool = False,
 ) -> tuple[int, tuple[NDArray[np.float64], ...]]:
-    """"Returns ``(order, multiplet)`` from any accepted forecast tensor output.
+    """ "Returns ``(order, multiplet)`` from any accepted forecast tensor output.
 
     The accepted input forms match the conventions used by
      :func:`derivkit.forecasting.get_forecast_tensors`:
@@ -494,10 +476,7 @@ def resolve_dali_introduced_multiplet(
     """
     theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta0_arr.size == 0:
-        raise ValueError(
-            f"theta0 must be non-empty 1D;"
-            f" got shape {np.asarray(theta0).shape}."
-        )
+        raise ValueError(f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}.")
 
     validate_dali_shape(theta0_arr, dali, check_finite=check_finite)
 
@@ -505,8 +484,7 @@ def resolve_dali_introduced_multiplet(
         available = sorted(dali.keys())
         chosen = available[-1] if forecast_order is None else int(forecast_order)
         if chosen not in dali:
-            raise ValueError(f"forecast_order={chosen} "
-                             f"not in DALI dict keys {available}.")
+            raise ValueError(f"forecast_order={chosen} not in DALI dict keys {available}.")
         multiplet = tuple(np.asarray(x, dtype=np.float64) for x in dali[chosen])
         return chosen, multiplet
 
@@ -557,9 +535,7 @@ def resolve_dali_assembled_multiplet(
     """
     theta0_arr = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta0_arr.size == 0:
-        raise ValueError(
-            f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}."
-        )
+        raise ValueError(f"theta0 must be non-empty 1D; got shape {np.asarray(theta0).shape}.")
 
     validate_dali_shape(theta0_arr, dali, check_finite=check_finite)
 
@@ -677,9 +653,7 @@ def validate_theta_1d_finite(theta: Any, *, name: str = "theta") -> NDArray[np.f
     return t.astype(np.float64, copy=False)
 
 
-def validate_square_matrix_finite(
-    a: Any, *, name: str = "matrix"
-) -> NDArray[np.float64]:
+def validate_square_matrix_finite(a: Any, *, name: str = "matrix") -> NDArray[np.float64]:
     """Validates that ``a`` is a finite 2D square matrix and returns it as a float64 NumPy array.
 
     Args:
@@ -703,8 +677,7 @@ def validate_square_matrix_finite(
 
 
 def resolve_covariance_input(
-    cov: NDArray[np.float64]
-        | Callable[[NDArray[np.float64]], NDArray[np.float64]],
+    cov: NDArray[np.float64] | Callable[[NDArray[np.float64]], NDArray[np.float64]],
     *,
     theta0: NDArray[np.float64],
     validate: Callable[[Any], NDArray[np.float64]],

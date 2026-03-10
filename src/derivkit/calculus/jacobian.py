@@ -1,16 +1,12 @@
 """Contains functions used to construct the Jacobian matrix."""
 
 from collections.abc import Callable
-from functools import partial
 from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils.concurrency import (
-    parallel_execute,
-)
 from derivkit.utils.sandbox import get_partial_function
 
 
@@ -71,22 +67,27 @@ def build_jacobian(
     except (TypeError, ValueError):
         n_workers = 1
 
-    # Prepare worker
-    worker = partial(
-        _column_derivative,
-        function=function,
-        theta0=theta,
-        method=method,
-        expected_m=m,
-        **dk_kwargs,
-    )
+    import dask
 
-    # Parallelize across parameters
-    cols = parallel_execute(
-        worker,
-        arg_tuples=[(j,) for j in range(n)],
-        n_workers=n_workers,
-    )
+    inner_workers = dk_kwargs.get("inner_workers", 1)
+    clean_kwargs = {k: v for k, v in dk_kwargs.items() if k != "inner_workers"}
+
+    # Build a lazy task graph: one delayed call per parameter column.
+    lazy_cols = [
+        dask.delayed(_column_derivative)(
+            j,
+            function=function,
+            theta0=theta,
+            method=method,
+            expected_m=m,
+            n_workers=inner_workers,
+            **clean_kwargs,
+        )
+        for j in range(n)
+    ]
+
+    scheduler = "threads" if n_workers <= 1 else None
+    cols = list(dask.compute(*lazy_cols, scheduler=scheduler))
 
     # Stack columns → (m, n)
     jac = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])

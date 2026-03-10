@@ -2,15 +2,13 @@
 
 from collections.abc import Callable
 from functools import partial
-from typing import Any, Tuple
+from typing import Any
 
+import dask
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
-from derivkit.utils.concurrency import (
-    parallel_execute,
-)
 from derivkit.utils.sandbox import get_partial_function
 from derivkit.utils.validate import ensure_finite
 
@@ -24,7 +22,6 @@ def build_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     method: str | None = None,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Returns the full Hessian of a function.
@@ -52,9 +49,7 @@ def build_hessian(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If a single output component (flattened scalar subpath) does not return a scalar.
     """
-    return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
-    )
+    return _build_hessian_internal(function, theta0, method=method, diag=False, **dk_kwargs)
 
 
 def build_hessian_diag(
@@ -91,9 +86,7 @@ def build_hessian_diag(
         ValueError: If ``theta0`` is an empty array.
         TypeError: If evaluating a single output component does not return a scalar.
     """
-    return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
-    )
+    return _build_hessian_internal(function, theta0, method=method, diag=True, **dk_kwargs)
 
 
 def gauss_newton_hessian(*args, **kwargs):
@@ -105,7 +98,6 @@ def _build_hessian_full(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
-    n_workers: int,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the full Hessian for a scalar- or vector-valued function.
@@ -136,30 +128,28 @@ def _build_hessian_full(
     # Here we build a list of tasks for all unique Hessian entries (i, j).
     # We only compute the upper triangle and diagonal, then mirror the results.
     # This reduces computation by nearly half.
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, dk_kwargs) for i in range(p)]
-    tasks += [(function, theta, i, j, method, dk_kwargs) for i in range(p) for j in range(i + 1, p)]
 
-    vals_list = parallel_execute(
-        _hessian_component_worker,
-        tasks,
-        n_workers=n_workers,
+    worker = partial(
+        _hessian_component,
+        function=function,
+        theta0=theta,
+        method=method,
+        **dk_kwargs,
     )
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
-    hess = np.empty((*out_shape, p, p), dtype=float)
-    k = 0
-    vals = np.array(vals_list, dtype=float)
-    for i in range(p):
-        hess[..., i, i] = vals[k]
-        k += 1
-    for i in range(p):
-        for j in range(i + 1, p):
-            hij = vals[k]
-            k += 1
-            hess[..., i, j] = hij
-            hess[..., j, i] = hij
 
-    ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
+    y0 = function(theta)
+    vals_list = [worker(i=i, j=j) for i, j in zip(*np.triu_indices(p))]
+
+    hess = dask.delayed(return_hess_matrix)(vals_list, shape=(*y0.shape, p, p))
+    # ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
+    return vals_list
+
+
+def return_hess_matrix(vals_list, shape):
+    hess = np.empty(shape, dtype=float)
+    vals = np.stack(vals_list, dtype=float)
+    hess[..., np.triu_indices(shape[-1])] = vals
+    hess[..., np.tril_indices(shape[-1])] = vals
     return hess
 
 
@@ -167,7 +157,6 @@ def _build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian for a scalar- or vector-valued function.
@@ -179,6 +168,8 @@ def _build_hessian_diag(
         n_workers: Number of outer parallel workers for diagonal entries.
         **dk_kwargs: Additional keyword arguments for
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+            Pass ``inner_workers=<int>`` to control parallelism inside each
+            derivative evaluation.
 
     Returns:
         A 1D array representing the diagonal of the Hessian.
@@ -187,57 +178,28 @@ def _build_hessian_diag(
         FloatingPointError: If non-finite values are encountered.
     """
     p = int(theta.size)
+    inner_workers = dk_kwargs.get("inner_workers", 1)
+    clean_kwargs = {k: v for k, v in dk_kwargs.items() if k != "inner_workers"}
 
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, dk_kwargs) for i in range(p)]
-    vals = parallel_execute(
-        _hessian_component_worker,
-        tasks,
-        n_workers=n_workers,
-    )
+    lazy_vals = [
+        dask.delayed(_hessian_component)(
+            function=function,
+            theta0=theta,
+            i=i,
+            j=i,
+            method=method,
+            **clean_kwargs,
+        )
+        for i in range(p)
+    ]
+
+    scheduler = "threads" if n_workers <= 1 else None
+    vals = list(dask.compute(*lazy_vals, scheduler=scheduler))
 
     diag = np.asarray(vals, dtype=float)
     if not np.isfinite(diag).all():
         raise FloatingPointError("Non-finite values encountered in Hessian diagonal.")
     return diag
-
-
-def _hessian_component_worker(
-    function: Callable[[ArrayLike], float | np.ndarray],
-    theta0: np.ndarray,
-    i: int,
-    j: int,
-    method: str | None,
-    dk_kwargs: dict,
-) -> float:
-    """Returns one entry of the Hessian for a scalar- or vector-valued function.
-
-    Args:
-        function: A function that returns a scalar or vector value.
-        theta0: The parameter values where the derivative is evaluated.
-        i: Index of the first parameter.
-        j: Index of the second parameter.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
-        inner_workers: Optional inner parallelism for the differentiation engine.
-        dk_kwargs: Additional keyword arguments passed to
-            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-
-    Returns:
-        A number or vector showing how the rate of change of the function
-        depends on the parameters.
-    """
-    val = _hessian_component(
-        function=function,
-        theta0=theta0,
-        i=i,
-        j=j,
-        method=method,
-        n_workers=1,
-        **dk_kwargs,
-    )
-    val_arr = np.asarray(val, dtype=float)
-    return val_arr
 
 
 def _hessian_component(
@@ -246,7 +208,6 @@ def _hessian_component(
     i: int,
     j: int,
     method: str | None = None,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> float:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
@@ -266,7 +227,6 @@ def _hessian_component(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
-        n_workers: Optional inner parallelism for the differentiation engine.
         **dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -280,7 +240,7 @@ def _hessian_component(
     if i == j:
         partial_vec1 = get_partial_function(function, i, theta0)
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
-        return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
+        return kit1.differentiate(order=2, method=method, **dk_kwargs)
 
     path = partial(
         _mixed_partial_value,
@@ -289,11 +249,10 @@ def _hessian_component(
         i=i,
         j=j,
         method=method,
-        n_workers=n_workers,
         dk_kwargs=dk_kwargs,
     )
     kit2 = DerivativeKit(path, float(theta0[j]))
-    return kit2.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+    return kit2.differentiate(order=1, method=method, **dk_kwargs)
 
 
 def _mixed_partial_value(
@@ -304,7 +263,6 @@ def _mixed_partial_value(
     i: int,
     j: int,
     method: str | None,
-    n_workers: int | None,
     dk_kwargs: dict,
 ) -> float:
     """Returns the first derivative with respect to parameter i while temporarily setting parameter j to a given value.
@@ -323,7 +281,6 @@ def _mixed_partial_value(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default
             (``"adaptive"``) is used.
-        n_workers: Optional inner parallelism for the differentiation engine.
         dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -338,11 +295,9 @@ def _mixed_partial_value(
     val = kit1.differentiate(
         order=1,
         method=method,
-        n_workers=n_workers,
         **dk_kwargs,
     )
-    val_arr = np.asarray(val, dtype=float)
-    return val_arr
+    return val
 
 
 def _build_hessian_internal(
@@ -351,7 +306,6 @@ def _build_hessian_internal(
     *,
     method: str | None,
     diag: bool,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Core Hessian builder (internal).
@@ -418,12 +372,12 @@ def _build_hessian_internal(
         )
 
     if diag:
-        arr = _build_hessian_diag(function, theta, method, n_workers, **dk_kwargs)
+        arr = _build_hessian_diag(function, theta, method, **dk_kwargs)
         if not np.isfinite(arr).all():
             raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr
     else:
-        arr = _build_hessian_full(function, theta, method, n_workers, **dk_kwargs)
-        if not np.isfinite(arr).all():
-            raise FloatingPointError("Non-finite values encountered in Hessian.")
+        arr = _build_hessian_full(function, theta, method, **dk_kwargs)
+        # if not np.isfinite(arr).all():
+        #     raise FloatingPointError("Non-finite values encountered in Hessian.")
         return arr

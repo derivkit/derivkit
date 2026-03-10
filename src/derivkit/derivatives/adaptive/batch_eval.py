@@ -11,7 +11,6 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-from multiprocess import Pool
 
 __all__ = ["eval_function_batch"]
 
@@ -91,14 +90,14 @@ def _eval_parallel(
     xs: np.ndarray,
     n_workers: int,
 ) -> list[np.ndarray]:
-    """Evaluate a function over points in parallel using multiprocess.Pool.
+    """Evaluate a function over points in parallel using Dask.
 
-    Falls back to the serial path for tiny workloads or if pool creation/execution fails.
+    Falls back to the serial path for tiny workloads or if Dask is unavailable.
 
     Args:
       function: Maps a float to a scalar or array-like.
       xs: 1D points on x-axis to evaluate.
-      n_workers: Desired number of processes.
+      n_workers: Desired number of parallel workers (hint to Dask scheduler).
 
     Returns:
       list[np.ndarray]: One 1D array per input, order-preserving.
@@ -106,16 +105,18 @@ def _eval_parallel(
     if n_workers <= 1:
         return _eval_serial(function, xs)
 
-    # Avoid pool overhead for very small batches.
+    # Avoid overhead for very small batches.
     n = max(1, min(int(n_workers), int(xs.size)))
     if xs.size < max(8, 2 * n):
         return _eval_serial(function, xs)
 
     try:
-        with Pool(n) as pool:
-            ys = pool.map(function, xs.tolist())
+        import dask
+
+        tasks = [dask.delayed(function)(float(x)) for x in xs.tolist()]
+        ys = list(dask.compute(*tasks))
     except Exception:
-        # Spawn/pickle/start-method issues → graceful serial fallback.
+        # Dask unavailable or task graph failure → graceful serial fallback.
         return _eval_serial(function, xs)
 
     return [np.atleast_1d(y) for y in ys]

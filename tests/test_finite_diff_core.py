@@ -68,7 +68,6 @@ def test_single_finite_step_scalar_uses_offsets_and_coeffs(monkeypatch):
         order=1,
         stepsize=h,
         num_points=3,
-        n_workers=1,
     )
 
     # Check scalar result

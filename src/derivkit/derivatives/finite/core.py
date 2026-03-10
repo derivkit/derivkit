@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import dask
 import numpy as np
 from numpy.typing import NDArray
 
-from .batch_eval import eval_points
 from .stencil import get_finite_difference_tables
 
 __all__ = [
@@ -19,7 +19,7 @@ def single_finite_step(
     order: int,
     stepsize: float,
     num_points: int,
-    n_workers: int,
+    use_dask: bool = False,
 ) -> NDArray | float:
     """Returns one central finite-difference estimate at a given step size h.
 
@@ -47,38 +47,40 @@ def single_finite_step(
         ValueError:
             If the combination of ``num_points`` and ``order`` is not supported.
     """
-    offsets, coeffs_table = get_finite_difference_tables(stepsize)
     key = (num_points, order)
+    offsets, coeffs_table = get_finite_difference_tables(stepsize)
+
     if key not in coeffs_table:
         raise ValueError(
             f"[FiniteDifference] Internal table missing coefficients for "
             f"stencil={num_points}, order={order}."
         )
-
     stencil = np.array(
         [x0 + i * stepsize for i in offsets[num_points]],
         dtype=float,
     )
 
     # values shape: (n_stencil,) for scalar outputs, (n_stencil, *out_shape) otherwise
-    values = eval_points(function, stencil, n_workers=n_workers)
-    values = np.asarray(values, dtype=float)
+    # values = eval_points(function, stencil, n_workers=n_workers)
+    # values = np.asarray(values, dtype=float)
+
+    values = [dask.delayed(function)(x) for x in stencil]
 
     coeff = np.asarray(coeffs_table[key], dtype=float)  # shape (n_stencil,)
 
-    if values.ndim == 1:  # this is the scalar-valued case
-        deriv = float(np.dot(coeff, values))
-        return deriv
+    # if values.ndim == 1:  # this is the scalar-valued case
+    #     deriv = float(np.dot(coeff, values))
+    #     return deriv
 
     # In the case of vector and tensor outputs, use tensordot to contract
     # the leading stencil dimension with the coeffs.
     # coeff shape: (n_stencil,)
     # values shape: (n_stencil, ... )
     # deriv shape: (...) after contraction.
-    deriv = np.tensordot(coeff, values, axes=(0, 0))
+    deriv = dask.delayed(np.tensordot)(coeff, values, axes=(0, 0))
 
-    if np.ndim(deriv) == 0:
-        return float(deriv)
+    # if np.ndim(deriv) == 0:
+    #     return float(deriv)
 
     # Otherwise flatten trailing dims in C order to match the rest of DerivKit.
-    return np.ravel(deriv, order="C")
+    return dask.delayed(np.ravel)(deriv, order="C")

@@ -33,7 +33,7 @@ classifiers = [
 dependencies = [
   "numdifftools",
   "numpy",
-  "multiprocess",
+  "dask",
   "scipy",
   "getdist",
   "emcee",
@@ -66,6 +66,9 @@ lint = [
 jax = [
   "jax>=0.4",
   "jaxlib>=0.4",
+]
+distributed = [
+  "dask[distributed]",
 ]
 
 
