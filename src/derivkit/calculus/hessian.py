@@ -137,17 +137,17 @@ def _build_hessian_full(
         **dk_kwargs,
     )
 
-    y0 = function(theta)
+    y0 = np.asarray(function(theta))
     vals_list = [worker(i=i, j=j) for i, j in zip(*np.triu_indices(p))]
 
     hess = dask.delayed(return_hess_matrix)(vals_list, shape=(*y0.shape, p, p))
     # ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
-    return vals_list
+    return hess
 
 
 def return_hess_matrix(vals_list, shape):
     hess = np.empty(shape, dtype=float)
-    vals = np.stack(vals_list, dtype=float)
+    vals = np.hstack(vals_list, dtype=float)
     hess[..., np.triu_indices(shape[-1])] = vals
     hess[..., np.tril_indices(shape[-1])] = vals
     return hess
@@ -178,7 +178,6 @@ def _build_hessian_diag(
         FloatingPointError: If non-finite values are encountered.
     """
     p = int(theta.size)
-    inner_workers = dk_kwargs.get("inner_workers", 1)
     clean_kwargs = {k: v for k, v in dk_kwargs.items() if k != "inner_workers"}
 
     lazy_vals = [
@@ -252,7 +251,7 @@ def _hessian_component(
         dk_kwargs=dk_kwargs,
     )
     kit2 = DerivativeKit(path, float(theta0[j]))
-    return kit2.differentiate(order=1, method=method, **dk_kwargs)
+    return kit2.differentiate(order=1, method=method, delayed_fun=True, **dk_kwargs)
 
 
 def _mixed_partial_value(
@@ -289,12 +288,13 @@ def _mixed_partial_value(
         when parameter j is set to y.
     """
     theta = theta0.copy()
-    theta[j] = float(y)
+    theta[j] = y
     partial_vec1 = get_partial_function(function, i, theta)
     kit1 = DerivativeKit(partial_vec1, float(theta[i]))
     val = kit1.differentiate(
         order=1,
         method=method,
+        use_dask=True,
         **dk_kwargs,
     )
     return val

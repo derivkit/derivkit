@@ -19,7 +19,9 @@ def single_finite_step(
     order: int,
     stepsize: float,
     num_points: int,
+    *,
     use_dask: bool = False,
+    delayed_fun: bool = False,
 ) -> NDArray | float:
     """Returns one central finite-difference estimate at a given step size h.
 
@@ -55,6 +57,9 @@ def single_finite_step(
             f"[FiniteDifference] Internal table missing coefficients for "
             f"stencil={num_points}, order={order}."
         )
+
+    coeff = np.asarray(coeffs_table[key], dtype=float)  # shape (n_stencil,)
+
     stencil = np.array(
         [x0 + i * stepsize for i in offsets[num_points]],
         dtype=float,
@@ -64,9 +69,16 @@ def single_finite_step(
     # values = eval_points(function, stencil, n_workers=n_workers)
     # values = np.asarray(values, dtype=float)
 
-    values = [dask.delayed(function)(x) for x in stencil]
+    if use_dask:
+        if not delayed_fun:
+            function = dask.delayed(function)
+        np_tensordot = dask.delayed(np.tensordot)
+        np_ravel = dask.delayed(np.ravel)
+    else:
+        np_tensordot = np.tensordot
+        np_ravel = np.ravel
 
-    coeff = np.asarray(coeffs_table[key], dtype=float)  # shape (n_stencil,)
+    values = [function(x) for x in stencil]
 
     # if values.ndim == 1:  # this is the scalar-valued case
     #     deriv = float(np.dot(coeff, values))
@@ -77,10 +89,11 @@ def single_finite_step(
     # coeff shape: (n_stencil,)
     # values shape: (n_stencil, ... )
     # deriv shape: (...) after contraction.
-    deriv = dask.delayed(np.tensordot)(coeff, values, axes=(0, 0))
+
+    deriv = np_tensordot(coeff, values, axes=(0, 0))
 
     # if np.ndim(deriv) == 0:
     #     return float(deriv)
 
     # Otherwise flatten trailing dims in C order to match the rest of DerivKit.
-    return dask.delayed(np.ravel)(deriv, order="C")
+    return np_ravel(deriv, order="C")

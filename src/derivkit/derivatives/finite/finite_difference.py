@@ -115,6 +115,8 @@ class FiniteDifferenceDerivative:
         extrapolation: str | None = None,
         levels: int | None = None,
         return_error: bool = False,
+        use_dask: bool = True,
+        delayed_fun: bool = False,
     ) -> np.ndarray[float] | float:
         """Computes the derivative using a central finite difference scheme.
 
@@ -182,13 +184,15 @@ class FiniteDifferenceDerivative:
         # We set up a partial function for single finite difference step
         single = partial(
             single_finite_step,
-            self.function,
-            self.x0,
+            function=self.function,
+            x0=self.x0,
+            use_dask=use_dask,
+            delayed_fun=delayed_fun,
         )
 
         # If we just want bare finite difference (no extrapolation)
         if extrapolation is None:
-            value = single(order, stepsize, num_points, n_workers)
+            value = single(order=order, stepsize=stepsize, num_points=num_points)
 
             if not return_error:
                 return value
@@ -212,15 +216,13 @@ class FiniteDifferenceDerivative:
         key = (num_points, order)
         p = TRUNCATION_ORDER.get(key)
         if p is None:
-            raise ValueError(
-                f"Extrapolation not configured for stencil {key}."
-            )
+            raise ValueError(f"Extrapolation not configured for stencil {key}.")
 
         # Choose extrapolator function based on scheme + levels
         if extrapolation == "richardson":
-            extrap_fn = (fixed_richardson_fd if levels is not None else adaptive_richardson_fd)
+            extrap_fn = fixed_richardson_fd if levels is not None else adaptive_richardson_fd
         elif extrapolation == "ridders":
-            extrap_fn = (fixed_ridders_fd if levels is not None else adaptive_ridders_fd)
+            extrap_fn = fixed_ridders_fd if levels is not None else adaptive_ridders_fd
         elif extrapolation in {"gauss-richardson", "gre"}:
             extrap_fn = fixed_gre_fd if levels is not None else adaptive_gre_fd
         else:
