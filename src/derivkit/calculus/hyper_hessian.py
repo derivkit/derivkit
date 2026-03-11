@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from functools import partial
 from itertools import permutations
 from typing import Any
 
+import dask
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
@@ -23,7 +25,6 @@ def build_hyper_hessian(
     theta0: NDArray[np.float64] | Sequence[float],
     *,
     method: str | None = None,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns the third-derivative tensor ("hyper-Hessian") of a function.
@@ -53,30 +54,35 @@ def build_hyper_hessian(
         ValueError: If ``theta0`` is empty.
         FloatingPointError: If non-finite values are encountered.
     """
-    theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    theta = np.asarray(theta0, dtype=float).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.asarray(function(theta))
-    ensure_finite(y0, msg="Non-finite values in model output at theta0.")
+    fun_check_eval = np.atleast_1d(function(theta))
+    ensure_finite(fun_check_eval, msg="Non-finite values in model output at theta0.")
 
-    out = _build_hyper_hessian(
+    if fun_check_eval.ndim not in [0, 1]:
+        raise TypeError(
+            "Hyper-Hessian expects a scalar- or vector-valued function; "
+            f"got output with shape {fun_check_eval.shape}."
+        )
+
+    hyper_hessian = _build_hyper_hessian(
         function=function,
         theta=theta,
         method=method,
-        n_workers=n_workers,
+        fun_out_shape=fun_check_eval.shape,
         **dk_kwargs,
     )
 
-    ensure_finite(out, msg="Non-finite values encountered in hyper-Hessian.")
-    return out
+    return hyper_hessian
 
 
 def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
     method: str | None,
-    n_workers: int = 1,
+    fun_out_shape: tuple[int, ...],
     **dk_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns a hyper-Hessian for a scalar- or vector-valued function.
@@ -86,7 +92,6 @@ def _build_hyper_hessian(
         theta: 1D parameter vector where the derivatives are evaluated.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
-        n_workers: Number of outer workers for parallelism over entries.
         **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
             Pass ``inner_workers=<int>`` to control parallelism inside each
             derivative evaluation.
@@ -97,51 +102,37 @@ def _build_hyper_hessian(
     Raises:
         TypeError: If ``function`` does not return a scalar or a vector.
     """
-    import dask
-
-    probe = np.asarray(function(theta), dtype=np.float64)
-    if probe.ndim not in [0, 1]:
-        raise TypeError(
-            "Hyper-Hessian expects a scalar- or vector-valued function; "
-            f"got output with shape {probe.shape}."
-        )
-
-    p = int(theta.size)
-    inner_workers = dk_kwargs.get("inner_workers", 1)
-    clean_kwargs = {kw: v for kw, v in dk_kwargs.items() if kw != "inner_workers"}
+    p = theta.size
 
     # Compute only unique entries i<=j<=k, then symmetrize.
     triplets: list[tuple[int, int, int]] = [
         (i, j, k) for i in range(p) for j in range(i, p) for k in range(j, p)
     ]
 
-    lazy_vals = [
-        dask.delayed(_third_derivative_entry)(
-            function=function,
-            theta0=theta,
-            i=i,
-            j=j,
-            k=k,
-            method=method,
-            n_workers=inner_workers,
-            **clean_kwargs,
-        )
-        for (i, j, k) in triplets
-    ]
+    worker = partial(
+        _third_derivative_entry,
+        function=function,
+        theta0=theta,
+        method=method,
+        **dk_kwargs,
+    )
 
-    scheduler = "threads" if n_workers <= 1 else None
-    vals = list(dask.compute(*lazy_vals, scheduler=scheduler))
+    vals_list = [worker(i=i, j=j, k=k) for (i, j, k) in triplets]
+    hyper_hess = dask.delayed(_fill_hyper_hessian)(vals_list, triplets, (*fun_out_shape, p, p, p))
 
-    y0 = np.asarray(function(theta))
-    out_shape = y0.shape
-    hess = np.empty((*out_shape, p, p, p), dtype=float)
-    for (i, j, k), v in zip(triplets, vals, strict=True):
-        v = np.asarray(v, dtype=float)
-        for a, b, c in set(permutations((i, j, k), 3)):
-            hess[..., a, b, c] = v
+    return hyper_hess
 
-    ensure_finite(hess, msg="Non-finite values encountered in hyper-Hessian.")
-    return hess
+
+def _fill_hyper_hessian(vals_list, triplets, shape):
+    hyper_hess = np.zeros(shape, dtype=float)
+
+    for (i, j, k), v in zip(triplets, vals_list, strict=True):
+        for idx in set(permutations((i, j, k))):
+            hyper_hess[..., *idx] = v
+
+    ensure_finite(hyper_hess, msg="Non-finite values encountered in hyper-Hessian.")
+
+    return hyper_hess
 
 
 def _third_derivative_entry(
@@ -152,7 +143,6 @@ def _third_derivative_entry(
     j: int,
     k: int,
     method: str | None,
-    n_workers: int = 1,
     **dk_kwargs: dict[str, Any],
 ) -> float:
     """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
@@ -171,14 +161,12 @@ def _third_derivative_entry(
     Returns:
         Value of the third order derivative of the function at ``theta0``.
     """
-    i, j, k = int(i), int(j), int(k)
     ii, jj, kk = sorted((i, j, k))
 
     if ii == jj == kk:
         f1 = get_partial_function(function, ii, theta0)
         kit = DerivativeKit(f1, float(theta0[ii]))
-        val = kit.differentiate(order=3, method=method, n_workers=n_workers, **dk_kwargs)
-        return np.asarray(val, dtype=float)
+        return kit.differentiate(order=3, method=method, **dk_kwargs)
 
     def g_func(t: float) -> float:
         """Function for derivative with respect to parameter kk.
@@ -196,8 +184,7 @@ def _third_derivative_entry(
         if ii == jj:
             f1 = get_partial_function(function, ii, th)
             kit2 = DerivativeKit(f1, float(th[ii]))
-            v2 = kit2.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
-            return np.asarray(v2, dtype=float)
+            return kit2.differentiate(order=2, method=method, delayed_fun=True, **dk_kwargs)
 
         # mixed second derivative via nested 1D partials
         def h_func(yj: float) -> float:
@@ -213,13 +200,10 @@ def _third_derivative_entry(
             th2[jj] = float(yj)
             f_ii = get_partial_function(function, ii, th2)
             kit1 = DerivativeKit(f_ii, float(th2[ii]))
-            v1 = kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-            return np.asarray(v1, dtype=float)
+            return kit1.differentiate(order=1, method=method, **dk_kwargs)
 
-        kitm = DerivativeKit(h_func, float(th[jj]))
-        vm = kitm.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-        return np.asarray(vm, dtype=float)
+        kit2 = DerivativeKit(h_func, float(th[jj]))
+        return kit2.differentiate(order=1, method=method, delayed_fun=True, **dk_kwargs)
 
     kit3 = DerivativeKit(g_func, float(theta0[kk]))
-    v3 = kit3.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
-    return np.asarray(v3, dtype=float)
+    return kit3.differentiate(order=1, method=method, delayed_fun=True, **dk_kwargs)

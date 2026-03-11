@@ -56,7 +56,6 @@ def build_hessian_diag(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta0: np.ndarray,
     method: str | None = None,
-    n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian of a function.
@@ -70,8 +69,6 @@ def build_hessian_diag(
         n_workers: Parallel tasks across output components / Hessian entries.
         **dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-            You may optionally pass ``inner_workers=<int>`` here to override
-            the inner policy.
 
     Returns:
         Returns only the diagonal entries of the Hessian.
@@ -98,6 +95,7 @@ def _build_hessian_full(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: np.ndarray,
     method: str | None,
+    fun_out_shape: tuple[int, ...],
     **dk_kwargs: Any,
 ) -> np.ndarray:
     """Returns the full Hessian for a scalar- or vector-valued function.
@@ -137,20 +135,27 @@ def _build_hessian_full(
         **dk_kwargs,
     )
 
-    y0 = np.atleast_1d(function(theta))
     vals_list = [worker(i=i, j=j) for i, j in zip(*np.triu_indices(p))]
 
-    hess = dask.delayed(return_hess_matrix)(vals_list, shape=(*y0.shape, p, p))
-    # ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
+    hess = dask.delayed(_fill_hessian_full)(vals_list, shape=(*fun_out_shape, p, p))
+    #
     return hess
 
 
-def return_hess_matrix(vals_list, shape):
+def _fill_hessian_full(vals_list, shape):
     hess = np.empty(shape, dtype=float)
-    vals = np.stack(vals_list, dtype=float)
+    vals = np.stack(vals_list)
     hess[..., *np.triu_indices(shape[-1])] = vals.T
     hess[..., *np.tril_indices(shape[-1])] = vals.T
+    ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
     return hess
+
+
+def _fill_hessian_diag(vals_list):
+    diag = np.stack(vals_list)
+    if not np.isfinite(diag).all():
+        raise FloatingPointError("Non-finite values encountered in Hessian diagonal.")
+    return diag
 
 
 def _build_hessian_diag(
@@ -177,27 +182,19 @@ def _build_hessian_diag(
     Raises:
         FloatingPointError: If non-finite values are encountered.
     """
-    p = int(theta.size)
-    clean_kwargs = {k: v for k, v in dk_kwargs.items() if k != "inner_workers"}
+    p = theta.size
 
-    lazy_vals = [
-        dask.delayed(_hessian_component)(
-            function=function,
-            theta0=theta,
-            i=i,
-            j=i,
-            method=method,
-            **clean_kwargs,
-        )
-        for i in range(p)
-    ]
+    worker = partial(
+        _hessian_component,
+        function=function,
+        theta0=theta,
+        method=method,
+        **dk_kwargs,
+    )
 
-    scheduler = "threads" if n_workers <= 1 else None
-    vals = list(dask.compute(*lazy_vals, scheduler=scheduler))
+    vals_list = [worker(i=i, j=i) for i in range(p)]
 
-    diag = np.asarray(vals, dtype=float)
-    if not np.isfinite(diag).all():
-        raise FloatingPointError("Non-finite values encountered in Hessian diagonal.")
+    diag = dask.delayed(_fill_hessian_diag)(vals_list)
     return diag
 
 
@@ -241,7 +238,7 @@ def _hessian_component(
         kit1 = DerivativeKit(partial_vec1, float(theta0[i]))
         return kit1.differentiate(order=2, method=method, **dk_kwargs)
 
-    path = partial(
+    f1 = partial(
         _mixed_partial_value,
         function=function,
         theta0=theta0,
@@ -250,7 +247,7 @@ def _hessian_component(
         method=method,
         dk_kwargs=dk_kwargs,
     )
-    kit2 = DerivativeKit(path, float(theta0[j]))
+    kit2 = DerivativeKit(f1, float(theta0[j]))
     return kit2.differentiate(order=1, method=method, delayed_fun=True, **dk_kwargs)
 
 
@@ -294,7 +291,6 @@ def _mixed_partial_value(
     val = kit1.differentiate(
         order=1,
         method=method,
-        use_dask=True,
         **dk_kwargs,
     )
     return val
@@ -361,23 +357,19 @@ def _build_hessian_internal(
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    y0 = np.asarray(function(theta))
-    ensure_finite(y0, msg="Non-finite values in model output at theta0.")
+    fun_check_eval = np.atleast_1d(function(theta))
 
-    probe = np.asarray(function(theta0), dtype=np.float64)
-    if probe.ndim not in [0, 1]:
+    ensure_finite(fun_check_eval, msg="Non-finite values in model output at theta0.")
+
+    if fun_check_eval.ndim not in [0, 1]:
         raise TypeError(
             "Hessian expects a scalar- or vector-valued function; "
-            f"got output with shape {probe.shape}."
+            f"got output with shape {fun_check_eval.shape}."
         )
 
     if diag:
-        arr = _build_hessian_diag(function, theta, method, **dk_kwargs)
-        if not np.isfinite(arr).all():
-            raise FloatingPointError("Non-finite values encountered in Hessian.")
-        return arr
+        hessian = _build_hessian_diag(function, theta, method, **dk_kwargs)
     else:
-        arr = _build_hessian_full(function, theta, method, **dk_kwargs)
-        # if not np.isfinite(arr).all():
-        #     raise FloatingPointError("Non-finite values encountered in Hessian.")
-        return arr
+        hessian = _build_hessian_full(function, theta, method, fun_check_eval.shape, **dk_kwargs)
+
+    return hessian
