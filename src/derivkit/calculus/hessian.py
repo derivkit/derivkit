@@ -123,7 +123,7 @@ def _build_hessian_full(
     Raises:
         FloatingPointError: If non-finite values are encountered.
     """
-    p = int(theta.size)
+    p = theta.size
 
     # Here we build a list of tasks for all unique Hessian entries (i, j).
     # We only compute the upper triangle and diagonal, then mirror the results.
@@ -137,7 +137,7 @@ def _build_hessian_full(
         **dk_kwargs,
     )
 
-    y0 = np.asarray(function(theta))
+    y0 = np.atleast_1d(function(theta))
     vals_list = [worker(i=i, j=j) for i, j in zip(*np.triu_indices(p))]
 
     hess = dask.delayed(return_hess_matrix)(vals_list, shape=(*y0.shape, p, p))
@@ -147,9 +147,9 @@ def _build_hessian_full(
 
 def return_hess_matrix(vals_list, shape):
     hess = np.empty(shape, dtype=float)
-    vals = np.hstack(vals_list, dtype=float)
-    hess[..., np.triu_indices(shape[-1])] = vals
-    hess[..., np.tril_indices(shape[-1])] = vals
+    vals = np.stack(vals_list, dtype=float)
+    hess[..., *np.triu_indices(shape[-1])] = vals.T
+    hess[..., *np.tril_indices(shape[-1])] = vals.T
     return hess
 
 
