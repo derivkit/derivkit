@@ -35,10 +35,12 @@ def build_gradient(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
             This setting does not parallelize across parameters. Default is ``1``.
         dk_init_kwargs: Optional keyword arguments passed to
-            :class:`derivkit.derivative_kit.DerivativeKit` during
-            initialization. This can include cache-related settings.
+            :class:`derivkit.derivative_kit.DerivativeKit` when constructing
+            the helper derivative objects. These control initialization-time
+            behavior of ``DerivativeKit``.
         **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+            These control the numerical differentiation step itself.
 
     Returns:
         A 1D array representing the gradient.
@@ -60,6 +62,22 @@ def build_gradient(
     )
     cache_maxsize = dk_init_kwargs.pop("cache_maxsize", 4096)
     cache_copy = dk_init_kwargs.pop("cache_copy", True)
+
+    if not isinstance(use_input_cache, bool):
+        raise TypeError("use_input_cache must be a bool.")
+    if cache_number_decimal_places is not None and not isinstance(
+            cache_number_decimal_places, int
+    ):
+        raise TypeError("cache_number_decimal_places must be an int or None.")
+    if cache_maxsize is not None and not isinstance(cache_maxsize, int):
+        raise TypeError("cache_maxsize must be an int or None.")
+    if not isinstance(cache_copy, bool):
+        raise TypeError("cache_copy must be a bool.")
+
+    if cache_number_decimal_places is not None and cache_number_decimal_places < 0:
+        raise ValueError("cache_number_decimal_places must be non-negative or None.")
+    if cache_maxsize is not None and cache_maxsize <= 0:
+        raise ValueError("cache_maxsize must be positive or None.")
 
     shared_function = (
         wrap_input_cache(
