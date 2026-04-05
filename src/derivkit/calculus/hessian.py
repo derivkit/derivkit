@@ -1,4 +1,4 @@
-"""Contains functions used in constructing the Hessian."""
+"""Utilities for constructing Hessians of scalar- or vector-valued functions."""
 
 from collections.abc import Callable
 from functools import partial
@@ -51,7 +51,7 @@ def build_hessian(
     Raises:
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``theta0`` is an empty array.
-        TypeError: If a single output component (flattened scalar subpath) does not return a scalar.
+        TypeError: If ``function`` does not return a scalar or a 1D vector.
     """
     return _build_hessian_internal(
         function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
@@ -90,7 +90,7 @@ def build_hessian_diag(
     Raises:
         FloatingPointError: If non-finite values are encountered.
         ValueError: If ``theta0`` is an empty array.
-        TypeError: If evaluating a single output component does not return a scalar.
+        TypeError: If ``function`` does not return a scalar or a 1D vector.
     """
     return _build_hessian_internal(
         function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
@@ -166,8 +166,8 @@ def _build_hessian_full(
         for j in range(i + 1, p):
             hij = vals[k]
             k += 1
-            hess[...,i, j] = hij
-            hess[...,j, i] = hij
+            hess[..., i, j] = hij
+            hess[..., j, i] = hij
 
     ensure_finite(hess, msg="Non-finite values encountered in Hessian.")
     return hess
@@ -193,7 +193,10 @@ def _build_hessian_diag(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A 1D array representing the diagonal of the Hessian.
+        An array representing the diagonal of the Hessian.
+
+        - ``(p,)`` for scalar-valued outputs.
+        - ``(*out_shape, p)`` for vector-valued outputs.
 
     Raises:
         FloatingPointError: If non-finite values are encountered.
@@ -440,8 +443,21 @@ def _build_hessian_internal(
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
     if diag:
-        return _build_hessian_diag(function, theta, method, outer, inner,
-                                   **dk_kwargs)
-    else:
-        return _build_hessian_full(function, theta, out_shape, method, outer,
-                                   inner, **dk_kwargs)
+        return _build_hessian_diag(
+            function,
+            theta,
+            method,
+            outer,
+            inner,
+            **dk_kwargs,
+        )
+
+    return _build_hessian_full(
+        function,
+        theta,
+        out_shape,
+        method,
+        outer,
+        inner,
+        **dk_kwargs,
+    )
