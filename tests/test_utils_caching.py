@@ -1,210 +1,273 @@
-"""Tests for derivkit.utils.caching."""
-
-from __future__ import annotations
-
-from typing import Any, cast
+"""Unit tests for ``utils_caching``."""
 
 import numpy as np
-from numpy.testing import assert_allclose
 
-from derivkit.utils.caching import wrap_theta_cache_builtin
-
-
-def test_wrap_theta_cache_builtin_has_cache_api():
-    """Tests that wrap_theta_cache_builtin should preserve lru_cache attributes."""
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that adds 1 to its input."""
-        return np.asarray([theta[0] + 1.0], dtype=float)
-
-    wrapped = wrap_theta_cache_builtin(f, maxsize=128)
-
-    assert callable(wrapped)
-
-    assert hasattr(wrapped, "cache_info")
-    assert hasattr(wrapped, "cache_clear")
-
-    cache_info = getattr(wrapped, "cache_info")
-    cache_clear = getattr(wrapped, "cache_clear")
-
-    assert callable(cache_info)
-    assert callable(cache_clear)
-
-    info = cache_info()
-
-    assert hasattr(info, "hits")
-    assert hasattr(info, "misses")
-    assert hasattr(info, "maxsize")
-    assert hasattr(info, "currsize")
-
-    assert getattr(info, "maxsize") == 128
+from derivkit.utils.caching import (
+    _normalize_cache_input,
+    wrap_input_cache,
+)
 
 
-def test_wrap_theta_cache_builtin_caches_function_values():
-    """Tests that wrap_theta_cache_builtin should cache results for identical inputs."""
+def test_normalize_cache_input_scalar_exact():
+    """Tests that scalar inputs are normalized exactly without rounding."""
+    key = _normalize_cache_input(1.2345, number_decimal_places=None)
+    assert key == ("scalar", 1.2345)
+
+
+def test_normalize_cache_input_scalar_rounded():
+    """Tests that scalar inputs are normalized with rounding when requested."""
+    key = _normalize_cache_input(1.2345, number_decimal_places=2)
+    assert key == ("scalar", round(1.2345, 2))
+
+
+def test_normalize_cache_input_array_preserves_shape_and_values():
+    """Tests that array inputs preserve shape and flattened values in the cache key."""
+    x = np.array([[1.0, 2.0], [3.0, 4.0]])
+    key = _normalize_cache_input(x, number_decimal_places=None)
+
+    assert key[0] == "array"
+    assert key[1] == (2, 2)
+    assert key[2] == (1.0, 2.0, 3.0, 4.0)
+
+
+def test_normalize_cache_input_array_rounding_collapses_nearby_inputs():
+    """Tests that rounding makes nearby array inputs share the same cache key."""
+    x1 = np.array([1.2344, 2.3454])
+    x2 = np.array([1.23449, 2.34549])
+
+    key1 = _normalize_cache_input(x1, number_decimal_places=3)
+    key2 = _normalize_cache_input(x2, number_decimal_places=3)
+
+    assert key1 == key2
+
+
+def test_wrap_input_cache_hits_for_repeated_scalar_calls():
+    """Tests that repeated scalar calls hit the cache."""
     calls = {"n": 0}
 
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that squares its input and adds 2.0."""
+    def f(x):
         calls["n"] += 1
-        return np.asarray([theta[0] ** 2, theta[0] + 2.0], dtype=float)
+        return x**2
 
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, maxsize=256))
+    cached_f = wrap_input_cache(f)
 
-    theta = np.asarray([2.0], dtype=float)
-
-    y1 = wrapped(theta)
-    y2 = wrapped(theta)
-
-    assert_allclose(y1, [4.0, 4.0], rtol=0.0, atol=0.0)
-    assert_allclose(y2, [4.0, 4.0], rtol=0.0, atol=0.0)
-
+    assert cached_f(3.0) == 9.0
+    assert cached_f(3.0) == 9.0
     assert calls["n"] == 1
 
-    info = wrapped.cache_info()
+    info = cached_f.cache_info()
+    assert info.hits == 1
     assert info.misses == 1
-    assert info.hits == 1
-    assert info.currsize == 1
 
 
-def test_wrap_theta_cache_builtin_cache_clear_resets_counts():
-    """Tests that cache_clear should reset hits/misses and empty the cache."""
+def test_wrap_input_cache_hits_for_equivalent_array_calls():
+    """Tests that equivalent array inputs hit the cache."""
     calls = {"n": 0}
 
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that returns its input."""
+    def f(x):
         calls["n"] += 1
-        return np.asarray([theta[0]], dtype=float)
+        return np.asarray(x) * 2.0
 
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, maxsize=16))
+    cached_f = wrap_input_cache(f)
 
-    wrapped(np.asarray([1.0], dtype=float))
-    info1 = wrapped.cache_info()
+    x1 = np.array([1.0, 2.0, 3.0])
+    x2 = np.array([1.0, 2.0, 3.0])
+
+    y1 = cached_f(x1)
+    y2 = cached_f(x2)
+
+    np.testing.assert_allclose(y1, [2.0, 4.0, 6.0])
+    np.testing.assert_allclose(y2, [2.0, 4.0, 6.0])
     assert calls["n"] == 1
-    assert info1.misses == 1
-    assert info1.hits == 0
-    assert info1.currsize == 1
 
-    wrapped.cache_clear()
-
-    info2 = wrapped.cache_info()
-    assert info2.misses == 0
-    assert info2.hits == 0
-    assert info2.currsize == 0
-
-    wrapped(np.asarray([1.0], dtype=float))
-    info3 = wrapped.cache_info()
-    assert calls["n"] == 2
-    assert info3.misses == 1
-    assert info3.hits == 0
-    assert info3.currsize == 1
-
-
-def test_wrap_theta_cache_builtin_copy_true_returns_distinct_arrays():
-    """Tests that copy=True should return a fresh array each call."""
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that adds 1 to its input."""
-        return np.asarray([theta[0], theta[0] + 1.0], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, copy=True))
-
-    a1 = wrapped(np.asarray([3.0], dtype=float))
-    a2 = wrapped(np.asarray([3.0], dtype=float))
-
-    assert_allclose(a1, a2, rtol=0.0, atol=0.0)
-    assert a1 is not a2
-    assert not np.shares_memory(a1, a2)
-
-
-def test_wrap_theta_cache_builtin_copy_false_reuses_cached_object():
-    """Tests that copy=False should return the cached array object."""
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that adds 1 to its input."""
-        return np.asarray([theta[0], theta[0] + 1.0], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, copy=False))
-
-    a1 = wrapped(np.asarray([3.0], dtype=float))
-    a2 = wrapped(np.asarray([3.0], dtype=float))
-
-    assert a1 is a2
-
-
-def test_wrap_theta_cache_builtin_rounds_output_to_decimal_places():
-    """Tests that wrap_theta_cache_builtin should round outputs to the requested precision."""
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that returns pi and 1.234567890123456."""
-        _ = theta
-        return np.asarray([np.pi, 1.234567890123456], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, number_decimal_places=3))
-
-    y = wrapped(np.asarray([0.0], dtype=float))
-
-    assert isinstance(y, np.ndarray)
-    assert y.ndim == 1
-    assert y.shape == (2,)
-
-    assert_allclose(y[0], np.round(np.pi, 3), rtol=0.0, atol=0.0)
-    assert_allclose(y[1], np.round(1.234567890123456, 3), rtol=0.0, atol=0.0)
-
-
-def test_wrap_theta_cache_builtin_flattens_outputs_to_1d():
-    """Tests that wrap_theta_cache_builtin should flatten function outputs to 1D."""
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that returns a 3x1 array."""
-        _ = theta
-        return np.asarray([[1.0, 2.0, 3.0]], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f))
-
-    y = wrapped(np.asarray([0.0], dtype=float))
-
-    assert isinstance(y, np.ndarray)
-    assert y.ndim == 1
-    assert y.shape == (3,)
-    assert_allclose(y, [1.0, 2.0, 3.0], rtol=0.0, atol=0.0)
-
-
-def test_wrap_theta_cache_builtin_does_not_truncate_cache_key_current_behavior():
-    """Tests that cache keys are based on raw float tuples (no input truncation in key)."""
-    calls = {"n": 0}
-
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that returns 0.0."""
-        _ = theta
-        calls["n"] += 1
-        return np.asarray([0.0], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, number_decimal_places=14))
-
-    wrapped(np.asarray([1.0], dtype=float))
-    wrapped(np.asarray([1.0 + 1e-15], dtype=float))
-
-    assert calls["n"] == 2
-    info = wrapped.cache_info()
-    assert info.misses == 2
-    assert info.hits == 0
-
-
-def test_wrap_theta_cache_builtin_lru_eviction_respects_maxsize():
-    """Tests that wrap_theta_cache_builtin should respect maxsize via LRU eviction."""
-    calls = {"n": 0}
-
-    def f(theta: np.ndarray) -> np.ndarray:
-        """A dummy function that returns its input."""
-        calls["n"] += 1
-        return np.asarray([theta[0]], dtype=float)
-
-    wrapped = cast(Any, wrap_theta_cache_builtin(f, maxsize=2))
-
-    wrapped(np.asarray([1.0], dtype=float))  # miss
-    wrapped(np.asarray([2.0], dtype=float))  # miss
-    wrapped(np.asarray([3.0], dtype=float))  # miss -> evict 1.0
-    wrapped(np.asarray([2.0], dtype=float))  # hit
-    wrapped(np.asarray([1.0], dtype=float))  # miss again
-
-    info = wrapped.cache_info()
-    assert calls["n"] == 4
-    assert info.misses == 4
+    info = cached_f.cache_info()
     assert info.hits == 1
-    assert info.maxsize == 2
+    assert info.misses == 1
+
+
+def test_wrap_input_cache_rounding_can_merge_nearby_scalar_inputs():
+    """Tests that rounding can merge nearby scalar inputs into one cache entry."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return x
+
+    cached_f = wrap_input_cache(f, number_decimal_places=3)
+
+    y1 = cached_f(1.2344)
+    y2 = cached_f(1.23449)
+
+    assert y1 == round(1.2344, 3)
+    assert y2 == y1
+    assert calls["n"] == 1
+
+
+def test_wrap_input_cache_exact_mode_does_not_merge_nearby_scalar_inputs():
+    """Tests that exact mode keeps nearby scalar inputs distinct."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return x
+
+    cached_f = wrap_input_cache(f, number_decimal_places=None)
+
+    y1 = cached_f(1.2344)
+    y2 = cached_f(1.23449)
+
+    assert y1 == 1.2344
+    assert y2 == 1.23449
+    assert calls["n"] == 2
+
+
+def test_wrap_input_cache_rounding_can_merge_nearby_array_inputs():
+    """Tests that rounding can merge nearby array inputs into one cache entry."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return np.sum(x)
+
+    cached_f = wrap_input_cache(f, number_decimal_places=3)
+
+    x1 = np.array([1.2344, 2.3454])
+    x2 = np.array([1.23449, 2.34549])
+
+    y1 = cached_f(x1)
+    y2 = cached_f(x2)
+
+    assert y1 == y2
+    assert calls["n"] == 1
+
+
+def test_cached_array_result_is_protected_from_user_mutation_when_copy_true():
+    """Tests that cached array outputs are protected from mutation when copy is enabled."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return np.asarray(x, dtype=float) * 10.0
+
+    cached_f = wrap_input_cache(f, copy=True)
+
+    x = np.array([1.0, 2.0])
+    y1 = cached_f(x)
+    y1[0] = -999.0
+
+    y2 = cached_f(x)
+
+    np.testing.assert_allclose(y2, [10.0, 20.0])
+    assert calls["n"] == 1
+
+
+def test_copy_false_returns_same_cached_object_for_array_outputs():
+    """Tests that copy=False returns the same cached array object."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return np.asarray(x, dtype=float) + 1.0
+
+    cached_f = wrap_input_cache(f, copy=False)
+
+    x = np.array([1.0, 2.0])
+    y1 = cached_f(x)
+    y2 = cached_f(x)
+
+    assert y1 is y2
+    assert calls["n"] == 1
+
+
+def test_copy_false_allows_mutation_of_returned_cached_array():
+    """Tests that copy=False allows mutation of the cached array output."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return np.asarray(x, dtype=float) + 1.0
+
+    cached_f = wrap_input_cache(f, copy=False)
+
+    x = np.array([1.0, 2.0])
+    y1 = cached_f(x)
+    y1[0] = -5.0
+
+    y2 = cached_f(x)
+
+    assert y2[0] == -5.0
+    assert calls["n"] == 1
+
+
+def test_scalar_outputs_are_not_copied_and_still_cache_correctly():
+    """Tests that scalar outputs are cached correctly without copying."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return float(np.sum(np.asarray(x)))
+
+    cached_f = wrap_input_cache(f, copy=True)
+
+    y1 = cached_f([1.0, 2.0, 3.0])
+    y2 = cached_f([1.0, 2.0, 3.0])
+
+    assert y1 == 6.0
+    assert y2 == 6.0
+    assert calls["n"] == 1
+
+
+def test_cache_clear_resets_cache_statistics_and_forces_recompute():
+    """Tests that cache_clear resets cache statistics and forces recomputation."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return x
+
+    cached_f = wrap_input_cache(f)
+
+    cached_f(2.0)
+    cached_f(2.0)
+    assert calls["n"] == 1
+    assert cached_f.cache_info().hits == 1
+
+    cached_f.cache_clear()
+
+    info = cached_f.cache_info()
+    assert info.hits == 0
+    assert info.misses == 0
+    assert info.currsize == 0
+
+    cached_f(2.0)
+    assert calls["n"] == 2
+
+
+def test_maxsize_one_evicts_previous_entry():
+    """Tests that maxsize=1 evicts the previous cache entry."""
+    calls = {"n": 0}
+
+    def f(x):
+        calls["n"] += 1
+        return x
+
+    cached_f = wrap_input_cache(f, maxsize=1)
+
+    cached_f(1.0)  # miss
+    cached_f(2.0)  # miss, evicts 1.0
+    cached_f(1.0)  # miss again
+
+    assert calls["n"] == 3
+    assert cached_f.cache_info().misses == 3
+
+
+def test_wraps_preserves_function_metadata():
+    """Tests that the cache wrapper preserves function metadata."""
+    def my_function(x):
+        """Test docstring."""
+        return x
+
+    cached_f = wrap_input_cache(my_function)
+
+    assert cached_f.__name__ == "my_function"
+    assert cached_f.__doc__ == "Test docstring."
