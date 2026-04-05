@@ -70,7 +70,12 @@ def test_forecastkit_delegates(monkeypatch):
     theta0 = np.array([0.1, -0.2])
     cov = np.eye(2)
 
-    fk = ForecastKit(function=model, theta0=theta0, cov=cov, cache_theta=False)
+    fk = ForecastKit(
+        function=model,
+        theta0=theta0,
+        cov=cov,
+        use_input_cache=False,
+    )
 
     # The fisher() method defaults to forecast_order=1 and forwards n_workers.
     # The Fisher computation delegates to the helper function and forwards n_workers.
@@ -244,7 +249,7 @@ def test_fisher_bias_delegates(monkeypatch):
         return np.asarray(theta)
 
     theta0 = np.array([0.1, -0.2])
-    fk = ForecastKit(function=model, theta0=theta0, cov=np.eye(3), cache_theta=False)
+    fk = ForecastKit(function=model, theta0=theta0, cov=np.eye(3), use_input_cache=False)
 
     fisher_matrix = np.eye(2)
     delta_nu = np.arange(3.0)
@@ -938,8 +943,8 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert seen["kwargs"]["seed"] == 5
 
 
-def test_forecastkit_cache_theta_adds_cache_api():
-    """Tests that cache_theta=True wraps the model with a cache API."""
+def test_forecastkit_use_input_cache_adds_cache_api():
+    """Tests that use_input_cache=True wraps the model with a cache API."""
     def model(theta):
         """Mock model that returns theta."""
         return np.asarray(theta, dtype=float)
@@ -948,9 +953,9 @@ def test_forecastkit_cache_theta_adds_cache_api():
         function=model,
         theta0=np.array([0.1, -0.2]),
         cov=np.eye(2),
-        cache_theta=True,
-        cache_theta_number_decimal_places=14,
-        cache_theta_maxsize=128,
+        use_input_cache=True,
+        cache_number_decimal_places=14,
+        cache_maxsize=128,
     )
 
     assert callable(fk.function)
@@ -973,8 +978,8 @@ def test_forecastkit_cache_theta_adds_cache_api():
     assert getattr(info, "maxsize") == 128
 
 
-def test_forecastkit_cache_theta_caches_model_calls_without_breaking_fisher(monkeypatch):
-    """Tests that cache_theta=True prevents repeated model evaluation during fisher()."""
+def test_forecastkit_use_input_cache_caches_model_calls_without_breaking_fisher(monkeypatch):
+    """Tests that use_input_cache=True prevents repeated model evaluation during fisher()."""
     calls = {"n": 0}
 
     def model(theta):
@@ -1012,9 +1017,9 @@ def test_forecastkit_cache_theta_caches_model_calls_without_breaking_fisher(monk
         function=model,
         theta0=np.array([0.1, -0.2]),
         cov=np.eye(2),
-        cache_theta=True,
-        cache_theta_number_decimal_places=14,
-        cache_theta_maxsize=128,
+        use_input_cache=True,
+        cache_number_decimal_places=14,
+        cache_maxsize=128,
     )
 
     out = fk.fisher(method="finite", n_workers=1)
@@ -1032,8 +1037,8 @@ def test_forecastkit_cache_theta_caches_model_calls_without_breaking_fisher(monk
     assert getattr(info, "hits") == 2
 
 
-def test_forecastkit_cache_theta_false_does_not_cache_model_calls(monkeypatch):
-    """Tests that cache_theta=False leaves the model uncached during fisher()."""
+def test_forecastkit_use_input_cache_false_does_not_cache_model_calls(monkeypatch):
+    """Tests that use_input_cache=False leaves the model uncached during fisher()."""
     calls = {"n": 0}
 
     def model(theta):
@@ -1059,7 +1064,7 @@ def test_forecastkit_cache_theta_false_does_not_cache_model_calls(monkeypatch):
         function=model,
         theta0=np.array([0.1, -0.2]),
         cov=np.eye(2),
-        cache_theta=False,
+        use_input_cache=False,
     )
 
     _ = fk.fisher(method="finite", n_workers=1)
@@ -1115,7 +1120,7 @@ def test_xy_fisher_delegates(monkeypatch):
     bot = np.hstack([cxy.T, cyy])
     cov_xy = np.vstack([top, bot])
 
-    fk = ForecastKit(function=None, theta0=theta0, cov=cyy, cache_theta=False)
+    fk = ForecastKit(function=None, theta0=theta0, cov=cyy, use_input_cache=False)
 
     out = fk.xy_fisher(
         x0=x0,
@@ -1194,7 +1199,7 @@ def test_thread_safe_serializes_forecastkit_function_calls():
         function=fn,
         theta0=np.array([0.0, 1.0]),
         cov=np.eye(2),
-        cache_theta=False,
+        use_input_cache=False,
         thread_safe=True,
     )
 
@@ -1210,7 +1215,7 @@ def test_thread_unsafe_allows_overlapping_forecastkit_function_calls():
         function=fn,
         theta0=np.array([0.0, 1.0]),
         cov=np.eye(2),
-        cache_theta=False,
+        use_input_cache=False,
         thread_safe=False,
     )
 
@@ -1242,7 +1247,7 @@ def test_thread_safe_uses_provided_lock(monkeypatch):
         function=lambda x: np.asarray(x, dtype=float),
         theta0=np.array([0.0]),
         cov=np.eye(1),
-        cache_theta=False,
+        use_input_cache=False,
         thread_safe=True,
         thread_lock=lock,
     )
