@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from itertools import permutations
 from typing import Any
 
 import numpy as np
@@ -158,25 +159,9 @@ def _build_hyper_hessian(
 
     hess = np.empty((*out_shape, p, p, p), dtype=float)
 
-    def _perm_indices(i: int, j: int, k: int) -> list[tuple[int, int, int]]:
-        if i == j == k:
-            return [(i, j, k)]
-        if i == j != k:
-            return [(i, i, k), (i, k, i), (k, i, i)]
-        if i != j == k:
-            return [(i, j, j), (j, i, j), (j, j, i)]
-        return [
-            (i, j, k),
-            (i, k, j),
-            (j, i, k),
-            (j, k, i),
-            (k, i, j),
-            (k, j, i),
-        ]
-
     for (i, j, k), v in zip(triplets, vals, strict=True):
         v = np.asarray(v, dtype=float)
-        for a, b, c in _perm_indices(i, j, k):
+        for a, b, c in set(permutations((i, j, k), 3)):
             hess[..., a, b, c] = v
 
     ensure_finite(hess, msg="Non-finite values encountered in hyper-Hessian.")
