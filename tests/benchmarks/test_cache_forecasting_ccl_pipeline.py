@@ -38,7 +38,6 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pyccl as ccl
 import pytest
 from getdist import plots as getdist_plots
 
