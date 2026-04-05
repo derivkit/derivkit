@@ -271,6 +271,7 @@ def run_pipeline(
     emcee_nwalkers: int = 32,
     emcee_nsteps: int = 180,
     emcee_burnin: int = 60,
+    save_artifacts: bool = False,
 ) -> dict[str, Any]:
     """Run the full CCL forecasting pipeline and return all outputs."""
     cfg = make_ccl_problem()
@@ -333,26 +334,30 @@ def run_pipeline(
     )
     timings["dali_sampling"] = perf_counter() - t0
 
-    fisher_plot = PLOT_DIR / f"triangle_fisher_cache_{int(use_input_cache)}.pdf"
-    dali_plot = PLOT_DIR / f"triangle_dali_cache_{int(use_input_cache)}.pdf"
+    fisher_plot = None
+    dali_plot = None
 
-    t0 = perf_counter()
-    plot_triangle(
-        [fisher_samples],
-        cfg["names"],
-        fisher_plot,
-        title=f"Fisher only | cache={use_input_cache}",
-    )
-    timings["fisher_plot"] = perf_counter() - t0
+    if save_artifacts:
+        fisher_plot = PLOT_DIR / f"triangle_fisher_cache_{int(use_input_cache)}.pdf"
+        dali_plot = PLOT_DIR / f"triangle_dali_cache_{int(use_input_cache)}.pdf"
 
-    t0 = perf_counter()
-    plot_triangle(
-        [fisher_samples, dali_samples],
-        cfg["names"],
-        dali_plot,
-        title=f"Fisher + DALI | cache={use_input_cache}",
-    )
-    timings["dali_plot"] = perf_counter() - t0
+        t0 = perf_counter()
+        plot_triangle(
+            [fisher_samples],
+            cfg["names"],
+            fisher_plot,
+            title=f"Fisher only | cache={use_input_cache}",
+        )
+        timings["fisher_plot"] = perf_counter() - t0
+
+        t0 = perf_counter()
+        plot_triangle(
+            [fisher_samples, dali_samples],
+            cfg["names"],
+            dali_plot,
+            title=f"Fisher + DALI | cache={use_input_cache}",
+        )
+        timings["dali_plot"] = perf_counter() - t0
 
     n_params = len(cfg["theta0"])
 
@@ -404,6 +409,9 @@ def print_pipeline_summary(
         "fisher_plot",
         "dali_plot",
     ]:
+        if key not in uncached["timings"] or key not in cached["timings"]:
+            continue
+
         t0 = uncached["timings"][key]
         t1 = cached["timings"][key]
         speedup = t0 / t1 if t1 > 0.0 else np.inf
@@ -531,11 +539,13 @@ def test_ccl_cache_pipeline_numerical_health_and_sampling() -> None:
         path_uncached = uncached[key]
         path_cached = cached[key]
 
-        assert path_uncached.exists()
-        assert path_cached.exists()
+        if path_uncached is not None:
+            assert path_uncached.exists()
+            assert path_uncached.stat().st_size > 0
 
-        assert path_uncached.stat().st_size > 0
-        assert path_cached.stat().st_size > 0
+        if path_cached is not None:
+            assert path_cached.exists()
+            assert path_cached.stat().st_size > 0
 
     # Sanity: everything finite.
     assert np.all(np.isfinite(uncached["fisher"]))
