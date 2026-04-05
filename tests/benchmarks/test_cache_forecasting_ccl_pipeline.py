@@ -49,6 +49,8 @@ except ImportError:  # pragma: no cover
 
 from derivkit import ForecastKit
 
+ccl = pytest.importorskip("pyccl")
+
 pytestmark = [pytest.mark.slow, pytest.mark.benchmark]
 
 BENCHMARK_DIR = Path(__file__).resolve().parent
