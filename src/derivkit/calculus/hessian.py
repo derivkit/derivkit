@@ -265,7 +265,7 @@ def _hessian_component(
     method: str | None = None,
     n_workers: int = 1,
     **dk_kwargs: Any,
-) -> np.ndarray:
+) -> float | np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     This function measures how the rate of change in one parameter depends
