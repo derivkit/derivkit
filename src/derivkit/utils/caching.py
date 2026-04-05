@@ -140,6 +140,9 @@ def wrap_input_cache(
         value = cached_wrapper(key)
         return _copy_if_needed(value, copy=copy)
 
+    # Re-export the underlying lru_cache helpers on the public wrapper so callers
+    # can inspect and clear the cache. This follows the common pattern described in
+    # https://stackoverflow.com/a/52332109
     wrapped.cache_info = cached_wrapper.cache_info
     wrapped.cache_clear = cached_wrapper.cache_clear
 
