@@ -10,6 +10,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.utils.caching import wrap_input_cache
 from derivkit.utils.concurrency import (
     parallel_execute,
     resolve_inner_from_outer,
@@ -28,7 +29,8 @@ def build_hyper_hessian(
     *,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns the third-derivative tensor ("hyper-Hessian") of a function.
 
@@ -44,8 +46,11 @@ def build_hyper_hessian(
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Outer parallelism across output components (tensor outputs only).
-        **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
-            You may pass ``inner_workers=<int>`` here to override inner parallelism.
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Third-derivative tensor. For scalar outputs, the result has shape
@@ -72,7 +77,17 @@ def build_hyper_hessian(
 
     out_shape = probe.shape
 
-    inner_override = dk_kwargs.pop("inner_workers", None)
+    dk_init_kwargs = dict(dk_init_kwargs or {})
+
+    use_input_cache = dk_init_kwargs.pop("use_input_cache", True)
+    cache_number_decimal_places = dk_init_kwargs.pop(
+        "cache_number_decimal_places",
+        None,
+    )
+    cache_maxsize = dk_init_kwargs.pop("cache_maxsize", 4096)
+    cache_copy = dk_init_kwargs.pop("cache_copy", True)
+
+    inner_override = dk_diff_kwargs.pop("inner_workers", None)
     outer_workers = int(n_workers) if n_workers is not None else 1
     inner_workers = (
         int(inner_override)
@@ -80,14 +95,26 @@ def build_hyper_hessian(
         else resolve_inner_from_outer(outer_workers)
     )
 
+    shared_function = (
+        wrap_input_cache(
+            function,
+            number_decimal_places=cache_number_decimal_places,
+            maxsize=cache_maxsize,
+            copy=cache_copy,
+        )
+        if use_input_cache
+        else function
+    )
+
     out = _build_hyper_hessian(
-        function=function,
+        function=shared_function,
         theta=theta,
         out_shape=out_shape,
         method=method,
         inner_workers=inner_workers,
         outer_workers=outer_workers,
-        **dk_kwargs,
+        dk_init_kwargs=dk_init_kwargs,
+        **dk_diff_kwargs,
     )
 
     return out
@@ -100,7 +127,8 @@ def _build_hyper_hessian(
     method: str | None,
     inner_workers: int | None,
     outer_workers: int,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> NDArray[np.float64]:
     """Returns a hyper-Hessian for a scalar- or vector-valued function.
 
@@ -112,7 +140,11 @@ def _build_hyper_hessian(
             the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         outer_workers: Number of outer workers for parallelism over entries.
-        **dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         The full hyper-Hessian array for the scalar- or vector-valued function.
@@ -127,8 +159,7 @@ def _build_hyper_hessian(
     triplets: list[tuple[int, int, int]] = [
         (i, j, k) for i in range(p) for j in range(i, p) for k in range(j, p)
     ]
-
-    def entry_worker(i: int, j: int, k: int) -> np.ndarray:
+    def entry_worker(i: int, j: int, k: int) -> float | NDArray[np.float64]:
         """Worker to compute one hyper-Hessian entry.
 
         Args:
@@ -147,7 +178,8 @@ def _build_hyper_hessian(
             k=k,
             method=method,
             n_workers=iw,
-            dk_kwargs=dk_kwargs,
+            dk_init_kwargs=dk_init_kwargs,
+            dk_diff_kwargs=dk_diff_kwargs,
         )
 
     vals = parallel_execute(
@@ -177,8 +209,9 @@ def _third_derivative_entry(
     k: int,
     method: str | None,
     n_workers: int,
-    dk_kwargs: dict[str, Any],
-) -> np.ndarray:
+    dk_init_kwargs: dict[str, Any] | None,
+    dk_diff_kwargs: dict[str, Any],
+) -> NDArray[np.float64]:
     """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
 
     Args:
@@ -190,21 +223,37 @@ def _third_derivative_entry(
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Number of workers for :class:`derivkit.DerivativeKit` calls.
-        dk_kwargs: Extra keyword args forwarded to :meth:`derivkit.DerivativeKit.differentiate`.
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        dk_diff_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Value of the third order derivative of the function at ``theta0``.
     """
+    inner_init_kwargs = {"use_input_cache": False}
+    inner_init_kwargs.update(dk_init_kwargs or {})
+
     i, j, k = int(i), int(j), int(k)
     ii, jj, kk = sorted((i, j, k))
 
     if ii == jj == kk:
         f1 = get_partial_function(function, ii, theta0)
-        kit = DerivativeKit(f1, float(theta0[ii]))
-        val = kit.differentiate(order=3, method=method, n_workers=n_workers, **dk_kwargs)
+        kit = DerivativeKit(
+            f1,
+            float(theta0[ii]),
+            **inner_init_kwargs,
+        )
+        val = kit.differentiate(
+            order=3,
+            method=method,
+            n_workers=n_workers,
+            **dk_diff_kwargs,
+        )
         return np.asarray(val, dtype=float)
 
-    def g_func(t: float) -> float:
+    def g_func(t: float) -> NDArray[np.float64]:
         """Function for derivative with respect to parameter kk.
 
         Args:
@@ -219,12 +268,21 @@ def _third_derivative_entry(
 
         if ii == jj:
             f1 = get_partial_function(function, ii, th)
-            kit2 = DerivativeKit(f1, float(th[ii]))
-            v2 = kit2.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
+            kit2 = DerivativeKit(
+                f1,
+                float(th[ii]),
+                **inner_init_kwargs,
+            )
+            v2 = kit2.differentiate(
+                order=2,
+                method=method,
+                n_workers=n_workers,
+                **dk_diff_kwargs,
+            )
             return np.asarray(v2, dtype=float)
 
         # mixed second derivative via nested 1D partials
-        def h_func(yj: float) -> float:
+        def h_func(yj: float) -> NDArray[np.float64]:
             """Function for derivative with respect to parameter jj.
 
             Args:
@@ -236,14 +294,41 @@ def _third_derivative_entry(
             th2 = th.copy()
             th2[jj] = float(yj)
             f_ii = get_partial_function(function, ii, th2)
-            kit1 = DerivativeKit(f_ii, float(th2[ii]))
-            v1 = kit1.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+            kit1 = DerivativeKit(
+                f_ii,
+                float(th2[ii]),
+                **inner_init_kwargs,
+            )
+            v1 = kit1.differentiate(
+                order=1,
+                method=method,
+                n_workers=n_workers,
+                **dk_diff_kwargs,
+            )
             return np.asarray(v1, dtype=float)
 
-        kitm = DerivativeKit(h_func, float(th[jj]))
-        vm = kitm.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+        kitm = DerivativeKit(
+            h_func,
+            float(th[jj]),
+            **inner_init_kwargs,
+        )
+        vm = kitm.differentiate(
+            order=1,
+            method=method,
+            n_workers=n_workers,
+            **dk_diff_kwargs,
+        )
         return np.asarray(vm, dtype=float)
 
-    kit3 = DerivativeKit(g_func, float(theta0[kk]))
-    v3 = kit3.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+    kit3 = DerivativeKit(
+        g_func,
+        float(theta0[kk]),
+        **inner_init_kwargs,
+    )
+    v3 = kit3.differentiate(
+        order=1,
+        method=method,
+        n_workers=n_workers,
+        **dk_diff_kwargs,
+    )
     return np.asarray(v3, dtype=float)
