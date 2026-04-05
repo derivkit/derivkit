@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import lru_cache, wraps
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
@@ -24,7 +25,8 @@ def _normalize_cache_input(
         Hashable tuple representing the normalized input.
     """
     if np.isscalar(x):
-        value = float(x)
+        scalar = np.asarray(x, dtype=float).item()
+        value = float(scalar)
         if number_decimal_places is not None:
             value = round(value, number_decimal_places)
         return "scalar", value
