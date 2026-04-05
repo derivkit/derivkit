@@ -225,7 +225,7 @@ def _hessian_component_worker(
     method: str | None,
     inner_workers: int | None,
     dk_kwargs: dict,
-) -> np.ndarray:
+) -> float | np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     Args:
