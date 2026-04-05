@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import lru_cache, wraps
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 
+CacheInput: TypeAlias = int | float | Sequence[float] | np.ndarray
+CacheKey: TypeAlias = (
+    tuple[Literal["scalar"], float]
+    | tuple[Literal["array"], tuple[int, ...], tuple[float, ...]]
+)
+
 
 def _normalize_cache_input(
-    x: Any,
+    x: CacheInput,
     *,
     number_decimal_places: int | None,
-) -> tuple[Any, ...]:
+) -> CacheKey:
     """Convert a numeric scalar or array-like input into a hashable cache key.
 
     Args:
@@ -61,12 +67,12 @@ def _copy_if_needed(value: Any, *, copy: bool) -> Any:
 
 
 def wrap_input_cache(
-    function: Callable[[Any], Any],
+    function: Callable[[CacheInput], Any],
     *,
     number_decimal_places: int | None = None,
     maxsize: int | None = 4096,
     copy: bool = True,
-) -> Callable[[Any], Any]:
+) -> Callable[[CacheInput], Any]:
     """Wrap a callable with an input-based LRU cache.
 
     This wrapper supports both scalar and array-like numeric inputs. Cache keys
@@ -86,7 +92,7 @@ def wrap_input_cache(
     """
 
     @lru_cache(maxsize=maxsize)
-    def cached_wrapper(cache_key: tuple[Any, ...]) -> Any:
+    def cached_wrapper(cache_key: CacheKey) -> Any:
         """Evaluate ``function`` for a normalized cache key and store the result.
 
         Args:
@@ -117,7 +123,7 @@ def wrap_input_cache(
         return value
 
     @wraps(function)
-    def wrapped(x: Any) -> Any:
+    def wrapped(x: CacheInput) -> Any:
         """Call the cached wrapper on a raw input value.
 
         Args:
