@@ -1,8 +1,9 @@
 # derivkit
 
-[![CI](https://github.com/derivkit/derivkit/actions/workflows/ci.yml/badge.svg)](https://github.com/derivkit/derivkit/actions/workflows/ci.yml)
-[![Deploy Sphinx Documentation](https://github.com/derivkit/derivkit/actions/workflows/docs.yml/badge.svg)](https://github.com/derivkit/derivkit/actions/workflows/docs.yml)
-[![License](https://img.shields.io/github/license/derivkit/derivkit)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/derivkit/derivkit/ci.yml?branch=main&label=CI&color=3b9ab2&style=flat-square)](https://github.com/derivkit/derivkit/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/github/actions/workflow/status/derivkit/derivkit/docs.yml?branch=main&label=docs&color=3b9ab2&style=flat-square)](https://github.com/derivkit/derivkit/actions/workflows/docs.yml)
+[![License](https://img.shields.io/github/license/derivkit/derivkit?color=3b9ab2&style=flat-square)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/derivkit?color=3b9ab2&style=flat-square)](https://pypi.org/project/derivkit/)
 
 
 **DerivKit** is a robust Python toolkit for stable numerical derivatives, built for scientific computing, cosmology, and any domain requiring accurate gradients or higher-order expansions.
