@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.utils.caching import wrap_input_cache
 from derivkit.utils.concurrency import (
     parallel_execute,
     resolve_inner_from_outer,
@@ -26,7 +27,8 @@ def build_hessian(
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Returns the full Hessian of a function.
 
@@ -37,7 +39,10 @@ def build_hessian(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         n_workers: Parallel tasks across output components / Hessian entries.
-        **dk_kwargs: Extra options forwarded to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -54,7 +59,13 @@ def build_hessian(
         TypeError: If ``function`` does not return a scalar or a 1D vector.
     """
     return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=False, **dk_kwargs
+        function,
+        theta0,
+        method=method,
+        n_workers=n_workers,
+        diag=False,
+        dk_init_kwargs=dk_init_kwargs,
+        **dk_diff_kwargs,
     )
 
 
@@ -63,7 +74,8 @@ def build_hessian_diag(
     theta0: np.ndarray,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian of a function.
 
@@ -74,10 +86,11 @@ def build_hessian_diag(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         n_workers: Parallel tasks across output components / Hessian entries.
-        **dk_kwargs: Additional keyword arguments passed to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-            You may optionally pass ``inner_workers=<int>`` here to override
-            the inner policy.
 
     Returns:
         Returns only the diagonal entries of the Hessian.
@@ -93,7 +106,13 @@ def build_hessian_diag(
         TypeError: If ``function`` does not return a scalar or a 1D vector.
     """
     return _build_hessian_internal(
-        function, theta0, method=method, n_workers=n_workers, diag=True, **dk_kwargs
+        function,
+        theta0,
+        method=method,
+        n_workers=n_workers,
+        diag=True,
+        dk_init_kwargs=dk_init_kwargs,
+        **dk_diff_kwargs,
     )
 
 
@@ -109,7 +128,8 @@ def _build_hessian_full(
     method: str | None,
     outer_workers: int,
     inner_workers: int | None,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> np.ndarray:
     """Returns the full Hessian for a scalar- or vector-valued function.
 
@@ -126,7 +146,10 @@ def _build_hessian_full(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
         outer_workers: Number of outer parallel workers for Hessian entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments for
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -141,10 +164,14 @@ def _build_hessian_full(
     # Here we build a list of tasks for all unique Hessian entries (i, j).
     # We only compute the upper triangle and diagonal, then mirror the results.
     # This reduces computation by nearly half.
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)]
+    tasks: list[Tuple[Any, ...]] = [
+        (function, theta, i, i, method, inner_workers, dk_init_kwargs or {}, dk_diff_kwargs)
+        for i in range(p)
+    ]
     tasks += [
-        (function, theta, i, j, method, inner_workers, dk_kwargs)
-        for i in range(p) for j in range(i + 1, p)
+        (function, theta, i, j, method, inner_workers, dk_init_kwargs or {}, dk_diff_kwargs)
+        for i in range(p)
+        for j in range(i + 1, p)
     ]
 
     vals_list = parallel_execute(
@@ -179,7 +206,8 @@ def _build_hessian_diag(
     method: str | None,
     outer_workers: int,
     inner_workers: int | None,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> np.ndarray:
     """Returns the diagonal of the Hessian for a scalar- or vector-valued function.
 
@@ -189,7 +217,10 @@ def _build_hessian_diag(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
         outer_workers: Number of outer parallel workers for diagonal entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments for
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -203,7 +234,10 @@ def _build_hessian_diag(
     """
     p = int(theta.size)
 
-    tasks: list[Tuple[Any, ...]] = [(function, theta, i, i, method, inner_workers, dk_kwargs) for i in range(p)]
+    tasks: list[Tuple[Any, ...]] = [
+        (function, theta, i, i, method, inner_workers, dk_init_kwargs or {}, dk_diff_kwargs)
+        for i in range(p)
+    ]
     vals = parallel_execute(
         _hessian_component_worker,
         tasks,
@@ -224,8 +258,9 @@ def _hessian_component_worker(
     j: int,
     method: str | None,
     inner_workers: int | None,
-    dk_kwargs: dict,
-) -> float | np.ndarray:
+    dk_init_kwargs: dict[str, Any],
+    dk_diff_kwargs: dict[str, Any],
+) -> np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
     Args:
@@ -237,7 +272,10 @@ def _hessian_component_worker(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         inner_workers: Optional inner parallelism for the differentiation engine.
-        dk_kwargs: Additional keyword arguments passed to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -251,9 +289,10 @@ def _hessian_component_worker(
         j=j,
         method=method,
         n_workers=inner_workers or 1,
-        **dk_kwargs,
+        dk_init_kwargs=dk_init_kwargs,
+        **dk_diff_kwargs,
     )
-
+    return np.asarray(val, dtype=float)
     return np.asarray(val, dtype=float)
 
 
@@ -264,7 +303,8 @@ def _hessian_component(
     j: int,
     method: str | None = None,
     n_workers: int = 1,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> float | np.ndarray:
     """Returns one entry of the Hessian for a scalar- or vector-valued function.
 
@@ -284,20 +324,35 @@ def _hessian_component(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
         n_workers: Optional inner parallelism for the differentiation engine.
-        **dk_kwargs: Additional keyword arguments passed to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A number or vector showing how the rate of change in one parameter
         depends on another.
     """
+    inner_init_kwargs = {"use_input_cache": False}
+    inner_init_kwargs.update(dk_init_kwargs or {})
+
     # Mixed derivative path: define a helper that computes how the function changes with parameter i
     # when parameter j is temporarily set to a specific value.
     # Then we take the derivative of that helper with respect to parameter j.
     if i == j:
         partial_vec1 = get_partial_function(function, i, theta)
-        kit1 = DerivativeKit(partial_vec1, float(theta[i]))
-        return kit1.differentiate(order=2, method=method, n_workers=n_workers, **dk_kwargs)
+        kit1 = DerivativeKit(
+            partial_vec1,
+            float(theta[i]),
+            **inner_init_kwargs,
+        )
+        return kit1.differentiate(
+            order=2,
+            method=method,
+            n_workers=n_workers,
+            **dk_diff_kwargs,
+        )
 
     path = partial(
         _mixed_partial_value,
@@ -307,10 +362,20 @@ def _hessian_component(
         j=j,
         method=method,
         n_workers=n_workers,
-        dk_kwargs=dk_kwargs,
+        dk_init_kwargs=inner_init_kwargs,
+        dk_diff_kwargs=dk_diff_kwargs,
     )
-    kit2 = DerivativeKit(path, float(theta[j]))
-    return kit2.differentiate(order=1, method=method, n_workers=n_workers, **dk_kwargs)
+    kit2 = DerivativeKit(
+        path,
+        float(theta[j]),
+        **inner_init_kwargs,
+    )
+    return kit2.differentiate(
+        order=1,
+        method=method,
+        n_workers=n_workers,
+        **dk_diff_kwargs,
+    )
 
 
 def _mixed_partial_value(
@@ -322,8 +387,9 @@ def _mixed_partial_value(
     j: int,
     method: str | None,
     n_workers: int | None,
-    dk_kwargs: dict,
-) -> float:
+    dk_init_kwargs: dict[str, Any] | None,
+    dk_diff_kwargs: dict[str, Any],
+) -> float | np.ndarray:
     """Returns the first derivative with respect to parameter i while temporarily setting parameter j to a given value.
 
     This helper does not compute the second derivative itself. It only returns
@@ -341,7 +407,10 @@ def _mixed_partial_value(
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default
             (``"adaptive"``) is used.
         n_workers: Optional inner parallelism for the differentiation engine.
-        dk_kwargs: Additional keyword arguments passed to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -351,13 +420,16 @@ def _mixed_partial_value(
     theta_local = theta.copy()
     theta_local[j] = float(y)
     partial_vec1 = get_partial_function(function, i, theta_local)
-    kit1 = DerivativeKit(partial_vec1, float(theta_local[i]))
-
+    kit1 = DerivativeKit(
+        partial_vec1,
+        float(theta_local[i]),
+        **(dk_init_kwargs or {"use_input_cache": False}),
+    )
     val = kit1.differentiate(
         order=1,
         method=method,
         n_workers=n_workers,
-        **dk_kwargs,
+        **dk_diff_kwargs,
     )
     val_arr = np.asarray(val, dtype=float)
     return val_arr
@@ -370,7 +442,8 @@ def _build_hessian_internal(
     method: str | None,
     n_workers: int,
     diag: bool,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> np.ndarray:
     """Core Hessian builder (internal).
 
@@ -395,8 +468,10 @@ def _build_hessian_internal(
         diag:
             If ``True``, compute only the diagonal entries.
             If ``False``, compute the full Hessian.
-        **dk_kwargs:
-            Additional keyword arguments forwarded to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -438,26 +513,55 @@ def _build_hessian_internal(
             f"got output with shape {probe.shape}."
         )
 
-    inner_override = dk_kwargs.pop("inner_workers", None)
+    dk_init_kwargs = dict(dk_init_kwargs or {})
+
+    use_input_cache = dk_init_kwargs.pop("use_input_cache", True)
+    cache_number_decimal_places = dk_init_kwargs.pop(
+        "cache_number_decimal_places",
+        None,
+    )
+    cache_maxsize = dk_init_kwargs.pop("cache_maxsize", 4096)
+    cache_copy = dk_init_kwargs.pop("cache_copy", True)
+
+    inner_override = dk_diff_kwargs.pop("inner_workers", None)
     outer = int(n_workers) if n_workers is not None else 1
     inner = int(inner_override) if inner_override is not None else resolve_inner_from_outer(outer)
 
-    if diag:
-        return _build_hessian_diag(
+    shared_function = (
+        wrap_input_cache(
             function,
+            number_decimal_places=cache_number_decimal_places,
+            maxsize=cache_maxsize,
+            copy=cache_copy,
+        )
+        if use_input_cache
+        else function
+    )
+
+    if diag:
+        arr = _build_hessian_diag(
+            shared_function,
             theta,
             method,
             outer,
             inner,
-            **dk_kwargs,
+            dk_init_kwargs=dk_init_kwargs,
+            **dk_diff_kwargs,
         )
-
-    return _build_hessian_full(
-        function,
-        theta,
-        out_shape,
-        method,
-        outer,
-        inner,
-        **dk_kwargs,
-    )
+        if not np.isfinite(arr).all():
+            raise FloatingPointError("Non-finite values encountered in Hessian.")
+        return arr
+    else:
+        arr = _build_hessian_full(
+            shared_function,
+            theta,
+            out_shape,
+            method,
+            outer,
+            inner,
+            dk_init_kwargs=dk_init_kwargs,
+            **dk_diff_kwargs,
+        )
+        if not np.isfinite(arr).all():
+            raise FloatingPointError("Non-finite values encountered in Hessian.")
+        return arr

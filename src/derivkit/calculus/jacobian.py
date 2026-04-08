@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from derivkit.derivative_kit import DerivativeKit
+from derivkit.utils.caching import wrap_input_cache
 from derivkit.utils.concurrency import (
     parallel_execute,
     resolve_inner_from_outer,
@@ -20,7 +21,8 @@ def build_jacobian(
     theta0: ArrayLike,
     method: str | None = None,
     n_workers: int | None = 1,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Computes the Jacobian of a vector-valued function.
 
@@ -38,7 +40,10 @@ def build_jacobian(
             parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
             derivatives with respect to different parameters in parallel.
-        **dk_kwargs: Additional keyword arguments passed to
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
@@ -66,33 +71,50 @@ def build_jacobian(
     m = int(y0.size)
     n = int(theta.size)
 
-    # Resolve parallelism policy
     try:
         outer_workers = max(1, int(n_workers or 1))
     except (TypeError, ValueError):
         outer_workers = 1
     inner_workers = resolve_inner_from_outer(outer_workers)
 
-    # Prepare worker
+    dk_init_kwargs = dict(dk_init_kwargs or {})
+
+    use_input_cache = dk_init_kwargs.pop("use_input_cache", True)
+    cache_number_decimal_places = dk_init_kwargs.pop(
+        "cache_number_decimal_places", None
+    )
+    cache_maxsize = dk_init_kwargs.pop("cache_maxsize", 4096)
+    cache_copy = dk_init_kwargs.pop("cache_copy", True)
+
+    shared_function = (
+        wrap_input_cache(
+            function,
+            number_decimal_places=cache_number_decimal_places,
+            maxsize=cache_maxsize,
+            copy=cache_copy,
+        )
+        if use_input_cache
+        else function
+    )
+
     worker = partial(
         _column_derivative,
-        function=function,
+        function=shared_function,
         theta0=theta,
         method=method,
         inner_workers=inner_workers,
         expected_m=m,
-        **dk_kwargs,
+        dk_init_kwargs=dk_init_kwargs,
+        **dk_diff_kwargs,
     )
 
-    # Parallelize across parameters
     cols = parallel_execute(
         worker,
         arg_tuples=[(j,) for j in range(n)],
         outer_workers=outer_workers,
-        inner_workers=inner_workers,  # passed for context; we also pass explicitly to worker
+        inner_workers=inner_workers,
     )
 
-    # Stack columns → (m, n)
     jac = np.column_stack([np.asarray(c, dtype=float).reshape(m) for c in cols])
     return jac
 
@@ -104,7 +126,8 @@ def _column_derivative(
     method: str | None,
     inner_workers: int | None,
     expected_m: int,
-    **dk_kwargs: Any,
+    dk_init_kwargs: dict[str, Any] | None = None,
+    **dk_diff_kwargs: Any,
 ) -> NDArray[np.floating]:
     """Derivative of function with respect to parameter j.
 
@@ -117,9 +140,12 @@ def _column_derivative(
             default (``"adaptive"``) is used.
         inner_workers: Number of workers used by
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
-        **dk_kwargs: Additional keyword arguments passed to
-            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
         expected_m: Expected length of the derivative vector.
+        dk_init_kwargs: Optional keyword arguments passed to
+            :class:`derivkit.derivative_kit.DerivativeKit` during
+            initialization. This can include cache-related settings.
+        **dk_diff_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A 1D array representing the derivative with respect to parameter j.
@@ -129,21 +155,28 @@ def _column_derivative(
         FloatingPointError: If non-finite values are encountered.
     """
     theta_x = np.asarray(theta0, dtype=float).ravel().copy()
-
-    # Single-variable view: f_j(y) where theta_x[j] = y, others fixed
     f_j = get_partial_function(function, j, theta_x)
 
-    # Normalize method aliases for the new DK API
-    # (let DK handle validation; we only map common shorthands)
     method_norm = None
     if method is not None:
         m = method.lower()
         alias = {"auto": "adaptive", "fd": "finite"}
         method_norm = alias.get(m, m)
 
-    # Differentiate via new unified API (passes method through)
-    kit = DerivativeKit(f_j, theta_x[j])
-    g = kit.differentiate(method=method_norm, order=1, n_workers=inner_workers, **dk_kwargs)
+    inner_init_kwargs = {"use_input_cache": False}
+    inner_init_kwargs.update(dk_init_kwargs or {})
+
+    kit = DerivativeKit(
+        f_j,
+        theta_x[j],
+        **inner_init_kwargs,
+    )
+    g = kit.differentiate(
+        method=method_norm,
+        order=1,
+        n_workers=inner_workers,
+        **dk_diff_kwargs,
+    )
 
     g = np.atleast_1d(np.asarray(g, dtype=float)).reshape(-1)
     if g.size != expected_m:

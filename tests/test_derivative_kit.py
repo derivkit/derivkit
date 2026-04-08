@@ -140,12 +140,13 @@ def test_adaptive_dispatch(monkeypatch):
     assert calls["adaptive"]  # non-empty dict
     adaptive_call = calls["adaptive"]
     f_called = adaptive_call["function"]
-    x_called = adaptive_call["x0"]
     ctor_kwargs = adaptive_call["kwargs"]
 
-    assert f_called is f
-    assert np.isclose(x_called, x0)
+    assert callable(f_called)
+    assert f_called is not f
+    assert np.isclose(f_called(x0), f(x0))
     assert isinstance(ctor_kwargs, dict)
+    assert adaptive_call["x0"] == x0
 
     # differentiate was called for adaptive with the right kwargs
     assert invoked["adaptive"]
@@ -174,12 +175,13 @@ def test_finite_dispatch(monkeypatch):
     assert calls["finite"]
     finite_call = calls["finite"]
     f_called = finite_call["function"]
-    x_called = finite_call["x0"]
     ctor_kwargs = finite_call["kwargs"]
 
-    assert f_called is f
-    assert np.isclose(x_called, x0)
+    assert callable(f_called)
+    assert f_called is not f
+    assert np.isclose(f_called(x0), f(x0))
     assert isinstance(ctor_kwargs, dict)
+    assert finite_call["x0"] == x0
 
     # differentiate was called for finite with the right kwargs
     assert invoked["finite"]
@@ -340,6 +342,7 @@ def test_tabulated_mode_dispatches_with_finite_engine(monkeypatch):
 
     assert callable(f_called)
     assert np.isclose(x_called, 0.0)
+    assert finite_call["x0"] == 0.0
 
     # Adaptive fake should not have been touched
     assert calls["adaptive"] == {}

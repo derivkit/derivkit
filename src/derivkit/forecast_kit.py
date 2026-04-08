@@ -84,7 +84,7 @@ from derivkit.forecasting.laplace import (
     build_laplace_hessian,
     build_negative_logposterior,
 )
-from derivkit.utils.caching import wrap_theta_cache_builtin
+from derivkit.utils.caching import wrap_input_cache
 from derivkit.utils.linalg import split_xy_covariance
 from derivkit.utils.thread_safety import wrap_with_lock
 from derivkit.utils.types import FloatArray
@@ -99,18 +99,19 @@ _RESERVED_KWARGS = {"theta0"}
 
 class ForecastKit:
     """Provides access to forecasting workflows."""
+
     def __init__(
         self,
         function: Callable[[Sequence[float] | np.ndarray], np.ndarray] | None,
         theta0: Sequence[float] | np.ndarray,
-        cov: np.ndarray
-             | Callable[[np.ndarray], np.ndarray],
+        cov: np.ndarray | Callable[[np.ndarray], np.ndarray],
         *,
-        cache_theta: bool = True,
-        cache_theta_number_decimal_places: int = 14,
-        cache_theta_maxsize: int | None = 4096,
+        use_input_cache: bool = True,
+        cache_number_decimal_places: int | None = None,
+        cache_maxsize: int | None = 4096,
+        cache_copy: bool = True,
         thread_safe: bool = False,
-        thread_lock: threading.RLock | None = None
+        thread_lock: threading.RLock | None = None,
     ):
         r"""Initialises the ForecastKit with model, fiducials, and covariance.
 
@@ -124,7 +125,7 @@ class ForecastKit:
                 May be ``None`` if you only plan to use covariance-only workflows
                 (e.g. generalized Fisher with ``term="cov"``). Required for
                 :meth:`fisher`, :meth:`dali`, and :meth:`fisher_bias`.
-            theta0: Fiducial parameter values of shape ``(p,)`` where ``p`` is the
+            theta0: Fiducial parameter values of shape ``(p, )`` where ``p`` is the
                 number of parameters.
             cov: Covariance specification. Supported forms are:
 
@@ -135,11 +136,12 @@ class ForecastKit:
                   with shape ``(n_obs, n_obs)``. The covariance at ``theta0`` is evaluated
                   once and cached.
 
-            cache_theta: A flag which, if set to ``True``, turns on caching of
-                function values.
-            cache_theta_number_decimal_places:  The number of decimal places that are
-                included in the caching.
-            cache_theta_maxsize: The maximum size of the cache.
+            use_input_cache: If ``True``, wrap the input function with an
+                input-based LRU cache. Exact input values are cached by default.
+            cache_number_decimal_places: Decimal places used when constructing
+                cache keys. If ``None``, exact input values are used.
+            cache_maxsize: Maximum size of the input cache.
+            cache_copy: If ``True``, return copies of cached NumPy array outputs.
             thread_safe: If ``True``, serialize calls to ``function`` using a lock.
                 This prevents concurrent evaluation within a single Python process
                 (i.e. thread-based parallelism). It does not synchronize across
@@ -147,18 +149,19 @@ class ForecastKit:
             thread_lock: Optional lock object to use when ``thread_safe=True``.
                 If ``None``, an internal lock is created.
         """
-        if cache_theta:
-            function = wrap_theta_cache_builtin(
-                function,
-                number_decimal_places=cache_theta_number_decimal_places,
-                maxsize=cache_theta_maxsize,
-                copy=True,
+        self.function = function
+
+        if self.function is not None and use_input_cache:
+            self.function = wrap_input_cache(
+                self.function,
+                number_decimal_places=cache_number_decimal_places,
+                maxsize=cache_maxsize,
+                copy=cache_copy,
             )
 
-        if thread_safe:
-            function = wrap_with_lock(function, lock=thread_lock)
+        if self.function is not None and thread_safe:
+            self.function = wrap_with_lock(self.function, lock=thread_lock)
 
-        self.function = function
         self.theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
 
         cov0, cov_fn = resolve_covariance_input(

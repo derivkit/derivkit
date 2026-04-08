@@ -71,10 +71,11 @@ jax = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+addopts = '-m "not benchmark"'
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "benchmark: marks benchmark tests",
 ]
-
 
 [tool.ruff]
 line-length = 79
@@ -117,7 +118,16 @@ change_dir = "{tox_root}/tests"
 dependency_groups = ["test"]
 allowlist_externals = ["pytest"]
 commands = [
-  ["pytest", { replace = "posargs", extend = true }],
+  ["pytest", "-m", "not slow", { replace = "posargs", extend = true }],
+]
+
+[tool.tox.env.bench]
+description = "Run slow benchmark tests"
+dependency_groups = ["test"]
+change_dir = "{tox_root}/tests"
+allowlist_externals = ["pytest"]
+commands = [
+  ["pytest", "-m", "slow", "benchmarks", { replace = "posargs", extend = true }],
 ]
 
 
