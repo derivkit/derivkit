@@ -286,3 +286,23 @@ def test_build_jacobian_parallel_equals_serial():
     jac1 = build_jacobian(sin_func, t, n_workers=1)
     jac4 = build_jacobian(sin_func, t, n_workers=4)
     np.testing.assert_allclose(jac4, jac1, rtol=1e-8, atol=1e-10)
+
+
+def test_jacobian_accepts_cache_kwargs():
+    """Tests that jacobian accepts cache kwargs."""
+    theta0 = np.array([0.3, -0.1], dtype=float)
+
+    jac = build_jacobian(
+        f_analytic_2d,
+        theta0,
+        n_workers=1,
+        dk_init_kwargs={
+            "use_input_cache": True,
+            "cache_number_decimal_places": 12,
+            "cache_maxsize": 128,
+            "cache_copy": True,
+        },
+    )
+
+    assert jac.shape == (3, 2)
+    assert np.isfinite(jac).all()

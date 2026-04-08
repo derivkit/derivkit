@@ -62,6 +62,7 @@ from derivkit.derivatives.local_polynomial_derivative.local_polynomial_derivativ
     LocalPolynomialDerivative,
 )
 from derivkit.derivatives.tabulated_model.one_d import Tabulated1DModel
+from derivkit.utils.caching import wrap_input_cache
 
 
 class DerivativeEngine(Protocol):
@@ -93,7 +94,8 @@ class DerivativeEngine(Protocol):
 _METHOD_SPECS: list[tuple[str, Type[DerivativeEngine], list[str]]] = [
     ("adaptive", AdaptiveFitDerivative, ["adaptive-fit", "adaptive_fit", "ad", "adapt"]),
     ("finite", FiniteDifferenceDerivative, ["finite-difference", "finite_difference", "fd", "findiff", "finite_diff"]),
-    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial", "lp", "localpoly", "local_poly"]),
+    ("local_polynomial", LocalPolynomialDerivative, ["local-polynomial", "local_polynomial",
+                                                     "lp", "localpoly", "local_poly", "polyfit"]),
     ("fornberg", FornbergDerivative, ["fb", "forn", "fornberg-fd", "fornberg_fd", "fornberg_weights"]),
 ]
 
@@ -200,6 +202,10 @@ class DerivativeKit:
     in case you want to differentiate a tabulated function.
     The chosen backend is invoked when you call the ``.differentiate()`` method.
 
+    The input function can be wrapped with an input-based LRU cache for
+    numerical derivative backends. Automatic differentiation backends use
+    the raw function to preserve traceability.
+
     Example:
         >>> import numpy as np
         >>> from derivkit import DerivativeKit
@@ -207,18 +213,22 @@ class DerivativeKit:
         >>> deriv = dk.differentiate(order=1)  # uses the default "adaptive" method
 
     Attributes:
-        function: The callable to differentiate.
+        function: The callable used for derivative evaluation.
         x0: The point or points at which the derivative is evaluated.
         default_method: The backend used when no method is specified.
     """
 
     def __init__(
-            self,
-            function: Callable[[float | np.ndarray], Any] | None = None,
-            x0: float | np.ndarray | None = None,
-            *,
-            tab_x: ArrayLike | None = None,
-            tab_y: ArrayLike | None = None,
+        self,
+        function: Callable[[float | np.ndarray], Any] | None = None,
+        x0: float | np.ndarray | None = None,
+        *,
+        tab_x: ArrayLike | None = None,
+        tab_y: ArrayLike | None = None,
+        use_input_cache: bool = True,
+        cache_number_decimal_places: int | None = None,
+        cache_maxsize: int | None = 4096,
+        cache_copy: bool = True,
     ) -> None:
         """Initializes the DerivativeKit with a target function and expansion point.
 
@@ -230,22 +240,41 @@ class DerivativeKit:
                 :class:`tabulated_model.one_d.Tabulated1DModel`.
             tab_y: Optional tabulated y values for creating a
                 :class:`tabulated_model.one_d.Tabulated1DModel`.
+            use_input_cache: If ``True``, wrap the input function with an
+                input-based LRU cache. Exact input values are cached by default.
+            cache_number_decimal_places: Decimal places used when constructing
+                cache keys. If ``None``, exact input values are used.
+            cache_maxsize: Maximum size of the input cache.
+            cache_copy: If ``True``, return copies of cached NumPy array outputs.
         """
         # Enforce "either function or tabulated", not both.
         if function is not None and (tab_x is not None or tab_y is not None):
             raise ValueError("Pass either `function` or (`tab_x`, `tab_y`), not both.")
 
         if function is not None:
-            self.function = function
+            base_function = function
 
         elif tab_x is not None or tab_y is not None:
             if tab_x is None or tab_y is None:
                 raise ValueError("Both `tab_x` and `tab_y` must be provided for tabulated mode.")
-            model = Tabulated1DModel(tab_x, tab_y)
-            self.function = model
+            base_function = Tabulated1DModel(tab_x, tab_y)
 
         else:
             raise ValueError("Need either `function` or (`tab_x`, `tab_y`).")
+
+        self._function_raw = base_function
+        self.function = base_function
+        self._function_cached = (
+            wrap_input_cache(
+                base_function,
+                number_decimal_places=cache_number_decimal_places,
+                maxsize=cache_maxsize,
+                copy=cache_copy,
+            )
+            if use_input_cache
+            else base_function
+        )
+        self._use_input_cache = use_input_cache
 
         if x0 is None:
             raise ValueError("`x0` must be provided.")
@@ -253,10 +282,10 @@ class DerivativeKit:
         self.default_method = "adaptive"
 
     def differentiate(
-            self,
-            *,
-            method: str | None = None,
-            **kwargs: Any,
+        self,
+        *,
+        method: str | None = None,
+        **kwargs: Any,
     ) -> Any:
         """Compute derivatives using the chosen method.
 
@@ -286,24 +315,40 @@ class DerivativeKit:
         Raises:
             ValueError: If ``method`` is not recognized.
         """
-        chosen = method or self.default_method  # use default if None
+        chosen = method or self.default_method
         Engine = _resolve(chosen)
+
+        engine_module = getattr(Engine, "__module__", "")
+        is_autodiff = ".autodiff." in engine_module
+
+        func = self._function_raw if is_autodiff else self._function_cached
 
         x0_arr = np.asarray(self.x0)
 
-        # scalar x0
+        # scalar
         if x0_arr.ndim == 0:
-            return Engine(self.function, float(x0_arr)).differentiate(**kwargs)
+            return Engine(func, float(x0_arr)).differentiate(**kwargs)
 
-        # array of x0 values
+        # aarray of values
         results = []
         for xi in x0_arr.ravel():
-            res = Engine(self.function, float(xi)).differentiate(**kwargs)
+            res = Engine(func, float(xi)).differentiate(**kwargs)
             results.append(res)
 
         return np.stack(results, axis=0).reshape(
             x0_arr.shape + np.shape(results[0])
         )
+
+    def cache_info(self) -> Any:
+        """Returns cache info about the cache."""
+        cache_info = getattr(self._function_cached, "cache_info", None)
+        return cache_info() if cache_info is not None else None
+
+    def cache_clear(self) -> None:
+        """Clears the cache."""
+        cache_clear = getattr(self._function_cached, "cache_clear", None)
+        if cache_clear is not None:
+            cache_clear()
 
 
 def available_methods() -> dict[str, list[str]]:
