@@ -215,8 +215,8 @@ commands = [
   [
     "sphinx-apidoc",
     "-d", "2",
-    "-o", "{tox_root}/docs/api/index",
-    "--tocfile", "{tox_root}/docs/api", "--no-toc",
+    "-o", "{tox_root}/docs/api",
+    "--tocfile", "{tox_root}/docs/api/index", "--no-toc",
     "{tox_root}/src/derivkit",
     "--separate",
     "-f",
