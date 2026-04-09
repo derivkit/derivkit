@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.2.0
+
+### Added
+
+* Added thread-safety options to `ForecastKit` and `CalculusKit`.
+* Added a multiprocessing support to `parallel_execute()`, which avoids the Python GIL.
+* Added input-level caching of function evaluations.
+
+### Changed
+
+* Exposed the $X-Y$ Gaussian Fisher matrix through `ForecastKit.xy_fisher()`.
+* Improved the general documentation.
+
+
 ## v1.1.0
 
 ### Added
