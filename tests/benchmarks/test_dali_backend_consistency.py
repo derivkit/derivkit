@@ -28,11 +28,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 import numpy as np
 
 from derivkit import ForecastKit
-
-try:
-    import pyccl as ccl
-except ImportError as e:
-    raise SystemExit("pyccl is required for this script.") from e
+ccl = pytest.importorskip("pyccl")
 
 pytestmark = [pytest.mark.slow, pytest.mark.benchmark]
 
