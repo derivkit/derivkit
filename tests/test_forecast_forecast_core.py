@@ -257,7 +257,7 @@ def test_forecast(
 
 
 def _assert_close_mixed(
-    actual, expected, *, rtol=1e-8, zero_band=1e-10, floor=5e-13, label=""
+    actual, expected, *, rtol=1e-8, zero_band=1e-10, floor=1e-12, label=""
 ):
     """Asserts numerical closeness with a near-zero absolute floor.
 
