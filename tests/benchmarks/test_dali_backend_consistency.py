@@ -7,16 +7,17 @@ preserve more DALI structure, without waiting for the full slow benchmark.
 
 Run
 ---
-python tests/benchmarks/test_dali_backend_small.py
+python tests/benchmarks/test_dali_backend_consistency.py
 """
 
 from __future__ import annotations
 
 import os
-import pytest
 import warnings
 from time import perf_counter
 from typing import Any
+
+import pytest
 
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -44,6 +45,7 @@ def smail_source_bins(
     alpha: float = 0.78,
     beta: float = 2.0,
 ) -> tuple[np.ndarray, list[np.ndarray]]:
+    """Returns Smail-type tomographic bins."""
     z = np.asarray(z, dtype=float)
 
     nz = (z / z0) ** beta * np.exp(-((z / z0) ** alpha))
@@ -75,6 +77,7 @@ def shear_power_spectra(
     ell: np.ndarray,
     source_bins: list[np.ndarray],
 ) -> np.ndarray:
+    """Computes the shear power spectrum at each bin."""
     om_m, sig8, ia_amp, ia_eta, fbar = map(float, np.asarray(theta, dtype=float))
 
     cosmo = ccl.Cosmology(
@@ -118,6 +121,7 @@ def shear_power_spectra(
 
 
 def make_small_problem() -> dict[str, Any]:
+    """Config for a simple cosmic shear problem."""
     print("=" * 80)
     print("Building SMALL CCL problem")
     print("=" * 80)
@@ -150,6 +154,7 @@ def make_small_problem() -> dict[str, Any]:
 
 
 def rel_diff(a: np.ndarray, b: np.ndarray) -> float:
+    """Computes the relative difference between two arrays."""
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
     denom = max(np.linalg.norm(a), np.linalg.norm(b), 1e-30)
@@ -162,6 +167,7 @@ def run_backend(
     name: str,
     kwargs: dict[str, Any],
 ) -> dict[str, Any]:
+    """Runs the derivative backend for fisher and dali computations."""
     print("=" * 80)
     print(f"Running backend: {name}")
     print("=" * 80)
@@ -226,6 +232,7 @@ def compare_to_reference(
     results: dict[str, dict[str, Any]],
     ref_name: str,
 ) -> None:
+    """Compares the forecast results to the reference results."""
     ref = results[ref_name]
 
     print("=" * 80)
@@ -252,6 +259,7 @@ def compare_to_reference(
 
 
 def main() -> None:
+    """Runs the script."""
     cfg = make_small_problem()
 
     backends = [
@@ -263,13 +271,13 @@ def main() -> None:
             },
         ),
         (
-            "poly_alias",
+            "polyfit",
             {
                 "method": "polyfit",
             },
         ),
         (
-            "adapt_alias",
+            "adaptive",
             {
                 "method": "adaptive",
             },
