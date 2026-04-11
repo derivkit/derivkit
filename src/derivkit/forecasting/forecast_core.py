@@ -20,6 +20,7 @@ from numpy.typing import NDArray
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
+from derivkit.utils.logger import derivkit_logger
 from derivkit.utils.types import ArrayLike1D, ArrayLike2D
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
@@ -29,11 +30,11 @@ __all__ = [
 ]
 
 
-#: The supported orders of the DALI expansion.
-#:
-#: A value of 1 corresponds to the Fisher matrix.
-#: A value of 2 corresponds to the DALI doublet.
-#: A value of 3 corresponds to the DALI triplet.
+#  The supported orders of the DALI expansion.
+#
+#  A value of 1 corresponds to the Fisher matrix.
+#  A value of 2 corresponds to the DALI doublet.
+#  A value of 3 corresponds to the DALI triplet.
 SUPPORTED_FORECAST_ORDERS = (1, 2, 3)
 
 SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3)
@@ -181,6 +182,53 @@ def get_forecast_tensors(
     return forecast_tensors
 
 
+def _filter_derivative_kwargs(
+    method: str | None,
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep only kwargs supported by the selected derivative backend."""
+    if method is None:
+        return dict(kwargs)
+
+    allowed_by_method = {
+        "finite": {
+            "method",
+            "stepsize",
+            "num_points",
+            "extrapolation",
+            "return_error",
+            "diagnostics",
+            "n_workers",
+        },
+        "polyfit": {
+            "method",
+            "degree",
+            "return_error",
+            "diagnostics",
+            "n_workers",
+        },
+        "adaptive": {
+            "method",
+            "n_points",
+            "spacing",
+            "base_abs",
+            "grid",
+            "domain",
+            "ridge",
+            "return_error",
+            "diagnostics",
+            "meta",
+            "n_workers",
+        },
+    }
+
+    allowed = allowed_by_method.get(method, None)
+    if allowed is None:
+        return dict(kwargs)
+
+    return {k: v for k, v in kwargs.items() if k in allowed}
+
+
 def _get_derivatives(
     function: Callable[[ArrayLike1D], float | NDArray[np.floating]],
     theta0: ArrayLike1D,
@@ -254,12 +302,29 @@ def _get_derivatives(
 
     ckit = CalculusKit(_vectorize_model_output, theta0_arr)
 
+    if order >= 2:
+        derivkit_logger.info(
+            "[DALI BACKEND POLICY] order=%s: deliberately using finite differences "
+            "with Ridders extrapolation for higher-order derivatives because "
+            "polyfit/adaptive are too effective at smoothing and can wash out "
+            "the local higher-order curvature that DALI is meant to capture.",
+            order,
+        )
+        method = "finite"
+
+        tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
+        tuned_kwargs["extrapolation"] = "ridders"
+        tuned_kwargs.setdefault("num_points", 5)
+        tuned_kwargs.setdefault("stepsize", 1e-2)
+    else:
+        tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
+
     if order == 1:
         j_raw = np.asarray(
             ckit.jacobian(
                 method=method,
-                n_workers=n_workers,  # allow outer parallelism across params
-                **dk_kwargs,
+                n_workers=n_workers,
+                **tuned_kwargs,
             ),
             dtype=float,
         )
@@ -277,8 +342,8 @@ def _get_derivatives(
         h_raw = np.asarray(
             ckit.hessian(
                 method=method,
-                n_workers=n_workers,  # allow outer parallelism across params
-                **dk_kwargs,
+                n_workers=n_workers,
+                **tuned_kwargs,
             ),
             dtype=float,
         )
@@ -296,7 +361,7 @@ def _get_derivatives(
             ckit.hyper_hessian(
                 method=method,
                 n_workers=n_workers,
-                **dk_kwargs,
+                **tuned_kwargs,
             ),
             dtype=float,
         )
