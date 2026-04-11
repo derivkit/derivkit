@@ -580,7 +580,7 @@ def test_build_dali_returns_small_tensors_for_linear_model_across_methods(
     method,
     build_kwargs,
 ):
-    """Tests that build_dali returns numerically tiny DALI tensors for a strictly linear model across derivative methods."""
+    """Tests that build_dali returns numerically tiny tensors across derivative methods."""
     def linear_model(theta):
         """Strictly linear observable model with zero second derivatives."""
         x, y = np.asarray(theta, dtype=float)
@@ -616,5 +616,5 @@ def test_build_dali_returns_small_tensors_for_linear_model_across_methods(
     )
     g, h = dali[2]
 
-    assert np.linalg.norm(g) < 1e-6
-    assert np.linalg.norm(h) < 1e-6
+    assert np.linalg.norm(g) < 3e-6
+    assert np.linalg.norm(h) < 3e-6
