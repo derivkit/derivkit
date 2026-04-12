@@ -219,7 +219,7 @@ def test_build_dali_allows_method_none(dali_mocks):
     assert call["method"] is None
 
 
-@pytest.mark.parametrize("method", ["adaptive", "finite", "local_polyfit"])
+@pytest.mark.parametrize("method", ["adaptive", "finite", "polyfit"])
 @pytest.mark.parametrize("extrapolation", ["richardson", "ridders", "gauss_richardson"])
 @pytest.mark.parametrize("stencil", [3, 5, 7, 9])
 def test_build_dali_forwards_derivative_kwargs(
@@ -311,3 +311,310 @@ def test_build_dali_forwards_arbitrary_extra_kwargs(dali_mocks):
     dk_kwargs = call["dk_kwargs"]
     assert dk_kwargs["foo"] == "bar"
     assert dk_kwargs["tol"] == 1e-4
+
+
+def analytic_nonlinear_model(theta):
+    """Smooth nonlinear 2-parameter model with nonzero mixed and second derivatives."""
+    x, y = np.asarray(theta, dtype=float)
+
+    return np.array(
+        [
+            np.exp(0.3 * x + 0.2 * y) + 0.1 * x * y,
+            np.sin(0.5 * x - 0.4 * y) + 0.05 * x**2,
+            x**2 + 0.7 * x * y + 0.2 * y**3,
+            np.cos(0.2 * x * y) + 0.3 * y,
+        ],
+        dtype=float,
+    )
+
+
+def analytic_nonlinear_model_d1(theta):
+    """Analytic first derivatives of the smooth nonlinear test model."""
+    x, y = np.asarray(theta, dtype=float)
+
+    e = np.exp(0.3 * x + 0.2 * y)
+    sxy = np.sin(0.2 * x * y)
+
+    return np.array(
+        [
+            [
+                0.3 * e + 0.1 * y,
+                0.5 * np.cos(0.5 * x - 0.4 * y) + 0.1 * x,
+                2.0 * x + 0.7 * y,
+                -0.2 * y * sxy,
+            ],
+            [
+                0.2 * e + 0.1 * x,
+                -0.4 * np.cos(0.5 * x - 0.4 * y),
+                0.7 * x + 0.6 * y**2,
+                -0.2 * x * sxy + 0.3,
+            ],
+        ],
+        dtype=float,
+    )
+
+
+def analytic_nonlinear_model_d2(theta):
+    """Analytic second derivatives of the smooth nonlinear test model."""
+    x, y = np.asarray(theta, dtype=float)
+
+    e = np.exp(0.3 * x + 0.2 * y)
+    arg = 0.5 * x - 0.4 * y
+    s = np.sin(arg)
+    sxy = np.sin(0.2 * x * y)
+    cxy = np.cos(0.2 * x * y)
+
+    d2 = np.zeros((2, 2, 4), dtype=float)
+
+    d2[0, 0, 0] = 0.09 * e
+    d2[0, 1, 0] = 0.06 * e + 0.1
+    d2[1, 0, 0] = d2[0, 1, 0]
+    d2[1, 1, 0] = 0.04 * e
+
+    d2[0, 0, 1] = -0.25 * s + 0.1
+    d2[0, 1, 1] = 0.2 * s
+    d2[1, 0, 1] = d2[0, 1, 1]
+    d2[1, 1, 1] = -0.16 * s
+
+    d2[0, 0, 2] = 2.0
+    d2[0, 1, 2] = 0.7
+    d2[1, 0, 2] = 0.7
+    d2[1, 1, 2] = 1.2 * y
+
+    d2[0, 0, 3] = -(0.2 * y) ** 2 * cxy
+    d2[1, 1, 3] = -(0.2 * x) ** 2 * cxy
+    d2[0, 1, 3] = -0.2 * sxy - 0.04 * x * y * cxy
+    d2[1, 0, 3] = d2[0, 1, 3]
+
+    return d2
+
+
+def analytic_reference_dali(theta0, cov):
+    """Builds exact DALI tensors from analytic first and second derivatives."""
+    d1 = analytic_nonlinear_model_d1(theta0)
+    d2 = analytic_nonlinear_model_d2(theta0)
+    invcov = np.linalg.inv(np.asarray(cov, dtype=float))
+
+    g = np.einsum("abi,ij,gj->abg", d2, invcov, d1)
+    h = np.einsum("abi,ij,gdj->abgd", d2, invcov, d2)
+
+    return g, h
+
+
+@pytest.mark.parametrize(
+    ("method", "build_kwargs", "rtol", "atol"),
+    [
+        ("finite", {"extrapolation": None, "num_points": 5, "stepsize": 1e-4}, 2e-3, 2e-5),
+        ("finite", {"extrapolation": "ridders", "num_points": 5, "stepsize": 1e-3}, 5e-4, 5e-6),
+        ("finite", {"extrapolation": "richardson", "num_points": 5, "stepsize": 1e-3}, 1e-3, 1e-5),
+        ("polyfit", {"degree": 4}, 1e-2, 5e-5),
+        ("adaptive", {"n_points": 10, "spacing": "auto"}, 1e-2, 5e-5),
+    ],
+)
+def test_build_dali_matches_analytic_reference_across_methods(
+    method,
+    build_kwargs,
+    rtol,
+    atol,
+):
+    """Tests that build_dali agrees with analytic DALI tensors for a nonlinear model across derivative methods."""
+    theta0 = np.array([0.31, -0.27], dtype=float)
+    cov = np.array(
+        [
+            [1.4, 0.2, 0.1, 0.0],
+            [0.2, 1.1, 0.15, 0.05],
+            [0.1, 0.15, 0.9, 0.12],
+            [0.0, 0.05, 0.12, 1.2],
+        ],
+        dtype=float,
+    )
+
+    g_expected, h_expected = analytic_reference_dali(theta0, cov)
+
+    dali = build_dali(
+        analytic_nonlinear_model,
+        theta0,
+        cov,
+        method=method,
+        forecast_order=2,
+        n_workers=1,
+        **build_kwargs,
+    )
+    g, h = dali[2]
+
+    assert g.shape == g_expected.shape
+    assert h.shape == h_expected.shape
+
+    np.testing.assert_allclose(g, g_expected, rtol=rtol, atol=atol)
+    np.testing.assert_allclose(h, h_expected, rtol=rtol, atol=atol)
+
+
+def harder_nonlinear_model(theta):
+    """More curved nonlinear model used to compare derivative methods against each other."""
+    x, y = np.asarray(theta, dtype=float)
+
+    return np.array(
+        [
+            np.exp((x - 0.7 * y) ** 2 + 0.15 * y),
+            np.exp(0.3 * x) * (1.0 + 0.4 * y + 0.8 * y**2),
+            np.sin(0.8 * x + 0.3 * y) + 0.2 * x**3 - 0.1 * x * y**2,
+            np.cos(0.4 * x * y) + 0.05 * x**2 * y,
+        ],
+        dtype=float,
+    )
+
+
+@pytest.mark.parametrize(
+    "method,build_kwargs",
+    [
+        ("finite", {"extrapolation": None, "num_points": 5, "stepsize": 1e-4}),
+        ("finite", {"extrapolation": "ridders", "num_points": 5, "stepsize": 1e-3}),
+        ("finite", {"extrapolation": "richardson", "num_points": 5, "stepsize": 1e-3}),
+        ("polyfit", {"degree": 4}),
+        ("adaptive", {"n_points": 10, "spacing": "auto"}),
+    ],
+)
+def test_build_dali_methods_remain_in_the_same_ballpark_on_harder_model(
+    method,
+    build_kwargs,
+):
+    """Tests that different derivative methods return DALI tensors in the same numerical ballpark on a harder nonlinear model."""
+    theta0 = np.array([0.18, 0.06], dtype=float)
+    cov = np.array(
+        [
+            [1.0, 0.3, 0.2, 0.0],
+            [0.3, 1.2, 0.25, 0.1],
+            [0.2, 0.25, 0.95, 0.2],
+            [0.0, 0.1, 0.2, 1.1],
+        ],
+        dtype=float,
+    )
+
+    dali_ref = build_dali(
+        harder_nonlinear_model,
+        theta0,
+        cov,
+        method="finite",
+        forecast_order=2,
+        n_workers=1,
+        extrapolation="ridders",
+        num_points=5,
+        stepsize=1e-3,
+    )
+    g_ref, h_ref = dali_ref[2]
+
+    dali_test = build_dali(
+        harder_nonlinear_model,
+        theta0,
+        cov,
+        method=method,
+        forecast_order=2,
+        n_workers=1,
+        **build_kwargs,
+    )
+    g_test, h_test = dali_test[2]
+
+    g_ref_norm = np.linalg.norm(g_ref)
+    h_ref_norm = np.linalg.norm(h_ref)
+
+    g_diff = np.linalg.norm(g_test - g_ref)
+    h_diff = np.linalg.norm(h_test - h_ref)
+
+    assert g_diff <= 0.25 * max(g_ref_norm, 1e-12)
+    assert h_diff <= 0.35 * max(h_ref_norm, 1e-12)
+
+
+@pytest.mark.parametrize(
+    "method,build_kwargs",
+    [
+        ("finite", {"extrapolation": None, "num_points": 5, "stepsize": 1e-4}),
+        ("finite", {"extrapolation": "ridders", "num_points": 5, "stepsize": 1e-3}),
+        ("finite", {"extrapolation": "richardson", "num_points": 5, "stepsize": 1e-3}),
+        ("polyfit", {"degree": 4}),
+        ("adaptive", {"n_points": 10, "spacing": "auto"}),
+    ],
+)
+def test_build_dali_preserves_expected_tensor_symmetries_for_real_methods(
+    method,
+    build_kwargs,
+):
+    """Tests that real derivative backends preserve the expected DALI tensor symmetries."""
+    theta0 = np.array([0.31, -0.27], dtype=float)
+    cov = np.array(
+        [
+            [1.4, 0.2, 0.1, 0.0],
+            [0.2, 1.1, 0.15, 0.05],
+            [0.1, 0.15, 0.9, 0.12],
+            [0.0, 0.05, 0.12, 1.2],
+        ],
+        dtype=float,
+    )
+
+    dali = build_dali(
+        analytic_nonlinear_model,
+        theta0,
+        cov,
+        method=method,
+        forecast_order=2,
+        n_workers=1,
+        **build_kwargs,
+    )
+    g, h = dali[2]
+
+    np.testing.assert_allclose(g, np.swapaxes(g, 0, 1), rtol=1e-10, atol=1e-10)
+    np.testing.assert_allclose(h, np.swapaxes(h, 0, 1), rtol=1e-10, atol=1e-10)
+    np.testing.assert_allclose(h, np.swapaxes(h, 2, 3), rtol=1e-10, atol=1e-10)
+
+
+@pytest.mark.parametrize(
+    "method,build_kwargs",
+    [
+        ("finite", {"extrapolation": None, "num_points": 5, "stepsize": 1e-4}),
+        ("finite", {"extrapolation": "ridders", "num_points": 5, "stepsize": 1e-3}),
+        ("finite", {"extrapolation": "richardson", "num_points": 5, "stepsize": 1e-3}),
+        ("polyfit", {"degree": 4}),
+        ("adaptive", {"n_points": 10, "spacing": "auto"}),
+    ],
+)
+def test_build_dali_returns_small_tensors_for_linear_model_across_methods(
+    method,
+    build_kwargs,
+):
+    """Tests that build_dali returns numerically tiny tensors across derivative methods."""
+    def linear_model(theta):
+        """Strictly linear observable model with zero second derivatives."""
+        x, y = np.asarray(theta, dtype=float)
+        return np.array(
+            [
+                2.0 * x - 1.5 * y + 0.2,
+                -0.3 * x + 4.1 * y,
+                1.2 * x + 0.7 * y - 0.8,
+                -2.5 * x + 0.5 * y + 3.0,
+            ],
+            dtype=float,
+        )
+
+    theta0 = np.array([0.2, -0.1], dtype=float)
+    cov = np.array(
+        [
+            [1.2, 0.1, 0.0, 0.0],
+            [0.1, 1.1, 0.05, 0.0],
+            [0.0, 0.05, 0.9, 0.1],
+            [0.0, 0.0, 0.1, 1.3],
+        ],
+        dtype=float,
+    )
+
+    dali = build_dali(
+        linear_model,
+        theta0,
+        cov,
+        method=method,
+        forecast_order=2,
+        n_workers=1,
+        **build_kwargs,
+    )
+    g, h = dali[2]
+
+    assert np.linalg.norm(g) < 3e-6
+    assert np.linalg.norm(h) < 3e-6
