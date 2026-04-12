@@ -1,4 +1,4 @@
-"""Small fast backend check for Fisher + DALI(2) on a reduced CCL problem.
+"""Small fast backend check for Fisher + DALI on a reduced CCL problem.
 
 Purpose
 -------
