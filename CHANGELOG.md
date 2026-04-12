@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.1
+
+### Fixed
+
+* Forced a fallback for derivative backends which washed out higher curvature.
+
+
 ## v1.2.0
 
 ### Added
