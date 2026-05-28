@@ -167,7 +167,6 @@ html_permalinks_icon = "<span>#</span>"
 if html_theme == "furo":
     html_theme_options = {
         "source_repository": "https://github.com/derivkit-org/derivkit/",
-        "source_branch": "main",
         "source_directory": "docs/",
         "light_logo": "logos/logo-black.png",
         "dark_logo": "logos/logo-blue.png",
