@@ -174,7 +174,7 @@ if html_theme == "furo":
         "footer_icons": [
             {
                 "name": "GitHub",
-                "url": "https://github.com/derivkit-org/derivkit",
+                "url": "https://github.com/derivkit/derivkit",
                 "html": """
                 <svg stroke="var(--color-foreground-primary)"
                      fill="var(--color-foreground-primary)"
