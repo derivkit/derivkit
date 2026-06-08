@@ -6,26 +6,14 @@
 |dklogo| Installation
 =====================
 
-DerivKit is available through the following channels:
+DerivKit can be installed from `PyPI <https://pypi.org>`_ through *e.g.* ``pip``::
 
-.. dropdown::  `PyPI <https://pypi.org/project/derivkit/>`_
+   pip install derivkit
 
-    To install DerivKit with *e.g.* ``pip``, use::
+DerivKit can additionally be installed from source.
+To create an editable installation, run::
 
-        pip install derivkit
-
-.. dropdown::  `Conda-forge <https://anaconda.org/channels/conda-forge/packages/derivkit/overview>`_
-
-    .. code-block::
-
-        conda install derivkit
-
-.. dropdown::  `DerivKit source <https://github.com/derivkit/derivkit>`_
-
-    .. code-block::
-
-        pip install -e derivkit@git+https://github.com/derivkit/derivkit
-
+   pip install -e derivkit@git+https://github.com/derivkit/derivkit
 
 
 Optional dependencies
