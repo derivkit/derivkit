@@ -18,7 +18,7 @@ DerivKit is available through the following channels:
 
     .. code-block::
 
-        conda install derivkit
+        conda install --channel conda-forge derivkit
 
 .. dropdown::  `DerivKit source <https://github.com/derivkit/derivkit>`_
 
