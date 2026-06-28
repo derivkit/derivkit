@@ -54,9 +54,6 @@ docs = [
   "sphinx-multiversion",
   "furo",
   "sphinx-copybutton",
-  "six",
-  "typing_extensions",
-  "charset_normalizer",
   {include-group = "dev"},
 ]
 
