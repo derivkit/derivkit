@@ -112,7 +112,6 @@ The test suite can be run locally by simply running tox on the command line::
   tox -m test
 
 Note that this will attempt to run the test suite for all supported Python version.
-It will automatically skip versions which aren't locally available.
 
 If the test suite must be run for a specific version of Python that specific environment must be called.
 For example, to test against Python 3.13::
