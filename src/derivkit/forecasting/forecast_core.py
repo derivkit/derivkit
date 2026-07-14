@@ -12,6 +12,7 @@ forecasting interfaces in DerivKit. For details on the DALI expansion,
 see e.g. https://doi.org/10.1103/PhysRevD.107.103506.
 """
 
+from itertools import permutations
 from typing import Any, Callable
 
 import numpy as np
@@ -47,6 +48,7 @@ def get_forecast_tensors(
     *,
     forecast_order: int = 1,
     method: str | None = None,
+    symmetrize_dali: bool = True,
     n_workers: int = 1,
     **dk_kwargs: Any,
 ) -> dict[int, tuple[NDArray[np.float64], ...]]:
@@ -69,6 +71,7 @@ def get_forecast_tensors(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
+        symmetrize_dali: Flag to force symmetrization across all DALI tensor axes.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
@@ -161,14 +164,19 @@ def get_forecast_tensors(
 
         tensors_at_order: list[NDArray[np.float64]] = []
         for order2 in contractions[order1]:
-            tensors_at_order.append(
-                np.einsum(
+            dali_tensor = np.einsum(
                     contractions[order1][order2],
                     derivatives[order1],
                     invcov,
                     derivatives[order2],
-                ).astype(np.float64, copy=False)
-            )
+            ).astype(np.float64, copy=False)
+            if symmetrize_dali:
+                axis_permutations = list(permutations(range(dali_tensor.ndim)))
+                n_permutations = len(axis_permutations)
+                dali_tensor = sum(dali_tensor.transpose(permutation) \
+                            for permutation in axis_permutations
+                            ) / n_permutations
+            tensors_at_order.append(dali_tensor)
 
         forecast_tensors[order1] = tuple(tensors_at_order)
 
