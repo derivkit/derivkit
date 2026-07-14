@@ -56,7 +56,8 @@ def test_forecast_order():
 
     with pytest.raises(ValueError):
         get_forecast_tensors(
-            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30)
+            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30),
+            symmetrize_dali=False
         )
 
 
@@ -67,8 +68,8 @@ def test_pseudoinverse_path_no_nan(caplog):
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], dtype=float)
 
-    out_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
-    out_doublet = get_forecast_tensors(func, theta0, cov, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1, symmetrize_dali=False)
+    out_doublet = get_forecast_tensors(func, theta0, cov, forecast_order=2, symmetrize_dali=False)
 
     fisher_matrix = get_fisher_matrix(out_fisher)
     dali_g, dali_h = get_dali_doublet(out_doublet)
@@ -224,8 +225,8 @@ def test_forecast(
     fisher_rtol = 3e-3
     fisher_atol = 1e-12
 
-    out_fisher = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
-    out_doublet = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, covmat, forecast_order=1, symmetrize_dali=False)
+    out_doublet = get_forecast_tensors(func, theta0, covmat, forecast_order=2, symmetrize_dali=False)
 
     fisher = get_fisher_matrix(out_fisher)
     d1, d2 = get_dali_doublet(out_doublet)
@@ -310,10 +311,10 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
 
     # Now the shape check happens immediately, for any forecast_order
     with pytest.raises(ValueError, match=r"Expected 2 observables"):
-        get_forecast_tensors(model, theta0, cov, forecast_order=1)
+        get_forecast_tensors(model, theta0, cov, forecast_order=1, symmetrize_dali=False)
 
     with pytest.raises(ValueError, match=r"Expected 2 observables"):
-        get_forecast_tensors(model, theta0, cov, forecast_order=2)
+        get_forecast_tensors(model, theta0, cov, forecast_order=2, symmetrize_dali=False)
 
 
 def model_quadratic(theta: np.ndarray) -> np.ndarray:
@@ -364,6 +365,7 @@ def test_scalar_dali_triplet(model, theta, expected):
         theta,
         np.array([1]),
         forecast_order=3,
+        symmetrize_dali=False,
     )
 
     # forecast is a dict {1: (F,), 2: (D1, D2), 3: (T1, T2, T3)}
@@ -420,7 +422,7 @@ def test_vector_dali_triplet():
 
     cov = np.eye(2)
 
-    forecast = get_forecast_tensors(model, theta, cov, forecast_order=3)
+    forecast = get_forecast_tensors(model, theta, cov, forecast_order=3, symmetrize_dali=False)
     triplet = forecast[3]  # (T1, T2, T3)
 
     # The DALI triplet tensors are fully symmetric in the first three indices.
@@ -486,6 +488,7 @@ def test_get_forecast_tensors_output_type():
         [1.2],
         [1],
         forecast_order=max_order,
+        symmetrize_dali=False,
     )
 
     assert isinstance(forecast, dict)
@@ -507,7 +510,7 @@ def test_forecast_dict_keys_and_multiplet_lengths():
         t0, t1 = np.asarray(th, float)
         return np.array([t0 + t1, t0 - 2 * t1], float)
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
 
     assert set(out.keys()) == {1, 2, 3}
     assert len(out[1]) == 1  # (F,)
@@ -531,7 +534,7 @@ def test_tensor_shapes_all_orders(p, nobs):
             y[1] = float(np.sum(th) + th[0] ** 3)
         return y
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
 
     F = out[1][0]
     assert F.shape == (p, p)
@@ -563,7 +566,7 @@ def test_expected_symmetries():
         t0, t1 = np.asarray(th, float)
         return np.array([t0**2 + t1, t0 * t1], float)
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
     F = out[1][0]
     np.testing.assert_allclose(F, F.T)
 

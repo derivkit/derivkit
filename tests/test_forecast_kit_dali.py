@@ -431,12 +431,15 @@ def test_build_dali_matches_analytic_reference_across_methods(
 
     g_expected, h_expected = analytic_reference_dali(theta0, cov)
 
+    # The symmetrization is turned off here, as this is tested in
+    # tests.test_forecase_forecast_core.py:test_dali_symmetries()
     dali = build_dali(
         analytic_nonlinear_model,
         theta0,
         cov,
         method=method,
         forecast_order=2,
+        symmetrize_dali=False,
         n_workers=1,
         **build_kwargs,
     )
