@@ -559,7 +559,13 @@ def _assert_symmetric_under_permutation(x, axes, rtol=0, atol=0):
     np.testing.assert_allclose(x, np.transpose(x, perm), rtol=rtol, atol=atol)
 
 def test_expected_symmetries():
-    """Tests that the forecast tensors are symmetric under permutations."""
+    """Tests that the forecast tensors are symmetric under permutations.
+
+    The difference with test_dali_symmetries() is that this function tests
+    the symmetries that follow from the form of the DALI tensors, without
+    explicit symmetrization. This doubles as a test that the derivatives are
+    contracted correctly.
+    """
     theta0 = np.array([0.3, -0.2])
     cov = np.eye(2)
 
