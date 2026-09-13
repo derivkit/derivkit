@@ -607,7 +607,7 @@ def test_dali_symmetries():
     the tensors are invariant under any permutation of the axes. No derivatives are
     calculated.
     """
-    # The "derivative tensors", mimicing a 1D model containing 2 variables.
+    # The "derivative tensors", mimicking a 1D model containing 2 variables.
     a = np.array([-1, 3.2])
     b = np.array([[4, 19], [-8, 5]])
     c = np.array([[[0, 1], [3, -3.4]], [[-0.2, -4], [3, -1]]])
