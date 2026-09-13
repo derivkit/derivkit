@@ -199,9 +199,9 @@ def test_default_method_is_adaptive():
     f = partial(quad, a=1.0, b=0.0, c=0.0)
     dk = DerivativeKit(f, 0.0)
 
-    # method=None should behave exactly like method="adaptive"
+    # method=None should behave exactly like method="local_polynomial"
     y_none = dk.differentiate(order=1, method=None)
-    y_adpt = dk.differentiate(order=1, method="adaptive")
+    y_adpt = dk.differentiate(order=1, method="local_polynomial")
 
     # robust to scalars/arrays
     if hasattr(y_none, "__array__") or hasattr(y_adpt, "__array__"):
