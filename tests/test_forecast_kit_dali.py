@@ -38,6 +38,7 @@ def dali_mocks(monkeypatch):
             *,
             forecast_order,
             method,
+            symmetrize_dali,
             n_workers,
             **dk_kwargs,
         ):
