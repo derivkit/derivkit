@@ -71,7 +71,8 @@ def get_forecast_tensors(
         method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
             If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
             default (``"adaptive"``) is used.
-        symmetrize_dali: Flag to force symmetrization across all DALI tensor axes.
+        symmetrize_dali: If set to ``True``, fully symmetrize each DALI tensor over its
+            axes. If ``False``, return the raw derivative contractions.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
