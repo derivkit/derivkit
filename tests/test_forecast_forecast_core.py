@@ -1,5 +1,7 @@
 """Tests for forecast_core methods."""
 
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
@@ -56,7 +58,8 @@ def test_forecast_order():
 
     with pytest.raises(ValueError):
         get_forecast_tensors(
-            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30)
+            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30),
+            symmetrize_dali=False
         )
 
 
@@ -67,8 +70,8 @@ def test_pseudoinverse_path_no_nan(caplog):
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], dtype=float)
 
-    out_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1)
-    out_doublet = get_forecast_tensors(func, theta0, cov, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1, symmetrize_dali=False)
+    out_doublet = get_forecast_tensors(func, theta0, cov, forecast_order=2, symmetrize_dali=False)
 
     fisher_matrix = get_fisher_matrix(out_fisher)
     dali_g, dali_h = get_dali_doublet(out_doublet)
@@ -224,8 +227,8 @@ def test_forecast(
     fisher_rtol = 3e-3
     fisher_atol = 1e-12
 
-    out_fisher = get_forecast_tensors(func, theta0, covmat, forecast_order=1)
-    out_doublet = get_forecast_tensors(func, theta0, covmat, forecast_order=2)
+    out_fisher = get_forecast_tensors(func, theta0, covmat, forecast_order=1, symmetrize_dali=False)
+    out_doublet = get_forecast_tensors(func, theta0, covmat, forecast_order=2, symmetrize_dali=False)
 
     fisher = get_fisher_matrix(out_fisher)
     d1, d2 = get_dali_doublet(out_doublet)
@@ -310,10 +313,10 @@ def test_raises_on_mismatched_obs_cov_dims_runtime():
 
     # Now the shape check happens immediately, for any forecast_order
     with pytest.raises(ValueError, match=r"Expected 2 observables"):
-        get_forecast_tensors(model, theta0, cov, forecast_order=1)
+        get_forecast_tensors(model, theta0, cov, forecast_order=1, symmetrize_dali=False)
 
     with pytest.raises(ValueError, match=r"Expected 2 observables"):
-        get_forecast_tensors(model, theta0, cov, forecast_order=2)
+        get_forecast_tensors(model, theta0, cov, forecast_order=2, symmetrize_dali=False)
 
 
 def model_quadratic(theta: np.ndarray) -> np.ndarray:
@@ -364,6 +367,7 @@ def test_scalar_dali_triplet(model, theta, expected):
         theta,
         np.array([1]),
         forecast_order=3,
+        symmetrize_dali=False,
     )
 
     # forecast is a dict {1: (F,), 2: (D1, D2), 3: (T1, T2, T3)}
@@ -420,7 +424,7 @@ def test_vector_dali_triplet():
 
     cov = np.eye(2)
 
-    forecast = get_forecast_tensors(model, theta, cov, forecast_order=3)
+    forecast = get_forecast_tensors(model, theta, cov, forecast_order=3, symmetrize_dali=False)
     triplet = forecast[3]  # (T1, T2, T3)
 
     # The DALI triplet tensors are fully symmetric in the first three indices.
@@ -486,6 +490,7 @@ def test_get_forecast_tensors_output_type():
         [1.2],
         [1],
         forecast_order=max_order,
+        symmetrize_dali=False,
     )
 
     assert isinstance(forecast, dict)
@@ -507,7 +512,7 @@ def test_forecast_dict_keys_and_multiplet_lengths():
         t0, t1 = np.asarray(th, float)
         return np.array([t0 + t1, t0 - 2 * t1], float)
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
 
     assert set(out.keys()) == {1, 2, 3}
     assert len(out[1]) == 1  # (F,)
@@ -531,7 +536,7 @@ def test_tensor_shapes_all_orders(p, nobs):
             y[1] = float(np.sum(th) + th[0] ** 3)
         return y
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
 
     F = out[1][0]
     assert F.shape == (p, p)
@@ -554,7 +559,13 @@ def _assert_symmetric_under_permutation(x, axes, rtol=0, atol=0):
     np.testing.assert_allclose(x, np.transpose(x, perm), rtol=rtol, atol=atol)
 
 def test_expected_symmetries():
-    """Tests that the forecast tensors are symmetric under permutations."""
+    """Tests that the forecast tensors are symmetric under permutations.
+
+    The difference with test_dali_symmetries() is that this function tests
+    the symmetries that follow from the form of the DALI tensors, without
+    explicit symmetrization. This doubles as a test that the derivatives are
+    contracted correctly.
+    """
     theta0 = np.array([0.3, -0.2])
     cov = np.eye(2)
 
@@ -563,7 +574,7 @@ def test_expected_symmetries():
         t0, t1 = np.asarray(th, float)
         return np.array([t0**2 + t1, t0 * t1], float)
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
     F = out[1][0]
     np.testing.assert_allclose(F, F.T)
 
@@ -587,6 +598,163 @@ def test_expected_symmetries():
     _assert_symmetric_under_permutation(T3, (1, 2))
     _assert_symmetric_under_permutation(T3, (3, 4))
     _assert_symmetric_under_permutation(T3, (4, 5))
+
+
+def test_dali_symmetries():
+    """Tests that the DALI tensors are invariant under any permutation of the axes.
+
+    The difference with test_expected_symmetries() is that this test checks that
+    the tensors are invariant under any permutation of the axes. No derivatives are
+    calculated.
+    """
+    # Mock derivative tensors for a model with one observable and two parameters.
+    a = np.array([-1, 3.2])
+    b = np.array([[4, 19], [-8, 5]])
+    c = np.array([[[0, 1], [3, -3.4]], [[-0.2, -4], [3, -1]]])
+
+    # Independent components of the DALI tensors computed from the given derivatives.
+    # All other components are related to these values through permutation of the axes.
+    # Note: for future extensions it may be useful to generate this programmatically.
+    #       The reason that this is done by hand now is to avoid any accidental
+    #       dependence on the implementation of get_forecast_tensors().
+    reference_fisher = np.array([[a[0]**2, a[0]*a[1]], [a[0]*a[1], a[1]**2]])
+
+    reference_doublet1 = np.zeros(3*[2])
+    reference_doublet1[0, 0, 0] = a[0] * b[0, 0]
+    reference_doublet1[0, 0, 1] = 1/3 * (a[1]*b[0, 0] + a[0]*b[0, 1] + a[0]*b[1, 0])
+    reference_doublet1[0, 1, 1] = 1/3 * (a[1]*b[0, 1] + a[1]*b[1, 0] + a[0]*b[1, 1])
+    reference_doublet1[1, 1, 1] = a[1] * b[1, 1]
+
+    reference_doublet2 = np.zeros(4*[2])
+    reference_doublet2[0, 0, 0, 0] = b[0, 0]**2
+    reference_doublet2[0, 0, 0, 1] = 1/2 * b[0, 0] * (b[0, 1] + b[1, 0])
+    reference_doublet2[0, 0, 1, 1] = 1/6 * (
+                                        b[0, 1]**2
+                                        + 2*b[0, 0] * b[1, 1]
+                                        + 2*b[0, 1] * b[1, 0]
+                                        + b[1, 0]**2
+                                    )
+    reference_doublet2[0, 1, 1, 1] = 1/2 * b[1, 1] * (b[0,1] + b[1,0])
+    reference_doublet2[1, 1, 1, 1] = b[1, 1]**2
+
+    reference_triplet1 = np.zeros(4*[2])
+    reference_triplet1[0, 0, 0, 0] = c[0, 0 ,0] * a[0]
+    reference_triplet1[0, 0, 0, 1] = 1/4 * (
+                                        c[0, 0 ,0] * a[1]
+                                        + (c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]) * a[0]
+                                    )
+    reference_triplet1[0, 0, 1, 1] = 1/6 * (
+                                        (c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]) * a[1]
+                                        + (c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]) * a[0]
+                                    )
+    reference_triplet1[0, 1, 1, 1] = 1/4 * (
+                                        (c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]) * a[1]
+                                        + c[1, 1, 1] * a[0]
+                                    )
+    reference_triplet1[1, 1, 1, 1] = c[1, 1, 1] * a[1]
+
+    reference_triplet2 = np.zeros(5*[2])
+    reference_triplet2[0, 0, 0, 0, 0] = c[0, 0, 0] * b[0, 0]
+    reference_triplet2[0, 0, 0, 0, 1] = 1/5 * (
+                                        c[0, 0, 0] * (b[0, 1] + b[1, 0])
+                                        + (c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]) * b[0, 0]
+                                    )
+    reference_triplet2[0, 0, 0, 1, 1] = 1/10 * (
+                                        c[0, 0, 0] * b[1, 1]
+                                        + (
+                                            c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]
+                                        ) * (
+                                            b[0, 1] + b[1, 0]
+                                        )
+                                        + (c[1, 1, 0] + c[1, 0, 1] + c[0, 1, 1]) * b[0, 0]
+                                    )
+    reference_triplet2[0, 0, 1, 1, 1] = 1/10 * (
+                                        (c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]) * b[1, 1]
+                                        + (
+                                            c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]
+                                        ) * (
+                                            b[0, 1] + b[1, 0]
+                                        )
+                                        + c[1, 1, 1] * b[0, 0]
+                                    )
+    reference_triplet2[0, 1, 1, 1, 1] = 1/5 * (
+                                        (c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]) * b[1, 1]
+                                        + c[1, 1, 1] * (b[1, 0] + b[0, 1])
+                                    )
+    reference_triplet2[1, 1, 1, 1, 1] = c[1, 1, 1] * b[1, 1]
+
+    reference_triplet3 = np.zeros(6*[2])
+    reference_triplet3[0, 0, 0, 0, 0, 0] = c[0, 0, 0]**2
+    reference_triplet3[0, 0, 0, 0, 0, 1] = 1/3 * c[0, 0, 0] * (
+                                            c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]
+                                        )
+    reference_triplet3[0, 0, 0, 0, 1, 1] = 1/15 * (
+                                            2 * c[0, 0, 0] * (
+                                                c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]
+                                            )
+                                            + (
+                                                c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]
+                                            )**2
+                                        )
+    reference_triplet3[0, 0, 0, 1, 1, 1] = 1/10 * (
+                                            c[0, 0, 0] * c[1, 1, 1]
+                                            + (c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0])
+                                                * (c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0])
+                                        )
+    reference_triplet3[0, 0, 1, 1, 1, 1] = 1/15 * (
+                                            2 * c[1, 1, 1] * (
+                                                c[0, 0, 1] + c[0, 1, 0] + c[1, 0, 0]
+                                            )
+                                            + (
+                                                c[1, 1, 0] + c[1, 0, 1] + c[0, 1, 1]
+                                            )**2
+                                        )
+    reference_triplet3[0, 1, 1, 1, 1, 1] = 1/3 * c[1, 1, 1] * (
+                                            c[0, 1, 1] + c[1, 0, 1] + c[1, 1, 0]
+                                        )
+    reference_triplet3[1, 1, 1, 1, 1, 1] = c[1, 1, 1]**2
+
+    reference = {
+        1: (reference_fisher,),
+        2: (reference_doublet1, reference_doublet2),
+        3: (reference_triplet1, reference_triplet2, reference_triplet3),
+    }
+
+    def dummy(*args, **kwargs):
+        """Mock function which will return dummy derivative tensors."""
+        forecast_order = kwargs.get("order")
+        # The extra axis is needed for the contraction with the covariance matrix
+        if forecast_order == 1:
+            return a[np.newaxis, ...]
+        elif forecast_order == 2:
+            return b[np.newaxis, ...]
+        elif forecast_order == 3:
+            return c[np.newaxis, ...]
+        else:
+            raise ValueError("Untested values added to SUPPORTED_FORECAST_ORDERS")
+
+    # The _get_derivatives() method in get_forecast_tensors() is replaced by dummy(),
+    # so we can purely test the symmetrisation.
+    # The function passed to get_forecast_tensors() is a dummy function which is not
+    # used to determine the output. The covariance matrix represents a 1D model.
+    function_to_patch = "derivkit.forecasting.forecast_core._get_derivatives"
+    # _get_derivatives() is not called directly so we need to ignore the linter warning.
+    with patch(function_to_patch, wraps=dummy) as mock_get_derivatives: #noqa
+        result = get_forecast_tensors(
+                lambda x: 1, [0, 0],
+                np.eye(1),
+                forecast_order=SUPPORTED_FORECAST_ORDERS[-1],
+                symmetrize_dali=True,
+        )
+        assert result.keys() == reference.keys()
+        for i in reference.keys():
+            for j in range(len(result[i])):
+                indices = np.indices(result[i][j].shape)
+                sorted_indices = np.sort(indices, axis=0)
+                assert np.allclose(
+                    result[i][j],
+                    reference[i][j][tuple(sorted_indices)]
+                )
 
 
 def test_get_derivatives_rejects_bad_jacobian_shape(monkeypatch):
