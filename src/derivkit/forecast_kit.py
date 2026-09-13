@@ -313,6 +313,7 @@ class ForecastKit:
         *,
         method: str | None = None,
         forecast_order: int = 2,
+        symmetrize: bool = True,
         n_workers: int = 1,
         **dk_kwargs: Any,
     ) -> dict[int, tuple[FloatArray, ...]]:
@@ -325,6 +326,7 @@ class ForecastKit:
             forecast_order: The requested order of the forecast.
                 Currently supported values and their meaning are given in
                 :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
+            symmetrize: Flag to force symmetrization across all DALI tensor axes.
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
@@ -356,6 +358,7 @@ class ForecastKit:
             cov=self.cov0,
             method=method,
             forecast_order=forecast_order,
+            symmetrize_dali=symmetrize,
             n_workers=n_workers,
             **dk_kwargs,
         )
