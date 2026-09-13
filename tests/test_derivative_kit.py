@@ -194,8 +194,8 @@ def test_finite_dispatch(monkeypatch):
     assert invoked["adaptive"] == {}
 
 
-def test_default_method_is_adaptive():
-    """Tests that method=None defaults to adaptive behavior."""
+def test_default_method():
+    """Tests that method=None defaults to fallback behavior."""
     f = partial(quad, a=1.0, b=0.0, c=0.0)
     dk = DerivativeKit(f, 0.0)
 
