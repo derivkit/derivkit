@@ -588,7 +588,7 @@ Worked examples are provided in:
 Backend Notes
 -------------
 
-- If ``method`` is omitted, the adaptive derivative backend is used.
+- If ``method`` is omitted, the local polynomial derivative backend is used.
 - Any DerivativeKit backend may be selected
   (finite differences, Ridders, Gauss–Richardson, polynomial fits, etc.).
 - Changing the derivative backend affects only how derivatives are computed,
