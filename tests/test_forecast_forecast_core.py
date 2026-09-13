@@ -743,7 +743,8 @@ def test_dali_symmetries():
         result = get_forecast_tensors(
                 lambda x: 1, [0, 0],
                 np.eye(1),
-                forecast_order=SUPPORTED_FORECAST_ORDERS[-1]
+                forecast_order=SUPPORTED_FORECAST_ORDERS[-1],
+                symmetrize_dali=True,
         )
         assert result.keys() == reference.keys()
         for i in reference.keys():
