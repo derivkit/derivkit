@@ -311,22 +311,15 @@ def _get_derivatives(
 
     ckit = CalculusKit(_vectorize_model_output, theta0_arr)
 
-    if order >= 2:
-        derivkit_logger.info(
-            "[DALI BACKEND POLICY] order=%s: deliberately using finite differences "
-            "with Ridders extrapolation for higher-order derivatives because "
-            "polyfit/adaptive are too effective at smoothing and can wash out "
-            "the local higher-order curvature that DALI is meant to capture.",
+    if order >= 2 and method != "finite":
+        derivkit_logger.warning(
+            "[DALI] order=%s: higher-order derivatives may depend sensitively on "
+            "the differentiation method. For robust DALI forecasts, we recommend "
+            "comparing the resulting contours with a finite-difference calculation, "
+            "as smoothing or fitting-based methods can reduce local nonlinear structure.",
             order,
         )
-        method = "finite"
-
-        tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
-        tuned_kwargs["extrapolation"] = "ridders"
-        tuned_kwargs.setdefault("num_points", 5)
-        tuned_kwargs.setdefault("stepsize", 1e-2)
-    else:
-        tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
+    tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
 
     if order == 1:
         j_raw = np.asarray(

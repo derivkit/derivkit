@@ -279,7 +279,7 @@ class DerivativeKit:
         if x0 is None:
             raise ValueError("`x0` must be provided.")
         self.x0 = x0
-        self.default_method = "adaptive"
+        self.default_method = "local_polynomial"
 
     def differentiate(
         self,

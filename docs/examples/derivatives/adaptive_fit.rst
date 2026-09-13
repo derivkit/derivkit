@@ -35,8 +35,8 @@ By default, an adaptive Chebyshev grid is constructed automatically around
    >>> from derivkit import DerivativeKit
    >>> # Initialize DerivativeKit with the target function and expansion point
    >>> dk = DerivativeKit(function=np.sin, x0=0.7)
-   >>> # Compute the first derivative (adaptive backend is the default)
-   >>> deriv = dk.differentiate(order=1)
+   >>> # Compute the first derivative
+   >>> deriv = dk.differentiate(order=1, method="adaptive")
    >>> print(bool(np.allclose(deriv, np.cos(0.7), rtol=0, atol=1e-8)))
    True
    >>> print(bool(abs(deriv - np.cos(0.7)) < 1e-8))

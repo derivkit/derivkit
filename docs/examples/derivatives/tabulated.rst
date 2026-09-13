@@ -36,7 +36,7 @@ Basic usage
    >>> x0 = 1.5  # point where to evaluate the derivative
    >>> # Initialize DerivativeKit with tabulated data
    >>> dk = DerivativeKit(x0=x0, tab_x=x_tab, tab_y=y_tab)
-   >>> # First derivative (default method is "adaptive")
+   >>> # First derivative (default method is "local_polynomial")
    >>> deriv = dk.differentiate(order=1)
    >>> err = abs(deriv - 2.0 * x0)  # reference: d/dx x^2 = 2x
    >>> bool(np.isfinite(deriv) and (err < 1e-5))
