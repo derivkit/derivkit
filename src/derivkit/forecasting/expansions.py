@@ -329,7 +329,7 @@ def build_delta_chi2_dali(
 
     The evaluated quantity is:
 
-    - order 2: ``d.T @ F @ d + (1/3) D1[d^3] + (1/12) D2[d^4]``
+    - order 2: ``d.T @ F @ d + D1[d^3] + (1/4) D2[d^4]``
     - order 3: order 2 plus ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``.
 
     Args:
