@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.3.0
+
+Released on 2026-09-14.
+
+### Added
+
+* `ForecastKit.dali()` now has a `symmetrize` option.
+  A value of `True` (default) will tell derivkit to symmetrize all DALI tensors with respect to permutation of any pair of axes.
+  **Note**: This implies that, in general, `Forecastkit.dali()` yields a different output compared to older versions.
+
+### Changed
+
+* The default derivative method of `DerivativeKit` has been changed from the adaptive fit to the local polynomial method.
+* `ForecastKit` will no longer force a fallback for derivative backends.
+  Instead it will warn the user about potential unwanted behaviour.
+
+### Fixed
+
+*  Updates the numerical factors in the chi-squared polynomial constructed in `derivkit.forecasting.expansions.build_delta_chi2_dali()`.
+
+
 ## v1.2.1
 
 ### Fixed
