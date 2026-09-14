@@ -400,10 +400,10 @@ def build_delta_chi2_dali(
     # doublet
     d1 = np.asarray(dali[2][0], dtype=np.float64)
     d2 = np.asarray(dali[2][1], dtype=np.float64)
-    chi2 += (1.0 / 3.0) * float(np.einsum("ijk,i,j,k->",
-                                          d1, d, d, d))
-    chi2 += (1.0 / 12.0) * float(np.einsum("ijkl,i,j,k,l->",
-                                           d2, d, d, d, d))
+    chi2 += float(np.einsum("ijk,i,j,k->",
+                            d1, d, d, d))
+    chi2 += 1.0/4.0 * float(np.einsum("ijkl,i,j,k,l->",
+                                      d2, d, d, d, d))
 
     if chosen == 2:
         return chi2
