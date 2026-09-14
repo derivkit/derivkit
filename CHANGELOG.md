@@ -20,6 +20,7 @@ Released on 2026-09-14.
 
 *  Updates the numerical factors in the chi-squared polynomial constructed in `derivkit.forecasting.expansions.build_delta_chi2_dali()`.
 
+
 ## v1.2.1
 
 ### Fixed
