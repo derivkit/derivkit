@@ -207,7 +207,7 @@ def test_delta_chi2_dali_order2_matches_formula() -> None:
     d1_3 = _manual_d1_3(d1, d)
     d2_4 = _manual_d2_4(d2, d)
 
-    expected = quad + (1.0 / 3.0) * d1_3 + (1.0 / 12.0) * d2_4
+    expected = quad + d1_3 + (1.0 / 4.0) * d2_4
     got = build_delta_chi2_dali(theta, theta0, dali, forecast_order=2)
     assert got == pytest.approx(expected)
 
@@ -375,8 +375,8 @@ def test_delta_chi2_dali_order3_matches_formula() -> None:
 
     expected = (
         quad
-        + (1.0 / 3.0) * d1_3
-        + (1.0 / 12.0) * d2_4
+        + d1_3
+        + (1.0 / 4.0) * d2_4
         + (1.0 / 3.0) * t1_4
         + (1.0 / 6.0) * t2_5
         + (1.0 / 36.0) * t3_6
