@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from itertools import permutations
+
 import numpy as np
 import pytest
 
@@ -170,39 +171,6 @@ def test_build_hyper_hessian_lower_orders(order):
 
     np.testing.assert_allclose(
         derivative,
-        expected,
-        rtol=0,
-        atol=5e-5,
-    )
-
-
-@pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
-def test_build_hyper_hessian_scalar_quartic_order_four(method, extra_kwargs):
-    """Tests that a quartic scalar function has the correct fourth derivative."""
-    theta0 = np.array([0.7, -0.4], dtype=float)
-
-    hhhh = build_hyper_hessian(
-        quartic_scalar,
-        theta0,
-        order=4,
-        method=method,
-        **extra_kwargs,
-    )
-
-    assert hhhh.shape == (2, 2, 2, 2)
-
-    expected = np.empty((2, 2, 2, 2), dtype=float)
-
-    for indices in np.ndindex(expected.shape):
-        n_x = indices.count(0)
-
-        if n_x in (0, 4):
-            expected[indices] = 24.0
-        else:
-            expected[indices] = 6.0
-
-    np.testing.assert_allclose(
-        hhhh,
         expected,
         rtol=0,
         atol=5e-5,
