@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import permutations
 import numpy as np
 import pytest
 
@@ -27,6 +28,12 @@ def cubic_vector(theta):
     """Vector output with known component-wise third derivatives."""
     x, y, z = np.asarray(theta, dtype=float)
     return np.array([x**3, y**3, z**3, x**3 + y**3 + z**3], dtype=float)
+
+
+def quartic_scalar(theta):
+    """A quartic scalar function with known derivatives through fourth order."""
+    x, y = np.asarray(theta, dtype=float)
+    return float(x**4 + x**3 * y + x**2 * y**2 + x * y**3 + y**4)
 
 
 def f_nonfinite(theta):
@@ -138,4 +145,134 @@ def test_hyper_hessian_raises_on_nonfinite_component_result():
             theta0=theta,
             method=None,
             n_workers=1,
+        )
+
+
+@pytest.mark.parametrize("order", [1, 2])
+def test_build_hyper_hessian_lower_orders(order):
+    """Tests that lower derivative orders produce the expected tensors."""
+    theta0 = np.array([1.0, 2.0], dtype=float)
+
+    derivative = build_hyper_hessian(
+        quartic_scalar,
+        theta0,
+        order=order,
+        method="finite",
+    )
+
+    if order == 1:
+        expected = np.array([26.0, 49.0])
+    else:
+        expected = np.array([
+            [32.0, 23.0],
+            [23.0, 62.0],
+        ])
+
+    np.testing.assert_allclose(
+        derivative,
+        expected,
+        rtol=0,
+        atol=5e-5,
+    )
+
+
+@pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
+def test_build_hyper_hessian_scalar_quartic_order_four(method, extra_kwargs):
+    """Tests that a quartic scalar function has the correct fourth derivative."""
+    theta0 = np.array([0.7, -0.4], dtype=float)
+
+    hhhh = build_hyper_hessian(
+        quartic_scalar,
+        theta0,
+        order=4,
+        method=method,
+        **extra_kwargs,
+    )
+
+    assert hhhh.shape == (2, 2, 2, 2)
+
+    expected = np.empty((2, 2, 2, 2), dtype=float)
+
+    for indices in np.ndindex(expected.shape):
+        n_x = indices.count(0)
+
+        if n_x in (0, 4):
+            expected[indices] = 24.0
+        else:
+            expected[indices] = 6.0
+
+    np.testing.assert_allclose(
+        hhhh,
+        expected,
+        rtol=0,
+        atol=5e-5,
+    )
+
+
+@pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
+def test_build_hyper_hessian_scalar_quartic_order_four(method, extra_kwargs):
+    """Tests that a quartic scalar function has the correct fourth derivative."""
+    theta0 = np.array([0.7, -0.4], dtype=float)
+
+    hhhh = build_hyper_hessian(
+        quartic_scalar,
+        theta0,
+        order=4,
+        method=method,
+        **extra_kwargs,
+    )
+
+    assert hhhh.shape == (2, 2, 2, 2)
+
+    expected = np.zeros((2, 2, 2, 2), dtype=float)
+
+    expected[0, 0, 0, 0] = 24.0
+    expected[1, 1, 1, 1] = 24.0
+
+    for indices in set(permutations((0, 0, 0, 1))):
+        expected[indices] = 6.0
+
+    for indices in set(permutations((0, 0, 1, 1))):
+        expected[indices] = 4.0
+
+    for indices in set(permutations((0, 1, 1, 1))):
+        expected[indices] = 6.0
+
+    np.testing.assert_allclose(
+        hhhh,
+        expected,
+        rtol=0,
+        atol=5e-5,
+    )
+
+
+def test_build_hyper_hessian_default_order_is_three():
+    """Tests that the default derivative order remains third order."""
+    theta0 = np.array([1.2, -0.3, 2.0], dtype=float)
+
+    default = build_hyper_hessian(
+        cubic_scalar,
+        theta0,
+        method="finite",
+    )
+    explicit = build_hyper_hessian(
+        cubic_scalar,
+        theta0,
+        order=3,
+        method="finite",
+    )
+
+    np.testing.assert_allclose(default, explicit, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("order", [0, -1])
+def test_build_hyper_hessian_raises_on_invalid_order(order):
+    """Tests that non-positive derivative orders raise ValueError."""
+    theta0 = np.array([1.0, 2.0], dtype=float)
+
+    with pytest.raises(ValueError, match="at least 1"):
+        build_hyper_hessian(
+            quartic_scalar,
+            theta0,
+            order=order,
         )
