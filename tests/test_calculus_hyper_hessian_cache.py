@@ -1,55 +1,82 @@
 """Unit tests for caching in ``derivkit.calculus_hyper_hessian``."""
 
+import pytest
+
 import numpy as np
 
 from derivkit.calculus.hyper_hessian import build_hyper_hessian
 
 
-def test_hyper_hessian_cache_does_not_change_result():
-    """Tests that hyper-Hessian caching does not change the result."""
+_METHOD_CASES = [
+    ("finite", {}),
+    ("finite", {"extrapolation": "richardson"}),
+    ("finite", {"extrapolation": "ridders"}),
+    ("finite", {"extrapolation": "gauss-richardson"}),
+    ("adaptive", {}),
+    ("local_polynomial", {}),
+]
+
+
+@pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
+@pytest.mark.parametrize("order", [1, 2, 3, 4])
+def test_hyper_hessian_cache_does_not_change_result(
+    method,
+    extra_kwargs,
+    order,
+):
+    """Tests that caching does not change derivatives."""
     def model(theta):
         """Mock model function."""
         x, y, z = theta
-        return x**2 * y + x * z + np.sin(z)
+        return x**4 * y + x * z**3 + np.sin(z)
 
     theta0 = np.array([0.3, -0.5, 0.8])
 
-    hh_no_cache = build_hyper_hessian(
+    derivative_no_cache = build_hyper_hessian(
         model,
         theta0,
-        method="finite",
+        order=order,
+        method=method,
         n_workers=1,
         dk_init_kwargs={"use_input_cache": False},
+        **extra_kwargs,
     )
 
-    hh_with_cache = build_hyper_hessian(
+    derivative_with_cache = build_hyper_hessian(
         model,
         theta0,
-        method="finite",
+        order=order,
+        method=method,
         n_workers=1,
         dk_init_kwargs={"use_input_cache": True},
+        **extra_kwargs,
     )
 
     np.testing.assert_allclose(
-        hh_with_cache, hh_no_cache, rtol=1e-10, atol=1e-12
+        derivative_with_cache,
+        derivative_no_cache,
+        rtol=1e-10,
+        atol=1e-12,
     )
 
 
-def test_hyper_hessian_cache_reduces_model_evaluations():
-    """Tests that hyper-Hessian caching reduces model evaluations."""
+@pytest.mark.parametrize("order", [1, 2, 3, 4])
+def test_hyper_hessian_cache_reduces_model_evaluations(order):
+    """Tests that caching reduces model evaluations across derivative orders."""
     calls = {"count": 0}
 
     def model(theta):
         """Mock model function."""
         calls["count"] += 1
         x, y, z = theta
-        return x**2 * y + x * z + np.sin(z)
+        return x**4 * y + x * z**3 + np.sin(z)
 
     theta0 = np.array([0.3, -0.5, 0.8])
 
-    hh_no_cache = build_hyper_hessian(
+    derivative_no_cache = build_hyper_hessian(
         model,
         theta0,
+        order=order,
         method="finite",
         n_workers=1,
         dk_init_kwargs={"use_input_cache": False},
@@ -58,16 +85,20 @@ def test_hyper_hessian_cache_reduces_model_evaluations():
 
     calls["count"] = 0
 
-    hh_with_cache = build_hyper_hessian(
+    derivative_with_cache = build_hyper_hessian(
         model,
         theta0,
+        order=order,
         method="finite",
         n_workers=1,
         dk_init_kwargs={"use_input_cache": True},
     )
     calls_with_cache = calls["count"]
 
-    np.testing.assert_allclose(hh_with_cache, hh_no_cache)
+    np.testing.assert_allclose(
+        derivative_with_cache,
+        derivative_no_cache,
+    )
     assert calls_with_cache < calls_no_cache
 
 
