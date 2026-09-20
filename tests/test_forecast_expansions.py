@@ -415,5 +415,64 @@ def test_delta_chi2_dali_rejects_unsupported_forecast_order() -> None:
     theta = np.ones(p)
     dali = _toy_dali_doublet(p)
 
-    with pytest.raises(ValueError, match=r"forecast_order=4|not supported|Supported values"):
-        build_delta_chi2_dali(theta, theta0, dali, forecast_order=4)
+    with pytest.raises(ValueError, match=r"forecast_order=5|not supported|Supported values"):
+        build_delta_chi2_dali(theta, theta0, dali, forecast_order=5)
+
+
+def test_delta_chi2_dali_order4_matches_formula() -> None:
+    """Tests that build_delta_chi2_dali(order=4) includes fourth-order terms."""
+    p = 2
+    theta0 = np.zeros(p)
+    theta = np.array([0.2, -0.1])
+
+    dali = _toy_dali_triplet(p)
+
+    q1 = np.zeros((p,) * 5, dtype=float)
+    q2 = np.zeros((p,) * 6, dtype=float)
+    q3 = np.zeros((p,) * 7, dtype=float)
+    q4 = np.zeros((p,) * 8, dtype=float)
+
+    for i in range(p):
+        q1[(i,) * 5] = 0.04 * (i + 1)
+        q2[(i,) * 6] = 0.03 * (i + 1)
+        q3[(i,) * 7] = 0.02 * (i + 1)
+        q4[(i,) * 8] = 0.01 * (i + 1)
+
+    dali[4] = (q1, q2, q3, q4)
+
+    d = theta - theta0
+
+    order3 = build_delta_chi2_dali(
+        theta,
+        theta0,
+        dali,
+        forecast_order=3,
+    )
+
+    q1_5 = float(np.einsum("ijklm,i,j,k,l,m->", q1, d, d, d, d, d))
+    q2_6 = float(np.einsum("ijklmn,i,j,k,l,m,n->", q2, d, d, d, d, d, d))
+    q3_7 = float(np.einsum(
+        "ijklmno,i,j,k,l,m,n,o->",
+        q3, d, d, d, d, d, d, d,
+    ))
+    q4_8 = float(np.einsum(
+        "ijklmnop,i,j,k,l,m,n,o,p->",
+        q4, d, d, d, d, d, d, d, d,
+    ))
+
+    expected = (
+        order3
+        + (1.0 / 12.0) * q1_5
+        + (1.0 / 24.0) * q2_6
+        + (1.0 / 72.0) * q3_7
+        + (1.0 / 576.0) * q4_8
+    )
+
+    got = build_delta_chi2_dali(
+        theta,
+        theta0,
+        dali,
+        forecast_order=4,
+    )
+
+    assert got == pytest.approx(expected)

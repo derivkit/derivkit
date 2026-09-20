@@ -47,7 +47,7 @@ def test_derivative_order():
     cov = np.array([[1.0]])
 
     with pytest.raises(ValueError):
-        _get_derivatives(func, theta0, cov, order=np.random.randint(low=4, high=30))
+        _get_derivatives(func, theta0, cov, order=np.random.randint(low=5, high=30))
 
 
 def test_forecast_order():
@@ -58,7 +58,7 @@ def test_forecast_order():
 
     with pytest.raises(ValueError):
         get_forecast_tensors(
-            func, theta0, cov, forecast_order=np.random.randint(low=4, high=30),
+            func, theta0, cov, forecast_order=np.random.randint(low=5, high=30),
             symmetrize_dali=False
         )
 
@@ -325,8 +325,8 @@ def model_quadratic(theta: np.ndarray) -> np.ndarray:
     return np.array([t0**2, 2.0 * t0 * t1], float)
 
 
-def model_cubic(theta: np.ndarray) -> np.ndarray:
-    """Returns a linear combination of cubes."""
+def model_quartic(theta: np.ndarray) -> np.ndarray:
+    """Returns a sum of fourth powers."""
     return np.asarray([np.sum(np.asarray(theta)**4)])
 
 
@@ -347,7 +347,7 @@ def model_cubic(theta: np.ndarray) -> np.ndarray:
             ),
         ),
         pytest.param(
-            model_cubic,
+            model_quartic,
             np.array([1]),
             (
                 np.array([[[96]]]),
@@ -381,6 +381,43 @@ def test_scalar_dali_triplet(model, theta, expected):
 
     for i in range(len(triplet)):
         assert np.allclose(triplet[i], expected_fixed[i], atol=1e-6)
+
+
+def test_scalar_dali_fourth_order():
+    """Tests the fourth-order DALI tensors for a scalar quartic model."""
+
+    def model(theta):
+        """Returns a quartic scalar model."""
+        x = np.asarray(theta, dtype=float)[0]
+        return x ** 4
+
+    forecast = get_forecast_tensors(
+        model,
+        np.array([1.0]),
+        np.array([[1.0]]),
+        forecast_order=4,
+        symmetrize_dali=False,
+        method="finite",
+    )
+
+    fourth = forecast[4]
+
+    expected = (
+        np.full((1, 1, 1, 1, 1), 96.0),
+        np.full((1, 1, 1, 1, 1, 1), 288.0),
+        np.full((1, 1, 1, 1, 1, 1, 1), 576.0),
+        np.full((1, 1, 1, 1, 1, 1, 1, 1), 576.0),
+    )
+
+    assert len(fourth) == len(expected)
+
+    for tensor, expected_tensor in zip(fourth, expected, strict=True):
+        np.testing.assert_allclose(
+            tensor,
+            expected_tensor,
+            rtol=0,
+            atol=1e-3,
+        )
 
 
 def get_all_indices(max_indices):
@@ -484,9 +521,9 @@ def test_vector_dali_triplet():
 
 def test_get_forecast_tensors_output_type():
     """Tests that a full forecast returns a dictionary of the right type."""
-    max_order = np.random.randint(low=1, high=SUPPORTED_FORECAST_ORDERS[-1])
+    max_order = np.random.choice(SUPPORTED_FORECAST_ORDERS)
     forecast = get_forecast_tensors(
-        model_cubic,
+        model_quartic,
         [1.2],
         [1],
         forecast_order=max_order,
@@ -512,12 +549,13 @@ def test_forecast_dict_keys_and_multiplet_lengths():
         t0, t1 = np.asarray(th, float)
         return np.array([t0 + t1, t0 - 2 * t1], float)
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=4, symmetrize_dali=False)
 
-    assert set(out.keys()) == {1, 2, 3}
+    assert set(out.keys()) == {1, 2, 3, 4}
     assert len(out[1]) == 1  # (F,)
     assert len(out[2]) == 2  # (D1, D2)
     assert len(out[3]) == 3  # (T1, T2, T3)
+    assert len(out[4]) == 4  # (Q1, Q2, Q3, Q4)
 
 
 @pytest.mark.parametrize("p,nobs", [(1, 1), (2, 2), (3, 2)])
@@ -531,12 +569,12 @@ def test_tensor_shapes_all_orders(p, nobs):
         """Test model with non-trivial derivatives."""
         th = np.asarray(th, dtype=float)
         y = np.zeros(nobs, dtype=float)
-        y[0] = float(np.sum(th ** 2))
+        y[0] = float(np.sum(th ** 4))
         if nobs > 1:
-            y[1] = float(np.sum(th) + th[0] ** 3)
+            y[1] = float(np.sum(th) + th[0] ** 4)
         return y
 
-    out = get_forecast_tensors(model, theta0, cov, forecast_order=3, symmetrize_dali=False)
+    out = get_forecast_tensors(model, theta0, cov, forecast_order=4, symmetrize_dali=False)
 
     F = out[1][0]
     assert F.shape == (p, p)
@@ -549,6 +587,12 @@ def test_tensor_shapes_all_orders(p, nobs):
     assert T1.shape == (p, p, p, p)
     assert T2.shape == (p, p, p, p, p)
     assert T3.shape == (p, p, p, p, p, p)
+
+    Q1, Q2, Q3, Q4 = out[4]
+    assert Q1.shape == (p, p, p, p, p)
+    assert Q2.shape == (p, p, p, p, p, p)
+    assert Q3.shape == (p, p, p, p, p, p, p)
+    assert Q4.shape == (p, p, p, p, p, p, p, p)
 
 
 def _assert_symmetric_under_permutation(x, axes, rtol=0, atol=0):
@@ -743,7 +787,7 @@ def test_dali_symmetries():
         result = get_forecast_tensors(
                 lambda x: 1, [0, 0],
                 np.eye(1),
-                forecast_order=SUPPORTED_FORECAST_ORDERS[-1],
+                forecast_order=3,
                 symmetrize_dali=True,
         )
         assert result.keys() == reference.keys()
@@ -869,3 +913,80 @@ def test_method_and_workers_are_forwarded(monkeypatch):
 
     assert seen.get("method") == "finite"
     assert seen.get("n_workers") == 3
+
+
+def test_get_derivatives_rejects_bad_fourth_derivative_shape(monkeypatch):
+    """Tests that get_derivatives rejects bad fourth derivative shapes."""
+
+    class FakeCK:
+        """Fake CalculusKit class that returns a bad fourth derivative shape."""
+
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+
+        def hyper_hessian(self, **kwargs):
+            """Returns an incorrectly shaped fourth derivative tensor."""
+            _ = kwargs
+            return np.zeros((1, 1, 1, 1))
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    with pytest.raises(ValueError, match=r"hyper_hessian returned unexpected shape"):
+        fc._get_derivatives(
+            lambda th: np.array([1.0]),
+            np.array([0.1]),
+            np.eye(1),
+            order=4,
+        )
+
+
+def test_fourth_derivative_order_is_forwarded(monkeypatch):
+    """Tests that fourth derivative order is forwarded to CalculusKit."""
+    seen = {}
+
+    class FakeCK:
+        """Mock CalculusKit class that records hyper-Hessian arguments."""
+
+        def __init__(self, function, theta0):
+            """Initializes the fake CalculusKit class."""
+            _, _ = function, theta0
+
+        def hyper_hessian(self, **kwargs):
+            """Records arguments and returns a fourth derivative tensor."""
+            seen.update(kwargs)
+            return np.zeros((1, 1, 1, 1, 1))
+
+    monkeypatch.setattr(fc, "CalculusKit", FakeCK)
+
+    fc._get_derivatives(
+        lambda th: np.array([1.0]),
+        np.array([0.1]),
+        np.eye(1),
+        order=4,
+    )
+
+    assert seen["order"] == 4
+
+
+def test_scalar_dali_fourth_order_symmetrized():
+    """Tests symmetrization of fourth-order DALI tensors."""
+
+    def model(theta):
+        """Returns a quartic scalar model."""
+        x = np.asarray(theta, dtype=float)[0]
+        return x ** 4
+
+    forecast = get_forecast_tensors(
+        model,
+        np.array([1.0]),
+        np.array([[1.0]]),
+        forecast_order=4,
+        symmetrize_dali=True,
+        method="finite",
+    )
+
+    expected = (96.0, 288.0, 576.0, 576.0)
+
+    for tensor, value in zip(forecast[4], expected, strict=True):
+        np.testing.assert_allclose(tensor, value, atol=1e-3)

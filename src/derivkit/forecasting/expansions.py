@@ -19,12 +19,14 @@ With the forecast tensors returned by :func:`derivkit.forecasting.get_forecast_t
 - ``dali[1] == (F,)``
 - ``dali[2] == (D1, D2)``
 - ``dali[3] == (T1, T2, T3)``
+- ``dali[4] == (Q1, Q2, Q3, Q4)``
 
 the DALI ``delta_chi2`` is:
 
 - order 1 (Fisher): ``d.T @ F @ d``
-- order 2 (doublet): add ``(1/3) D1[d,d,d] + (1/12) D2[d,d,d,d]``
+- order 2 (doublet): add ``D1[d^3] + (1/4) D2[d^4]``
 - order 3 (triplet): add ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``
+- order 4: add ``(1/12) Q1[d^5] + (1/24) Q2[d^6] + (1/72) Q3[d^7] + (1/576) Q4[d^8]``
 
 GetDist convention
 ------------------
@@ -326,11 +328,14 @@ def build_delta_chi2_dali(
     - ``dali[1] == (F,)`` with ``F`` of shape ``(p, p)``
     - ``dali[2] == (D1, D2)`` with shapes ``(p, p, p)`` and ``(p, p, p, p)``
     - ``dali[3] == (T1, T2, T3)`` with shapes ``(p,)*4``, ``(p,)*5``, ``(p,)*6``
+    - ``dali[4] == (Q1, Q2, Q3, Q4)`` with shapes ``(p,)*5``, `(p,)*6``, ``(p,)*7``, ``(p,)*8``
 
     The evaluated quantity is:
 
     - order 2: ``d.T @ F @ d + D1[d^3] + (1/4) D2[d^4]``
-    - order 3: order 2 plus ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``.
+    - order 3: order 2 plus ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``
+    - order 4: order 3 plus ``(1/12) Q1[d^5] + (1/24) Q2[d^6]``
+      ``+ (1/72) Q3[d^7] + (1/576) Q4[d^8]``
 
     Args:
         theta: Evaluation point in parameter space.
@@ -392,6 +397,9 @@ def build_delta_chi2_dali(
     if chosen >= 3 and 3 not in dali:
         raise ValueError(
             "forecast_order=3 requires dali to contain key 3 (triplet tensors).")
+    if chosen >= 4 and 4 not in dali:
+        raise ValueError(
+            "forecast_order=4 requires dali to contain key 4 (fourth-order tensors).")
 
     fisher = np.asarray(dali[1][0], dtype=np.float64)
     d = theta - theta0
@@ -420,6 +428,39 @@ def build_delta_chi2_dali(
                            t3, d, d, d, d, d, d))
 
     chi2 = chi2 + (1.0 / 3.0) * t1_4 + (1.0 / 6.0) * t2_5 + (1.0 / 36.0) * t3_6
+
+    if chosen == 3:
+        return chi2
+
+    q1 = np.asarray(dali[4][0], dtype=np.float64)
+    q2 = np.asarray(dali[4][1], dtype=np.float64)
+    q3 = np.asarray(dali[4][2], dtype=np.float64)
+    q4 = np.asarray(dali[4][3], dtype=np.float64)
+
+    q1_5 = float(np.einsum(
+        "ijklm,i,j,k,l,m->",
+        q1, d, d, d, d, d,
+    ))
+    q2_6 = float(np.einsum(
+        "ijklmn,i,j,k,l,m,n->",
+        q2, d, d, d, d, d, d,
+    ))
+    q3_7 = float(np.einsum(
+        "ijklmno,i,j,k,l,m,n,o->",
+        q3, d, d, d, d, d, d, d,
+    ))
+    q4_8 = float(np.einsum(
+        "ijklmnop,i,j,k,l,m,n,o,p->",
+        q4, d, d, d, d, d, d, d, d,
+    ))
+
+    chi2 = (
+        chi2
+        + (1.0 / 12.0) * q1_5
+        + (1.0 / 24.0) * q2_6
+        + (1.0 / 72.0) * q3_7
+        + (1.0 / 576.0) * q4_8
+    )
     return chi2
 
 

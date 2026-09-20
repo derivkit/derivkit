@@ -259,6 +259,8 @@ def validate_dali_shape(
       ``(p, p, p)`` and ``(p, p, p, p)``.
     - order 3 multiplet: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
       ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
+    - order 4 multiplet: ``(Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``
+      with shapes ``(p,)*5``, ``(p,)*6``, ``(p,)*7``, and ``(p,)*8``.
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)``.
@@ -333,6 +335,8 @@ def validate_dali_shape(
             ``(p, p, p)`` and ``(p, p, p, p)``.
           - ``order == 3``: ``m == (T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
             ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
+          - ``order == 4``: ``m == (Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``
+            with shapes ``(p,)*5``, ``(p,)*6``, ``(p,)*7``, and ``(p,)*8``.
 
         Args:
             order: Forecast order associated with this multiplet.
@@ -372,7 +376,18 @@ def validate_dali_shape(
             _require_tensor(m[2], idx=2, expected_ndim=6)
             return
 
-        raise ValueError(f"Unsupported forecast order={order}. Expected 1, 2, or 3.")
+        if order == 4:
+            if len(m) != 4:
+                raise ValueError(
+                    f"dali[4] must be a 4-tuple (Q41, Q42, Q43, Q44); got length {len(m)}."
+                )
+            _require_tensor(m[0], idx=0, expected_ndim=5)
+            _require_tensor(m[1], idx=1, expected_ndim=6)
+            _require_tensor(m[2], idx=2, expected_ndim=7)
+            _require_tensor(m[3], idx=3, expected_ndim=8)
+            return
+
+        raise ValueError(f"Unsupported forecast order={order}. Expected 1, 2, 3, or 4.")
 
     def _validate_tuple_multiplet(m: tuple[Any, ...]) -> None:
         """Validate a single multiplet tuple and infer its forecast order from structure.
@@ -383,6 +398,8 @@ def validate_dali_shape(
           - ``(F,)``: length 1 and ``ndim(F) == 2``.
           - ``(D_{(2,1)}, D_{(2,2)})``: length 2 and ``ndim(D_{(2,1)}) == 3``.
           - ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``: length 3 and ``ndim(T_{(3,1)}) == 4``.
+          - ``(Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``: length 4 and
+            ``ndim(Q_{(4,1)}) == 5``.
 
         This helper exists to accept tuple inputs in a way that is consistent with the
         per-order multiplet convention.
@@ -411,12 +428,16 @@ def validate_dali_shape(
         if len(m) == 3 and first_ndim == 4:
             _validate_order_multiplet(3, m)
             return
+        if len(m) == 4 and first_ndim == 5:
+            _validate_order_multiplet(4, m)
+            return
 
         raise ValueError(
             "Unrecognized DALI tuple form."
             " Expected (F,)"
-            " or (D21,D22) or"
-            " (T31,T32,T33)."
+            " or (D21,D22)"
+            " or (T31,T32,T33)"
+            " or (Q41,Q42,Q43,Q44)."
         )
 
     # dict[int, tuple[...]]: get_forecast_tensors output
@@ -520,6 +541,8 @@ def resolve_dali_introduced_multiplet(
         order = 2
     elif len(m) == 3 and first_ndim == 4:
         order = 3
+    elif len(m) == 4 and first_ndim == 5:
+        order = 4
     else:
         # Should be unreachable because validate_dali_shape already enforced.
         raise RuntimeError("internal error: could not infer order from validated tuple.")
@@ -550,6 +573,7 @@ def resolve_dali_assembled_multiplet(
       - order 1: (F,)
       - order 2: (F, D1, D2)
       - order 3: (F, D1, D2, T1, T2, T3)
+      - order 4: (F, D1, D2, T1, T2, T3, Q1, Q2, Q3, Q4)
 
     Notes:
       - Tuple inputs cannot be assembled for order>1 because they do not include F.
@@ -568,8 +592,8 @@ def resolve_dali_assembled_multiplet(
         chosen = available[-1] if forecast_order is None else int(forecast_order)
         if chosen not in dali:
             raise ValueError(f"forecast_order={chosen} not in DALI dict keys {available}.")
-        if chosen not in (1, 2, 3):
-            raise ValueError(f"forecast_order must be 1, 2, or 3; got {chosen}.")
+        if chosen not in (1, 2, 3, 4):
+            raise ValueError(f"forecast_order must be 1, 2, 3, or 4; got {chosen}.")
 
         # Always include Fisher
         f = np.asarray(dali[1][0], dtype=np.float64)
@@ -586,7 +610,15 @@ def resolve_dali_assembled_multiplet(
         t1 = np.asarray(dali[3][0], dtype=np.float64)
         t2 = np.asarray(dali[3][1], dtype=np.float64)
         t3 = np.asarray(dali[3][2], dtype=np.float64)
-        return 3, (f, d1, d2, t1, t2, t3)
+
+        if chosen == 3:
+            return 3, (f, d1, d2, t1, t2, t3)
+
+        q1 = np.asarray(dali[4][0], dtype=np.float64)
+        q2 = np.asarray(dali[4][1], dtype=np.float64)
+        q3 = np.asarray(dali[4][2], dtype=np.float64)
+        q4 = np.asarray(dali[4][3], dtype=np.float64)
+        return 4, (f, d1, d2, t1, t2, t3, q1, q2, q3, q4)
 
     # tuple input: can only safely support Fisher-only (because order>1 tuples have no F)
     m = dali  # validated as tuple
@@ -601,8 +633,12 @@ def resolve_dali_assembled_multiplet(
         f = np.asarray(m[0], dtype=np.float64)
         return 1, (f,)
 
-    # If it's an introduced-at-order tuple of order 2 or 3, we refuse assembly.
-    if (len(m) == 2 and first_ndim == 3) or (len(m) == 3 and first_ndim == 4):
+    # If it's an introduced-at-order tuple of order 2, 3, or 4, we refuse assembly.
+    if (
+        (len(m) == 2 and first_ndim == 3)
+        or (len(m) == 3 and first_ndim == 4)
+        or (len(m) == 4 and first_ndim == 5)
+    ):
         raise ValueError(
             "Order>1 evaluation requires the dict form from get_forecast_tensors, "
             "because introduced-at-order tuples do not include the Fisher matrix."
