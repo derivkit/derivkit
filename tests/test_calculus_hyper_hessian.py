@@ -63,7 +63,9 @@ def test_build_hyper_hessian_smooth_function_quartic_derivative():
     def assert_values(variable, shape):
         """Checks that the equality of mixed partials holds."""
         for indices in set(permutations(shape)):
-            assert np.isclose(calculated[i, *indices], expected[i, *sorted(indices)])
+            argument = (variable,) + indices
+            sorted_argument = (variable,) + tuple(sorted(indices))
+            assert np.isclose(calculated[argument], expected[sorted_argument])
 
     for i in (0, 1):
         assert np.isclose(calculated[i, 0, 0, 0, 0], expected[i, 0, 0, 0, 0], atol=1e-4, rtol=1e-4)
