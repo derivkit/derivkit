@@ -37,6 +37,42 @@ def quartic_scalar(theta):
     return float(x**4 + x**3 * y + x**2 * y**2 + x * y**3 + y**4)
 
 
+def smooth_vector(theta):
+    """An infinitely differentiable vector-valued function."""
+    x, y = np.asarray(theta, dtype=float)
+    return np.array([x * np.cos(y), np.exp(2*x) + x*y*y])
+
+
+def test_build_hyper_hessian_smooth_function_quartic_derivative():
+    """Tests the fourth-order partials of a smooth vector-valued function."""
+    theta0 = np.array([3.27, -1.4], dtype=float)
+
+    calculated = build_hyper_hessian(
+        smooth_vector,
+        theta0,
+        order=4,
+    )
+
+    assert calculated.shape == (2, 2, 2, 2, 2)
+
+    expected = np.zeros(5*(2,), dtype=float)
+    expected[0][0][1][1][1] = np.sin(theta0[1])
+    expected[0][1][1][1][1] = theta0[0] * np.cos(theta0[1])
+    expected[1][0][0][0][0] = 16 * np.exp(2*theta0[0])
+
+    def assert_values(variable, shape):
+        """Checks that the equality of mixed partials holds."""
+        for indices in set(permutations(shape)):
+            assert np.isclose(calculated[i, *indices], expected[i, *sorted(indices)])
+
+    for i in (0, 1):
+        assert np.isclose(calculated[i, 0, 0, 0, 0], expected[i, 0, 0, 0, 0], atol=1e-4, rtol=1e-4)
+        assert np.isclose(calculated[i, 1, 1, 1, 1], expected[i, 1, 1, 1, 1], atol=1e-4, rtol=1e-4)
+        assert_values(i, (0, 0, 0, 1))
+        assert_values(i, (0, 0, 1, 1))
+        assert_values(i, (0, 1, 1, 1))
+
+
 def f_nonfinite(theta):
     """Produces a non-finite output."""
     x = np.asarray(theta, float)
