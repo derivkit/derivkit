@@ -18,6 +18,15 @@ _METHOD_CASES = [
     ("local_polynomial", {}),
 ]
 
+_SMOOTH_FOURTH_ORDER_CASES = [
+    ("finite", {}, 1e-4, 1e-4),
+    ("finite", {"extrapolation": "richardson"}, 2e-3, 1e-4),
+    ("finite", {"extrapolation": "ridders"}, 2e-3, 1e-4),
+    ("finite", {"extrapolation": "gauss-richardson"}, 1e-3, 1e-4),
+    ("adaptive", {}, 1e-4, 1e-3),
+    ("local_polynomial", {}, 1e-4, 1e-4),
+]
+
 
 def cubic_scalar(theta):
     """A cubic scalar function with known third derivatives."""
@@ -43,14 +52,25 @@ def smooth_vector(theta):
     return np.array([x * np.cos(y), np.exp(2*x) + x*y*y])
 
 
-def test_build_hyper_hessian_smooth_function_quartic_derivative():
-    """Tests the fourth-order partials of a smooth vector-valued function."""
+@pytest.mark.parametrize(
+    "method, extra_kwargs, atol, rtol",
+    _SMOOTH_FOURTH_ORDER_CASES,
+)
+def test_build_hyper_hessian_smooth_function_quartic_derivative(
+    method,
+    extra_kwargs,
+    atol,
+    rtol,
+):
+    """Tests fourth-order partials across differentiation methods."""
     theta0 = np.array([3.27, -1.4], dtype=float)
 
     calculated = build_hyper_hessian(
         smooth_vector,
         theta0,
         order=4,
+        method=method,
+        **extra_kwargs,
     )
 
     assert calculated.shape == (2, 2, 2, 2, 2)
@@ -65,11 +85,26 @@ def test_build_hyper_hessian_smooth_function_quartic_derivative():
         for indices in set(permutations(shape)):
             argument = (variable,) + indices
             sorted_argument = (variable,) + tuple(sorted(indices))
-            assert np.isclose(calculated[argument], expected[sorted_argument])
+            assert np.isclose(
+                calculated[argument],
+                expected[sorted_argument],
+                atol=atol,
+                rtol=rtol,
+            )
 
     for i in (0, 1):
-        assert np.isclose(calculated[i, 0, 0, 0, 0], expected[i, 0, 0, 0, 0], atol=1e-4, rtol=1e-4)
-        assert np.isclose(calculated[i, 1, 1, 1, 1], expected[i, 1, 1, 1, 1], atol=1e-4, rtol=1e-4)
+        np.testing.assert_allclose(
+            calculated[i, 0, 0, 0, 0],
+            expected[i, 0, 0, 0, 0],
+            atol=atol,
+            rtol=rtol,
+        )
+        np.testing.assert_allclose(
+            calculated[i, 1, 1, 1, 1],
+            expected[i, 1, 1, 1, 1],
+            atol=atol,
+            rtol=rtol,
+        )
         assert_values(i, (0, 0, 0, 1))
         assert_values(i, (0, 0, 1, 1))
         assert_values(i, (0, 1, 1, 1))
@@ -187,16 +222,18 @@ def test_hyper_hessian_raises_on_nonfinite_component_result():
         )
 
 
+@pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
 @pytest.mark.parametrize("order", [1, 2])
-def test_build_hyper_hessian_lower_orders(order):
-    """Tests that lower derivative orders produce the expected tensors."""
+def test_build_hyper_hessian_lower_orders(method, extra_kwargs, order):
+    """Tests lower derivative orders across differentiation methods."""
     theta0 = np.array([1.0, 2.0], dtype=float)
 
     derivative = build_hyper_hessian(
         quartic_scalar,
         theta0,
         order=order,
-        method="finite",
+        method=method,
+        **extra_kwargs,
     )
 
     if order == 1:
