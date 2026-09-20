@@ -1,9 +1,9 @@
-"""Construct third-derivative tensors ("hyper-Hessians") for scalar- or vector-valued functions."""
+"""Construct derivative tensors ("hyper-Hessians") for scalar- or vector-valued functions."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from itertools import permutations
+from itertools import combinations_with_replacement, permutations
 from typing import Any
 
 import numpy as np
@@ -27,22 +27,25 @@ def build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta0: NDArray[np.float64] | Sequence[float],
     *,
+    order: int = 3,
     method: str | None = None,
     n_workers: int = 1,
     dk_init_kwargs: dict[str, Any] | None = None,
     **dk_diff_kwargs: Any,
 ) -> NDArray[np.float64]:
-    """Returns the third-derivative tensor ("hyper-Hessian") of a function.
+    """Returns a derivative tensor ("hyper-Hessian") of a function.
 
-    This function computes all third-order partial derivatives of a scalar- or
-    vector-valued function with respect to its parameters, evaluated at a single
-    point in parameter space. The resulting tensor generalizes the Hessian to
-    third order and is useful for higher-order Taylor expansions, non-Gaussian
-    approximations, and sensitivity analyses beyond quadratic order.
+    This function computes all partial derivatives of the requested order of a
+    scalar- or vector-valued function with respect to its parameters, evaluated at
+    a single point in parameter space. The resulting tensor is useful for
+    higher-order Taylor expansions, non-Gaussian approximations, and sensitivity
+    analyses beyond quadratic order.
 
     Args:
         function: Function to differentiate.
         theta0: 1D Parameter vector where the derivatives are evaluated.
+        order: Derivative order. An order of zero returns the function value
+            evaluated at ``theta0``.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Outer parallelism across output components (tensor outputs only).
@@ -53,18 +56,22 @@ def build_hyper_hessian(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Third-derivative tensor. For scalar outputs, the result has shape
-        ``(p, p, p)``, where ``p`` is the number of parameters. For tensor-valued
-        outputs with shape ``out_shape``, the result has shape
-        ``(*out_shape, p, p, p)``.
+        Function value or derivative tensor evaluated at ``theta0``. For
+        ``order=0``, the function value itself is returned. For positive
+        derivative orders, ``order`` parameter axes are appended to the
+        function output shape.
 
     Raises:
-        ValueError: If ``theta0`` is empty.
+        ValueError: If ``theta0`` is empty or ``order`` is negative.
+        TypeError: If ``function`` does not return a scalar or a vector.
         FloatingPointError: If non-finite values are encountered.
     """
     theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
+
+    if order < 0:
+        raise ValueError("Derivative order must be non-negative.")
 
     probe = np.asarray(function(theta), dtype=np.float64)
     ensure_finite(probe, msg="Non-finite values in model output at theta0.")
@@ -74,6 +81,9 @@ def build_hyper_hessian(
             "Hyper-Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."
         )
+
+    if order == 0:
+        return probe
 
     out_shape = probe.shape
 
@@ -110,6 +120,7 @@ def build_hyper_hessian(
         function=shared_function,
         theta=theta,
         out_shape=out_shape,
+        order=order,
         method=method,
         inner_workers=inner_workers,
         outer_workers=outer_workers,
@@ -124,6 +135,7 @@ def _build_hyper_hessian(
     function: Callable[[ArrayLike], float | np.ndarray],
     theta: NDArray[np.float64],
     out_shape: tuple[int, ...],
+    order: int,
     method: str | None,
     inner_workers: int | None,
     outer_workers: int,
@@ -136,6 +148,7 @@ def _build_hyper_hessian(
         function: Scalar- or vector-valued function to differentiate.
         theta: 1D parameter vector where the derivatives are evaluated.
         out_shape: Shape of the output array.
+        order: Derivative order.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
@@ -155,27 +168,24 @@ def _build_hyper_hessian(
     p = int(theta.size)
     iw = int(inner_workers or 1)
 
-    # Compute only unique entries i<=j<=k, then symmetrize.
-    triplets: list[tuple[int, int, int]] = [
-        (i, j, k) for i in range(p) for j in range(i, p) for k in range(j, p)
-    ]
-    def entry_worker(i: int, j: int, k: int) -> float | NDArray[np.float64]:
+    # Compute only unique entries, then symmetrize.
+    index_combinations = list(
+        combinations_with_replacement(range(p), order)
+    )
+
+    def entry_worker(*indices: int) -> float | NDArray[np.float64]:
         """Worker to compute one hyper-Hessian entry.
 
         Args:
-            i: First parameter index.
-            j: Second parameter index.
-            k: Third parameter index.
+            *indices: Parameter indices defining the derivative.
 
         Returns:
-            Value of the third order derivative of the function at theta0.
+            Value of the requested derivative of the function at theta0.
         """
-        return _third_derivative_entry(
+        return _higher_derivative_entry(
             function=function,
             theta0=theta,
-            i=i,
-            j=j,
-            k=k,
+            indices=indices,
             method=method,
             n_workers=iw,
             dk_init_kwargs=dk_init_kwargs,
@@ -184,151 +194,105 @@ def _build_hyper_hessian(
 
     vals = parallel_execute(
         entry_worker,
-        arg_tuples=triplets,
+        arg_tuples=index_combinations,
         outer_workers=outer_workers,
         inner_workers=iw,
     )
 
-    hess = np.empty((*out_shape, p, p, p), dtype=float)
+    hess = np.empty((*out_shape, *([p] * order)), dtype=float)
 
-    for (i, j, k), v in zip(triplets, vals, strict=True):
+    for indices, v in zip(index_combinations, vals, strict=True):
         v = np.asarray(v, dtype=float)
-        for a, b, c in set(permutations((i, j, k), 3)):
-            hess[..., a, b, c] = v
+        for permutation in set(permutations(indices)):
+            hess[(..., *permutation)] = v
 
     ensure_finite(hess, msg="Non-finite values encountered in hyper-Hessian.")
     return hess
 
 
-def _third_derivative_entry(
+def _higher_derivative_entry(
     *,
     function: Callable[[ArrayLike], float | np.ndarray],
     theta0: NDArray[np.float64],
-    i: int,
-    j: int,
-    k: int,
+    indices: Sequence[int],
     method: str | None,
     n_workers: int,
     dk_init_kwargs: dict[str, Any] | None,
     dk_diff_kwargs: dict[str, Any],
 ) -> NDArray[np.float64]:
-    """Computes the third order derivative of ``function`` at ``theta0`` with respect to parameters ``i``, ``j``, ``k``.
+    """Computes one entry of a higher-order derivative tensor.
 
     Args:
         function: Scalar- or vector-valued function to differentiate.
         theta0: 1D parameter vector at which the derivative is evaluated.
-        i: First parameter index.
-        j: Second parameter index.
-        k: Third parameter index.
+        indices: Parameter indices defining the partial derivative.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Number of workers for :class:`derivkit.DerivativeKit` calls.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
-            initialization. This can include cache-related settings.
+            initialization.
         dk_diff_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Value of the third order derivative of the function at ``theta0``.
+        Value of the requested derivative of the function at ``theta0``.
     """
     inner_init_kwargs = {"use_input_cache": False}
     inner_init_kwargs.update(dk_init_kwargs or {})
 
-    i, j, k = int(i), int(j), int(k)
-    ii, jj, kk = sorted((i, j, k))
+    indices = tuple(sorted(int(index) for index in indices))
 
-    if ii == jj == kk:
-        f1 = get_partial_function(function, ii, theta0)
+    if len(set(indices)) == 1:
+        index = indices[0]
+        f1 = get_partial_function(function, index, theta0)
         kit = DerivativeKit(
             f1,
-            float(theta0[ii]),
+            float(theta0[index]),
             **inner_init_kwargs,
         )
         val = kit.differentiate(
-            order=3,
+            order=len(indices),
             method=method,
             n_workers=n_workers,
             **dk_diff_kwargs,
         )
         return np.asarray(val, dtype=float)
 
+    outer_index = indices[-1]
+    inner_indices = indices[:-1]
+
     def g_func(t: float) -> NDArray[np.float64]:
-        """Function for derivative with respect to parameter kk.
+        """Function for the outer derivative.
 
         Args:
-            t: Value of parameter kk.
+            t: Value of the outer differentiation parameter.
 
         Returns:
-            Second derivative with respect to ii and jj at theta0 with kk=t.
-
+            Lower-order derivative evaluated with the outer parameter fixed.
         """
         th = theta0.copy()
-        th[kk] = float(t)
+        th[outer_index] = float(t)
 
-        if ii == jj:
-            f1 = get_partial_function(function, ii, th)
-            kit2 = DerivativeKit(
-                f1,
-                float(th[ii]),
-                **inner_init_kwargs,
-            )
-            v2 = kit2.differentiate(
-                order=2,
-                method=method,
-                n_workers=n_workers,
-                **dk_diff_kwargs,
-            )
-            return np.asarray(v2, dtype=float)
-
-        # mixed second derivative via nested 1D partials
-        def h_func(yj: float) -> NDArray[np.float64]:
-            """Function for derivative with respect to parameter jj.
-
-            Args:
-                yj: Value of parameter jj.
-
-            Returns:
-                First derivative with respect to ii at theta0 with jj=yj and kk fixed.
-            """
-            th2 = th.copy()
-            th2[jj] = float(yj)
-            f_ii = get_partial_function(function, ii, th2)
-            kit1 = DerivativeKit(
-                f_ii,
-                float(th2[ii]),
-                **inner_init_kwargs,
-            )
-            v1 = kit1.differentiate(
-                order=1,
-                method=method,
-                n_workers=n_workers,
-                **dk_diff_kwargs,
-            )
-            return np.asarray(v1, dtype=float)
-
-        kitm = DerivativeKit(
-            h_func,
-            float(th[jj]),
-            **inner_init_kwargs,
-        )
-        vm = kitm.differentiate(
-            order=1,
+        return _higher_derivative_entry(
+            function=function,
+            theta0=th,
+            indices=inner_indices,
             method=method,
             n_workers=n_workers,
-            **dk_diff_kwargs,
+            dk_init_kwargs=dk_init_kwargs,
+            dk_diff_kwargs=dk_diff_kwargs,
         )
-        return np.asarray(vm, dtype=float)
 
-    kit3 = DerivativeKit(
+    kit = DerivativeKit(
         g_func,
-        float(theta0[kk]),
+        float(theta0[outer_index]),
         **inner_init_kwargs,
     )
-    v3 = kit3.differentiate(
+    val = kit.differentiate(
         order=1,
         method=method,
         n_workers=n_workers,
         **dk_diff_kwargs,
     )
-    return np.asarray(v3, dtype=float)
+    return np.asarray(val, dtype=float)
