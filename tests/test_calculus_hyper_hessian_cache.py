@@ -1,11 +1,9 @@
 """Unit tests for caching in ``derivkit.calculus_hyper_hessian``."""
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 from derivkit.calculus.hyper_hessian import build_hyper_hessian
-
 
 _METHOD_CASES = [
     ("finite", {}),
