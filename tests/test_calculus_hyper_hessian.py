@@ -1,4 +1,4 @@
-"""Unit tests for derivkit.calculus.hyper_hessian.build_hyper_hessian."""
+"""Unit tests for ``derivkit.calculus.hyper_hessian.build_hyper_hessian``."""
 
 from __future__ import annotations
 
