@@ -44,7 +44,8 @@ def build_hyper_hessian(
     Args:
         function: Function to differentiate.
         theta0: 1D Parameter vector where the derivatives are evaluated.
-        order: Derivative order.
+        order: Derivative order. An order of zero returns the function value
+            evaluated at ``theta0``.
         method: Derivative method name or alias. If ``None``,
             the :class:`derivkit.DerivativeKit` default is used.
         n_workers: Outer parallelism across output components (tensor outputs only).
@@ -55,20 +56,22 @@ def build_hyper_hessian(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Derivative tensor. For scalar outputs, the result has ``order``
-        parameter axes. For vector-valued outputs with shape ``out_shape``,
-        the result has ``order`` parameter axes appended to ``out_shape``.
+        Function value or derivative tensor evaluated at ``theta0``. For
+        ``order=0``, the function value itself is returned. For positive
+        derivative orders, ``order`` parameter axes are appended to the
+        function output shape.
 
     Raises:
-        ValueError: If ``theta0`` is empty.
+        ValueError: If ``theta0`` is empty or ``order`` is negative.
+        TypeError: If ``function`` does not return a scalar or a vector.
         FloatingPointError: If non-finite values are encountered.
     """
     theta = np.asarray(theta0, dtype=np.float64).reshape(-1)
     if theta.size == 0:
         raise ValueError("theta0 must be a non-empty 1D array.")
 
-    if order < 1:
-        raise ValueError("Derivative order must be at least 1.")
+    if order < 0:
+        raise ValueError("Derivative order must be non-negative.")
 
     probe = np.asarray(function(theta), dtype=np.float64)
     ensure_finite(probe, msg="Non-finite values in model output at theta0.")
@@ -78,6 +81,9 @@ def build_hyper_hessian(
             "Hyper-Hessian expects a scalar- or vector-valued function; "
             f"got output with shape {probe.shape}."
         )
+
+    if order == 0:
+        return probe
 
     out_shape = probe.shape
 

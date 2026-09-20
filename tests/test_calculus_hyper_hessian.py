@@ -303,14 +303,35 @@ def test_build_hyper_hessian_default_order_is_three():
     np.testing.assert_allclose(default, explicit, rtol=0, atol=0)
 
 
-@pytest.mark.parametrize("order", [0, -1])
-def test_build_hyper_hessian_raises_on_invalid_order(order):
-    """Tests that non-positive derivative orders raise ValueError."""
+def test_build_hyper_hessian_raises_on_negative_order():
+    """Tests that negative derivative orders raise ValueError."""
     theta0 = np.array([1.0, 2.0], dtype=float)
 
-    with pytest.raises(ValueError, match="at least 1"):
+    with pytest.raises(ValueError, match="non-negative"):
         build_hyper_hessian(
             quartic_scalar,
             theta0,
-            order=order,
+            order=-1,
         )
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        cubic_scalar,
+        cubic_vector,
+    ],
+)
+def test_build_hyper_hessian_order_zero(function):
+    """Tests that zeroth order returns the original function value."""
+    theta0 = np.array([1.0, 2.0, 3.0], dtype=float)
+
+    result = build_hyper_hessian(
+        function,
+        theta0,
+        order=0,
+    )
+
+    expected = np.asarray(function(theta0), dtype=float)
+
+    np.testing.assert_allclose(result, expected, rtol=0, atol=0)
+    assert result.shape == expected.shape
