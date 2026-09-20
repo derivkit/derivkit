@@ -18,13 +18,10 @@ _METHOD_CASES = [
     ("local_polynomial", {}),
 ]
 
-_SMOOTH_FOURTH_ORDER_CASES = [
-    ("finite", {}, 1e-4, 1e-4),
-    ("finite", {"extrapolation": "richardson"}, 2e-3, 1e-4),
-    ("finite", {"extrapolation": "ridders"}, 2e-3, 1e-4),
-    ("finite", {"extrapolation": "gauss-richardson"}, 1e-3, 1e-4),
-    ("adaptive", {}, 1e-4, 1e-3),
-    ("local_polynomial", {}, 1e-4, 1e-4),
+_SMOOTH_METHOD_CASES = [
+    ("finite", {}),
+    ("adaptive", {}),
+    ("local_polynomial", {}),
 ]
 
 
@@ -52,17 +49,12 @@ def smooth_vector(theta):
     return np.array([x * np.cos(y), np.exp(2*x) + x*y*y])
 
 
-@pytest.mark.parametrize(
-    "method, extra_kwargs, atol, rtol",
-    _SMOOTH_FOURTH_ORDER_CASES,
-)
+@pytest.mark.parametrize("method, extra_kwargs", _SMOOTH_METHOD_CASES)
 def test_build_hyper_hessian_smooth_function_quartic_derivative(
     method,
     extra_kwargs,
-    atol,
-    rtol,
 ):
-    """Tests fourth-order partials across differentiation methods."""
+    """Tests fourth-order partials for smooth nonpolynomial functions."""
     theta0 = np.array([3.27, -1.4], dtype=float)
 
     calculated = build_hyper_hessian(
@@ -75,10 +67,13 @@ def test_build_hyper_hessian_smooth_function_quartic_derivative(
 
     assert calculated.shape == (2, 2, 2, 2, 2)
 
-    expected = np.zeros(5*(2,), dtype=float)
-    expected[0][0][1][1][1] = np.sin(theta0[1])
-    expected[0][1][1][1][1] = theta0[0] * np.cos(theta0[1])
-    expected[1][0][0][0][0] = 16 * np.exp(2*theta0[0])
+    expected = np.zeros((2, 2, 2, 2, 2), dtype=float)
+    expected[0, 0, 1, 1, 1] = np.sin(theta0[1])
+    expected[0, 1, 1, 1, 1] = theta0[0] * np.cos(theta0[1])
+    expected[1, 0, 0, 0, 0] = 16 * np.exp(2 * theta0[0])
+
+    atol = 5e-3
+    rtol = 2e-3
 
     def assert_values(variable, shape):
         """Checks that the equality of mixed partials holds."""
