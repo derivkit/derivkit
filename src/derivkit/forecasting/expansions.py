@@ -26,7 +26,7 @@ the DALI ``delta_chi2`` is:
 - order 1 (Fisher): ``d.T @ F @ d``
 - order 2 (doublet): add ``D1[d^3] + (1/4) D2[d^4]``
 - order 3 (triplet): add ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``
-- order 4: add ``(1/12) Q1[d^5] + (1/24) Q2[d^6] + (1/72) Q3[d^7] + (1/576) Q4[d^8]``
+- order 4 (quadruplet): add ``(1/12) Qa1[d^5] + (1/24) Qa2[d^6] + (1/72) Qa3[d^7] + (1/576) Qa4[d^8]``
 
 GetDist convention
 ------------------
