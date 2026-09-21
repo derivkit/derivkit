@@ -420,35 +420,83 @@ def test_delta_chi2_dali_rejects_unsupported_forecast_order() -> None:
 
 
 def test_delta_chi2_dali_order4_matches_formula() -> None:
-    """Tests that build_delta_chi2_dali(order=4) includes fourth-order terms."""
+    """Tests the order-4 DALI expansion against an independent calculation."""
     p = 2
     theta0 = np.zeros(p)
     theta = np.array([0.2, -0.1])
+    d = theta - theta0
 
-    dali = _toy_dali_triplet(p)
+    fisher = np.array([
+        [2.0, 0.3],
+        [0.3, 1.5],
+    ])
 
+    d1 = np.zeros((p,) * 3, dtype=float)
+    d2 = np.zeros((p,) * 4, dtype=float)
+    t1 = np.zeros((p,) * 4, dtype=float)
+    t2 = np.zeros((p,) * 5, dtype=float)
+    t3 = np.zeros((p,) * 6, dtype=float)
     qa1 = np.zeros((p,) * 5, dtype=float)
     qa2 = np.zeros((p,) * 6, dtype=float)
     qa3 = np.zeros((p,) * 7, dtype=float)
     qa4 = np.zeros((p,) * 8, dtype=float)
 
-    for i in range(p):
-        qa1[(i,) * 5] = 0.04 * (i + 1)
-        qa2[(i,) * 6] = 0.03 * (i + 1)
-        qa3[(i,) * 7] = 0.02 * (i + 1)
-        qa4[(i,) * 8] = 0.01 * (i + 1)
+    d1[0, 0, 0] = 0.3
+    d1[1, 1, 1] = -0.2
 
-    dali[4] = (qa1, qa2, qa3, qa4)
+    d2[0, 0, 0, 0] = 0.4
+    d2[1, 1, 1, 1] = 0.1
 
-    d = theta - theta0
+    t1[0, 0, 0, 0] = 0.05
+    t1[1, 1, 1, 1] = -0.03
 
-    order3 = build_delta_chi2_dali(
-        theta,
-        theta0,
-        dali,
-        forecast_order=3,
-    )
+    t2[0, 0, 0, 0, 0] = 0.02
+    t2[1, 1, 1, 1, 1] = 0.01
 
+    t3[0, 0, 0, 0, 0, 0] = 0.006
+    t3[1, 1, 1, 1, 1, 1] = 0.004
+
+    qa1[0, 0, 0, 0, 0] = 0.04
+    qa1[1, 1, 1, 1, 1] = 0.08
+
+    qa2[0, 0, 0, 0, 0, 0] = 0.03
+    qa2[1, 1, 1, 1, 1, 1] = 0.06
+
+    qa3[0, 0, 0, 0, 0, 0, 0] = 0.02
+    qa3[1, 1, 1, 1, 1, 1, 1] = 0.04
+
+    qa4[0, 0, 0, 0, 0, 0, 0, 0] = 0.01
+    qa4[1, 1, 1, 1, 1, 1, 1, 1] = 0.02
+
+    dali = {
+        1: (fisher,),
+        2: (d1, d2),
+        3: (t1, t2, t3),
+        4: (qa1, qa2, qa3, qa4),
+    }
+
+    fisher_term = float(d @ fisher @ d)
+
+    d1_3 = float(np.einsum(
+        "ijk,i,j,k->",
+        d1, d, d, d,
+    ))
+    d2_4 = float(np.einsum(
+        "ijkl,i,j,k,l->",
+        d2, d, d, d, d,
+    ))
+    t1_4 = float(np.einsum(
+        "ijkl,i,j,k,l->",
+        t1, d, d, d, d,
+    ))
+    t2_5 = float(np.einsum(
+        "ijklm,i,j,k,l,m->",
+        t2, d, d, d, d, d,
+    ))
+    t3_6 = float(np.einsum(
+        "ijklmn,i,j,k,l,m,n->",
+        t3, d, d, d, d, d, d,
+    ))
     qa1_5 = float(np.einsum(
         "ijklm,i,j,k,l,m->",
         qa1, d, d, d, d, d,
@@ -467,7 +515,12 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
     ))
 
     expected = (
-        order3
+        fisher_term
+        + d1_3
+        + (1.0 / 4.0) * d2_4
+        + (1.0 / 3.0) * t1_4
+        + (1.0 / 6.0) * t2_5
+        + (1.0 / 36.0) * t3_6
         + (1.0 / 12.0) * qa1_5
         + (1.0 / 24.0) * qa2_6
         + (1.0 / 72.0) * qa3_7
@@ -481,4 +534,5 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
         forecast_order=4,
     )
 
+    assert got == pytest.approx(expected)
     assert got == pytest.approx(expected)
