@@ -555,7 +555,7 @@ def test_forecast_dict_keys_and_multiplet_lengths():
     assert len(out[1]) == 1  # (F,)
     assert len(out[2]) == 2  # (D1, D2)
     assert len(out[3]) == 3  # (T1, T2, T3)
-    assert len(out[4]) == 4  # (Q1, Q2, Q3, Q4)
+    assert len(out[4]) == 4  # (Qa1, Qa2, Qa3, Qa4)
 
 
 @pytest.mark.parametrize("p,nobs", [(1, 1), (2, 2), (3, 2)])
@@ -588,11 +588,11 @@ def test_tensor_shapes_all_orders(p, nobs):
     assert T2.shape == (p, p, p, p, p)
     assert T3.shape == (p, p, p, p, p, p)
 
-    Q1, Q2, Q3, Q4 = out[4]
-    assert Q1.shape == (p, p, p, p, p)
-    assert Q2.shape == (p, p, p, p, p, p)
-    assert Q3.shape == (p, p, p, p, p, p, p)
-    assert Q4.shape == (p, p, p, p, p, p, p, p)
+    Qa1, Qa2, Qa3, Qa4 = out[4]
+    assert Qa1.shape == (p, p, p, p, p)
+    assert Qa2.shape == (p, p, p, p, p, p)
+    assert Qa3.shape == (p, p, p, p, p, p, p)
+    assert Qa4.shape == (p, p, p, p, p, p, p, p)
 
 
 def _assert_symmetric_under_permutation(x, axes, rtol=0, atol=0):

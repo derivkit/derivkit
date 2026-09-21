@@ -19,7 +19,7 @@ With the forecast tensors returned by :func:`derivkit.forecasting.get_forecast_t
 - ``dali[1] == (F,)``
 - ``dali[2] == (D1, D2)``
 - ``dali[3] == (T1, T2, T3)``
-- ``dali[4] == (Q1, Q2, Q3, Q4)``
+- ``dali[4] == (Qa1, Qa2, Qa3, Qa4)``
 
 the DALI ``delta_chi2`` is:
 
@@ -328,14 +328,14 @@ def build_delta_chi2_dali(
     - ``dali[1] == (F,)`` with ``F`` of shape ``(p, p)``
     - ``dali[2] == (D1, D2)`` with shapes ``(p, p, p)`` and ``(p, p, p, p)``
     - ``dali[3] == (T1, T2, T3)`` with shapes ``(p,)*4``, ``(p,)*5``, ``(p,)*6``
-    - ``dali[4] == (Q1, Q2, Q3, Q4)`` with shapes ``(p,)*5``, `(p,)*6``, ``(p,)*7``, ``(p,)*8``
+    - ``dali[4] == (Qa1, Qa2, Qa3, Qa4)`` with shapes ``(p,)*5``, `(p,)*6``, ``(p,)*7``, ``(p,)*8``
 
     The evaluated quantity is:
 
     - order 2: ``d.T @ F @ d + D1[d^3] + (1/4) D2[d^4]``
     - order 3: order 2 plus ``(1/3) T1[d^4] + (1/6) T2[d^5] + (1/36) T3[d^6]``
-    - order 4: order 3 plus ``(1/12) Q1[d^5] + (1/24) Q2[d^6]``
-      ``+ (1/72) Q3[d^7] + (1/576) Q4[d^8]``
+    - order 4: order 3 plus ``(1/12) Qa1[d^5] + (1/24) Qa2[d^6]``
+      ``+ (1/72) Qa3[d^7] + (1/576) Qa4[d^8]``
 
     Args:
         theta: Evaluation point in parameter space.
@@ -432,34 +432,34 @@ def build_delta_chi2_dali(
     if chosen == 3:
         return chi2
 
-    q1 = np.asarray(dali[4][0], dtype=np.float64)
-    q2 = np.asarray(dali[4][1], dtype=np.float64)
-    q3 = np.asarray(dali[4][2], dtype=np.float64)
-    q4 = np.asarray(dali[4][3], dtype=np.float64)
+    qa1 = np.asarray(dali[4][0], dtype=np.float64)
+    qa2 = np.asarray(dali[4][1], dtype=np.float64)
+    qa3 = np.asarray(dali[4][2], dtype=np.float64)
+    qa4 = np.asarray(dali[4][3], dtype=np.float64)
 
-    q1_5 = float(np.einsum(
+    qa1_5 = float(np.einsum(
         "ijklm,i,j,k,l,m->",
-        q1, d, d, d, d, d,
+        qa1, d, d, d, d, d,
     ))
-    q2_6 = float(np.einsum(
+    qa2_6 = float(np.einsum(
         "ijklmn,i,j,k,l,m,n->",
-        q2, d, d, d, d, d, d,
+        qa2, d, d, d, d, d, d,
     ))
-    q3_7 = float(np.einsum(
+    qa3_7 = float(np.einsum(
         "ijklmno,i,j,k,l,m,n,o->",
-        q3, d, d, d, d, d, d, d,
+        qa3, d, d, d, d, d, d, d,
     ))
-    q4_8 = float(np.einsum(
+    qa4_8 = float(np.einsum(
         "ijklmnop,i,j,k,l,m,n,o,p->",
-        q4, d, d, d, d, d, d, d, d,
+        qa4, d, d, d, d, d, d, d, d,
     ))
 
     chi2 = (
         chi2
-        + (1.0 / 12.0) * q1_5
-        + (1.0 / 24.0) * q2_6
-        + (1.0 / 72.0) * q3_7
-        + (1.0 / 576.0) * q4_8
+        + (1.0 / 12.0) * qa1_5
+        + (1.0 / 24.0) * qa2_6
+        + (1.0 / 72.0) * qa3_7
+        + (1.0 / 576.0) * qa4_8
     )
     return chi2
 

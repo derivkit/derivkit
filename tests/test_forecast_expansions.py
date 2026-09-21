@@ -427,18 +427,18 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
 
     dali = _toy_dali_triplet(p)
 
-    q1 = np.zeros((p,) * 5, dtype=float)
-    q2 = np.zeros((p,) * 6, dtype=float)
-    q3 = np.zeros((p,) * 7, dtype=float)
-    q4 = np.zeros((p,) * 8, dtype=float)
+    qa1 = np.zeros((p,) * 5, dtype=float)
+    qa2 = np.zeros((p,) * 6, dtype=float)
+    qa3 = np.zeros((p,) * 7, dtype=float)
+    qa4 = np.zeros((p,) * 8, dtype=float)
 
     for i in range(p):
-        q1[(i,) * 5] = 0.04 * (i + 1)
-        q2[(i,) * 6] = 0.03 * (i + 1)
-        q3[(i,) * 7] = 0.02 * (i + 1)
-        q4[(i,) * 8] = 0.01 * (i + 1)
+        qa1[(i,) * 5] = 0.04 * (i + 1)
+        qa2[(i,) * 6] = 0.03 * (i + 1)
+        qa3[(i,) * 7] = 0.02 * (i + 1)
+        qa4[(i,) * 8] = 0.01 * (i + 1)
 
-    dali[4] = (q1, q2, q3, q4)
+    dali[4] = (qa1, qa2, qa3, qa4)
 
     d = theta - theta0
 
@@ -449,23 +449,29 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
         forecast_order=3,
     )
 
-    q1_5 = float(np.einsum("ijklm,i,j,k,l,m->", q1, d, d, d, d, d))
-    q2_6 = float(np.einsum("ijklmn,i,j,k,l,m,n->", q2, d, d, d, d, d, d))
-    q3_7 = float(np.einsum(
-        "ijklmno,i,j,k,l,m,n,o->",
-        q3, d, d, d, d, d, d, d,
+    qa1_5 = float(np.einsum(
+        "ijklm,i,j,k,l,m->",
+        qa1, d, d, d, d, d,
     ))
-    q4_8 = float(np.einsum(
+    qa2_6 = float(np.einsum(
+        "ijklmn,i,j,k,l,m,n->",
+        qa2, d, d, d, d, d, d,
+    ))
+    qa3_7 = float(np.einsum(
+        "ijklmno,i,j,k,l,m,n,o->",
+        qa3, d, d, d, d, d, d, d,
+    ))
+    qa4_8 = float(np.einsum(
         "ijklmnop,i,j,k,l,m,n,o,p->",
-        q4, d, d, d, d, d, d, d, d,
+        qa4, d, d, d, d, d, d, d, d,
     ))
 
     expected = (
         order3
-        + (1.0 / 12.0) * q1_5
-        + (1.0 / 24.0) * q2_6
-        + (1.0 / 72.0) * q3_7
-        + (1.0 / 576.0) * q4_8
+        + (1.0 / 12.0) * qa1_5
+        + (1.0 / 24.0) * qa2_6
+        + (1.0 / 72.0) * qa3_7
+        + (1.0 / 576.0) * qa4_8
     )
 
     got = build_delta_chi2_dali(

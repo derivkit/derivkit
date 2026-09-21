@@ -259,7 +259,7 @@ def validate_dali_shape(
       ``(p, p, p)`` and ``(p, p, p, p)``.
     - order 3 multiplet: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
       ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
-    - order 4 multiplet: ``(Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``
+    - order 4 multiplet: ``(Qa_{(4,1)}, Qa_{(4,2)}, Qa_{(4,3)}, Qa_{(4,4)})``
       with shapes ``(p,)*5``, ``(p,)*6``, ``(p,)*7``, and ``(p,)*8``.
 
     Args:
@@ -335,7 +335,7 @@ def validate_dali_shape(
             ``(p, p, p)`` and ``(p, p, p, p)``.
           - ``order == 3``: ``m == (T_{(3,1)}, T_{(3,2)}, T_{(3,3)})`` with shapes
             ``(p, p, p, p)``, ``(p, p, p, p, p)``, and ``(p, p, p, p, p, p)``.
-          - ``order == 4``: ``m == (Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``
+          - ``order == 4``: ``m == (Qa_{(4,1)}, Qa_{(4,2)}, Qa_{(4,3)}, Qa_{(4,4)})``
             with shapes ``(p,)*5``, ``(p,)*6``, ``(p,)*7``, and ``(p,)*8``.
 
         Args:
@@ -379,7 +379,7 @@ def validate_dali_shape(
         if order == 4:
             if len(m) != 4:
                 raise ValueError(
-                    f"dali[4] must be a 4-tuple (Q41, Q42, Q43, Q44); got length {len(m)}."
+                    f"dali[4] must be a 4-tuple (Qa41, Qa42, Qa43, Qa44); got length {len(m)}."
                 )
             _require_tensor(m[0], idx=0, expected_ndim=5)
             _require_tensor(m[1], idx=1, expected_ndim=6)
@@ -437,7 +437,7 @@ def validate_dali_shape(
             " Expected (F,)"
             " or (D21,D22)"
             " or (T31,T32,T33)"
-            " or (Q41,Q42,Q43,Q44)."
+            " or (Qa41,Qa42,Qa43,Qa44)."
         )
 
     # dict[int, tuple[...]]: get_forecast_tensors output
@@ -573,7 +573,7 @@ def resolve_dali_assembled_multiplet(
       - order 1: (F,)
       - order 2: (F, D1, D2)
       - order 3: (F, D1, D2, T1, T2, T3)
-      - order 4: (F, D1, D2, T1, T2, T3, Q1, Q2, Q3, Q4)
+      - order 4: (F, D1, D2, T1, T2, T3, Qa1, Qa2, Qa3, Qa4)
 
     Notes:
       - Tuple inputs cannot be assembled for order>1 because they do not include F.
@@ -614,11 +614,23 @@ def resolve_dali_assembled_multiplet(
         if chosen == 3:
             return 3, (f, d1, d2, t1, t2, t3)
 
-        q1 = np.asarray(dali[4][0], dtype=np.float64)
-        q2 = np.asarray(dali[4][1], dtype=np.float64)
-        q3 = np.asarray(dali[4][2], dtype=np.float64)
-        q4 = np.asarray(dali[4][3], dtype=np.float64)
-        return 4, (f, d1, d2, t1, t2, t3, q1, q2, q3, q4)
+        qa1 = np.asarray(dali[4][0], dtype=np.float64)
+        qa2 = np.asarray(dali[4][1], dtype=np.float64)
+        qa3 = np.asarray(dali[4][2], dtype=np.float64)
+        qa4 = np.asarray(dali[4][3], dtype=np.float64)
+
+        return 4, (
+            f,
+            d1,
+            d2,
+            t1,
+            t2,
+            t3,
+            qa1,
+            qa2,
+            qa3,
+            qa4,
+        )
 
     # tuple input: can only safely support Fisher-only (because order>1 tuples have no F)
     m = dali  # validated as tuple
