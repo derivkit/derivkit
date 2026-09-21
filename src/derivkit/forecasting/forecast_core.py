@@ -90,7 +90,7 @@ def get_forecast_tensors(
         - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``
         - order 4: ``(Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``
 
-        Here ``D_{(k,l)}``, ``T_{(k,l)}``, and ``Q_{(k,l)}`` denote tensors
+        Here ``D_{(k,l)}``, ``T_{(k,l)}``, and ``Qa_{(k,l)}`` denote tensors
         obtained by contracting the ``k``-th order derivative with the ``l``-th
         order derivative via the inverse covariance.
 
