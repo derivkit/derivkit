@@ -4,6 +4,7 @@ import threading
 import time
 
 import numpy as np
+import pytest
 
 from derivkit.calculus_kit import CalculusKit
 
@@ -17,6 +18,12 @@ def scalar_function(x):
 def vector_function(x):
     """Vector-valued function for Jacobian tests."""
     return np.asarray(x, dtype=float)
+
+
+def smooth_function(x):
+    """Smooth scalar-valued function for higher-order derivative tests."""
+    x = np.asarray(x, dtype=float)
+    return float(np.exp(x[0]))
 
 
 class RecordingGradient:
@@ -216,13 +223,33 @@ def test_hyper_hessian_delegates_to_build_hyper_hessian(monkeypatch):
     x0 = [0.0, 1.0, 2.0]
     ck = CalculusKit(scalar_function, x0)
 
-    out = ck.hyper_hessian(ordering="ijk")
+    out = ck.hyper_hessian(order=4, method="finite")
 
     assert recorder.func is scalar_function
     np.testing.assert_allclose(recorder.x0, np.asarray(x0, dtype=float))
     assert recorder.args == ()
-    assert recorder.kwargs == {"ordering": "ijk"}
+    assert recorder.kwargs == {
+        "order": 4,
+        "method": "finite",
+    }
     np.testing.assert_allclose(out, np.ones((3, 3, 3)))
+
+
+@pytest.mark.parametrize("order", [3, 4])
+def test_hyper_hessian_higher_order_smoke(order):
+    """Tests higher-order derivatives through the CalculusKit API."""
+    ck = CalculusKit(smooth_function, [0.0])
+
+    out = ck.hyper_hessian(order=order)
+
+    assert out.shape == (1,) * order
+    assert np.isfinite(out).all()
+    np.testing.assert_allclose(
+        out[(0,) * order],
+        1.0,
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
 
 def _make_concurrency_probe(*, sleep_s: float = 0.03):
