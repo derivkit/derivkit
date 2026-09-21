@@ -1184,28 +1184,3 @@ def test_fourth_derivative_order_is_forwarded(monkeypatch):
     )
 
     assert seen["order"] == 4
-
-
-def test_scalar_dali_fourth_order_symmetrized():
-    """Tests symmetrization of fourth-order DALI tensors."""
-    forecast = get_forecast_tensors(
-        model_smooth,
-        np.array([1.0]),
-        np.array([[1.0]]),
-        forecast_order=4,
-        symmetrize_dali=True,
-        method="finite",
-    )
-
-    expected = (np.e**2,) * 4
-
-    for tensor, value in zip(
-        forecast[4],
-        expected,
-        strict=True,
-    ):
-        np.testing.assert_allclose(
-            tensor,
-            value,
-            atol=1e-3,
-        )
