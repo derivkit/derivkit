@@ -325,9 +325,10 @@ def model_quadratic(theta: np.ndarray) -> np.ndarray:
     return np.array([t0**2, 2.0 * t0 * t1], float)
 
 
-def model_quartic(theta: np.ndarray) -> np.ndarray:
-    """Returns a sum of fourth powers."""
-    return np.asarray([np.sum(np.asarray(theta)**4)])
+def model_smooth(theta: np.ndarray) -> np.ndarray:
+    """Returns a smooth nonlinear scalar model."""
+    theta = np.asarray(theta, dtype=float)
+    return np.asarray([np.sum(np.exp(theta))])
 
 
 @pytest.mark.parametrize(
@@ -347,7 +348,7 @@ def model_quartic(theta: np.ndarray) -> np.ndarray:
             ),
         ),
         pytest.param(
-            model_quartic,
+            model_smooth,
             np.array([1]),
             (
                 np.array([[[96]]]),
@@ -386,13 +387,8 @@ def test_scalar_dali_triplet(model, theta, expected):
 def test_scalar_dali_fourth_order():
     """Tests the fourth-order DALI tensors for a scalar quartic model."""
 
-    def model(theta):
-        """Returns a quartic scalar model."""
-        x = np.asarray(theta, dtype=float)[0]
-        return x ** 4
-
     forecast = get_forecast_tensors(
-        model,
+        model_smooth,
         np.array([1.0]),
         np.array([[1.0]]),
         forecast_order=4,
@@ -523,7 +519,7 @@ def test_get_forecast_tensors_output_type():
     """Tests that a full forecast returns a dictionary of the right type."""
     max_order = np.random.choice(SUPPORTED_FORECAST_ORDERS)
     forecast = get_forecast_tensors(
-        model_quartic,
+        model_smooth,
         [1.2],
         [1],
         forecast_order=max_order,

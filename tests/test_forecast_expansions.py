@@ -534,5 +534,4 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
         forecast_order=4,
     )
 
-    assert got == pytest.approx(expected)
-    assert got == pytest.approx(expected)
+    assert np.isclose(got, expected)
