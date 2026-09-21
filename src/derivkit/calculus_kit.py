@@ -1,6 +1,7 @@
 """Provides the CalculusKit class.
 
-A wrapper around the calculus helpers that exposes the gradient, Jacobian, and Hessian functions.
+A wrapper around the calculus helpers that exposes gradient, Jacobian,
+Hessian, and higher-order derivative tensors.
 
 Typical usage examples:
 
@@ -18,8 +19,13 @@ Typical usage examples:
 >>> calc = CalculusKit(sin_function, x0=np.array([0.5]))
 >>> grad = calc.gradient()
 >>> hess = calc.hessian()
+>>> hess_third = calc.hyper_hessian(order=3)
+>>> hess_fourth = calc.hyper_hessian(order=4)
 >>>
->>> jac = CalculusKit(identity_function, x0=np.array([1.0, 2.0])).jacobian()
+>>> jac = CalculusKit(
+...     identity_function,
+...     x0=np.array([1.0, 2.0]),
+... ).jacobian()
 """
 from __future__ import annotations
 
@@ -41,7 +47,7 @@ from derivkit.utils.thread_safety import wrap_with_lock
 
 
 class CalculusKit:
-    """Provides access to gradient, Jacobian, and Hessian tensors."""
+    """Provides access to gradient, Jacobian, Hessian, and higher-order derivative tensors."""
 
     def __init__(
         self,
@@ -54,8 +60,8 @@ class CalculusKit:
 
         Args:
             function: The function to be differentiated. Accepts a 1D
-                array-like. Must return either a scalar (for gradient/Hessian)
-                or a 1D array (for Jacobian).
+                array-like. Must return either a scalar or a 1D array,
+                depending on the requested derivative tensor.
             x0: Point at which to evaluate derivatives (shape ``(p,)``) for
                 ``p`` input parameters.
             thread_safe: If ``True``, serialize calls to ``function`` using a lock.
@@ -129,7 +135,7 @@ class CalculusKit:
         return build_hessian_diag(self.function, self.x0, *args, **kwargs)
 
     def hyper_hessian(self, *args, **kwargs) -> NDArray[np.floating]:
-        """Returns the third-derivative tensor of a function.
+        """Returns a higher-order derivative tensor of a function.
 
         This is a wrapper around :func:`derivkit.calculus.build_hyper_hessian`,
         with the ``function`` and ``theta0`` arguments fixed to the values

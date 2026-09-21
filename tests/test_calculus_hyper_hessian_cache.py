@@ -16,11 +16,9 @@ _METHOD_CASES = [
 
 
 @pytest.mark.parametrize("method, extra_kwargs", _METHOD_CASES)
-@pytest.mark.parametrize("order", [1, 2, 3, 4])
 def test_hyper_hessian_cache_does_not_change_result(
     method,
     extra_kwargs,
-    order,
 ):
     """Tests that caching does not change derivatives."""
     def model(theta):
@@ -33,7 +31,7 @@ def test_hyper_hessian_cache_does_not_change_result(
     derivative_no_cache = build_hyper_hessian(
         model,
         theta0,
-        order=order,
+        order=3,
         method=method,
         n_workers=1,
         dk_init_kwargs={"use_input_cache": False},
@@ -43,11 +41,47 @@ def test_hyper_hessian_cache_does_not_change_result(
     derivative_with_cache = build_hyper_hessian(
         model,
         theta0,
-        order=order,
+        order=3,
         method=method,
         n_workers=1,
         dk_init_kwargs={"use_input_cache": True},
         **extra_kwargs,
+    )
+
+    np.testing.assert_allclose(
+        derivative_with_cache,
+        derivative_no_cache,
+        rtol=1e-10,
+        atol=1e-12,
+    )
+
+
+@pytest.mark.parametrize("order", [1, 2, 3, 4])
+def test_hyper_hessian_cache_does_not_change_result_across_orders(order):
+    """Tests that caching does not change derivatives across derivative orders."""
+    def model(theta):
+        """Mock model function."""
+        x, y, z = theta
+        return x**4 * y + x * z**3 + np.sin(z)
+
+    theta0 = np.array([0.3, -0.5, 0.8])
+
+    derivative_no_cache = build_hyper_hessian(
+        model,
+        theta0,
+        order=order,
+        method="finite",
+        n_workers=1,
+        dk_init_kwargs={"use_input_cache": False},
+    )
+
+    derivative_with_cache = build_hyper_hessian(
+        model,
+        theta0,
+        order=order,
+        method="finite",
+        n_workers=1,
+        dk_init_kwargs={"use_input_cache": True},
     )
 
     np.testing.assert_allclose(

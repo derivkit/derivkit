@@ -2,10 +2,10 @@
 
 This module provides functional helpers to
 
-- compute first-, second-, and third-order derivatives of a model with
-  respect to its parameters, and
-- build Fisher, doublet-DALI, and triplet-DALI forecast tensors from those
-  derivatives and a covariance matrix.
+- compute model derivatives through fourth order with respect to its
+  parameters, and
+- build Fisher and DALI forecast tensors through fourth derivative order
+  from those derivatives and a covariance matrix.
 
 These functions are the low-level building blocks used by higher-level
 forecasting interfaces in DerivKit. For details on the DALI expansion,
@@ -36,9 +36,10 @@ __all__ = [
 #:  A value of 1 corresponds to the Fisher matrix.
 #:  A value of 2 corresponds to the DALI doublet.
 #:  A value of 3 corresponds to the DALI triplet.
-SUPPORTED_FORECAST_ORDERS = (1, 2, 3)
+#:  A value of 4 corresponds to the fourth-order DALI expansion.
+SUPPORTED_FORECAST_ORDERS = (1, 2, 3, 4)
 
-SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3)
+SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3, 4)
 
 
 def get_forecast_tensors(
@@ -87,10 +88,11 @@ def get_forecast_tensors(
         - order 1: ``(F,)``
         - order 2: ``(D_{(2,1)}, D_{(2,2)})``
         - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``
+        - order 4: ``(Qa_{(4,1)}, Qa_{(4,2)}, Qa_{(4,3)}, Qa_{(4,4)})``
 
-        Here ``D_{(k,l)}`` and ``T_{(k,l)}`` denote tensors obtained by contracting
-        the ``k``-th order derivative with the ``l``-th order derivative via the
-        inverse covariance.
+        Here ``D_{(k,l)}``, ``T_{(k,l)}``, and ``Qa_{(k,l)}`` denote tensors
+        obtained by contracting the ``k``-th order derivative with the ``l``-th
+        order derivative via the inverse covariance.
 
         Each tensor axis has length ``p = len(theta0)``. Shapes are:
 
@@ -100,6 +102,10 @@ def get_forecast_tensors(
         - ``T_{(3,1)}``: ``(p, p, p, p)``
         - ``T_{(3,2)}``: ``(p, p, p, p, p)``
         - ``T_{(3,3)}``: ``(p, p, p, p, p, p)``
+        - ``Q_{(4,1)}``: ``(p, p, p, p, p)``
+        - ``Q_{(4,2)}``: ``(p, p, p, p, p, p)``
+        - ``Q_{(4,3)}``: ``(p, p, p, p, p, p, p)``
+        - ``Q_{(4,4)}``: ``(p, p, p, p, p, p, p, p)``
 
     Raises:
         ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDERS`.
@@ -150,6 +156,10 @@ def get_forecast_tensors(
         3: {1: "iabc,ij,jd->abcd",
             2: "iabc,ij,jde->abcde",
             3: "iabc,ij,jdef->abcdef"},
+        4: {1: "iabcd,ij,je->abcde",
+            2: "iabcd,ij,jef->abcdef",
+            3: "iabcd,ij,jefg->abcdefg",
+            4: "iabcd,ij,jefgh->abcdefgh"},
     }
 
     for order1 in range(1, 1 + forecast_order):
@@ -278,12 +288,12 @@ def _get_derivatives(
         ``(n_observables, n_parameters, n_parameters)`` (second-order derivatives).
         For ``order == 3``, the shape is
         ``(n_observables, n_parameters, n_parameters, n_parameters)`` (third-order derivatives).
+        For ``order == 4``, the shape is
+        ``(n_observables, n_parameters, n_parameters, n_parameters, n_parameters)``
+        (fourth-order derivatives).
 
     Raises:
-        ValueError: An error occurred if a derivative was requested of
-            higher order than 3.
-        RuntimeError: An error occurred if a ValueError was not raised
-            after calling the function.
+        ValueError: If the requested derivative order is not supported.
     """
     if order not in SUPPORTED_DERIVATIVE_ORDERS:
         raise ValueError(
@@ -373,6 +383,31 @@ def _get_derivatives(
             raise ValueError(
                 f"hyper_hessian returned unexpected shape {hh_raw.shape}; "
                 f"expected ({n_observables},{n_parameters},{n_parameters},{n_parameters})."
+            )
+
+    elif order == 4:
+        hhhh_raw = np.asarray(
+            ckit.hyper_hessian(
+                order=4,
+                method=method,
+                n_workers=n_workers,
+                **tuned_kwargs,
+            ),
+            dtype=float,
+        )
+        if hhhh_raw.shape == (
+            n_observables,
+            n_parameters,
+            n_parameters,
+            n_parameters,
+            n_parameters,
+        ):
+            return hhhh_raw
+        else:
+            raise ValueError(
+                f"hyper_hessian returned unexpected shape {hhhh_raw.shape}; "
+                f"expected ({n_observables},{n_parameters},{n_parameters},"
+                f"{n_parameters},{n_parameters})."
             )
 
 
