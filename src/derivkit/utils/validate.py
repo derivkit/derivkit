@@ -399,7 +399,8 @@ def validate_dali_shape(
           - ``(D_{(2,1)}, D_{(2,2)})``: length 2 and ``ndim(D_{(2,1)}) == 3``.
           - ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``: length 3 and ``ndim(T_{(3,1)}) == 4``.
           - ``(Q_{(4,1)}, Q_{(4,2)}, Q_{(4,3)}, Q_{(4,4)})``: length 4 and
-            ``ndim(Q_{(4,1)}) == 5``.
+          - ``(Qa_{(4,1)}, Qa_{(4,2)}, Qa_{(4,3)}, Qa_{(4,4)})``: length 4 and
+            ``ndim(Qa_{(4,1)}) == 5``.
 
         This helper exists to accept tuple inputs in a way that is consistent with the
         per-order multiplet convention.
