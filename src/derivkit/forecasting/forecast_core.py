@@ -21,7 +21,6 @@ from numpy.typing import NDArray
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
-from derivkit.utils.logger import derivkit_logger
 from derivkit.utils.types import ArrayLike1D, ArrayLike2D
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
@@ -321,14 +320,6 @@ def _get_derivatives(
 
     ckit = CalculusKit(_vectorize_model_output, theta0_arr)
 
-    if order >= 2 and method != "finite":
-        derivkit_logger.warning(
-            "[DALI] order=%s: higher-order derivatives may depend sensitively on "
-            "the differentiation method. For robust DALI forecasts, we recommend "
-            "comparing the resulting contours with a finite-difference calculation, "
-            "as smoothing or fitting-based methods can reduce local nonlinear structure.",
-            order,
-        )
     tuned_kwargs = _filter_derivative_kwargs(method, dict(dk_kwargs))
 
     if order == 1:
