@@ -975,6 +975,11 @@ def test_dali_symmetries():
                 "Untested values added to SUPPORTED_FORECAST_ORDERS"
             )
 
+    # The _get_derivatives() method in get_forecast_tensors() is replaced by
+    # dummy(), so we can purely test the symmetrisation.
+    # The function passed to get_forecast_tensors() is a dummy function which
+    # is not used to determine the output. The covariance matrix represents a
+    # 1D model.
     function_to_patch = (
         "derivkit.forecasting.forecast_core._get_derivatives"
     )
