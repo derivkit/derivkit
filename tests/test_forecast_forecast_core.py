@@ -1189,3 +1189,75 @@ def test_fourth_derivative_order_is_forwarded(monkeypatch):
     )
 
     assert seen["order"] == 4
+
+
+def test_fourth_order_dali_tensors():
+    """Tests that fourth-order DALI tensors agree with explicit calculations."""
+    a = np.zeros(2)
+    b = np.zeros((2, 2))
+    c = np.zeros((2, 2, 2))
+    d = np.zeros((2, 2, 2, 2))
+
+    a[1] = 2.0
+    b[1, 0] = 3.0
+    c[1, 1, 0] = 5.0
+    d[0, 1, 0, 1] = 7.0
+
+    def dummy(*args, **kwargs):
+        """Mock function which returns dummy derivative tensors."""
+        forecast_order = kwargs.get("order")
+
+        if forecast_order == 1:
+            return a[np.newaxis, ...]
+        elif forecast_order == 2:
+            return b[np.newaxis, ...]
+        elif forecast_order == 3:
+            return c[np.newaxis, ...]
+        elif forecast_order == 4:
+            return d[np.newaxis, ...]
+        else:
+            raise ValueError(
+                "Untested values added to SUPPORTED_FORECAST_ORDERS"
+            )
+
+    reference_qa1 = np.zeros(5 * [2])
+    reference_qa1[0, 1, 0, 1, 1] = 7.0 * 2.0
+
+    reference_qa2 = np.zeros(6 * [2])
+    reference_qa2[0, 1, 0, 1, 1, 0] = 7.0 * 3.0
+
+    reference_qa3 = np.zeros(7 * [2])
+    reference_qa3[0, 1, 0, 1, 1, 1, 0] = 7.0 * 5.0
+
+    reference_qa4 = np.zeros(8 * [2])
+    reference_qa4[0, 1, 0, 1, 0, 1, 0, 1] = 7.0 * 7.0
+
+    function_to_patch = (
+        "derivkit.forecasting.forecast_core._get_derivatives"
+    )
+
+    with patch(
+        function_to_patch,
+        wraps=dummy,
+    ):
+        result = get_forecast_tensors(
+            lambda x: 1,
+            [0, 0],
+            np.eye(1),
+            forecast_order=4,
+            symmetrize_dali=False,
+        )
+
+    reference = (
+        reference_qa1,
+        reference_qa2,
+        reference_qa3,
+        reference_qa4,
+    )
+
+    for result_tensor, reference_tensor in zip(
+        result[4],
+        reference,
+        strict=True,
+    ):
+        assert np.allclose(result_tensor, reference_tensor)
