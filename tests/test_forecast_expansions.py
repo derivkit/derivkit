@@ -415,5 +415,97 @@ def test_delta_chi2_dali_rejects_unsupported_forecast_order() -> None:
     theta = np.ones(p)
     dali = _toy_dali_doublet(p)
 
-    with pytest.raises(ValueError, match=r"forecast_order=4|not supported|Supported values"):
-        build_delta_chi2_dali(theta, theta0, dali, forecast_order=4)
+    with pytest.raises(ValueError, match=r"forecast_order=5|not supported|Supported values"):
+        build_delta_chi2_dali(theta, theta0, dali, forecast_order=5)
+
+
+def test_delta_chi2_dali_order4_matches_formula() -> None:
+    """Tests the order-4 DALI expansion against an independent calculation."""
+    p = 2
+    theta0 = np.zeros(p)
+    theta = np.array([0.2, -0.1])
+    d = theta - theta0
+
+    fisher = np.array([
+        [2.0, 0.3],
+        [0.3, 1.5],
+    ])
+
+    rng = np.random.default_rng(137)
+    d1 = rng.random((p,) * 3)
+    d2 = rng.random((p,) * 4)
+    t1 = rng.random((p,) * 4)
+    t2 = rng.random((p,) * 5)
+    t3 = rng.random((p,) * 6)
+    qa1 = rng.random((p,) * 5)
+    qa2 = rng.random((p,) * 6)
+    qa3 = rng.random((p,) * 7)
+    qa4 = rng.random((p,) * 8)
+
+    dali = {
+        1: (fisher,),
+        2: (d1, d2),
+        3: (t1, t2, t3),
+        4: (qa1, qa2, qa3, qa4),
+    }
+
+    fisher_term = float(d @ fisher @ d)
+
+    d1_3 = float(np.einsum(
+        "ijk,i,j,k->",
+        d1, d, d, d,
+    ))
+    d2_4 = float(np.einsum(
+        "ijkl,i,j,k,l->",
+        d2, d, d, d, d,
+    ))
+    t1_4 = float(np.einsum(
+        "ijkl,i,j,k,l->",
+        t1, d, d, d, d,
+    ))
+    t2_5 = float(np.einsum(
+        "ijklm,i,j,k,l,m->",
+        t2, d, d, d, d, d,
+    ))
+    t3_6 = float(np.einsum(
+        "ijklmn,i,j,k,l,m,n->",
+        t3, d, d, d, d, d, d,
+    ))
+    qa1_5 = float(np.einsum(
+        "ijklm,i,j,k,l,m->",
+        qa1, d, d, d, d, d,
+    ))
+    qa2_6 = float(np.einsum(
+        "ijklmn,i,j,k,l,m,n->",
+        qa2, d, d, d, d, d, d,
+    ))
+    qa3_7 = float(np.einsum(
+        "ijklmno,i,j,k,l,m,n,o->",
+        qa3, d, d, d, d, d, d, d,
+    ))
+    qa4_8 = float(np.einsum(
+        "ijklmnop,i,j,k,l,m,n,o,p->",
+        qa4, d, d, d, d, d, d, d, d,
+    ))
+
+    expected = (
+        fisher_term
+        + d1_3
+        + (1.0 / 4.0) * d2_4
+        + (1.0 / 3.0) * t1_4
+        + (1.0 / 6.0) * t2_5
+        + (1.0 / 36.0) * t3_6
+        + (1.0 / 12.0) * qa1_5
+        + (1.0 / 24.0) * qa2_6
+        + (1.0 / 72.0) * qa3_7
+        + (1.0 / 576.0) * qa4_8
+    )
+
+    got = build_delta_chi2_dali(
+        theta,
+        theta0,
+        dali,
+        forecast_order=4,
+    )
+
+    assert np.isclose(got, expected)
