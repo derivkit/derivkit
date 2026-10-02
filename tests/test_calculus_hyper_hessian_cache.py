@@ -20,7 +20,7 @@ def test_hyper_hessian_cache_does_not_change_result(
     method,
     extra_kwargs,
 ):
-    """Tests that caching does not change derivatives."""
+    """Tests that caching does not change derivatives across methods."""
     def model(theta):
         """Mock model function."""
         x, y, z = theta
