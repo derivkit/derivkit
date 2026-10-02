@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.0
+
+Released on 2026-10-02.
+
+### Added
+
+* `CalculusKit` is now able to compute hyper-Hessians of order greater than 3.
+* `ForecastKit` is now able to construct DALI quadruplet tensors.
+* `ForecastKit` is now able to perform DALI forecasts using the quadruplet tensors.
+
+### Changed
+
+* `ForecastKit.logposterior_dali()` or `ForecastKit.delta_chi2_dali()` will now compute the forecast to the highest available order if `forecast_order=None` is set.
+
+### Removed
+
+* `ForecastKit` will no longer issue a warning if higher-order forecasts do not use the `finite` method.
+
+
 ## v1.3.0
 
 Released on 2026-09-14.
