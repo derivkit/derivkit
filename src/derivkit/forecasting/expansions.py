@@ -399,7 +399,7 @@ def build_delta_chi2_dali(
             "forecast_order=3 requires dali to contain key 3 (triplet tensors).")
     if chosen >= 4 and 4 not in dali:
         raise ValueError(
-            "forecast_order=4 requires dali to contain key 4 (fourth-order tensors).")
+            "forecast_order=4 requires dali to contain key 4 (quadruplet tensors).")
 
     fisher = np.asarray(dali[1][0], dtype=np.float64)
     d = theta - theta0
