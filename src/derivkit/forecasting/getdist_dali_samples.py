@@ -132,7 +132,7 @@ def dali_to_getdist_importance(
         theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
         dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
         forecast_order: Maximum order of the DALI expansion to include
-            (e.g., 2 for doublet, 3 for triplet).
+            (e.g., 2 for doublet, 3 for triplet, 4 for fourth order).
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_samples: Number of importance samples to draw.
@@ -296,7 +296,8 @@ def dali_to_getdist_emcee(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
-        forecast_order: Maximum order of the DALI expansion to include (e.g., 2 for doublet, 3 for triplet).
+        forecast_order: Maximum order of the DALI expansion to include
+            (e.g., 2 for doublet, 3 for triplet, 4 for fourth order).
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
