@@ -431,42 +431,16 @@ def test_delta_chi2_dali_order4_matches_formula() -> None:
         [0.3, 1.5],
     ])
 
-    d1 = np.zeros((p,) * 3, dtype=float)
-    d2 = np.zeros((p,) * 4, dtype=float)
-    t1 = np.zeros((p,) * 4, dtype=float)
-    t2 = np.zeros((p,) * 5, dtype=float)
-    t3 = np.zeros((p,) * 6, dtype=float)
-    qa1 = np.zeros((p,) * 5, dtype=float)
-    qa2 = np.zeros((p,) * 6, dtype=float)
-    qa3 = np.zeros((p,) * 7, dtype=float)
-    qa4 = np.zeros((p,) * 8, dtype=float)
-
-    d1[0, 0, 0] = 0.3
-    d1[1, 1, 1] = -0.2
-
-    d2[0, 0, 0, 0] = 0.4
-    d2[1, 1, 1, 1] = 0.1
-
-    t1[0, 0, 0, 0] = 0.05
-    t1[1, 1, 1, 1] = -0.03
-
-    t2[0, 0, 0, 0, 0] = 0.02
-    t2[1, 1, 1, 1, 1] = 0.01
-
-    t3[0, 0, 0, 0, 0, 0] = 0.006
-    t3[1, 1, 1, 1, 1, 1] = 0.004
-
-    qa1[0, 0, 0, 0, 0] = 0.04
-    qa1[1, 1, 1, 1, 1] = 0.08
-
-    qa2[0, 0, 0, 0, 0, 0] = 0.03
-    qa2[1, 1, 1, 1, 1, 1] = 0.06
-
-    qa3[0, 0, 0, 0, 0, 0, 0] = 0.02
-    qa3[1, 1, 1, 1, 1, 1, 1] = 0.04
-
-    qa4[0, 0, 0, 0, 0, 0, 0, 0] = 0.01
-    qa4[1, 1, 1, 1, 1, 1, 1, 1] = 0.02
+    rng = np.random.default_rng(137)
+    d1 = rng.random((p,) * 3)
+    d2 = rng.random((p,) * 4)
+    t1 = rng.random((p,) * 4)
+    t2 = rng.random((p,) * 5)
+    t3 = rng.random((p,) * 6)
+    qa1 = rng.random((p,) * 5)
+    qa2 = rng.random((p,) * 6)
+    qa3 = rng.random((p,) * 7)
+    qa4 = rng.random((p,) * 8)
 
     dali = {
         1: (fisher,),
