@@ -5,7 +5,7 @@ A light wrapper around the core forecasting utilities
 :func:`derivkit.forecasting.dali.build_dali`,
 :func:`derivkit.forecasting.fisher.build_delta_nu`,
 and :func:`derivkit.forecasting.fisher.build_fisher_bias`) that exposes a simple
-API for Fisher and DALI tensors.
+API for Fisher and DALI forecast tensors.
 
 Typical usage example:
 
@@ -24,9 +24,11 @@ Typical usage example:
 >>> fisher_matrix = fk.fisher(method="finite", n_workers=1)
 >>> fisher_matrix.shape
 (2, 2)
->>> dali = fk.dali(forecast_order=2, method="finite", n_workers=1)
->>> F = dali[1][0]
->>> D1, D2 = dali[2]
+>>> dali = fk.dali(forecast_order=4, method="finite", n_workers=1)
+>>> F = dali[1][0]  # fisher matrix
+>>> D1, D2 = dali[2]  # dali doublet
+>>> T1, T2, T3 = dali[3]  # dali triplet
+>>> Qa1, Qa2, Qa3, Qa4 = dali[4]  # dali quadruplet
 >>>
 >>> data_unbiased = model(theta0)
 >>> data_biased = data_unbiased + np.array([1e-3, -2e-3])
@@ -342,9 +344,11 @@ class ForecastKit:
             - order 1: ``(F_{(1,1)},)`` (Fisher matrix)
             - order 2: ``(D_{(2,1)}, D_{(2,2)})``
             - order 3: ``(T_{(3,1)}, T_{(3,2)}, T_{(3,3)})``
+            - order 4: ``(Qa_{(4,1)}, Qa_{(4,2)}, Qa_{(4,3)}, Qa_{(4,4)})``
 
-            Here ``D_{(k,l)}`` and ``T_{(k,l)}`` denote contractions of the
-            ``k``-th and ``l``-th order derivatives via the inverse covariance.
+            Here the tensors at order ``k`` are contractions of the
+            ``k``-th order model derivative with derivatives of orders
+            ``1`` through ``k`` via the inverse covariance.
 
             Each tensor axis has length ``p = len(self.theta0)``. The
             additional tensors at
@@ -523,7 +527,8 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
-            forecast_order: Order of the forecast to use for the DALI contractions.
+            forecast_order: Maximum order of the DALI expansion to include.
+                If ``None``, the highest order available in ``dali`` is used.
 
         Returns:
             Scalar delta chi-squared value.
@@ -603,7 +608,8 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
-            forecast_order: Order of the forecast to use for the DALI contractions.
+            forecast_order: Maximum order of the DALI expansion to include.
+                If ``None``, the highest order available in ``dali`` is used.
             prior_terms: Prior term specification passed to the underlying prior
                 builder. Use this only if ``logprior`` is not provided.
             prior_bounds: Global hard bounds passed to the underlying prior builder.
@@ -845,7 +851,7 @@ class ForecastKit:
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
                 :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_importance`
-                (e.g. ``n_samples``, ``kernel_scale``, ``seed``,
+                (e.g. ``forecast_order``, ``n_samples``, ``kernel_scale``, ``seed``,
                 ``prior_terms``, ``prior_bounds``, ``logprior``,
                 ``sampler_bounds``, ``label``).
 
@@ -882,9 +888,9 @@ class ForecastKit:
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
                 :func:`derivkit.forecasting.getdist_dali_samples.dali_to_getdist_emcee`
-                (e.g. ``n_steps``, ``burn``, ``thin``, ``n_walkers``, ``init_scale``, ``seed``,
-                ``prior_terms``, ``prior_bounds``, ``logprior``,
-                ``sampler_bounds``, ``label``).
+                (e.g. ``forecast_order``, ``n_steps``, ``burn``, ``thin``,
+                ``n_walkers``, ``init_scale``, ``seed``, ``prior_terms``,
+                ``prior_bounds``, ``logprior``, ``sampler_bounds``, ``label``).
 
         Returns:
             A :class:`getdist.MCSamples` containing MCMC chains.

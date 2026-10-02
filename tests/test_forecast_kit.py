@@ -9,6 +9,36 @@ import pytest
 from derivkit.forecast_kit import ForecastKit
 
 
+def _make_fake_dali(p, forecast_order=4):
+    """Returns mock DALI tensors through the requested forecast order."""
+    dali = {
+        1: (
+            np.eye(p),
+        ),
+        2: (
+            np.zeros((p,) * 3),
+            np.zeros((p,) * 4),
+        ),
+        3: (
+            np.zeros((p,) * 4),
+            np.zeros((p,) * 5),
+            np.zeros((p,) * 6),
+        ),
+        4: (
+            np.zeros((p,) * 5),
+            np.zeros((p,) * 6),
+            np.zeros((p,) * 7),
+            np.zeros((p,) * 8),
+        ),
+    }
+
+    return {
+        order: tensors
+        for order, tensors in dali.items()
+        if order <= forecast_order
+    }
+
+
 def test_forecastkit_delegates(monkeypatch):
     """Tests that ForecastKit delegates to fisher/dali helpers correctly."""
     calls = {
@@ -49,11 +79,10 @@ def test_forecastkit_delegates(monkeypatch):
             "dk_kwargs": dk_kwargs,
         }
 
-        p = len(np.asarray(theta0))
-        F = np.eye(p)
-        D1 = np.zeros((p, p, p))
-        D2 = np.ones((p, p, p, p))
-        return {1: (F,), 2: (D1, D2)}
+        return _make_fake_dali(
+            len(np.asarray(theta0)),
+            forecast_order=forecast_order,
+        )
 
     # Patch the helpers that ForecastKit uses internally
     monkeypatch.setattr(
@@ -77,7 +106,6 @@ def test_forecastkit_delegates(monkeypatch):
         use_input_cache=False,
     )
 
-    # The fisher() method defaults to forecast_order=1 and forwards n_workers.
     # The Fisher computation delegates to the helper function and forwards n_workers.
     fish = fk.fisher(n_workers=3)
     assert fish.shape == (2, 2)
@@ -90,7 +118,7 @@ def test_forecastkit_delegates(monkeypatch):
     assert calls["fisher"]["n_workers"] == 3
 
     # Define a few mock variables. Their value doesn't matter.
-    mock_forecast_order = 2
+    mock_forecast_order = 4
 
     dali = fk.dali(
         forecast_order=mock_forecast_order,
@@ -108,8 +136,9 @@ def test_forecastkit_delegates(monkeypatch):
     np.testing.assert_allclose(calls["dali"]["theta0"], theta0)
     np.testing.assert_allclose(calls["dali"]["cov"], cov)
     assert calls["dali"]["function"] is model
-    assert calls["dali"]["forecast_order"] == mock_forecast_order
+    assert calls["dali"]["forecast_order"] == 4
     assert calls["dali"]["n_workers"] == 4
+    assert set(dali) == {1, 2, 3, 4}
 
 
 def test_default_n_workers_forwarded(monkeypatch):
@@ -412,19 +441,19 @@ def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monk
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     theta = np.array([0.3, 0.4])
-    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.zeros((2, 2, 2, 2)))}
+    dali = _make_fake_dali(2, forecast_order=4)
 
     out = fk.delta_chi2_dali(
         theta=theta,
         dali=dali,
-        forecast_order=2,
+        forecast_order=4,
     )
 
     assert out == 456.0
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
-    assert seen["forecast_order"] == 2
+    assert seen["forecast_order"] == 4
 
 
 def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monkeypatch):
@@ -520,12 +549,12 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
 
     prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
 
-    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+    dali = _make_fake_dali(2, forecast_order=4)
 
     out = fk.logposterior_dali(
         theta=theta,
         dali=dali,
-        forecast_order=2,
+        forecast_order=4,
         prior_terms=prior_terms,
         prior_bounds=None,
         logprior=None,
@@ -535,6 +564,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["forecast_order"] == 4
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] is None
     assert seen["logprior"] is None
@@ -865,12 +895,13 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+    dali = _make_fake_dali(2, forecast_order=4)
 
     out = fk.getdist_dali_importance(
         dali=dali,
         names=names,
         labels=labels,
+        forecast_order=4,
         n_samples=1000,
         seed=11,
     )
@@ -880,6 +911,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     assert seen["dali"] is dali
     assert seen["names"] == names
     assert seen["labels"] == labels
+    assert seen["kwargs"]["forecast_order"] == 4
     assert seen["kwargs"]["n_samples"] == 1000
     assert seen["kwargs"]["seed"] == 11
 
@@ -916,12 +948,13 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
-    dali = {1: (np.eye(2),), 2: (np.zeros((2, 2, 2)), np.ones((2, 2, 2, 2)))}
+    dali = _make_fake_dali(2, forecast_order=4)
 
     out = fk.getdist_dali_emcee(
         dali=dali,
         names=names,
         labels=labels,
+        forecast_order=4,
         n_steps=50,
         burn=10,
         thin=2,
@@ -935,6 +968,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert seen["dali"] is dali
     assert seen["names"] == names
     assert seen["labels"] == labels
+    assert seen["kwargs"]["forecast_order"] == 4
     assert seen["kwargs"]["n_steps"] == 50
     assert seen["kwargs"]["burn"] == 10
     assert seen["kwargs"]["thin"] == 2
@@ -1254,3 +1288,31 @@ def test_thread_safe_uses_provided_lock(monkeypatch):
 
     assert called["func"] is not None
     assert called["lock"] is lock
+
+
+@pytest.mark.parametrize("forecast_order", [2, 3, 4])
+def test_dali_higher_order_smoke(forecast_order):
+    """Tests higher-order DALI forecasts through the ForecastKit API."""
+    def model(theta):
+        """Smooth model for higher-order DALI tests."""
+        theta = np.asarray(theta, dtype=float)
+        return np.array([np.exp(theta[0])])
+
+    fk = ForecastKit(
+        function=model,
+        theta0=np.array([0.0]),
+        cov=np.eye(1),
+        use_input_cache=False,
+    )
+
+    dali = fk.dali(
+        forecast_order=forecast_order,
+        method="finite",
+        n_workers=1,
+    )
+
+    assert set(dali) == set(range(1, forecast_order + 1))
+
+    for order, tensors in dali.items():
+        assert len(tensors) == order
+        assert all(np.isfinite(tensor).all() for tensor in tensors)
