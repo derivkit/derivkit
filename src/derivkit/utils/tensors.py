@@ -54,9 +54,8 @@ def contract_tensor(
         )
 
     batch_ndim = vector.ndim - 1
-    free_ndim = tensor.ndim - n
-
     batch_labels = list(range(batch_ndim))
+    free_ndim = tensor.ndim - n
     free_labels = list(range(batch_ndim, batch_ndim + free_ndim))
     contracted_labels = list(
         range(batch_ndim + free_ndim, batch_ndim + free_ndim + n)
