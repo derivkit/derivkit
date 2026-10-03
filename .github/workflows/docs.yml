@@ -1,11 +1,9 @@
 name: Deploy Sphinx Documentation
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-      - fix-docs-workflow
     tags:
       - "v*.*.*"
 
@@ -32,20 +30,6 @@ jobs:
 
       - name: Build release docs
         run: tox -e docs-releases
-
-      - name: Inspect multiversion build
-        run: |
-          echo "=== Git refs ==="
-          git branch -a
-          echo
-          echo "=== HEAD ==="
-          git log -1 --oneline
-          echo
-          echo "=== Built versions ==="
-          find docs/_build/html -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
-          echo
-          echo "=== Main index ==="
-          ls -lah docs/_build/html/main/index.html
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4.1.0
