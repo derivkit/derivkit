@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix-docs-workflow
     tags:
       - "v*.*.*"
 
