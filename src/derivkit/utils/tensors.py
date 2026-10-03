@@ -19,7 +19,7 @@ __all__ = [
 def contract_tensor(
     tensor: FloatArray,
     vector: FloatArray,
-    n: int = 1,
+    n_axes: int = 1,
 ) -> FloatArray:
     """Contracts trailing tensor axes with copies of a vector.
 
@@ -27,7 +27,7 @@ def contract_tensor(
         tensor: Tensor whose trailing axes are contracted.
         vector: Vector or array of vectors to contract with the tensor. The
             final axis contains the parameter coordinates.
-        n: Number of trailing tensor axes to contract.
+        n_axes: Number of trailing tensor axes to contract.
 
     Returns:
         Tensor after contracting the last ``n`` axes with copies of ``vector``.
@@ -42,23 +42,23 @@ def contract_tensor(
     if vector.ndim == 0:
         raise ValueError("vector must have at least one dimension.")
 
-    if n < 0 or n > tensor.ndim:
+    if n_axes < 0 or n_axes > tensor.ndim:
         raise ValueError(
-            f"n must satisfy 0 <= n <= tensor.ndim; got n={n} "
+            f"n must satisfy 0 <= n <= tensor.ndim; got n={n_axes} "
             f"for tensor.ndim={tensor.ndim}."
         )
 
-    if n > 0 and any(size != vector.shape[-1] for size in tensor.shape[-n:]):
+    if n_axes > 0 and any(size != vector.shape[-1] for size in tensor.shape[-n_axes:]):
         raise ValueError(
             "Contracted tensor dimensions must match the final vector dimension."
         )
 
     batch_ndim = vector.ndim - 1
     batch_labels = list(range(batch_ndim))
-    free_ndim = tensor.ndim - n
+    free_ndim = tensor.ndim - n_axes
     free_labels = list(range(batch_ndim, batch_ndim + free_ndim))
     contracted_labels = list(
-        range(batch_ndim + free_ndim, batch_ndim + free_ndim + n)
+        range(batch_ndim + free_ndim, batch_ndim + free_ndim + n_axes)
     )
 
     operands = [tensor, free_labels + contracted_labels]

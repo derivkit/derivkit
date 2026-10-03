@@ -36,7 +36,7 @@ def test_contract_tensor_vector_multiple_axes():
     )
     vector = np.array([1.0, 2.0])
 
-    out = contract_tensor(tensor, vector, n=2)
+    out = contract_tensor(tensor, vector, n_axes=2)
 
     expected = np.array([27.0, 63.0])
 
@@ -49,7 +49,7 @@ def test_contract_tensor_all_axes():
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vector = np.array([1.0, 2.0])
 
-    out = contract_tensor(tensor, vector, n=2)
+    out = contract_tensor(tensor, vector, n_axes=2)
 
     expected = 27.0
 
@@ -72,7 +72,7 @@ def test_contract_tensor_batched_vectors():
         ]
     )
 
-    out = contract_tensor(tensor, vectors, n=2)
+    out = contract_tensor(tensor, vectors, n_axes=2)
 
     expected = np.array(
         [
@@ -113,7 +113,7 @@ def test_contract_tensor_n_zero_returns_tensor():
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vector = np.array([1.0, 2.0])
 
-    out = contract_tensor(tensor, vector, n=0)
+    out = contract_tensor(tensor, vector, n_axes=0)
 
     assert out.shape == tensor.shape
     assert_allclose(out, tensor)
@@ -125,10 +125,10 @@ def test_contract_tensor_invalid_n_raises():
     vector = np.ones(2)
 
     with pytest.raises(ValueError, match=r"0 <= n <= tensor.ndim"):
-        contract_tensor(tensor, vector, n=-1)
+        contract_tensor(tensor, vector, n_axes=-1)
 
     with pytest.raises(ValueError, match=r"0 <= n <= tensor.ndim"):
-        contract_tensor(tensor, vector, n=4)
+        contract_tensor(tensor, vector, n_axes=4)
 
 
 def test_contract_tensor_incompatible_shapes_raises():
