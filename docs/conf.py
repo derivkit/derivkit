@@ -156,7 +156,8 @@ html_sidebar = {
 # Sphinx Multiversion
 # -----------------------------------------------------------------------------
 smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
-smv_branch_whitelist = "main"
+smv_branch_whitelist = r"^main$"
+smv_remote_whitelist = r"^origin$"
 
 # -----------------------------------------------------------------------------
 # HTML output
