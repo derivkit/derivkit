@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-def contract_tensor(
+def contract_vectors_with_tensor(
     tensor: FloatArray,
     vector: FloatArray,
     n_axes: int = 1,
