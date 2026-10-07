@@ -10,7 +10,7 @@ import numpy as np
 from derivkit.utils.types import FloatArray
 
 __all__ = [
-    "contract_tensor",
+    "contract_vectors_with_tensor",
     "gaussian_fourth_moment",
     "symmetrize_tensor",
 ]
