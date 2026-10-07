@@ -43,8 +43,8 @@ def build_dali_bias(
         bias_order: Highest mismatch tensor order to compute. Supported values
             are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_DERIVATIVE_ORDERS`.
-        method: Numerical differentiation method. If ``None``, the DerivKit
-            default is used.
+        method: Numerical differentiation method. If ``None``, the
+            :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
         **dk_kwargs: Additional keyword arguments passed to DerivKit's
