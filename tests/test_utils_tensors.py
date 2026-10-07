@@ -197,7 +197,7 @@ def test_symmetrize_tensor_rank_four():
 
 
 def test_symmetrize_tensor_preserves_symmetric_tensor():
-    """Tests that an already symmetric tensor is unchanged."""
+    """Tests that a symmetric tensor is unchanged when symmetrized."""
     tensor = np.ones((2, 2, 2))
     tensor[0, 0, 0] = 2.0
     tensor[1, 1, 1] = 3.0
