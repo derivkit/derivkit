@@ -32,8 +32,8 @@ def build_dali_bias(
 ) -> dict[int, FloatArray]:
     """Builds the systematic mismatch tensors entering the DALI bias expansion.
 
-    The tensors describe how the difference between the biased and unbiased
-    data vectors couples to successive derivatives of the model.
+    The tensors describe how the data-model mismatch ``delta_nu``
+    couples to successive derivatives of the model.
 
     Args:
         function: The scalar or vector-valued model function.
