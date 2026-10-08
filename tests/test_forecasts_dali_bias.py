@@ -330,15 +330,18 @@ def test_build_dali_bias_tensor_unsupported_order_raises(bias_order):
         )
 
 
-def test_build_dali_bias_tensor_invalid_order_type_raises():
-    """Tests that an invalid bias-order type raises TypeError."""
-    with pytest.raises(TypeError, match="bias_order must be an int"):
+@pytest.mark.parametrize("bias_order", [
+    "invalid",
+    {},
+    1.5,
+    np.array([1, 2]),
+])
+def test_build_dali_bias_tensor_invalid_order_type_raises(bias_order):
+    """Tests that invalid bias-order inputs are rejected."""
+    with pytest.raises((TypeError, ValueError)):
         build_dali_bias_tensor(
-            linear_model,
-            [0.0, 0.0],
-            np.eye(2),
-            [1.0, 1.0],
-            bias_order="invalid",
+            linear_model, [0.0, 0.0], np.eye(2),
+            [1.0, 1.0], bias_order=bias_order
         )
 
 

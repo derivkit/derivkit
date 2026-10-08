@@ -59,16 +59,12 @@ def build_dali_bias_tensor(
         because they are independent of the parameter displacement.
 
     Raises:
-        TypeError: If ``bias_order`` cannot be converted to an integer.
+        TypeError: If ``bias_order`` is not an integer.
         ValueError: If ``bias_order`` is unsupported, ``theta0`` is empty, or
             the data mismatch does not match the number of observables.
     """
-    try:
-        bias_order = int(bias_order)
-    except Exception as e:
-        raise TypeError(
-            f"bias_order must be an int; got {type(bias_order)}."
-        ) from e
+    if not isinstance(bias_order, (int, np.integer)) or isinstance(bias_order, (bool, np.bool_)):
+        raise TypeError(f"bias_order must be an int; got {type(bias_order)}.")
 
     if bias_order not in SUPPORTED_DERIVATIVE_ORDERS:
         raise ValueError(
