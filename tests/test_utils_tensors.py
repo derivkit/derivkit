@@ -85,26 +85,41 @@ def test_contract_vectors_with_tensor_batched_vectors():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_multidimensional_batch():
-    """Tests that contraction preserves multiple leading batch dimensions."""
+def test_contract_vectors_with_tensor_multidimensional_vector_batch():
+    """Tests that contraction preserves multiple leading vector batch dimensions."""
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
-    vectors = np.array(
-        [
-            [[1.0, 0.0], [0.0, 1.0]],
-            [[1.0, 1.0], [2.0, -1.0]],
-        ]
-    )
+    vectors = np.array([
+        [[1.0, 0.0], [0.0, 1.0]],
+        [[1.0, 1.0], [2.0, -1.0]],
+    ])
 
     out = contract_vectors_with_tensor(tensor, vectors)
 
-    expected = np.array(
-        [
-            [[1.0, 3.0], [2.0, 4.0]],
-            [[3.0, 7.0], [0.0, 2.0]],
-        ]
-    )
+    expected = np.array([
+        [[1.0, 3.0], [2.0, 4.0]],
+        [[3.0, 7.0], [0.0, 2.0]],
+    ])
 
     assert out.shape == (2, 2, 2)
+    assert_allclose(out, expected)
+
+
+def test_contract_vectors_with_tensor_preserves_leading_tensor_axes():
+    """Tests that contraction preserves multiple leading tensor axes."""
+    tensor = np.array([
+        [[1.0, 2.0], [3.0, 4.0]],
+        [[5.0, 6.0], [7.0, 8.0]],
+    ])
+    vector = np.array([1.0, 2.0])
+
+    out = contract_vectors_with_tensor(tensor, vector)
+
+    expected = np.array([
+        [5.0, 11.0],
+        [17.0, 23.0],
+    ])
+
+    assert out.shape == (2, 2)
     assert_allclose(out, expected)
 
 
