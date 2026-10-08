@@ -1,4 +1,3 @@
-
 """Unit tests for ``derivkit.utils.tensors``."""
 
 from __future__ import annotations
