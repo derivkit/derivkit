@@ -304,20 +304,17 @@ def test_build_dali_bias_tensor_delta_nu_column_vector():
 
 @pytest.mark.parametrize("bias_order", [1, 2, 3, 4])
 def test_build_dali_bias_tensor_requested_order(bias_order):
-    """Tests that only bias tensors through the requested order are returned."""
+    """Tests that only orders 1 through bias_order are returned."""
     theta0 = np.array([0.0, 0.0])
     cov = np.eye(2)
     delta_nu = np.array([1.0, 1.0])
 
     bias = build_dali_bias_tensor(
-        cubic_model,
-        theta0,
-        cov,
-        delta_nu,
-        bias_order=bias_order,
+        cubic_model, theta0, cov, delta_nu, bias_order=bias_order
     )
 
     assert set(bias) == set(range(1, bias_order + 1))
+    assert 0 not in bias
 
 
 @pytest.mark.parametrize("bias_order", [0, -1, 5])
@@ -410,8 +407,10 @@ def test_build_dali_bias_tensor_smooth_model():
 
     expected_first = np.array([1.0, -1.0])
     expected_second = np.array([[0.0, 0.0], [0.0, -2.0]])
-    expected_third = np.array([[[0.0, 2.0], [2.0, 2.0]],
-                               [[2.0, 2.0], [2.0, 2.0]]])
+    expected_third = np.array([
+        [[0.0, 2.0], [2.0, 2.0]],
+        [[2.0, 2.0], [2.0, 2.0]],
+    ])
 
     assert_allclose(bias[1], expected_first, atol=1e-5)
     assert_allclose(bias[2], expected_second, atol=1e-5)

@@ -52,8 +52,9 @@ def build_dali_bias_tensor(
             differentiation machinery.
 
     Returns:
-        A dictionary mapping each derivative order to its systematic mismatch
-        tensor.
+        A dictionary mapping derivative orders 1 through ``bias_order`` to
+        their corresponding mismatch tensors. Zeroth-order terms are omitted
+        because they are independent of the parameter displacement.
 
     Raises:
         TypeError: If ``bias_order`` cannot be converted to an integer.
