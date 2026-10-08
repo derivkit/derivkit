@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-def build_dali_bias(
+def build_dali_bias_tensor(
     function: Callable[[ArrayLike1D], np.floating | Array],
     theta0: ArrayLike1D,
     cov: ArrayLike2D,
