@@ -124,10 +124,10 @@ def test_contract_vectors_with_tensor_invalid_n_raises():
     tensor = np.ones((2, 2, 2))
     vector = np.ones(2)
 
-    with pytest.raises(ValueError, match=r"0 <= n <= tensor.ndim"):
+    with pytest.raises(ValueError, match=r"0 <= n_axes <= tensor.ndim"):
         contract_vectors_with_tensor(tensor, vector, n_axes=-1)
 
-    with pytest.raises(ValueError, match=r"0 <= n <= tensor.ndim"):
+    with pytest.raises(ValueError, match=r"0 <= n_axes <= tensor.ndim"):
         contract_vectors_with_tensor(tensor, vector, n_axes=4)
 
 
