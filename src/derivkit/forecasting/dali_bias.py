@@ -23,7 +23,7 @@ def build_dali_bias_tensor(
     function: Callable[[ArrayLike1D], np.floating | Array],
     theta0: ArrayLike1D,
     cov: ArrayLike2D,
-    delta_nu: ArrayLike1D,
+    delta_nu: ArrayLike1D | ArrayLike2D,
     *,
     bias_order: int = 3,
     method: str | None = None,
@@ -41,6 +41,8 @@ def build_dali_bias_tensor(
         cov: Covariance matrix of the observables.
         delta_nu: Difference between two data vectors, which may represent
             a systematic mismatch or a difference between model predictions.
+            Accepts a 1D array or a column vector of shape ``(n_observables, 1)``.
+            The input is flattened internally.
         bias_order: Highest mismatch tensor order to compute. Supported values
             are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_DERIVATIVE_ORDERS`.
