@@ -9,9 +9,10 @@
 This section shows how to construct a Fisher information matrix using
 :class:`derivkit.forecast_kit.ForecastKit`.
 
-The Fisher matrix describes the local curvature of a Gaussian likelihood with
-respect to the model parameters. It is commonly used for forecasting parameter
-constraints and estimating parameter covariances.
+The Fisher matrix characterizes the local curvature of the log-likelihood
+with respect to the model parameters. For a Gaussian likelihood with
+parameter-independent covariance, it is constructed from the first derivatives
+of the model predictions.
 
 In DerivKit, the Fisher matrix is built from:
 
@@ -64,8 +65,8 @@ For ``p`` parameters, the Fisher matrix has shape ``(p, p)``.
 - The Fisher matrix encodes the local curvature of the likelihood with respect
   to the parameters.
 - The inverse Fisher matrix approximates the parameter covariance near
-  ``theta0``; its diagonal elements correspond to parameter variances, while
-  off-diagonal elements encode correlations.
+  ``theta0``; its diagonal elements give the parameter variances, while
+  off-diagonal elements give the covariances between parameters.
 
 
 .. doctest:: fisher_inverse
@@ -127,7 +128,8 @@ All keyword arguments are forwarded to
 Parallel execution
 ------------------
 
-Fisher matrix elements can be computed in parallel using ``n_workers``.
+The derivative evaluations used to construct the Fisher matrix can be
+parallelized using ``n_workers``.
 
 This becomes important in practical forecasting applications
 with many parameters and costly model evaluations.
