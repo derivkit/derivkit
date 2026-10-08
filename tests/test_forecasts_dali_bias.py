@@ -42,6 +42,12 @@ def cubic_model(theta):
     )
 
 
+def smooth_model(theta):
+    """Returns a smooth nonlinear two-parameter, two-observable model."""
+    x, y = theta
+    return np.array([np.sin(x) + np.cos(y), np.tanh(x + y)])
+
+
 def test_build_dali_bias_tensor_linear_model():
     """Tests first-order bias tensor for a linear model."""
     theta0 = np.array([0.0, 0.0])
@@ -390,3 +396,23 @@ def test_build_dali_bias_tensor_invalid_covariance_shape_raises():
             [1.0, 1.0],
             bias_order=1,
         )
+
+
+def test_build_dali_bias_tensor_smooth_model():
+    """Tests bias tensors for a smooth non-polynomial model."""
+    theta0 = np.array([0.0, 0.0])
+    cov = np.eye(2)
+    delta_nu = np.array([2.0, -1.0])
+
+    bias = build_dali_bias_tensor(
+        smooth_model, theta0, cov, delta_nu, bias_order=3
+    )
+
+    expected_first = np.array([1.0, -1.0])
+    expected_second = np.array([[0.0, 0.0], [0.0, -2.0]])
+    expected_third = np.array([[[0.0, 2.0], [2.0, 2.0]],
+                               [[2.0, 2.0], [2.0, 2.0]]])
+
+    assert_allclose(bias[1], expected_first, atol=1e-5)
+    assert_allclose(bias[2], expected_second, atol=1e-5)
+    assert_allclose(bias[3], expected_third, atol=1e-4)
