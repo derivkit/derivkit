@@ -1,3 +1,4 @@
+
 """Tensor algebra utilities."""
 
 from __future__ import annotations
@@ -10,43 +11,42 @@ import numpy as np
 from derivkit.utils.types import FloatArray
 
 __all__ = [
-    "contract_vectors_with_tensor",
+    "contract_tensor_with_vector",
+    "contract_tensor_with_vector_batch",
     "gaussian_fourth_moment",
     "symmetrize_tensor",
 ]
 
 
-def contract_vectors_with_tensor(
+def contract_tensor_with_vector(
     tensor: FloatArray,
     vector: FloatArray,
     n_axes: int = 1,
 ) -> FloatArray:
     """Contracts trailing tensor axes with repeated copies of a vector.
 
-    Supports a single vector or a batch of vectors. Each vector in the batch
-    is independently contracted with the same tensor along ``n_axes`` trailing
-    axes. Leading batch dimensions are preserved in the output.
-
     Args:
         tensor: Tensor whose trailing axes are contracted.
-        vector: Vector of shape ``(d,)`` or batch of vectors of shape
-            ``(..., d)``, where ``d`` is the parameter dimension.
+        vector: One-dimensional vector of shape ``(d,)``.
         n_axes: Number of trailing tensor axes to contract.
 
     Returns:
-        Tensor with the contracted axes removed and any leading vector batch
-        dimensions preserved. If ``n_axes=0``, the tensor is unchanged apart
-        from broadcasting over the batch dimensions.
+        Tensor with the contracted axes removed and leading tensor axes
+        preserved. If ``n_axes=0``, the tensor is unchanged.
 
     Raises:
-        ValueError: If ``vector`` is scalar, ``n_axes`` is invalid, or the
-            contracted dimensions do not match the vector dimension.
+        TypeError: If ``n_axes`` is not an integer.
+        ValueError: If ``vector`` is not one-dimensional, ``n_axes`` is invalid,
+            or the contracted dimensions do not match the vector dimension.
     """
     tensor = np.asarray(tensor, dtype=float)
     vector = np.asarray(vector, dtype=float)
 
-    if vector.ndim == 0:
-        raise ValueError("vector must have at least one dimension.")
+    if vector.ndim != 1:
+        raise ValueError("vector must be one-dimensional.")
+
+    if isinstance(n_axes, (bool, np.bool_)) or not isinstance(n_axes, (int, np.integer)):
+        raise TypeError("n_axes must be an integer.")
 
     if n_axes < 0 or n_axes > tensor.ndim:
         raise ValueError(
@@ -59,7 +59,65 @@ def contract_vectors_with_tensor(
             "Contracted tensor dimensions must match the final vector dimension."
         )
 
-    batch_ndim = vector.ndim - 1
+    free_ndim = tensor.ndim - n_axes
+    free_labels = list(range(free_ndim))
+    contracted_labels = list(range(free_ndim, tensor.ndim))
+
+    operands = [tensor, free_labels + contracted_labels]
+
+    for label in contracted_labels:
+        operands.extend([vector, [label]])
+
+    return np.einsum(*operands, free_labels)
+
+
+def contract_tensor_with_vector_batch(
+    tensor: FloatArray,
+    vectors: FloatArray,
+    n_axes: int = 1,
+) -> FloatArray:
+    """Contracts trailing tensor axes independently with a batch of vectors.
+
+    Each vector in the batch is independently contracted with the same tensor
+    along ``n_axes`` trailing axes. Leading batch dimensions are preserved.
+
+    Args:
+        tensor: Tensor whose trailing axes are contracted.
+        vectors: Batch of vectors of shape ``(..., d)``.
+        n_axes: Number of trailing tensor axes to contract.
+
+    Returns:
+        Tensor with the contracted axes removed and leading vector batch
+        dimensions preserved. If ``n_axes=0``, the tensor is unchanged apart
+        from broadcasting over the batch dimensions.
+
+    Raises:
+        TypeError: If ``n_axes`` is not an integer.
+        ValueError: If ``vectors`` has fewer than two dimensions, ``n_axes`` is
+            invalid, or the contracted dimensions do not match the vector
+            dimension.
+    """
+    tensor = np.asarray(tensor, dtype=float)
+    vectors = np.asarray(vectors, dtype=float)
+
+    if vectors.ndim < 2:
+        raise ValueError("vectors must have at least two dimensions.")
+
+    if isinstance(n_axes, (bool, np.bool_)) or not isinstance(n_axes, (int, np.integer)):
+        raise TypeError("n_axes must be an integer.")
+
+    if n_axes < 0 or n_axes > tensor.ndim:
+        raise ValueError(
+            f"n_axes must satisfy 0 <= n_axes <= tensor.ndim; got n_axes={n_axes} "
+            f"for tensor.ndim={tensor.ndim}."
+        )
+
+    if n_axes > 0 and any(size != vectors.shape[-1] for size in tensor.shape[-n_axes:]):
+        raise ValueError(
+            "Contracted tensor dimensions must match the final vector dimension."
+        )
+
+    batch_ndim = vectors.ndim - 1
     batch_labels = list(range(batch_ndim))
     free_ndim = tensor.ndim - n_axes
     free_labels = list(range(batch_ndim, batch_ndim + free_ndim))
@@ -70,7 +128,7 @@ def contract_vectors_with_tensor(
     operands = [tensor, free_labels + contracted_labels]
 
     for label in contracted_labels:
-        operands.extend([vector, batch_labels + [label]])
+        operands.extend([vectors, batch_labels + [label]])
 
     return np.einsum(*operands, batch_labels + free_labels)
 
@@ -124,3 +182,4 @@ def gaussian_fourth_moment(cov: FloatArray) -> FloatArray:
         + np.einsum("ac,bd->abcd", cov, cov)
         + np.einsum("ad,bc->abcd", cov, cov)
     )
+

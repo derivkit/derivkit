@@ -1,3 +1,4 @@
+
 """Unit tests for ``derivkit.utils.tensors``."""
 
 from __future__ import annotations
@@ -7,18 +8,19 @@ import pytest
 from numpy.testing import assert_allclose
 
 from derivkit.utils.tensors import (
-    contract_vectors_with_tensor,
+    contract_tensor_with_vector,
+    contract_tensor_with_vector_batch,
     gaussian_fourth_moment,
     symmetrize_tensor,
 )
 
 
-def test_contract_vectors_with_tensor_vector_once():
+def test_contract_tensor_with_vector_once():
     """Tests contraction of one trailing tensor axis with a vector."""
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vector = np.array([2.0, -1.0])
 
-    out = contract_vectors_with_tensor(tensor, vector)
+    out = contract_tensor_with_vector(tensor, vector)
 
     expected = np.array([0.0, 2.0])
 
@@ -26,7 +28,7 @@ def test_contract_vectors_with_tensor_vector_once():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_vector_multiple_axes():
+def test_contract_tensor_with_vector_multiple_axes():
     """Tests contraction of multiple trailing tensor axes with a vector."""
     tensor = np.array(
         [
@@ -36,7 +38,7 @@ def test_contract_vectors_with_tensor_vector_multiple_axes():
     )
     vector = np.array([1.0, 2.0])
 
-    out = contract_vectors_with_tensor(tensor, vector, n_axes=2)
+    out = contract_tensor_with_vector(tensor, vector, n_axes=2)
 
     expected = np.array([27.0, 63.0])
 
@@ -44,12 +46,12 @@ def test_contract_vectors_with_tensor_vector_multiple_axes():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_all_axes():
+def test_contract_tensor_with_vector_all_axes():
     """Tests contraction of all tensor axes returns a scalar array."""
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vector = np.array([1.0, 2.0])
 
-    out = contract_vectors_with_tensor(tensor, vector, n_axes=2)
+    out = contract_tensor_with_vector(tensor, vector, n_axes=2)
 
     expected = 27.0
 
@@ -57,7 +59,7 @@ def test_contract_vectors_with_tensor_all_axes():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_batched_vectors():
+def test_contract_tensor_with_vector_batch():
     """Tests that batched contractions preserve the batch and free tensor axes."""
     tensor = np.array(
         [
@@ -72,7 +74,7 @@ def test_contract_vectors_with_tensor_batched_vectors():
         ]
     )
 
-    out = contract_vectors_with_tensor(tensor, vectors, n_axes=2)
+    out = contract_tensor_with_vector_batch(tensor, vectors, n_axes=2)
 
     expected = np.array(
         [
@@ -85,7 +87,7 @@ def test_contract_vectors_with_tensor_batched_vectors():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_multidimensional_vector_batch():
+def test_contract_tensor_with_vector_batch_multidimensional():
     """Tests that contraction preserves multiple leading vector batch dimensions."""
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vectors = np.array([
@@ -93,7 +95,7 @@ def test_contract_vectors_with_tensor_multidimensional_vector_batch():
         [[1.0, 1.0], [2.0, -1.0]],
     ])
 
-    out = contract_vectors_with_tensor(tensor, vectors)
+    out = contract_tensor_with_vector_batch(tensor, vectors)
 
     expected = np.array([
         [[1.0, 3.0], [2.0, 4.0]],
@@ -104,7 +106,7 @@ def test_contract_vectors_with_tensor_multidimensional_vector_batch():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_preserves_leading_tensor_axes():
+def test_contract_tensor_with_vector_preserves_leading_tensor_axes():
     """Tests that contraction preserves multiple leading tensor axes."""
     tensor = np.array([
         [[1.0, 2.0], [3.0, 4.0]],
@@ -112,7 +114,7 @@ def test_contract_vectors_with_tensor_preserves_leading_tensor_axes():
     ])
     vector = np.array([1.0, 2.0])
 
-    out = contract_vectors_with_tensor(tensor, vector)
+    out = contract_tensor_with_vector(tensor, vector)
 
     expected = np.array([
         [5.0, 11.0],
@@ -123,30 +125,30 @@ def test_contract_vectors_with_tensor_preserves_leading_tensor_axes():
     assert_allclose(out, expected)
 
 
-def test_contract_vectors_with_tensor_n_zero_returns_tensor():
+def test_contract_tensor_with_vector_n_zero_returns_tensor():
     """Tests that zero contractions return the original tensor values."""
     tensor = np.array([[1.0, 2.0], [3.0, 4.0]])
     vector = np.array([1.0, 2.0])
 
-    out = contract_vectors_with_tensor(tensor, vector, n_axes=0)
+    out = contract_tensor_with_vector(tensor, vector, n_axes=0)
 
     assert out.shape == tensor.shape
     assert_allclose(out, tensor)
 
 
-def test_contract_vectors_with_tensor_invalid_n_raises():
+def test_contract_tensor_with_vector_invalid_n_raises():
     """Tests that invalid numbers of contracted axes raise ValueError."""
     tensor = np.ones((2, 2, 2))
     vector = np.ones(2)
 
     with pytest.raises(ValueError, match=r"0 <= n_axes <= tensor.ndim"):
-        contract_vectors_with_tensor(tensor, vector, n_axes=-1)
+        contract_tensor_with_vector(tensor, vector, n_axes=-1)
 
     with pytest.raises(ValueError, match=r"0 <= n_axes <= tensor.ndim"):
-        contract_vectors_with_tensor(tensor, vector, n_axes=4)
+        contract_tensor_with_vector(tensor, vector, n_axes=4)
 
 
-def test_contract_vectors_with_tensor_incompatible_shapes_raises():
+def test_contract_tensor_with_vector_incompatible_shapes_raises():
     """Tests that incompatible tensor and vector dimensions raise ValueError."""
     tensor = np.ones((2, 2, 2))
     vector = np.ones(3)
@@ -155,7 +157,7 @@ def test_contract_vectors_with_tensor_incompatible_shapes_raises():
         ValueError,
         match="Contracted tensor dimensions must match the final vector dimension",
     ):
-        contract_vectors_with_tensor(tensor, vector)
+        contract_tensor_with_vector(tensor, vector)
 
 
 def test_symmetrize_tensor_matrix():
@@ -274,13 +276,13 @@ def test_gaussian_fourth_moment_is_fully_symmetric():
     assert_allclose(out[0, 1, 1, 1], out[1, 0, 1, 1])
 
 
-def test_contract_vectors_with_tensor_scalar_vector_raises():
+def test_contract_tensor_with_vector_scalar_vector_raises():
     """Tests that a scalar contraction vector raises ValueError."""
     tensor = np.ones((2, 2))
     vector = np.array(2.0)
 
-    with pytest.raises(ValueError, match="vector must have at least one dimension"):
-        contract_vectors_with_tensor(tensor, vector)
+    with pytest.raises(ValueError, match="vector must be one-dimensional"):
+        contract_tensor_with_vector(tensor, vector)
 
 
 def test_symmetrize_tensor_unequal_dimensions_raises():
@@ -293,6 +295,7 @@ def test_symmetrize_tensor_unequal_dimensions_raises():
     ):
         symmetrize_tensor(tensor)
 
+
 @pytest.mark.parametrize(
     "cov",
     [
@@ -304,3 +307,59 @@ def test_gaussian_fourth_moment_non_square_covariance_raises(cov):
     """Tests that non-matrix and non-square covariances raise ValueError."""
     with pytest.raises(ValueError, match="cov must be a square matrix"):
         gaussian_fourth_moment(cov)
+
+
+@pytest.mark.parametrize("vector", [
+    np.ones((2, 2)),
+    np.ones((2, 2, 2)),
+])
+def test_contract_tensor_with_vector_multidimensional_vector_raises(vector):
+    """Tests that the single-vector function rejects batched vectors."""
+    tensor = np.ones((2, 2))
+
+    with pytest.raises(ValueError, match="vector must be one-dimensional"):
+        contract_tensor_with_vector(tensor, vector)
+
+
+@pytest.mark.parametrize("vectors", [
+    np.array(2.0),
+    np.array([1.0, 2.0]),
+])
+def test_contract_tensor_with_vector_batch_invalid_shape_raises(vectors):
+    """Tests that the batch function requires at least two dimensions."""
+    tensor = np.ones((2, 2))
+
+    with pytest.raises(ValueError, match="vectors must have at least two dimensions"):
+        contract_tensor_with_vector_batch(tensor, vectors)
+
+
+@pytest.mark.parametrize("n_axes", [1.5, "2", None, True, np.bool_(False), [1], np.array([1])])
+def test_contract_tensor_with_vector_invalid_n_type_raises(n_axes):
+    """Tests that non-integer contraction orders raise TypeError."""
+    tensor = np.ones((2, 2))
+    vector = np.ones(2)
+
+    with pytest.raises(TypeError, match="n_axes must be an integer"):
+        contract_tensor_with_vector(tensor, vector, n_axes=n_axes)
+
+
+@pytest.mark.parametrize("n_axes", [1.5, "2", None, True, np.bool_(False), [1], np.array([1])])
+def test_contract_tensor_with_vector_batch_invalid_n_type_raises(n_axes):
+    """Tests that non-integer batch contraction orders raise TypeError."""
+    tensor = np.ones((2, 2))
+    vectors = np.ones((3, 2))
+
+    with pytest.raises(TypeError, match="n_axes must be an integer"):
+        contract_tensor_with_vector_batch(tensor, vectors, n_axes=n_axes)
+
+
+def test_contract_tensor_with_vector_batch_incompatible_shapes_raises():
+    """Tests that incompatible batched vectors raise ValueError."""
+    tensor = np.ones((2, 2))
+    vectors = np.ones((3, 4))
+
+    with pytest.raises(
+        ValueError,
+        match="Contracted tensor dimensions must match the final vector dimension",
+    ):
+        contract_tensor_with_vector_batch(tensor, vectors)
