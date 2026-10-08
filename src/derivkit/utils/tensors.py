@@ -21,20 +21,26 @@ def contract_vectors_with_tensor(
     vector: FloatArray,
     n_axes: int = 1,
 ) -> FloatArray:
-    """Contracts trailing tensor axes with copies of a vector.
+    """Contracts trailing tensor axes with repeated copies of a vector.
+
+    Supports a single vector or a batch of vectors. Each vector in the batch
+    is independently contracted with the same tensor along ``n_axes`` trailing
+    axes. Leading batch dimensions are preserved in the output.
 
     Args:
         tensor: Tensor whose trailing axes are contracted.
-        vector: Vector or array of vectors to contract with the tensor. The
-            final axis contains the parameter coordinates.
+        vector: Vector of shape ``(d,)`` or batch of vectors of shape
+            ``(..., d)``, where ``d`` is the parameter dimension.
         n_axes: Number of trailing tensor axes to contract.
 
     Returns:
-        Tensor after contracting the last ``n`` axes with copies of ``vector``.
+        Tensor with the contracted axes removed and any leading vector batch
+        dimensions preserved. If ``n_axes=0``, the tensor is unchanged apart
+        from broadcasting over the batch dimensions.
 
     Raises:
-        ValueError: If ``vector`` is scalar, ``n`` is invalid, or the contracted
-            dimensions are incompatible with the vector dimension.
+        ValueError: If ``vector`` is scalar, ``n_axes`` is invalid, or the
+            contracted dimensions do not match the vector dimension.
     """
     tensor = np.asarray(tensor, dtype=float)
     vector = np.asarray(vector, dtype=float)
@@ -44,7 +50,7 @@ def contract_vectors_with_tensor(
 
     if n_axes < 0 or n_axes > tensor.ndim:
         raise ValueError(
-            f"n must satisfy 0 <= n <= tensor.ndim; got n={n_axes} "
+            f"n_axes must satisfy 0 <= n_axes <= tensor.ndim; got n_axes={n_axes} "
             f"for tensor.ndim={tensor.ndim}."
         )
 
