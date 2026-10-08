@@ -15,7 +15,7 @@ from derivkit.utils.types import Array, ArrayLike1D, ArrayLike2D, FloatArray
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
-    "build_dali_bias",
+    "build_dali_bias_tensor",
 ]
 
 
