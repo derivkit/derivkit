@@ -30,12 +30,12 @@ __all__ = [
 ]
 
 
-#  The supported orders of the DALI expansion.
-#
-#  A value of 1 corresponds to the Fisher matrix.
-#  A value of 2 corresponds to the DALI doublet.
-#  A value of 3 corresponds to the DALI triplet.
-#  A value of 4 corresponds to the DALI quadruplet.
+#:  The supported orders of the DALI expansion.
+#:
+#:  A value of 1 corresponds to the Fisher matrix.
+#:  A value of 2 corresponds to the DALI doublet.
+#:  A value of 3 corresponds to the DALI triplet.
+#:  A value of 4 corresponds to the DALI quadruplet.
 SUPPORTED_FORECAST_ORDERS = (1, 2, 3, 4)
 
 SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3, 4)
