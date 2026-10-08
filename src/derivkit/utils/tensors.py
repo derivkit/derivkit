@@ -38,36 +38,12 @@ def contract_tensor_with_vector(
         ValueError: If ``vector`` is not one-dimensional, ``n_axes`` is invalid,
             or the contracted dimensions do not match the vector dimension.
     """
-    tensor = np.asarray(tensor, dtype=float)
     vector = np.asarray(vector, dtype=float)
 
     if vector.ndim != 1:
         raise ValueError("vector must be one-dimensional.")
 
-    if isinstance(n_axes, (bool, np.bool_)) or not isinstance(n_axes, (int, np.integer)):
-        raise TypeError("n_axes must be an integer.")
-
-    if n_axes < 0 or n_axes > tensor.ndim:
-        raise ValueError(
-            f"n_axes must satisfy 0 <= n_axes <= tensor.ndim; got n_axes={n_axes} "
-            f"for tensor.ndim={tensor.ndim}."
-        )
-
-    if n_axes > 0 and any(size != vector.shape[-1] for size in tensor.shape[-n_axes:]):
-        raise ValueError(
-            "Contracted tensor dimensions must match the final vector dimension."
-        )
-
-    free_ndim = tensor.ndim - n_axes
-    free_labels = list(range(free_ndim))
-    contracted_labels = list(range(free_ndim, tensor.ndim))
-
-    operands = [tensor, free_labels + contracted_labels]
-
-    for label in contracted_labels:
-        operands.extend([vector, [label]])
-
-    return np.einsum(*operands, free_labels)
+    return contract_tensor_with_vector_batch(tensor, vector[None, :], n_axes)[0]
 
 
 def contract_tensor_with_vector_batch(
@@ -115,6 +91,9 @@ def contract_tensor_with_vector_batch(
         raise ValueError(
             "Contracted tensor dimensions must match the final vector dimension."
         )
+
+    if n_axes == 0:
+        return np.broadcast_to(tensor, vectors.shape[:-1] + tensor.shape)
 
     batch_ndim = vectors.ndim - 1
     batch_labels = list(range(batch_ndim))
