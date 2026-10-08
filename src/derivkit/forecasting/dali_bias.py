@@ -39,7 +39,8 @@ def build_dali_bias(
         function: The scalar or vector-valued model function.
         theta0: Fiducial parameter values at which derivatives are evaluated.
         cov: Covariance matrix of the observables.
-        delta_nu: Difference between biased and unbiased data vectors.
+        delta_nu: Difference between two data vectors, which may represent
+            a systematic mismatch or a difference between model predictions.
         bias_order: Highest mismatch tensor order to compute. Supported values
             are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_DERIVATIVE_ORDERS`.
