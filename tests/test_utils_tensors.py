@@ -58,7 +58,7 @@ def test_contract_vectors_with_tensor_all_axes():
 
 
 def test_contract_vectors_with_tensor_batched_vectors():
-    """Tests that contraction preserves leading batch dimensions of vectors."""
+    """Tests that batched contractions preserve the batch and free tensor axes."""
     tensor = np.array(
         [
             [[1.0, 2.0], [3.0, 4.0]],
