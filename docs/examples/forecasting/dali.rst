@@ -49,6 +49,11 @@ following shapes:
 
 All tensors are evaluated at the fiducial parameter point ``theta0``.
 
+The forecast order specifies the highest derivative order of the forward
+model included in the DALI expansion, rather than the polynomial degree
+of the resulting log-likelihood. For example, doublet-DALI includes
+terms up to fourth order in parameter displacements.
+
 
 Basic usage
 -----------
@@ -61,10 +66,10 @@ point ``theta0`` using a simple toy model.
    >>> import numpy as np
    >>> from derivkit import ForecastKit
    >>> np.set_printoptions(precision=8, suppress=True)
-   >>> # Define a simple toy model: R^2 -> R^3
+   >>> # Define a nonlinear toy model: R^2 -> R^3
    >>> def model(theta):
    ...     a, b = theta
-   ...     return np.array([a, b, a + 2.0 * b], dtype=float)
+   ...     return np.array([a, b, a**2 + 2.0 * b], dtype=float)
    >>> # Fiducial parameters and covariance
    >>> theta0 = np.array([1.0, 2.0])
    >>> cov = np.eye(3)
@@ -97,7 +102,7 @@ All keyword arguments are forwarded to
    >>> np.set_printoptions(precision=8, suppress=True)
    >>> def model(theta):
    ...     a, b = theta
-   ...     return np.array([a, b, a + 2.0 * b], dtype=float)
+   ...     return np.array([a, b, a**2 + 2.0 * b], dtype=float)
    >>> theta0 = np.array([1.0, 2.0])
    >>> cov = np.eye(3)
    >>> fk = ForecastKit(function=model, theta0=theta0, cov=cov)
@@ -129,7 +134,8 @@ This parallelizes derivative evaluations across parameters and tensor entries.
    >>> import numpy as np
    >>> from derivkit import ForecastKit
    >>> def model(theta):
-   ...     return np.array([theta[0], theta[1], theta[0] + 2.0 * theta[1]])
+   ...     a, b = theta
+   ...     return np.array([a, b, a**2 + 2.0 * b], dtype=float)
    >>> fk = ForecastKit(
    ...     function=model,
    ...     theta0=np.array([1.0, 2.0]),
