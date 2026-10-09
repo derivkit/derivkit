@@ -1261,3 +1261,46 @@ def test_fourth_order_dali_tensors():
         strict=True,
     ):
         assert np.allclose(result_tensor, reference_tensor)
+
+
+def test_forecast_uses_precomputed_derivatives():
+    """Tests that supplied derivatives are reused without differentiation."""
+    derivatives = {
+        1: np.array([[2.0]]),
+        2: np.array([[[3.0]]]),
+    }
+
+    with patch.object(fc, "_get_derivatives", side_effect=AssertionError(
+        "Derivatives should not be recomputed"
+    )):
+        forecast = get_forecast_tensors(
+            lambda theta: np.array([theta[0]]),
+            [0.0], np.eye(1), forecast_order=2,
+            derivatives=derivatives,
+        )
+
+    np.testing.assert_allclose(forecast[1][0], [[4.0]])
+    np.testing.assert_allclose(forecast[2][0], [[[6.0]]])
+    np.testing.assert_allclose(forecast[2][1], [[[[9.0]]]])
+
+
+def test_forecast_computes_and_caches_missing_derivatives():
+    """Tests that only missing derivative orders are computed and cached."""
+    derivatives = {1: np.array([[2.0]])}
+
+    def fake_derivatives(*args, **kwargs):
+        assert kwargs["order"] == 2
+        return np.array([[[3.0]]])
+
+    with patch.object(fc, "_get_derivatives", side_effect=fake_derivatives) as mocked:
+        forecast = get_forecast_tensors(
+            lambda theta: np.array([theta[0]]),
+            [0.0], np.eye(1), forecast_order=2,
+            derivatives=derivatives,
+        )
+
+    mocked.assert_called_once()
+    assert set(derivatives) == {1, 2}
+    np.testing.assert_allclose(derivatives[2], [[[3.0]]])
+    np.testing.assert_allclose(forecast[2][0], [[[6.0]]])
+    np.testing.assert_allclose(forecast[2][1], [[[[9.0]]]])
