@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 2
 
    derivkit.forecasting.dali
+   derivkit.forecasting.dali_bias
    derivkit.forecasting.expansions
    derivkit.forecasting.fisher
    derivkit.forecasting.fisher_gaussian
