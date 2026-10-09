@@ -367,7 +367,7 @@ the resulting confidence contours.
 Below, the Fisher-only contours (red) are compared with those obtained
 after including a correlated Gaussian prior (yellow).
 
-The ``prior_gaussian`` utility constructs the corresponding log-prior,
+The :meth:`derivkit.forecasting.priors_core.prior_gaussian` utility constructs the corresponding log-prior,
 while its covariance is used directly to update the Fisher matrix.
 The prior mean is set to the fiducial point ``theta0``, so the
 posterior Gaussian remains centered there.
