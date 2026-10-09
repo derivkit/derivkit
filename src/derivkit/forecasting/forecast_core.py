@@ -12,7 +12,6 @@ forecasting interfaces in DerivKit. For details on the DALI expansion,
 see e.g. https://doi.org/10.1103/PhysRevD.107.103506.
 """
 
-from itertools import permutations
 from typing import Any, Callable
 
 import numpy as np
@@ -21,6 +20,7 @@ from numpy.typing import NDArray
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
 from derivkit.utils.linalg import invert_covariance
+from derivkit.utils.tensors import symmetrize_tensor
 from derivkit.utils.types import ArrayLike1D, ArrayLike2D
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
@@ -181,11 +181,7 @@ def get_forecast_tensors(
                     derivatives[order2],
             ).astype(np.float64, copy=False)
             if symmetrize_dali:
-                axis_permutations = list(permutations(range(dali_tensor.ndim)))
-                n_permutations = len(axis_permutations)
-                dali_tensor = sum(dali_tensor.transpose(permutation) \
-                            for permutation in axis_permutations
-                            ) / n_permutations
+                dali_tensor = symmetrize_tensor(dali_tensor)
             tensors_at_order.append(dali_tensor)
 
         forecast_tensors[order1] = tuple(tensors_at_order)
@@ -340,8 +336,10 @@ def _get_derivatives(
             )
 
     elif order == 2:
-        # Build Hessian tensor once (shape expected (n_observables, n_parameters, n_parameters)),
-        # then return as (n_parameters, n_parameters, n_observables) for downstream einsum.
+        # Build the Hessian tensor with the observable index as the first axis,
+        # followed by the two parameter derivative indices. The resulting shape is
+        # (n_observables, n_parameters, n_parameters), consistent with higher-order
+        # derivatives and the index ordering expected by downstream einsum contractions.
         h_raw = np.asarray(
             ckit.hessian(
                 method=method,
