@@ -474,7 +474,7 @@ Unlike Gaussian priors, hard bounds cannot generally be incorporated
 by adding a precision matrix to the Fisher matrix. Instead, the
 Fisher-Gaussian distribution must be truncated when constructing samples.
 
-The example below uses DerivKit's ``prior_uniform`` to impose relatively
+The example below uses DerivKit's :meth:`derivkit.forecasting.priors_core.prior_uniform` to impose relatively
 weak bounds and compares the original Fisher contours (red) with the
 truncated distribution (yellow). Unlike Gaussian priors, uniform priors
 do not continuously tighten the posterior within their allowed region;
