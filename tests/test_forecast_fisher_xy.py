@@ -36,7 +36,7 @@ class FakeCalculusKit:
     """Fake CalculusKit that returns fixed Jacobian."""
 
     def __init__(self, function, x0):
-        """Initialises the class."""
+        """Initializes the class."""
         self.function = function
         self.x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
 
