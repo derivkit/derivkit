@@ -9,6 +9,7 @@ from numpy.testing import assert_allclose
 from derivkit.utils.tensors import (
     contract_tensor_with_vector,
     contract_tensor_with_vector_batch,
+    evaluate_tensor_expansion,
     gaussian_fourth_moment,
     symmetrize_tensor,
 )
@@ -342,9 +343,11 @@ def test_contract_tensor_with_vector_invalid_n_type_raises(n_axes):
         contract_tensor_with_vector(tensor, vector, n_axes=n_axes)
 
 
-@pytest.mark.parametrize("n_axes", [1.5, "2", None, True, np.bool_(False), [1], np.array([1])])
+@pytest.mark.parametrize(
+    "n_axes",
+    [1.5, "2", None, True, np.bool_(False), [1], np.array([1])])
 def test_contract_tensor_with_vector_batch_invalid_n_type_raises(n_axes):
-    """Tests that non-integer batch contraction orders raise TypeError."""
+    """Tests that noninteger batch contraction orders raise TypeError."""
     tensor = np.ones((2, 2))
     vectors = np.ones((3, 2))
 
@@ -362,3 +365,78 @@ def test_contract_tensor_with_vector_batch_incompatible_shapes_raises():
         match="Contracted tensor dimensions must match the final vector dimension",
     ):
         contract_tensor_with_vector_batch(tensor, vectors)
+
+def test_evaluate_tensor_expansion_linear():
+    """Tests that a first-order expansion equals the vector dot product."""
+    tensors = {1: np.array([2.0, -3.0])}
+    vector = np.array([1.0, 2.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector), -4.0)
+
+
+def test_evaluate_tensor_expansion_multiple_orders():
+    """Tests that tensor contractions are weighted by inverse factorials."""
+    tensors = {
+        1: np.array([2.0]),
+        2: np.array([[6.0]]),
+        3: np.array([[[12.0]]]),
+    }
+    vector = np.array([2.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector), 32.0)
+
+
+def test_evaluate_tensor_expansion_max_order():
+    """Tests that max_order excludes contributions from higher-order tensors."""
+    tensors = {
+        1: np.array([2.0]),
+        2: np.array([[6.0]]),
+        3: np.array([[[12.0]]]),
+    }
+    vector = np.array([2.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector, max_order=1), 4.0)
+    assert_allclose(evaluate_tensor_expansion(tensors, vector, max_order=2), 16.0)
+    assert_allclose(evaluate_tensor_expansion(tensors, vector, max_order=3), 32.0)
+
+
+def test_evaluate_tensor_expansion_multidimensional():
+    """Tests that higher-rank tensors contract correctly with multiple parameters."""
+    tensors = {
+        1: np.array([1.0, 2.0]),
+        2: np.array([[2.0, 1.0], [1.0, 4.0]]),
+    }
+    vector = np.array([2.0, -1.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector), 4.0)
+
+
+def test_evaluate_tensor_expansion_empty():
+    """Tests that an empty tensor dictionary evaluates to zero."""
+    assert_allclose(
+        evaluate_tensor_expansion({}, np.array([1.0, 2.0])),
+        0.0,
+    )
+
+
+def test_evaluate_tensor_expansion_nonconsecutive_orders():
+    """Tests that missing expansion orders do not affect evaluation."""
+    tensors = {
+        1: np.array([2.0]),
+        3: np.array([[[6.0]]]),
+    }
+    vector = np.array([2.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector), 12.0)
+
+
+def test_evaluate_tensor_expansion_unordered():
+    """Tests that expansion evaluation is independent of tensor insertion order."""
+    tensors = {
+        3: np.array([[[12.0]]]),
+        1: np.array([2.0]),
+        2: np.array([[6.0]]),
+    }
+    vector = np.array([2.0])
+
+    assert_allclose(evaluate_tensor_expansion(tensors, vector, max_order=2), 16.0)
