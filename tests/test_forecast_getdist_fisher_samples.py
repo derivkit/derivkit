@@ -203,3 +203,146 @@ def test_fisher_to_getdist_gaussiannd_tight_rcond_succeeds_and_matches_pinv():
 
     g = fisher_to_getdist_gaussiannd(theta0, fisher, names=names, labels=labels, rcond=1e-12)
     assert np.allclose(np.asarray(g.covs[0]), np.linalg.pinv(fisher, rcond=1e-12))
+
+
+def test_fisher_to_getdist_gaussiannd_bias_shifts_mean():
+    """Tests that systematic bias shifts the Gaussian mean without changing covariance."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+    bias = np.array([0.8, -0.4])
+
+    g = fisher_to_getdist_gaussiannd(theta0, fisher, bias=bias)
+
+    expected_mean = theta0 + np.linalg.solve(fisher, bias)
+    expected_cov = np.linalg.inv(fisher)
+
+    np.testing.assert_allclose(g.means[0], expected_mean)
+    np.testing.assert_allclose(g.covs[0], expected_cov)
+
+
+def test_fisher_to_getdist_samples_bias_shifts_sample_mean():
+    """Tests that biased Fisher samples reproduce the analytic Gaussian mean."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+    bias = np.array([0.8, -0.4])
+
+    m = fisher_to_getdist_samples(
+        theta0,
+        fisher,
+        names=["x", "y"],
+        labels=["x", "y"],
+        bias=bias,
+        n_samples=30_000,
+        seed=42,
+    )
+
+    expected_mean = theta0 + np.linalg.solve(fisher, bias)
+
+    np.testing.assert_allclose(
+        np.mean(m.samples, axis=0),
+        expected_mean,
+        atol=0.02,
+    )
+
+
+def test_fisher_to_getdist_samples_bias_loglikes():
+    """Tests that stored loglikes include the systematic bias contribution."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+    bias = np.array([0.8, -0.4])
+
+    m = fisher_to_getdist_samples(
+        theta0,
+        fisher,
+        names=["x", "y"],
+        labels=["x", "y"],
+        bias=bias,
+        n_samples=100,
+        seed=42,
+    )
+
+    delta = m.samples - theta0
+    expected = (
+        0.5 * np.einsum("ni,ij,nj->n", delta, fisher, delta)
+        - delta @ bias
+    )
+
+    np.testing.assert_allclose(m.loglikes, expected)
+
+
+@pytest.mark.parametrize("converter", [
+    fisher_to_getdist_gaussiannd,
+    fisher_to_getdist_samples,
+])
+def test_fisher_to_getdist_invalid_bias_shape(converter):
+    """Tests that Fisher GetDist converters reject incorrectly shaped bias vectors."""
+    theta0 = np.array([0.0, 0.0])
+    fisher = np.eye(2)
+    bias = np.array([1.0, 2.0, 3.0])
+
+    kwargs = {}
+    if converter is fisher_to_getdist_samples:
+        kwargs = {"names": ["x", "y"], "labels": ["x", "y"]}
+
+    with pytest.raises(ValueError, match="bias must have shape"):
+        converter(theta0, fisher, bias=bias, **kwargs)
+
+
+def test_fisher_to_getdist_gaussiannd_zero_bias():
+    """Tests that zero systematic bias reproduces the unbiased Gaussian."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+
+    default = fisher_to_getdist_gaussiannd(theta0, fisher)
+    zero_bias = fisher_to_getdist_gaussiannd(
+        theta0, fisher, bias=np.zeros(2)
+    )
+
+    np.testing.assert_allclose(zero_bias.means[0], default.means[0])
+    np.testing.assert_allclose(zero_bias.covs[0], default.covs[0])
+
+
+def test_fisher_to_getdist_samples_bias_is_translation():
+    """Tests that bias translates samples without changing their scatter."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+    bias = np.array([0.8, -0.4])
+
+    kwargs = dict(
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=1000,
+        seed=42,
+    )
+
+    unbiased = fisher_to_getdist_samples(theta0, fisher, **kwargs)
+    biased = fisher_to_getdist_samples(theta0, fisher, bias=bias, **kwargs)
+
+    expected_shift = np.linalg.solve(fisher, bias)
+
+    np.testing.assert_allclose(
+        biased.samples - unbiased.samples,
+        np.broadcast_to(expected_shift, biased.samples.shape),
+        atol=1e-12,
+    )
+
+
+def test_fisher_to_getdist_bias_likelihood_minimum():
+    """Tests that the biased Fisher likelihood is minimized at the shifted mean."""
+    theta0 = np.array([0.5, -0.3])
+    fisher = np.array([[4.0, 1.0], [1.0, 3.0]])
+    bias = np.array([0.8, -0.4])
+
+    mean = theta0 + np.linalg.solve(fisher, bias)
+
+    def negloglike(theta):
+        delta = theta - theta0
+        return 0.5 * delta @ fisher @ delta - bias @ delta
+
+    np.testing.assert_allclose(
+        fisher @ (mean - theta0),
+        bias,
+        atol=1e-12,
+    )
+
+    assert negloglike(mean) < negloglike(theta0)
