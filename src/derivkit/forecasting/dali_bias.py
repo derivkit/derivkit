@@ -171,8 +171,13 @@ def build_dali_map_shift_from_bias(
     ):
         raise TypeError("expansion_order must be an integer.")
 
-    if expansion_order not in (1, 2, 3):
-        raise ValueError("expansion_order must be 1, 2, or 3.")
+    SUPPORTED_BIAS_EXPANSION_ORDERS = (1, 2, 3)
+    if expansion_order not in SUPPORTED_BIAS_EXPANSION_ORDERS:
+        raise ValueError(
+            "expansion_order must be on of "
+            f"{SUPPORTED_BIAS_EXPANSION_ORDERS} "
+            f"but is {expansion_order}."
+        )
 
     fisher_inv = np.linalg.inv(dali[1][0])
     shift1 = fisher_inv @ bias[1]
