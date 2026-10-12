@@ -228,7 +228,7 @@ def build_dali_map_shift(
         function: The scalar or vector-valued model function.
         theta0: Fiducial parameter values.
         cov: Covariance matrix of the observables.
-        delta_nu: Difference between biased and unbiased data vectors.
+        delta_nu: systematic mismatch vector.
         expansion_order: Highest systematic response order, from 1 to 3.
         method: Numerical differentiation method.
         n_workers: Number of workers for parallel differentiation.
