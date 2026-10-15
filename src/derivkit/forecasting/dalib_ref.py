@@ -421,7 +421,7 @@ def _mean_response_coefficients(
             systematic mismatch tensors.
         bias_fourth: Optional fourth amplitude derivative of the
             systematic mismatch tensors.
-        order: Highest response order, from 1 to 4.
+        order: Highest response order to include (1 to 4, inclusive).
 
     Returns:
         Dictionary containing the unbiased posterior mean, fiducial
