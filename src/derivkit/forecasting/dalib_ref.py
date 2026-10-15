@@ -70,9 +70,10 @@ def build_dali_bias_tensor(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A dictionary mapping derivative orders 1 through ``bias_order`` to
-        their corresponding mismatch tensors. Zeroth-order terms are omitted
-        because they are independent of the parameter displacement.
+        A dictionary mapping derivative orders 1 up to and including
+        ``bias_order`` to their corresponding mismatch tensors.
+        Zeroth-order terms are omitted because they are independent of
+        the parameter displacement.
 
     Raises:
         TypeError: If ``bias_order`` is not an integer.
@@ -605,9 +606,9 @@ def build_dali_mean_shift(
 
         For ``mean_method="response"``, metadata also supplies:
 
-        ``coefficients``: Dictionary keyed by response order (1 through
-            ``response_order``). Each vector is the contribution at that
-            order when the supplied mismatch is used as-is. Equivalently,
+        ``coefficients``: Dictionary keyed by response order (1 up to and
+            including ``response_order``). Each vector is the contribution at
+            that order when the supplied mismatch is used as-is. Equivalently,
             it multiplies t**order if the mismatch is scaled by t.
         ``terms``: Same order-by-order vectors, evaluated at t=1. Their
             sum gives the returned mean shift. These are identical to
