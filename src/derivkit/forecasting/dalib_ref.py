@@ -254,7 +254,8 @@ def build_dali_map_shift(
             This is ``theta0 + shift``.
         ``baseline``: MAP without the mismatch, assumed to be ``theta0``.
         ``displacement``: MAP with the mismatch minus ``theta0``.
-            Under the stated baseline assumption, this equals ``shift``.
+            This equals ``shift`` because the baseline MAP is assumed
+            to be ``theta0``.
         ``terms``: Dictionary keyed by response order. Entry 1 is the
             leading Fisher bias; entries 2 and 3 are the successive
             corrections. Their sum is the returned shift.
