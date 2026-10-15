@@ -306,7 +306,7 @@ def _mean_map_offset(
     bias: dict[int, FloatArray],
     map_shift: FloatArray,
 ) -> FloatArray:
-    """Evaluate the analytic local mean-minus-MAP correction.
+    """Evaluate the analytic mean-minus-MAP correction.
 
     The offset is evaluated using the local DALI expansion around the
     supplied MAP displacement, retaining cubic and quintic contributions.
@@ -339,7 +339,7 @@ def _mean_map_offset(
     )
 
     covariance = solve_or_pinv(
-        precision, np.eye(precision.shape[0]), warn_context="DALI local mean"
+        precision, np.eye(precision.shape[0]), warn_context="DALI analytic mean"
     )
 
     q3 = (
@@ -530,7 +530,7 @@ def build_dali_mean_shift(
     cov: ArrayLike2D,
     delta_nu: ArrayLike1D | ArrayLike2D,
     *,
-    mean_method: str = "local",
+    mean_method: str = "analytic",
     theta: FloatArray | None = None,
     weights: FloatArray | None = None,
     response_order: int = 4,
@@ -549,17 +549,17 @@ def build_dali_mean_shift(
         delta_nu: Actual difference between the systematically affected data
             and the fiducial model prediction. Supply the full mismatch,
             including its magnitude.
-        mean_method: ``"local"`` estimates the mean using a local expansion
-            around the MAP. ``"response"`` expands the mean response using
-            the entire supplied unbiased DALI posterior. These are different
-            approximations; they should not be treated as interchangeable.
+        mean_method: ``"analytic"`` computes a perturbative mean-MAP correction
+            from DALI tensors. ``"semi-analytic"`` expands the systematic
+            response around the full unbiased DALI posterior using samples
+            or integration nodes. The two methods are different approximations.
         theta: Unbiased posterior samples or integration nodes. Required
-            only for ``mean_method="response"``.
+            only for ``mean_method="semi-analytic"``.
         weights: Nonnegative weights for those nodes, normalized internally.
-            Required only for ``mean_method="response"``.
+            Required only for ``mean_method="semi-analytic"``.
         response_order: Number of amplitude-response terms (1 to 4) for
-            ``mean_method="response"``. Not used for the local method.
-        return_metadata: If True, also return the available diagnostics.
+            ``mean_method="semi-analytic"``. Not used for the analytic method.
+        return_metadata: If ``True``, also return the available diagnostics.
         method: Numerical differentiation method used by DerivKit.
         n_workers: Number of differentiation workers.
         derivatives: Optional dictionary of model derivatives keyed by order.
@@ -583,13 +583,13 @@ def build_dali_mean_shift(
             It equals ``shift + baseline - theta0``.
         ``method``: Which mean approximation produced these results.
 
-        For ``mean_method="local"``, metadata also supplies:
+        For ``mean_method="analytic"``, metadata also supplies:
 
         ``map_shift``: Change in the MAP caused by the mismatch. The
-            local mean calculation uses this internally. The mean shift
+            analytic mean calculation uses this internally. The mean shift
             also accounts for how the mean-to-MAP separation changes.
 
-        For ``mean_method="response"``, metadata also supplies:
+        For ``mean_method="semi-analytic"``, metadata also supplies:
 
         ``coefficients``: Dictionary keyed by response order (1 up to and
             including ``response_order``). Each vector is the contribution at
@@ -599,17 +599,17 @@ def build_dali_mean_shift(
             sum gives the returned mean shift. These are identical to
             the coefficients because the supplied mismatch is complete.
 
-        No Gaussian/non-Gaussian split is returned for the response method:
+        No Gaussian/non-Gaussian split is returned for the semi-analytic method:
         obtaining one would require a separate, consistently evaluated
         Gaussian-reference mean forecast, not merely sorting terms by order.
     """
-    if mean_method not in ("local", "response"):
-        raise ValueError("mean_method must be 'local' or 'response'.")
+    if mean_method not in ("analytic", "semi-analytic"):
+        raise ValueError("mean_method must be 'analytic' or 'semi-analytic'.")
     if derivatives is None:
         derivatives = {}
     theta0_arr = np.asarray(theta0, dtype=float).reshape(-1)
 
-    if mean_method == "local":
+    if mean_method == "analytic":
         dali, bias = _forecast_tensors(
             function, theta0, cov, delta_nu, 3,
             method, n_workers, derivatives, dk_kwargs,
@@ -625,7 +625,7 @@ def build_dali_mean_shift(
             return shift
         baseline = theta0_arr + baseline_offset
         return shift, {
-            "method": "local",
+            "method": "analytic",
             "estimator": baseline + shift,
             "baseline": baseline,
             "displacement": baseline_offset + shift,
@@ -633,7 +633,9 @@ def build_dali_mean_shift(
         }
 
     if theta is None or weights is None:
-        raise ValueError("theta and weights are required for mean_method='response'.")
+        raise ValueError(
+            "theta and weights are required for mean_method='semi-analytic'."
+        )
     if isinstance(response_order, (bool, np.bool_)) or not isinstance(
         response_order, (int, np.integer)
     ) or response_order not in (1, 2, 3, 4):
@@ -655,7 +657,7 @@ def build_dali_mean_shift(
         return shift
     baseline = raw["mean0"]
     return shift, {
-        "method": "response",
+        "method": "semi-analytic",
         "estimator": baseline + shift,
         "baseline": baseline,
         "displacement": baseline + shift - theta0_arr,
