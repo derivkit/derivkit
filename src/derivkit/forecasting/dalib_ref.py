@@ -63,10 +63,11 @@ def build_dali_bias_tensor(
             :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
-        derivatives: Optional dictionary of precomputed model derivatives.
-            Missing orders are computed and stored for reuse.
-        **dk_kwargs: Additional keyword arguments passed to DerivKit's
-            differentiation machinery.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         A dictionary mapping derivative orders 1 through ``bias_order`` to
@@ -233,8 +234,11 @@ def build_dali_map_shift(
             explanatory results; otherwise return only the shift.
         method: Numerical differentiation method, not a mean-forecast method.
         n_workers: Number of differentiation workers.
-        derivatives: Optional dictionary of model derivatives to reuse.
-        **dk_kwargs: Other options passed to DerivKit differentiation.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         If ``return_metadata=False``, an array giving the MAP systematic
@@ -572,8 +576,11 @@ def build_dali_mean_shift(
         return_metadata: If True, also return the available diagnostics.
         method: Numerical differentiation method used by DerivKit.
         n_workers: Number of differentiation workers.
-        derivatives: Optional precomputed model derivatives to reuse.
-        **dk_kwargs: Other differentiation options.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         If ``return_metadata=False``, returns an array giving the systematic

@@ -77,9 +77,9 @@ def get_forecast_tensors(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
-        derivatives: Optional dictionary of precomputed model derivatives,
-            indexed by derivative order. Missing orders are computed and
-            stored in the dictionary for reuse.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
         **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
