@@ -290,7 +290,7 @@ def build_dali_map_shift(
     metadata = {
         "estimator": theta0 + shift,
         "baseline": theta0,
-        "displacement": shift.copy(),
+        "displacement": shift,
         "terms": terms,
         "gaussian_terms": gaussian_terms,
         "non_gaussian_terms": non_gaussian_terms,
@@ -666,7 +666,7 @@ def build_dali_mean_shift(
     )
     names = ("first", "second", "third", "fourth")
     coefficients = {n: raw[names[n - 1]] for n in range(1, response_order + 1)}
-    terms = {n: value.copy() for n, value in coefficients.items()}
+    terms = coefficients.copy()
     shift = _sum_terms(terms)
     if not return_metadata:
         return shift
