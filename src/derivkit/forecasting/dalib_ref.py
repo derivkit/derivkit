@@ -261,7 +261,8 @@ def build_dali_map_shift(
             corrections. Their sum is the returned shift.
         ``gaussian_terms``: Terms obtained if the unbiased posterior is
             approximated by its quadratic (Gaussian) Fisher form, while
-            retaining the mismatch potential through the requested order.
+            retaining the mismatch potential up to and including the
+            requested order.
         ``non_gaussian_terms``: Differences between the DALI and Gaussian
             terms at each order. They isolate corrections caused by the
             non-quadratic reference posterior within this expansion.
