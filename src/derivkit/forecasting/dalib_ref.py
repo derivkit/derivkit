@@ -500,6 +500,9 @@ def _mean_response_coefficients(
         denominator[response_order] = np.sum(weights * term)
         numerator[response_order] = np.sum(weights[:, None] * x * term[:, None], axis=0)
 
+    # Divide the numerator and denominator power series recursively.
+    # Previous response coefficients contain the higher powers and cross
+    # terms of the denominator, so none need to be added explicitly.
     responses = {}
 
     for response_order in range(1, order + 1):
