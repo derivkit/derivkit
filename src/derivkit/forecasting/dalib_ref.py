@@ -305,7 +305,7 @@ def _mean_map_offset(
     bias: dict[int, FloatArray],
     map_shift: FloatArray,
 ) -> FloatArray:
-    """Compute the local mean-minus-MAP correction used internally.
+    """Evaluate the analytic local mean-minus-MAP correction.
 
     The offset is evaluated using the local DALI expansion around the
     supplied MAP displacement, retaining cubic and quintic contributions.
