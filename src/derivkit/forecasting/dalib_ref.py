@@ -8,6 +8,7 @@ with and without an injected data-model mismatch.
 
 from __future__ import annotations
 
+from math import factorial
 from typing import Any, Callable
 
 import numpy as np
@@ -363,52 +364,31 @@ def _mean_map_offset(
     return cubic_offset + quintic_offset
 
 
-def _response_potential(
-    theta,
-    theta0,
-    bias,
-):
-    """Evaluate the systematic deformation of the DALI log posterior.
+def _response_potential(theta, theta0, bias):
+    """Evaluate the systematic contribution to the log posterior.
 
-    The potential describes how a systematic data mismatch changes the
-    log posterior as a function of parameter displacement from the fiducial
-    point, retaining terms through cubic order.
+    Includes every available mismatch tensor, with the appropriate
+    Taylor factorial for its order.
 
     Args:
         theta: Parameter samples with shape (n_samples, n_parameters).
         theta0: Fiducial parameter values.
-        bias: Systematic mismatch tensors through third order.
+        bias: Dictionary of mismatch tensors keyed by derivative order.
 
     Returns:
-        Systematic potential evaluated at each parameter sample.
+        An array containing the systematic log-posterior contribution
+        at each parameter sample.
     """
-    theta = np.asarray(theta, dtype=float)
-    theta0 = np.asarray(theta0, dtype=float)
+    delta = np.asarray(theta, dtype=float) - np.asarray(theta0, dtype=float)
+    potential = np.zeros(delta.shape[:-1], dtype=float)
 
-    delta = theta - theta0
+    for order, tensor in bias.items():
+        potential += (
+            contract_tensor_with_vector(tensor, delta, n_axes=order)
+            / factorial(order)
+        )
 
-    linear = np.einsum(
-        "i,...i->...",
-        bias[1],
-        delta,
-    )
-
-    quadratic = 0.5 * np.einsum(
-        "ij,...i,...j->...",
-        bias[2],
-        delta,
-        delta,
-    )
-
-    cubic = (1.0 / 6.0) * np.einsum(
-        "ijk,...i,...j,...k->...",
-        bias[3],
-        delta,
-        delta,
-        delta,
-    )
-
-    return linear + quadratic + cubic
+    return potential
 
 
 def _mean_response_coefficients(
