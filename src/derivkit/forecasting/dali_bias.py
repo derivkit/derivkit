@@ -1,7 +1,14 @@
-"""DALI systematic-bias tensor utilities."""
+"""DALI systematic-bias forecasts.
+
+The two main entry points return systematic MAP and posterior-mean shifts.
+Optional metadata explains where each estimator ends up and which terms
+contribute to its response. All shifts compare the same inference model
+with and without an injected data-model mismatch.
+"""
 
 from __future__ import annotations
 
+from math import factorial
 from typing import Any, Callable
 
 import numpy as np
@@ -11,9 +18,10 @@ from derivkit.forecasting.forecast_core import (
     _get_derivatives,
     get_forecast_tensors,
 )
-from derivkit.utils.linalg import invert_covariance
+from derivkit.utils.linalg import invert_covariance, solve_or_pinv
 from derivkit.utils.tensors import (
     contract_tensor_with_vector,
+    contract_tensor_with_vector_batch,
     gaussian_fourth_moment,
 )
 from derivkit.utils.types import Array, ArrayLike1D, ArrayLike2D, FloatArray
@@ -21,18 +29,8 @@ from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
     "build_dali_bias_tensor",
-    "build_dali_map_shift_from_bias",
     "build_dali_map_shift",
-    "build_dali_mean_map_offset_from_bias",
-    "build_dali_mean_shift_from_bias",
     "build_dali_mean_shift",
-    "build_dali_response_potential",
-    "build_dali_mean_response_coefficients",
-    "build_dali_mean_response_shift",
-    "build_dali_mean_response_displacement",
-    "build_dali_response_posterior_mean",
-    "build_dali_mean_response",
-    "build_dali_bias_shifts",
 ]
 
 
@@ -68,15 +66,17 @@ def build_dali_bias_tensor(
             :class:`derivkit.derivative_kit.DerivativeKit` default is used.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
-        derivatives: Optional dictionary of precomputed model derivatives.
-            Missing orders are computed and stored for reuse.
-        **dk_kwargs: Additional keyword arguments passed to DerivKit's
-            differentiation machinery.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        A dictionary mapping derivative orders 1 through ``bias_order`` to
-        their corresponding mismatch tensors. Zeroth-order terms are omitted
-        because they are independent of the parameter displacement.
+        A dictionary mapping derivative orders 1 up to and including
+        ``bias_order`` to their corresponding mismatch tensors.
+        Zeroth-order terms are omitted because they are independent of
+        the parameter displacement.
 
     Raises:
         TypeError: If ``bias_order`` is not an integer.
@@ -145,67 +145,69 @@ def build_dali_bias_tensor(
     return bias
 
 
-def build_dali_map_shift_from_bias(
-    dali: dict[int, tuple[FloatArray, ...]],
-    bias: dict[int, FloatArray],
-    *,
-    expansion_order: int = 3,
-) -> FloatArray:
-    """Computes the perturbative DALI MAP shift from mismatch tensors.
-
-    Args:
-        dali: Precomputed fully symmetrized Fisher and DALI tensors.
-        bias: Systematic mismatch tensors indexed by derivative order.
-        expansion_order: Highest systematic response order, from 1 to 3.
-
-    Returns:
-        MAP parameter displacement from the fiducial point through the
-        requested perturbative order.
-
-    Raises:
-        TypeError: If ``expansion_order`` is not an integer.
-        ValueError: If ``expansion_order`` is not between 1 and 3.
-    """
-    if isinstance(expansion_order, (bool, np.bool_)) or not isinstance(
-        expansion_order, (int, np.integer)
-    ):
+def _map_terms(dali, bias, order):
+    """Return each successive contribution to the perturbative MAP shift."""
+    if isinstance(order, (bool, np.bool_)) or not isinstance(order, (int, np.integer)):
         raise TypeError("expansion_order must be an integer.")
+    if order not in (1, 2, 3):
+        raise ValueError("expansion_order must be 1, 2, or 3.")
 
-    SUPPORTED_BIAS_EXPANSION_ORDERS = (1, 2, 3)
-    if expansion_order not in SUPPORTED_BIAS_EXPANSION_ORDERS:
-        raise ValueError(
-            "expansion_order must be on of "
-            f"{SUPPORTED_BIAS_EXPANSION_ORDERS} "
-            f"but is {expansion_order}."
-        )
+    fisher = dali[1][0]
+    s1 = solve_or_pinv(fisher, bias[1], warn_context="DALI MAP")
+    terms = {1: s1}
+    if order >= 2:
+        D1, D2 = dali[2]
+        s2 = solve_or_pinv(fisher, (
+            contract_tensor_with_vector(bias[2], s1)
+            - 1.5 * contract_tensor_with_vector(D1, s1, n_axes=2)
+        ), warn_context="DALI MAP")
+        terms[2] = s2
+    if order >= 3:
+        T1 = dali[3][0]
+        cubic = (2.0 / 3.0) * T1 + 0.5 * D2
+        s3 = solve_or_pinv(fisher, (
+            0.5 * contract_tensor_with_vector(bias[3], s1, n_axes=2)
+            + contract_tensor_with_vector(bias[2], s2)
+            - 3.0 * np.einsum("abc,b,c->a", D1, s1, s2)
+            - contract_tensor_with_vector(cubic, s1, n_axes=3)
+        ), warn_context="DALI MAP")
+        terms[3] = s3
+    return terms
 
-    fisher_inv = np.linalg.inv(dali[1][0])
-    shift1 = fisher_inv @ bias[1]
 
-    if expansion_order == 1:
-        return shift1
+def _map_gaussian_terms(dali, bias, order):
+    """Response of the quadratic reference posterior to the same mismatch."""
+    fisher = dali[1][0]
+    s1 = solve_or_pinv(fisher, bias[1], warn_context="DALI MAP")
+    terms = {1: s1}
+    if order >= 2:
+        s2 = solve_or_pinv(fisher, contract_tensor_with_vector(bias[2], s1), warn_context="Gaussian MAP")
+        terms[2] = s2
+    if order >= 3:
+        terms[3] = solve_or_pinv(fisher, (
+            0.5 * contract_tensor_with_vector(bias[3], s1, n_axes=2)
+            + contract_tensor_with_vector(bias[2], terms[2])
+        ), warn_context="Gaussian MAP")
+    return terms
 
-    D1, D2 = dali[2]
 
-    shift2 = fisher_inv @ (
-        contract_tensor_with_vector(bias[2], shift1)
-        - 1.5 * contract_tensor_with_vector(D1, shift1, n_axes=2)
+def _sum_terms(terms):
+    return sum(terms.values(), np.zeros_like(next(iter(terms.values()))))
+
+
+def _forecast_tensors(function, theta0, cov, delta_nu, order, method,
+                      n_workers, derivatives, dk_kwargs):
+    dali = get_forecast_tensors(
+        function, theta0, cov, forecast_order=order,
+        method=method, n_workers=n_workers,
+        derivatives=derivatives, **dk_kwargs,
     )
-
-    if expansion_order == 2:
-        return shift1 + shift2
-
-    T1, _, _ = dali[3]
-    cubic = (2.0 / 3.0) * T1 + 0.5 * D2
-
-    shift3 = fisher_inv @ (
-        0.5 * contract_tensor_with_vector(bias[3], shift1, n_axes=2)
-        + contract_tensor_with_vector(bias[2], shift2)
-        - 3.0 * np.einsum("abc,b,c->a", D1, shift1, shift2)
-        - contract_tensor_with_vector(cubic, shift1, n_axes=3)
+    bias = build_dali_bias_tensor(
+        function, theta0, cov, delta_nu, bias_order=order,
+        method=method, n_workers=n_workers,
+        derivatives=derivatives, **dk_kwargs,
     )
-
-    return shift1 + shift2 + shift3
+    return dali, bias
 
 
 def build_dali_map_shift(
@@ -215,63 +217,108 @@ def build_dali_map_shift(
     delta_nu: ArrayLike1D | ArrayLike2D,
     *,
     expansion_order: int = 3,
+    return_metadata: bool = False,
     method: str | None = None,
     n_workers: int = 1,
+    derivatives: dict[int, FloatArray] | None = None,
     **dk_kwargs: Any,
-) -> FloatArray:
-    """Computes the systematic-induced DALI MAP parameter shift.
-
-    Constructs the DALI and systematic mismatch tensors using shared
-    model derivatives, avoiding repeated differentiation.
+):
+    """Predict how the posterior maximum moves when a systematic is introduced.
 
     Args:
-        function: The scalar or vector-valued model function.
-        theta0: Fiducial parameter values.
+        function: Model predicting the observables from the parameters.
+        theta0: Fiducial parameter values. Assumed to be the MAP without
+            the systematic mismatch.
         cov: Covariance matrix of the observables.
-        delta_nu: systematic mismatch vector.
-        expansion_order: Highest systematic response order, from 1 to 3.
-        method: Numerical differentiation method.
-        n_workers: Number of workers for parallel differentiation.
-        **dk_kwargs: Additional keyword arguments passed to DerivKit.
+        delta_nu: Actual difference between the systematically affected data
+            vector and the fiducial model prediction. Its size is already
+            included; no separate amplitude parameter is needed.
+        expansion_order: Number of perturbative MAP response orders (1 to 3).
+        return_metadata: If set to ``True``, return the shift and a dictionary of
+            explanatory results; otherwise return only the shift.
+        method: Numerical differentiation method passed to
+            :class:`derivkit.derivative_kit.DerivativeKit`.
+        n_workers: Number of differentiation workers.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        MAP parameter displacement from the fiducial point through the
-        requested perturbative order.
+        If ``return_metadata=False``, an array giving the MAP systematic
+        shift: MAP with the mismatch minus MAP without the mismatch.
+        Since the baseline MAP is assumed to be ``theta0``, this is also
+        the MAP displacement from the fiducial parameters.
+
+        If ``return_metadata=True``, returns ``(shift, metadata)``.
+        The metadata dictionary contains:
+
+        ``estimator``: Predicted MAP parameter values with the mismatch.
+            This is ``theta0 + shift``.
+        ``baseline``: MAP without the mismatch, assumed to be ``theta0``.
+        ``displacement``: MAP with the mismatch minus ``theta0``.
+            This equals ``shift`` because the baseline MAP is assumed
+            to be ``theta0``.
+        ``terms``: Dictionary keyed by response order. Entry 1 is the
+            leading Fisher bias; entries 2 and 3 are the successive
+            corrections. Their sum is the returned shift.
+        ``gaussian_terms``: Terms obtained if the unbiased posterior is
+            approximated by its quadratic (Gaussian) Fisher form, while
+            retaining the mismatch potential up to and including the
+            requested order.
+        ``non_gaussian_terms``: Differences between the DALI and Gaussian
+            terms at each order. They isolate corrections caused by the
+            non-quadratic reference posterior within this expansion.
+        ``gaussian_contribution``: Sum of ``gaussian_terms``.
+        ``non_gaussian_contribution``: Sum of ``non_gaussian_terms``.
+            Adding the two contributions reproduces the MAP shift.
+
+        These Gaussian/non-Gaussian labels refer to the reference posterior,
+        not to whether a term is linear or nonlinear in systematic amplitude.
     """
-    derivatives: dict[int, FloatArray] = {}
+    if isinstance(expansion_order, (bool, np.bool_)) or not isinstance(
+            expansion_order, (int, np.integer)
+    ):
+        raise TypeError("expansion_order must be an integer.")
 
-    dali = get_forecast_tensors(
-        function,
-        theta0,
-        cov,
-        forecast_order=expansion_order,
-        method=method,
-        n_workers=n_workers,
-        derivatives=derivatives,
-        **dk_kwargs,
+    if expansion_order not in (1, 2, 3):
+        raise ValueError("expansion_order must be 1, 2, or 3.")
+
+    if derivatives is None:
+        derivatives = {}
+
+    dali, bias = _forecast_tensors(
+        function, theta0, cov, delta_nu, expansion_order,
+        method, n_workers, derivatives, dk_kwargs,
     )
+    terms = _map_terms(dali, bias, expansion_order)
+    shift = _sum_terms(terms)
+    if not return_metadata:
+        return shift
 
-    bias = build_dali_bias_tensor(
-        function,
-        theta0,
-        cov,
-        delta_nu,
-        bias_order=expansion_order,
-        method=method,
-        n_workers=n_workers,
-        derivatives=derivatives,
-        **dk_kwargs,
-    )
+    gaussian_terms = _map_gaussian_terms(dali, bias, expansion_order)
+    non_gaussian_terms = {k: terms[k] - gaussian_terms[k] for k in terms}
+    theta0 = np.asarray(theta0, dtype=float).reshape(-1)
+    metadata = {
+        "estimator": theta0 + shift,
+        "baseline": theta0,
+        "displacement": shift,
+        "terms": terms,
+        "gaussian_terms": gaussian_terms,
+        "non_gaussian_terms": non_gaussian_terms,
+        "gaussian_contribution": _sum_terms(gaussian_terms),
+        "non_gaussian_contribution": _sum_terms(non_gaussian_terms),
+    }
+    return shift, metadata
 
-    return build_dali_map_shift_from_bias(dali, bias, expansion_order=expansion_order)
 
-
-def build_dali_mean_map_offset_from_bias(
+def _mean_map_offset(
     dali: dict[int, tuple[FloatArray, ...]],
     bias: dict[int, FloatArray],
     map_shift: FloatArray,
 ) -> FloatArray:
-    """Computes the analytic DALI posterior mean offset from the MAP.
+    """Evaluate the analytic mean-minus-MAP correction.
 
     The offset is evaluated using the local DALI expansion around the
     supplied MAP displacement, retaining cubic and quintic contributions.
@@ -303,7 +350,9 @@ def build_dali_mean_map_offset_from_bias(
         - 30.0 * contract_tensor_with_vector(c6, map_shift, n_axes=4)
     )
 
-    covariance = np.linalg.inv(precision)
+    covariance = solve_or_pinv(
+        precision, np.eye(precision.shape[0]), warn_context="DALI analytic mean"
+    )
 
     q3 = (
         c3
@@ -327,140 +376,34 @@ def build_dali_mean_map_offset_from_bias(
     return cubic_offset + quintic_offset
 
 
-def build_dali_mean_shift_from_bias(
-    dali: dict[int, tuple[FloatArray, ...]],
-    bias: dict[int, FloatArray],
-    map_shift: FloatArray,
-) -> FloatArray:
-    """Computes the systematic-induced DALI posterior mean shift.
+def _response_potential(theta, theta0, bias):
+    """Evaluate the systematic contribution to the log posterior.
 
-    The shift includes the MAP displacement and the change in the
-    mean-MAP offset relative to the unbiased posterior.
-
-    Args:
-        dali: Precomputed fully symmetrized Fisher and DALI tensors.
-        bias: Systematic mismatch tensors through third order.
-        map_shift: MAP displacement from the fiducial parameters.
-
-    Returns:
-        Change in the posterior mean relative to the unbiased posterior.
-    """
-    biased_offset = build_dali_mean_map_offset_from_bias(dali, bias, map_shift)
-
-    zero_bias = {order: np.zeros_like(value) for order, value in bias.items()}
-    baseline_offset = build_dali_mean_map_offset_from_bias(
-        dali, zero_bias, np.zeros_like(map_shift)
-    )
-
-    return map_shift + biased_offset - baseline_offset
-
-
-def build_dali_mean_shift(
-    function: Callable[[ArrayLike1D], np.floating | Array],
-    theta0: ArrayLike1D,
-    cov: ArrayLike2D,
-    delta_nu: ArrayLike1D | ArrayLike2D,
-    *,
-    method: str | None = None,
-    n_workers: int = 1,
-    **dk_kwargs: Any,
-) -> FloatArray:
-    """Computes the systematic-induced DALI posterior mean shift.
-
-    Constructs DALI and mismatch tensors using shared model derivatives,
-    avoiding repeated differentiation.
-
-    Args:
-        function: The scalar or vector-valued model function.
-        theta0: Fiducial parameter values.
-        cov: Covariance matrix of the observables.
-        delta_nu: Difference between biased and unbiased data vectors.
-        method: Numerical differentiation method.
-        n_workers: Number of workers for parallel differentiation.
-        **dk_kwargs: Additional keyword arguments passed to DerivKit.
-
-    Returns:
-        Change in the posterior mean relative to the unbiased posterior.
-    """
-    derivatives: dict[int, FloatArray] = {}
-
-    dali = get_forecast_tensors(
-        function,
-        theta0,
-        cov,
-        forecast_order=3,
-        method=method,
-        n_workers=n_workers,
-        derivatives=derivatives,
-        **dk_kwargs,
-    )
-
-    bias = build_dali_bias_tensor(
-        function,
-        theta0,
-        cov,
-        delta_nu,
-        bias_order=3,
-        method=method,
-        n_workers=n_workers,
-        derivatives=derivatives,
-        **dk_kwargs,
-    )
-
-    map_shift = build_dali_map_shift_from_bias(dali, bias, expansion_order=3)
-
-    return build_dali_mean_shift_from_bias(dali, bias, map_shift)
-
-
-def build_dali_response_potential(
-    theta,
-    theta0,
-    bias,
-):
-    """Evaluates the systematic deformation of the DALI log posterior.
-
-    The potential describes how a systematic data mismatch changes the
-    log posterior as a function of parameter displacement from the fiducial
-    point, retaining terms through cubic order.
+    Includes every available mismatch tensor, with the appropriate
+    Taylor factorial for its order.
 
     Args:
         theta: Parameter samples with shape (n_samples, n_parameters).
         theta0: Fiducial parameter values.
-        bias: Systematic mismatch tensors through third order.
+        bias: Dictionary of mismatch tensors keyed by derivative order.
 
     Returns:
-        Systematic potential evaluated at each parameter sample.
+        An array containing the systematic log-posterior contribution
+        at each parameter sample.
     """
-    theta = np.asarray(theta, dtype=float)
-    theta0 = np.asarray(theta0, dtype=float)
+    delta = np.asarray(theta, dtype=float) - np.asarray(theta0, dtype=float)
+    potential = np.zeros(delta.shape[:-1], dtype=float)
 
-    delta = theta - theta0
+    for order, tensor in bias.items():
+        potential += (
+            contract_tensor_with_vector_batch(tensor, delta, n_axes=order)
+            / factorial(order)
+        )
 
-    linear = np.einsum(
-        "i,...i->...",
-        bias[1],
-        delta,
-    )
-
-    quadratic = 0.5 * np.einsum(
-        "ij,...i,...j->...",
-        bias[2],
-        delta,
-        delta,
-    )
-
-    cubic = (1.0 / 6.0) * np.einsum(
-        "ijk,...i,...j,...k->...",
-        bias[3],
-        delta,
-        delta,
-        delta,
-    )
-
-    return linear + quadratic + cubic
+    return potential
 
 
-def build_dali_mean_response_coefficients(
+def _mean_response_coefficients(
     theta,
     weights,
     theta0,
@@ -471,7 +414,7 @@ def build_dali_mean_response_coefficients(
     bias_fourth=None,
     order=4,
 ):
-    """Computes the perturbative response of the DALI posterior mean.
+    """Compute the order-by-order response of the DALI posterior mean.
 
     Expands the change in the posterior mean in powers of systematic
     amplitude, retaining the full non-Gaussian unbiased DALI posterior
@@ -480,16 +423,18 @@ def build_dali_mean_response_coefficients(
     Args:
         theta: Samples or integration nodes representing the unbiased
             DALI posterior.
-        weights: Corresponding posterior weights, normalized internally.
+        weights: Nonnegative weights representing the unbiased DALI posterior
+            at the supplied samples or nodes. Normalized internally.
         theta0: Fiducial parameter values.
-        bias: Unit-amplitude systematic mismatch tensors.
+        bias: Tensors for the full supplied mismatch. For a hypothetical
+            scaled mismatch t * delta_nu, these are the coefficients of t.
         bias_second: Optional second amplitude derivative of the
             systematic mismatch tensors.
         bias_third: Optional third amplitude derivative of the
             systematic mismatch tensors.
         bias_fourth: Optional fourth amplitude derivative of the
             systematic mismatch tensors.
-        order: Highest response order, from 1 to 4.
+        order: Highest response order to include (1 to 4, inclusive).
 
     Returns:
         Dictionary containing the unbiased posterior mean, fiducial
@@ -498,7 +443,7 @@ def build_dali_mean_response_coefficients(
     Raises:
         ValueError: If the response order is outside the supported range.
     """
-    if order not in (1, 2, 3, 4):
+    if isinstance(order, (bool, np.bool_)) or not isinstance(order, (int, np.integer)) or order not in (1, 2, 3, 4):
         raise ValueError(
             "order must be 1, 2, 3, or 4; "
             f"got {order}."
@@ -507,25 +452,29 @@ def build_dali_mean_response_coefficients(
     theta = np.asarray(theta, dtype=float)
     weights = np.asarray(weights, dtype=float)
 
+    if theta.ndim != 2 or weights.ndim != 1 or len(weights) != len(theta):
+        raise ValueError("theta must be (n_samples, n_parameters) and weights (n_samples,).")
+    if not np.all(np.isfinite(weights)) or np.any(weights < 0) or np.sum(weights) <= 0:
+        raise ValueError("weights must be finite, nonnegative, and have a positive sum.")
     weights = weights / np.sum(weights)
 
     mean0 = np.sum(weights[:, None] * theta, axis=0)
 
     x = theta - mean0
 
-    u1 = build_dali_response_potential(theta, theta0, bias)
+    u1 = _response_potential(theta, theta0, bias)
     u2 = np.zeros_like(u1)
     u3 = np.zeros_like(u1)
     u4 = np.zeros_like(u1)
 
     if bias_second is not None:
-        u2 = build_dali_response_potential(theta, theta0, bias_second)
+        u2 = _response_potential(theta, theta0, bias_second)
 
     if bias_third is not None:
-        u3 = build_dali_response_potential(theta, theta0, bias_third)
+        u3 = _response_potential(theta, theta0, bias_third)
 
     if bias_fourth is not None:
-        u4 = build_dali_response_potential(theta, theta0, bias_fourth)
+        u4 = _response_potential(theta, theta0, bias_fourth)
 
     e1 = u1
     e2 = (0.5 * u1**2 + 0.5 * u2)
@@ -564,6 +513,22 @@ def build_dali_mean_response_coefficients(
         denominator[response_order] = np.sum(weights * term)
         numerator[response_order] = np.sum(weights[:, None] * x * term[:, None], axis=0)
 
+    # Series division: R(t) = N(t) / D(t), where
+    # N(t) = sum(n_k * t**k) and D(t) = 1 + sum(d_k * t**k).
+    # Matching coefficients in N(t) = D(t) * R(t) gives
+    # r_k = n_k - sum(d_j * r_(k-j), j=1,...,k-1).
+    # Here n_k = numerator[k], d_k = denominator[k],
+    # and r_k = responses[k].
+    #
+    # For example:
+    # r_1 = n_1
+    # r_2 = n_2 - d_1*n_1
+    # r_3 = n_3 - d_1*n_2 + (d_1**2 - d_2)*n_1
+    # r_4 = n_4 - d_1*n_3 + (d_1**2 - d_2)*n_2
+    #       + (-d_1**3 + 2*d_1*d_2 - d_3)*n_1
+    #
+    # Thus the higher powers of the denominator are already included
+    # through the lower-order responses, rather than written explicitly.
     responses = {}
 
     for response_order in range(1, order + 1):
@@ -585,238 +550,161 @@ def build_dali_mean_response_coefficients(
     return coefficients
 
 
-def build_dali_mean_response_shift(
-    coefficients,
-    amplitude,
-    *,
-    order=4,
-):
-    """Evaluates the systematic shift in the DALI posterior mean.
-
-    Reconstructs the change in the posterior mean relative to the
-    unbiased posterior using the perturbative response coefficients.
-
-    Args:
-        coefficients: Posterior mean response coefficients.
-        amplitude: Amplitude of the systematic mismatch.
-        order: Highest response order to include, from 1 to 4.
-
-    Returns:
-        Posterior mean shift relative to the unbiased posterior.
-
-    Raises:
-        ValueError: If the response order is invalid or a required
-            coefficient is unavailable.
-    """
-    if order not in (1, 2, 3, 4):
-        raise ValueError(
-            "order must be 1, 2, 3, or 4; "
-            f"got {order}."
-        )
-
-    amplitude = float(amplitude)
-
-    names = {
-        1: "first",
-        2: "second",
-        3: "third",
-        4: "fourth",
-    }
-
-    shift = np.zeros_like(coefficients["mean0"], dtype=float)
-
-    for response_order in range(1, order + 1):
-        name = names[response_order]
-
-        if name not in coefficients:
-            raise ValueError(
-                f"Response coefficient {name!r} is not available."
-            )
-
-        shift += (amplitude**response_order * coefficients[name])
-
-    return shift
-
-
-def build_dali_mean_response_displacement(
-    coefficients,
-    amplitude,
-    *,
-    order=4,
-):
-    """Evaluates the DALI posterior mean displacement from the fiducial point.
-
-    Includes both the displacement of the unbiased posterior mean from
-    the fiducial parameters and the additional shift induced by the
-    systematic mismatch.
-
-    Args:
-        coefficients: Posterior mean response coefficients.
-        amplitude: Amplitude of the systematic mismatch.
-        order: Highest response order to include, from 1 to 4.
-
-    Returns:
-        Posterior mean displacement relative to the fiducial parameters.
-    """
-    baseline_displacement = (coefficients["mean0"] - coefficients["theta0"])
-
-    return (
-        baseline_displacement
-        + build_dali_mean_response_shift(
-            coefficients,
-            amplitude,
-            order=order,
-        )
-    )
-
-
-def build_dali_response_posterior_mean(
-    coefficients,
-    amplitude,
-    *,
-    order=4,
-):
-    """Reconstructs the DALI posterior mean under a systematic mismatch.
-
-    Provides the posterior mean, its displacement from the fiducial
-    parameters, and its shift relative to the unbiased posterior.
-
-    Args:
-        coefficients: Posterior mean response coefficients.
-        amplitude: Amplitude of the systematic mismatch.
-        order: Highest response order to include, from 1 to 4.
-
-    Returns:
-        Dictionary containing the posterior mean, displacement from
-        the fiducial parameters, and systematic mean shift.
-    """
-    shift = build_dali_mean_response_shift(
-        coefficients,
-        amplitude,
-        order=order,
-    )
-
-    mean = (coefficients["mean0"] + shift)
-    displacement = (mean - coefficients["theta0"])
-
-    return {
-        "mean": mean,
-        "displacement": displacement,
-        "shift": shift,
-    }
-
-def build_dali_mean_response(
+def build_dali_mean_shift(
     function: Callable[[ArrayLike1D], np.floating | Array],
     theta0: ArrayLike1D,
     cov: ArrayLike2D,
     delta_nu: ArrayLike1D | ArrayLike2D,
-    theta: FloatArray,
-    weights: FloatArray,
     *,
-    amplitude: float = 1.0,
-    order: int = 4,
+    mean_method: str = "analytic",
+    forecast_order: int = 3,
+    theta: FloatArray | None = None,
+    weights: FloatArray | None = None,
+    response_order: int = 4,
+    return_metadata: bool = False,
     method: str | None = None,
     n_workers: int = 1,
     derivatives: dict[int, FloatArray] | None = None,
     **dk_kwargs: Any,
-) -> FloatArray:
-    """Computes the systematic response of the full DALI posterior mean.
-
-    Predicts the change in the posterior mean using a perturbative
-    expansion in systematic amplitude, while retaining the non-Gaussian
-    structure of the unbiased DALI posterior.
+):
+    """Predict how the posterior mean moves when a systematic is introduced.
 
     Args:
-        function: Scalar or vector-valued model function.
-        theta0: Fiducial parameter values.
+        function: Model predicting observables from parameters.
+        theta0: Fiducial parameter values and assumed baseline MAP.
         cov: Covariance matrix of the observables.
-        delta_nu: Unit-amplitude systematic data mismatch.
-        theta: Samples or integration nodes representing the unbiased
-            DALI posterior.
-        weights: Corresponding posterior weights, normalized internally.
-        amplitude: Amplitude of the systematic mismatch.
-        order: Highest response order, from 1 to 4.
-        method: Numerical differentiation method.
-        n_workers: Number of workers for parallel differentiation.
-        derivatives: Optional precomputed model derivatives.
-        **dk_kwargs: Additional arguments passed to DerivKit.
+        delta_nu: Actual difference between the systematically affected data
+            and the fiducial model prediction. Supply the full mismatch,
+            including its magnitude.
+        mean_method: ``"analytic"`` computes a perturbative mean-MAP correction
+            from DALI tensors. ``"semi-analytic"`` expands the systematic
+            response around the full unbiased DALI posterior using samples
+            or integration nodes. The two methods are different approximations.
+        forecast_order: Order of the DALI approximation used to construct
+            the supplied unbiased posterior samples or integration nodes.
+            The systematic mismatch polynomial is truncated at the same
+            order. Used only for the semi-analytic method.
+        theta: Samples or integration nodes representing the unbiased DALI
+            posterior. Required only for ``mean_method="semi-analytic"``.
+        weights: Nonnegative weights representing the unbiased DALI posterior
+            at the supplied samples or nodes. If ``None``, equal weights are
+            assumed, appropriate for samples drawn from that posterior.
+            For quadrature or importance sampling, supply the corresponding
+            weights. Normalized internally.
+            Used only for ``mean_method="semi-analytic"``.
+        response_order: Number of amplitude-response terms (1 to 4) for
+            ``mean_method="semi-analytic"``. Not used for the analytic method.
+        return_metadata: If ``True``, also return the available diagnostics.
+        method: Numerical differentiation method passed to
+            :class:`derivkit.derivative_kit.DerivativeKit`.
+        n_workers: Number of differentiation workers.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Systematic posterior mean shift relative to the unbiased
-        DALI posterior.
+        If ``return_metadata=False``, returns an array giving the systematic
+        mean shift: posterior mean with the mismatch minus posterior mean
+        without it. This is NOT generally the same as the mean's distance
+        from ``theta0``: the unbiased mean may already differ from
+        ``theta0`` due to non-Gaussianities in the posterior.
+
+        If ``return_metadata=True``, returns ``(shift, metadata)``.
+        Every method supplies:
+
+        ``estimator``: Predicted posterior mean with the systematic.
+        ``baseline``: Posterior mean with no systematic mismatch.
+        ``displacement``: Predicted posterior mean minus ``theta0``.
+            It equals ``shift + baseline - theta0``.
+        ``method``: Which mean approximation produced these results.
+
+        For ``mean_method="analytic"``, metadata also supplies:
+
+        ``map_shift``: Change in the MAP caused by the mismatch. The
+            analytic mean calculation uses this internally. The mean shift
+            also accounts for how the mean-to-MAP separation changes.
+
+        For ``mean_method="semi-analytic"``, metadata also supplies:
+
+        ``coefficients``: Dictionary keyed by response order (1 up to and
+            including ``response_order``). Each vector is the contribution at
+            that order when the supplied mismatch is used as-is. Equivalently,
+            it multiplies t**order if the mismatch is scaled by t.
+        ``terms``: Same order-by-order vectors, evaluated at t=1. Their
+            sum gives the returned mean shift. These are identical to
+            the coefficients because the supplied mismatch is complete.
+
+        No Gaussian/non-Gaussian split is returned for the semi-analytic method:
+        obtaining one would require a separate, consistently evaluated
+        Gaussian-reference mean forecast, not merely sorting terms by order.
     """
+    if mean_method not in ("analytic", "semi-analytic"):
+        raise ValueError("mean_method must be 'analytic' or 'semi-analytic'.")
+    if derivatives is None:
+        derivatives = {}
+    theta0_arr = np.asarray(theta0, dtype=float).reshape(-1)
+
+    if mean_method == "analytic":
+        dali, bias = _forecast_tensors(
+            function, theta0, cov, delta_nu, 3,
+            method, n_workers, derivatives, dk_kwargs,
+        )
+        map_shift = _sum_terms(_map_terms(dali, bias, 3))
+        offset = _mean_map_offset(dali, bias, map_shift)
+        zero_bias = {k: np.zeros_like(v) for k, v in bias.items()}
+        baseline_offset = _mean_map_offset(
+            dali, zero_bias, np.zeros_like(map_shift),
+        )
+        shift = map_shift + offset - baseline_offset
+        if not return_metadata:
+            return shift
+        baseline = theta0_arr + baseline_offset
+        return shift, {
+            "method": "analytic",
+            "estimator": baseline + shift,
+            "baseline": baseline,
+            "displacement": baseline_offset + shift,
+            "map_shift": map_shift,
+        }
+
+    if theta is None:
+        raise ValueError("theta is required for mean_method='semi-analytic'.")
+
+    if weights is None:
+        weights = np.ones(len(theta))
+
+    if isinstance(response_order, (bool, np.bool_)) or not isinstance(
+        response_order, (int, np.integer)
+    ) or response_order not in (1, 2, 3, 4):
+        raise ValueError("response_order must be an integer from 1 to 4.")
+
+    if isinstance(forecast_order, (bool, np.bool_)) or not isinstance(
+            forecast_order, (int, np.integer)
+    ) or forecast_order not in (1, 2, 3, 4):
+        raise ValueError("forecast_order must be an integer from 1 to 4.")
+
     bias = build_dali_bias_tensor(
-        function, theta0, cov, delta_nu,
-        bias_order=3, method=method, n_workers=n_workers,
-        derivatives=derivatives, **dk_kwargs,
-    )
-    coefficients = build_dali_mean_response_coefficients(
-        theta, weights, theta0, bias, order=order,
-    )
-    return build_dali_mean_response_shift(coefficients, amplitude, order=order)
-
-
-def build_dali_bias_shifts(
-    function: Callable[[ArrayLike1D], np.floating | Array],
-    theta0: ArrayLike1D,
-    cov: ArrayLike2D,
-    delta_nu: ArrayLike1D | ArrayLike2D,
-    theta: FloatArray,
-    weights: FloatArray,
-    *,
-    amplitude: float = 1.0,
-    response_order: int = 4,
-    method: str | None = None,
-    n_workers: int = 1,
-    **dk_kwargs: Any,
-) -> dict[str, FloatArray]:
-    """Computes three DALI estimates of systematic parameter shifts.
-
-    Returns the perturbative MAP shift, the analytical posterior mean
-    shift based on the local expansion around the MAP, and the posterior
-    mean response obtained from the full non-Gaussian reference posterior.
-
-    Args:
-        function: Scalar or vector-valued model function.
-        theta0: Fiducial parameter values.
-        cov: Covariance matrix of the observables.
-        delta_nu: Unit-amplitude systematic data mismatch.
-        theta: Samples or integration nodes representing the unbiased
-            DALI posterior.
-        weights: Corresponding posterior weights, normalized internally.
-        amplitude: Amplitude of the systematic mismatch.
-        response_order: Highest posterior mean response order, from 1 to 4.
-        method: Numerical differentiation method.
-        n_workers: Number of workers for parallel differentiation.
-        **dk_kwargs: Additional arguments passed to DerivKit.
-
-    Returns:
-        Dictionary with three parameter shifts:
-        ``map`` for the MAP shift, ``analytic_mean`` for the analytical
-        mean shift, and ``response_mean`` for the posterior mean response.
-    """
-    derivatives: dict[int, FloatArray] = {}
-    dali = get_forecast_tensors(
-        function, theta0, cov, forecast_order=3,
+        function, theta0, cov, delta_nu, bias_order=forecast_order,
         method=method, n_workers=n_workers,
         derivatives=derivatives, **dk_kwargs,
     )
-    unit_bias = build_dali_bias_tensor(
-        function, theta0, cov, delta_nu, bias_order=3,
-        method=method, n_workers=n_workers,
-        derivatives=derivatives, **dk_kwargs,
+    raw = _mean_response_coefficients(
+        theta, weights, theta0, bias, order=response_order,
     )
-    bias = {order: amplitude * tensor for order, tensor in unit_bias.items()}
-    map_shift = build_dali_map_shift_from_bias(dali, bias, expansion_order=3)
-    analytic_mean_shift = build_dali_mean_shift_from_bias(dali, bias, map_shift)
-    coefficients = build_dali_mean_response_coefficients(
-        theta, weights, theta0, unit_bias, order=response_order,
-    )
-    response_mean_shift = build_dali_mean_response_shift(
-        coefficients, amplitude, order=response_order,
-    )
-    return {
-        "map": map_shift,
-        "analytic_mean": analytic_mean_shift,
-        "response_mean": response_mean_shift,
+    names = ("first", "second", "third", "fourth")
+    coefficients = {n: raw[names[n - 1]] for n in range(1, response_order + 1)}
+    terms = coefficients.copy()
+    shift = _sum_terms(terms)
+    if not return_metadata:
+        return shift
+    baseline = raw["mean0"]
+    return shift, {
+        "method": "semi-analytic",
+        "estimator": baseline + shift,
+        "baseline": baseline,
+        "displacement": baseline + shift - theta0_arr,
+        "coefficients": coefficients,
+        "terms": terms,
     }
