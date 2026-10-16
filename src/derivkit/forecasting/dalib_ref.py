@@ -596,7 +596,8 @@ def build_dali_mean_shift(
         If ``return_metadata=False``, returns an array giving the systematic
         mean shift: posterior mean with the mismatch minus posterior mean
         without it. This is NOT generally the same as the mean's distance
-        from ``theta0``: the unbiased mean may already differ from theta0.
+        from ``theta0``: the unbiased mean may already differ from
+        ``theta0`` due to non-Gaussianities in the posterior.
 
         If ``return_metadata=True``, returns ``(shift, metadata)``.
         Every method supplies:
