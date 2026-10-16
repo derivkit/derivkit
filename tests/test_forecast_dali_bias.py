@@ -1382,3 +1382,167 @@ def test_dali_mean_shift_accepts_column_mismatch():
     )
 
     assert_allclose(flat, column)
+
+
+def test_dali_bias_reuses_cached_derivatives():
+    """Tests that cached derivatives avoid additional model evaluations."""
+    theta0 = np.zeros(2)
+    cov = np.eye(2)
+    delta_nu = np.array([0.2, -0.1])
+    derivatives = {}
+
+    reference = build_dali_bias_tensor(
+        quadratic_model,
+        theta0,
+        cov,
+        delta_nu,
+        bias_order=3,
+        derivatives=derivatives,
+    )
+
+    assert set(derivatives) == {1, 2, 3}
+
+    calls = []
+
+    def cached_model(theta):
+        calls.append(np.asarray(theta).copy())
+        if len(calls) > 1:
+            raise RuntimeError("Cached derivatives should not be recomputed.")
+        return quadratic_model(theta)
+
+    result = build_dali_bias_tensor(
+        cached_model,
+        theta0,
+        cov,
+        delta_nu,
+        bias_order=3,
+        derivatives=derivatives,
+    )
+
+    assert len(calls) == 1
+    assert_allclose(calls[0], theta0)
+
+    for order in (1, 2, 3):
+        assert_allclose(result[order], reference[order])
+
+
+def test_dali_map_shift_singular_fisher():
+    """Tests the MAP shift against an independent pseudoinverse solution."""
+
+    def model(theta):
+        x, y = theta
+        return np.array([x + y, 2.0 * (x + y)])
+
+    theta0 = np.zeros(2)
+    cov = np.eye(2)
+    delta_nu = np.array([0.1, 0.2])
+
+    jacobian = np.array([
+        [1.0, 1.0],
+        [2.0, 2.0],
+    ])
+
+    fisher = jacobian.T @ jacobian
+    bias = jacobian.T @ delta_nu
+    expected = np.linalg.pinv(fisher) @ bias
+
+    shift = build_dali_map_shift(
+        model,
+        theta0,
+        cov,
+        delta_nu,
+        expansion_order=1,
+    )
+
+    assert_allclose(shift, expected, atol=1e-10)
+
+
+def test_dali_map_response_coefficients_against_exact_optimization():
+    """Tests MAP response coefficients against independently optimized modes."""
+    theta0 = np.zeros(1)
+    cov = np.eye(2)
+    delta_nu = np.array([0.4, -0.2])
+
+    _, metadata = build_dali_map_shift(
+        nonlinear_scalar_model,
+        theta0,
+        cov,
+        delta_nu,
+        expansion_order=3,
+        return_metadata=True,
+    )
+
+    def exact_map(amplitude):
+        def objective(x):
+            residual = (
+                nonlinear_scalar_model([x])
+                - amplitude * delta_nu
+            )
+            return 0.5 * residual @ residual
+
+        result = minimize_scalar(
+            objective,
+            bounds=(-0.5, 0.5),
+            method="bounded",
+            options={"xatol": 1e-14},
+        )
+        assert result.success
+        return result.x
+
+    amplitudes = np.linspace(-0.08, 0.08, 17)
+    exact = np.array([exact_map(a) for a in amplitudes])
+
+    design = np.column_stack([
+        amplitudes**n for n in range(6)
+    ])
+    coefficients = np.linalg.lstsq(design, exact, rcond=None)[0]
+
+    for order in (1, 2, 3):
+        assert_allclose(
+            metadata["terms"][order][0],
+            coefficients[order],
+            atol=1e-4,
+            rtol=1e-3,
+        )
+
+
+def test_build_dali_bias_tensor_fourth_order_reference():
+    """Tests fourth-order mismatch tensors against analytic derivatives."""
+
+    def model(theta):
+        x, y = theta
+        return np.array([
+            x**4 + 2.0 * x**3 * y,
+            3.0 * x**2 * y**2 + y**4,
+        ])
+
+    theta0 = np.zeros(2)
+    cov = np.eye(2)
+    delta_nu = np.array([2.0, -1.0])
+
+    bias = build_dali_bias_tensor(
+        model,
+        theta0,
+        cov,
+        delta_nu,
+        bias_order=4,
+    )
+
+    expected = np.zeros((2, 2, 2, 2))
+
+    expected[0, 0, 0, 0] = 48.0
+    expected[1, 1, 1, 1] = -24.0
+
+    for axis in range(4):
+        index = [0, 0, 0, 0]
+        index[axis] = 1
+        expected[tuple(index)] = 24.0
+
+    for i in range(4):
+        for j in range(i + 1, 4):
+            index = [0, 0, 0, 0]
+            index[i] = 1
+            index[j] = 1
+            expected[tuple(index)] = -12.0
+
+    assert_allclose(bias[4], expected, atol=1e-5)
