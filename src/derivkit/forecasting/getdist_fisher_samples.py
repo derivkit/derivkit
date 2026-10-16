@@ -7,6 +7,7 @@ Two outputs are supported:
 
 - An analytic Gaussian approximation via :class:`getdist.gaussian_mixtures.GaussianND`
   with mean ``theta0`` and covariance from the (pseudo-)inverse Fisher matrix.
+  An optional systematic bias shifts the mean.
 - Monte Carlo samples drawn from the Fisher Gaussian as :class:`getdist.MCSamples`, with
   optional prior support hard bounds, and :attr:`getdist.MCSamples.loglikes`.
 
@@ -41,6 +42,7 @@ def fisher_to_getdist_gaussiannd(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
     *,
+    bias: NDArray[np.floating] | None = None,
     names: Sequence[str] | None = None,
     labels: Sequence[str] | None = None,
     label: str = "Fisher (Gaussian)",
@@ -51,6 +53,8 @@ def fisher_to_getdist_gaussiannd(
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix with shape ``(p, p)``.
+        bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+            Shifts the Gaussian mean by ``covariance @ bias``.
         names: Optional parameter names (length ``p``).
             Defaults to ``["p" + str(x) for x in range(len(theta0))]``.
         labels: Optional parameter labels (length ``p``).
@@ -59,7 +63,9 @@ def fisher_to_getdist_gaussiannd(
         rcond: Cutoff passed to the Fisher (pseudo-)inverse when forming the covariance.
 
     Returns:
-        A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``theta0`` and covariance from ``fisher``.
+        A :class:`getdist.gaussian_mixtures.GaussianND` with mean ``theta0``
+        and covariance from ``fisher``. If ``bias`` is provided, the mean
+        is shifted by ``covariance @ bias``.
 
     Raises:
         ValueError: If ``names``/``labels`` lengths do not match ``p``.
@@ -87,8 +93,15 @@ def fisher_to_getdist_gaussiannd(
 
     covariance = fisher_to_cov(fisher, rcond=rcond)
 
+    mean = theta0
+    if bias is not None:
+        bias = np.asarray(bias, dtype=float)
+        if bias.shape != theta0.shape:
+            raise ValueError(f"bias must have shape {theta0.shape}; got {bias.shape}.")
+        mean = theta0 + covariance @ bias
+
     return GaussianND(
-        mean=theta0,
+        mean=mean,
         cov=covariance,
         names=param_names,
         labels=param_labels,
@@ -102,6 +115,7 @@ def fisher_to_getdist_samples(
     *,
     names: Sequence[str],
     labels: Sequence[str],
+    bias: NDArray[np.floating] | None = None,
     n_samples: int = 30_000,
     seed: int | None = None,
     kernel_scale: float = 1.0,
@@ -114,26 +128,29 @@ def fisher_to_getdist_samples(
 ) -> MCSamples:
     """Draws samples from the Fisher Gaussian as :class:`getdist.MCSamples`.
 
-    Samples are drawn from a multivariate Gaussian with mean ``theta0`` and
-    covariance ``kernel_scale**2 * pinv(fisher)``. Optionally, samples are
-    truncated by hard bounds and/or by a prior (via ``logprior`` or
-    ``prior_terms``/``prior_bounds``).
+    Samples are drawn from a multivariate Gaussian centered at ``theta0``
+    with covariance ``kernel_scale**2 * pinv(fisher)``. An optional
+    systematic bias shifts the sampling mean by ``pinv(fisher) @ bias``.
 
-    GetDist stores :attr:`getdist.MCSamples.loglikes` as ``-log(posterior)`` up to an additive
-    constant. When ``store_loglikes=True``, this function stores::
+    Samples can be truncated by hard bounds or prior support.
 
-        -log p(theta|d) = 0.5 * (theta-theta0)^T F (theta-theta0) - logprior(theta) + C
+    When requested, ``loglikes`` stores the negative log posterior,
+    up to an additive constant::
 
-    where ``C`` is an arbitrary additive constant and ``F`` defines the Fisher-Gaussian
-    approximation to ``-log(likelihoods)`` around ``theta0``.
-    In this implementation, ``C`` is effectively zero since no additional shifting is applied.
-    If no prior is provided, the prior term is omitted.
+        -log p(theta|d) = 0.5 * delta.T @ F @ delta
+                          - bias @ delta - logprior(theta) + C
+
+    where ``delta = theta - theta0`` and ``F`` is the Fisher matrix.
+    The bias and prior terms are omitted when not provided.
 
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
         fisher: Fisher matrix with shape ``(p, p)``.
         names: Parameter names (length ``p``).
         labels: Parameter labels (length ``p``).
+        bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+            Shifts the Gaussian sampling mean by ``pinv(fisher) @ bias``
+            and contributes to the stored negative log posterior.
         n_samples: Number of samples to draw.
         seed: Random seed.
         kernel_scale: Multiplicative scale applied to the Gaussian covariance.
@@ -188,8 +205,15 @@ def fisher_to_getdist_samples(
             "via (`prior_terms`/`prior_bounds`)."
         )
 
+    sample_mean = theta0
+    if bias is not None:
+        bias = np.asarray(bias, dtype=float)
+        if bias.shape != theta0.shape:
+            raise ValueError(f"bias must have shape {theta0.shape}; got {bias.shape}.")
+        sample_mean = theta0 + fisher_to_cov(fisher) @ bias
+
     samples = kernel_samples_from_fisher(
-        theta0,
+        sample_mean,
         fisher,
         n_samples=n_samples,
         kernel_scale=float(kernel_scale),
@@ -224,7 +248,13 @@ def fisher_to_getdist_samples(
                     "indicating zero prior density outside the allowed prior support."
                 )
 
-        loglikes = 0.5 * theta_quad if log_prior_vals is None else (0.5 * theta_quad - log_prior_vals)
+        loglikes = 0.5 * theta_quad
+
+        if bias is not None:
+            loglikes -= (samples - theta0) @ bias
+
+        if log_prior_vals is not None:
+            loglikes -= log_prior_vals
 
     return MCSamples(
         samples=samples,

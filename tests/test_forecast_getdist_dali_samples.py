@@ -367,3 +367,360 @@ def test_importance_accepts_forecast_order_3():
     )
     s = np.asarray(m.samples)
     assert s.ndim == 2 and s.shape[1] == 2
+
+
+def _gaussian_dali(fisher):
+    """Construct order-2 DALI tensors with vanishing non-Gaussian terms."""
+    p = fisher.shape[0]
+    return {
+        1: (fisher,),
+        2: (np.zeros((p, p, p)), np.zeros((p, p, p, p))),
+    }
+
+
+def _linear_bias(vector):
+    """Construct a linear systematic source with zero quadratic contribution."""
+    p = vector.size
+    return {
+        1: vector,
+        2: np.zeros((p, p)),
+    }
+
+
+def test_dali_importance_zero_bias_matches_default():
+    """Tests that zero systematic bias reproduces default importance samples."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    dali = _gaussian_dali(fisher)
+
+    kwargs = dict(
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=1000,
+        seed=42,
+    )
+
+    default = dali_to_getdist_importance(theta0, dali, **kwargs)
+    zero_bias = dali_to_getdist_importance(
+        theta0, dali, bias=_linear_bias(np.zeros(2)), **kwargs
+    )
+
+    np.testing.assert_allclose(default.samples, zero_bias.samples)
+    np.testing.assert_allclose(default.weights, zero_bias.weights)
+    np.testing.assert_allclose(default.loglikes, zero_bias.loglikes)
+
+
+def test_dali_importance_bias_shifts_weighted_mean():
+    """Tests that importance sampling reproduces the analytic Fisher shift."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    bias_vector = np.array([0.8, -0.4])
+    dali = _gaussian_dali(fisher)
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=_linear_bias(bias_vector),
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=20_000,
+        kernel_scale=1.5,
+        seed=42,
+    )
+
+    expected_mean = theta0 + np.linalg.solve(fisher, bias_vector)
+    weighted_mean = np.average(
+        samples.samples, axis=0, weights=samples.weights
+    )
+
+    np.testing.assert_allclose(weighted_mean, expected_mean, atol=0.025)
+
+
+def test_dali_importance_bias_loglikes():
+    """Tests that importance loglikes include the linear systematic source."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    bias_vector = np.array([0.8, -0.4])
+    dali = _gaussian_dali(fisher)
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=_linear_bias(bias_vector),
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=100,
+        seed=42,
+    )
+
+    delta = samples.samples - theta0
+    expected = (
+        0.5 * np.einsum("ni,ij,nj->n", delta, fisher, delta)
+        - delta @ bias_vector
+    )
+
+    np.testing.assert_allclose(samples.loglikes, expected)
+
+
+def test_dali_importance_bias_changes_weights():
+    """Tests that bias changes importance weights without changing proposals."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    dali = _gaussian_dali(fisher)
+
+    kwargs = dict(
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=1000,
+        seed=42,
+    )
+
+    unbiased = dali_to_getdist_importance(theta0, dali, **kwargs)
+    biased = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=_linear_bias(np.array([0.8, -0.4])),
+        **kwargs,
+    )
+
+    np.testing.assert_allclose(unbiased.samples, biased.samples)
+    assert not np.allclose(unbiased.weights, biased.weights)
+
+
+def test_dali_importance_higher_order_bias_loglikes():
+    """Tests that quadratic systematic bias enters with its factorial weight."""
+    theta0 = np.zeros(2)
+    fisher = np.eye(2)
+    dali = _gaussian_dali(fisher)
+
+    bias = {
+        1: np.array([0.4, -0.2]),
+        2: np.array([[0.2, 0.0], [0.0, -0.1]]),
+    }
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=bias,
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=100,
+        seed=42,
+    )
+
+    delta = samples.samples - theta0
+    expected = (
+        0.5 * np.sum(delta**2, axis=1)
+        - delta @ bias[1]
+        - 0.5 * np.einsum("ni,ij,nj->n", delta, bias[2], delta)
+    )
+
+    np.testing.assert_allclose(samples.loglikes, expected)
+
+
+def test_dali_importance_bias_effective_sample_size():
+    """Tests that biased importance sampling retains sufficient effective samples."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    dali = _gaussian_dali(fisher)
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=_linear_bias(np.array([0.8, -0.4])),
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=10_000,
+        kernel_scale=1.5,
+        seed=42,
+    )
+
+    weights = np.asarray(samples.weights)
+    ess = np.sum(weights) ** 2 / np.sum(weights**2)
+
+    assert np.all(np.isfinite(weights))
+    assert ess > 0.2 * len(weights)
+
+
+def test_dali_emcee_bias_shifts_sample_mean():
+    """Tests that biased DALI MCMC recovers the analytic Gaussian mean."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    bias_vector = np.array([0.8, -0.4])
+    dali = _gaussian_dali(fisher)
+
+    samples = dali_to_getdist_emcee(
+        theta0,
+        dali,
+        bias=_linear_bias(bias_vector),
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_steps=1500,
+        burn=300,
+        thin=2,
+        n_walkers=32,
+        seed=42,
+    )
+
+    expected_mean = theta0 + np.linalg.solve(fisher, bias_vector)
+
+    np.testing.assert_allclose(
+        np.mean(samples.samples, axis=0),
+        expected_mean,
+        atol=0.08,
+    )
+
+
+def test_dali_emcee_bias_loglikes():
+    """Tests that MCMC loglikes include the systematic source contribution."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    bias_vector = np.array([0.8, -0.4])
+    dali = _gaussian_dali(fisher)
+
+    samples = dali_to_getdist_emcee(
+        theta0,
+        dali,
+        bias=_linear_bias(bias_vector),
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_steps=100,
+        burn=20,
+        thin=2,
+        n_walkers=32,
+        seed=42,
+    )
+
+    delta = samples.samples - theta0
+    expected = (
+        0.5 * np.einsum("ni,ij,nj->n", delta, fisher, delta)
+        - delta @ bias_vector
+    )
+
+    np.testing.assert_allclose(samples.loglikes, expected)
+
+
+def test_dali_importance_nongaussian_mean_against_grid():
+    """Tests that importance sampling recovers a non-Gaussian posterior mean."""
+    theta0 = np.array([0.0])
+    fisher = np.array([[2.0]])
+
+    cubic = np.zeros((1, 1, 1))
+    quartic = np.array([[[[1.0]]]])
+
+    dali = {
+        1: (fisher,),
+        2: (cubic, quartic),
+    }
+    bias = _linear_bias(np.array([0.5]))
+
+    grid = np.linspace(-5.0, 5.0, 20_001)
+
+    logp = (
+        -0.5 * fisher[0, 0] * grid**2
+        - 0.125 * quartic[0, 0, 0, 0] * grid**4
+        + bias[1][0] * grid
+    )
+
+    density = np.exp(logp - np.max(logp))
+    expected_mean = (
+        np.trapezoid(grid * density, grid)
+        / np.trapezoid(density, grid)
+    )
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=bias,
+        names=["x"],
+        labels=["x"],
+        n_samples=30_000,
+        kernel_scale=1.5,
+        seed=42,
+    )
+
+    sampled_mean = np.average(
+        samples.samples[:, 0],
+        weights=samples.weights,
+    )
+
+    np.testing.assert_allclose(sampled_mean, expected_mean, atol=0.025)
+
+
+def test_dali_importance_quadratic_bias_shifts_mean():
+    """Tests that quadratic bias changes the posterior mean analytically."""
+    theta0 = np.array([0.2, -0.1])
+    fisher = np.array([[4.0, 0.5], [0.5, 3.0]])
+    dali = _gaussian_dali(fisher)
+
+    bias = {
+        1: np.array([0.8, -0.4]),
+        2: np.array([[0.4, 0.1], [0.1, -0.2]]),
+    }
+
+    samples = dali_to_getdist_importance(
+        theta0,
+        dali,
+        bias=bias,
+        names=["x", "y"],
+        labels=["x", "y"],
+        n_samples=30_000,
+        kernel_scale=1.5,
+        seed=42,
+    )
+
+    expected_mean = theta0 + np.linalg.solve(
+        fisher - bias[2], bias[1]
+    )
+    weighted_mean = np.average(
+        samples.samples, axis=0, weights=samples.weights
+    )
+
+    np.testing.assert_allclose(weighted_mean, expected_mean, atol=0.025)
+
+
+def test_dali_emcee_nongaussian_mean_against_grid():
+    """Tests that emcee recovers a non-Gaussian posterior mean."""
+    theta0 = np.array([0.0])
+    fisher = np.array([[2.0]])
+
+    cubic = np.zeros((1, 1, 1))
+    quartic = np.array([[[[1.0]]]])
+
+    dali = {
+        1: (fisher,),
+        2: (cubic, quartic),
+    }
+    bias = _linear_bias(np.array([0.5]))
+
+    grid = np.linspace(-5.0, 5.0, 20_001)
+    logp = (
+        -0.5 * fisher[0, 0] * grid**2
+        - 0.125 * quartic[0, 0, 0, 0] * grid**4
+        + bias[1][0] * grid
+    )
+
+    density = np.exp(logp - np.max(logp))
+    expected_mean = (
+        np.trapezoid(grid * density, grid)
+        / np.trapezoid(density, grid)
+    )
+
+    samples = dali_to_getdist_emcee(
+        theta0,
+        dali,
+        bias=bias,
+        names=["x"],
+        labels=["x"],
+        n_steps=1500,
+        burn=300,
+        thin=2,
+        n_walkers=32,
+        seed=42,
+    )
+
+    np.testing.assert_allclose(
+        np.mean(samples.samples[:, 0]),
+        expected_mean,
+        atol=0.05,
+    )
