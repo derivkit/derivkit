@@ -544,6 +544,7 @@ def build_dali_mean_shift(
     delta_nu: ArrayLike1D | ArrayLike2D,
     *,
     mean_method: str = "analytic",
+    forecast_order: int = 3,
     theta: FloatArray | None = None,
     weights: FloatArray | None = None,
     response_order: int = 4,
@@ -566,6 +567,10 @@ def build_dali_mean_shift(
             from DALI tensors. ``"semi-analytic"`` expands the systematic
             response around the full unbiased DALI posterior using samples
             or integration nodes. The two methods are different approximations.
+        forecast_order: Order of the DALI approximation used to construct
+            the supplied unbiased posterior samples or integration nodes.
+            The systematic mismatch polynomial is truncated at the same
+            order. Used only for the semi-analytic method.
         theta: Unbiased posterior samples or integration nodes. Required
             only for ``mean_method="semi-analytic"``.
         weights: Nonnegative weights for those nodes, normalized internally.
@@ -654,8 +659,13 @@ def build_dali_mean_shift(
     ) or response_order not in (1, 2, 3, 4):
         raise ValueError("response_order must be an integer from 1 to 4.")
 
+    if isinstance(forecast_order, (bool, np.bool_)) or not isinstance(
+            forecast_order, (int, np.integer)
+    ) or forecast_order not in (1, 2, 3, 4):
+        raise ValueError("forecast_order must be an integer from 1 to 4.")
+
     bias = build_dali_bias_tensor(
-        function, theta0, cov, delta_nu, bias_order=3,
+        function, theta0, cov, delta_nu, bias_order=forecast_order,
         method=method, n_workers=n_workers,
         derivatives=derivatives, **dk_kwargs,
     )
