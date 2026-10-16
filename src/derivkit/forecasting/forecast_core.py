@@ -25,6 +25,7 @@ from derivkit.utils.types import ArrayLike1D, ArrayLike2D
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
+    "SUPPORTED_DERIVATIVE_ORDERS",
     "SUPPORTED_FORECAST_ORDERS",
     "get_forecast_tensors",
 ]

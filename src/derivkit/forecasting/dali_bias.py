@@ -145,8 +145,30 @@ def build_dali_bias_tensor(
     return bias
 
 
-def _map_terms(dali, bias, order):
-    """Return each successive contribution to the perturbative MAP shift."""
+def _map_terms(
+    dali: dict[int, tuple[FloatArray, ...]],
+    bias: dict[int, FloatArray],
+    order: int,
+) -> dict[int, FloatArray]:
+    """Compute successive terms in the perturbative DALI MAP shift.
+
+    Args:
+        dali: Dictionary of Fisher and higher-order DALI tensors, keyed by
+            forecast order.
+        bias: Dictionary of systematic mismatch tensors, keyed by derivative
+            order.
+        order: Highest MAP response order to compute, from 1 to 3.
+
+    Returns:
+        Dictionary mapping each response order to its contribution to the
+        MAP shift. The first term is the Fisher bias, while the second and
+        third terms account for nonlinear corrections. Summing the terms
+        gives the predicted MAP shift.
+
+    Raises:
+        TypeError: If order is not an integer.
+        ValueError: If order is not 1, 2, or 3.
+    """
     if isinstance(order, (bool, np.bool_)) or not isinstance(order, (int, np.integer)):
         raise TypeError("expansion_order must be an integer.")
     if order not in (1, 2, 3):
@@ -175,8 +197,29 @@ def _map_terms(dali, bias, order):
     return terms
 
 
-def _map_gaussian_terms(dali, bias, order):
-    """Response of the quadratic reference posterior to the same mismatch."""
+def _map_gaussian_terms(
+    dali: dict[int, tuple[FloatArray, ...]],
+    bias: dict[int, FloatArray],
+    order: int,
+) -> dict[int, FloatArray]:
+    """Compute MAP response terms for a Gaussian reference posterior.
+
+    The unbiased posterior is approximated by its quadratic Fisher form,
+    while the systematic mismatch retains its higher-order dependence
+    on the parameters.
+
+    Args:
+        dali: Dictionary of Fisher and higher-order DALI tensors, keyed by
+            forecast order. Only the Fisher matrix is used.
+        bias: Dictionary of systematic mismatch tensors, keyed by derivative
+            order.
+        order: Highest MAP response order to compute, from 1 to 3.
+
+    Returns:
+        Dictionary mapping each response order to its contribution to the
+        MAP shift under the Gaussian reference approximation. Summing the
+        terms gives the Gaussian-reference contribution to the MAP shift.
+    """
     fisher = dali[1][0]
     s1 = solve_or_pinv(fisher, bias[1], warn_context="DALI MAP")
     terms = {1: s1}
@@ -191,12 +234,60 @@ def _map_gaussian_terms(dali, bias, order):
     return terms
 
 
-def _sum_terms(terms):
+def _sum_terms(terms: dict[int, FloatArray]) -> FloatArray:
+    """Sum the contributions to a parameter shift.
+
+    Args:
+        terms: Non-empty dictionary of parameter-shift vectors, keyed by
+            response order.
+
+    Returns:
+        Array containing the total parameter shift obtained by summing
+        all response-order contributions.
+    """
     return sum(terms.values(), np.zeros_like(next(iter(terms.values()))))
 
 
-def _forecast_tensors(function, theta0, cov, delta_nu, order, method,
-                      n_workers, derivatives, dk_kwargs):
+def _forecast_tensors(
+    function: Callable[[ArrayLike1D], np.floating | Array],
+    theta0: ArrayLike1D,
+    cov: ArrayLike2D,
+    delta_nu: ArrayLike1D | ArrayLike2D,
+    order: int,
+    method: str | None,
+    n_workers: int,
+    derivatives: dict[int, FloatArray],
+    dk_kwargs: dict[str, Any],
+) -> tuple[dict[int, tuple[FloatArray, ...]], dict[int, FloatArray]]:
+    """Build the DALI forecast tensors and systematic mismatch tensors.
+
+    The model derivatives are shared between the two calculations to avoid
+    recomputing derivatives of the same order.
+
+    Args:
+        function: Model predicting observables from the parameters.
+        theta0: Fiducial parameter values at which derivatives are evaluated.
+        cov: Covariance matrix of the observables.
+        delta_nu: Difference between the systematically affected data vector
+            and the fiducial model prediction.
+        order: Highest derivative order used for both the DALI forecast and
+            systematic mismatch tensors.
+        method: Numerical differentiation method.
+        n_workers: Number of differentiation workers.
+        derivatives: Dictionary of precomputed model derivatives. Missing
+            derivatives are computed and stored in this dictionary.
+        dk_kwargs: Additional keyword arguments passed to the numerical
+            differentiation method.
+
+    Returns:
+        Tuple containing two dictionaries:
+
+        - The DALI forecast tensors, keyed by forecast order. Each entry
+          contains the tensors associated with that order.
+        - The systematic mismatch tensors, keyed by derivative order.
+          Each tensor describes how the data-model mismatch couples to
+          derivatives of the model.
+    """
     dali = get_forecast_tensors(
         function, theta0, cov, forecast_order=order,
         method=method, n_workers=n_workers,
@@ -376,7 +467,11 @@ def _mean_map_offset(
     return cubic_offset + quintic_offset
 
 
-def _response_potential(theta, theta0, bias):
+def _response_potential(
+    theta: FloatArray,
+    theta0: ArrayLike1D,
+    bias: dict[int, FloatArray],
+) -> FloatArray:
     """Evaluate the systematic contribution to the log posterior.
 
     Includes every available mismatch tensor, with the appropriate
@@ -404,16 +499,16 @@ def _response_potential(theta, theta0, bias):
 
 
 def _mean_response_coefficients(
-    theta,
-    weights,
-    theta0,
-    bias,
+    theta: FloatArray,
+    weights: FloatArray,
+    theta0: ArrayLike1D,
+    bias: dict[int, FloatArray],
     *,
-    bias_second=None,
-    bias_third=None,
-    bias_fourth=None,
-    order=4,
-):
+    bias_second: dict[int, FloatArray] | None = None,
+    bias_third: dict[int, FloatArray] | None = None,
+    bias_fourth: dict[int, FloatArray] | None = None,
+    order: int = 4,
+) -> dict[str, FloatArray]:
     """Compute the order-by-order response of the DALI posterior mean.
 
     Expands the change in the posterior mean in powers of systematic
