@@ -7,10 +7,8 @@ from scipy.optimize import minimize
 
 from derivkit.forecasting.dali_bias import (
     build_dali_bias_tensor,
-    build_dali_map_shift_from_bias,
-    build_dali_mean_response_coefficients,
-    build_dali_mean_response_shift,
-    build_dali_mean_shift_from_bias,
+    build_dali_map_shift,
+    build_dali_mean_shift,
 )
 from derivkit.forecasting.expansions import build_logposterior_dali
 from derivkit.forecasting.forecast_core import get_forecast_tensors
@@ -143,18 +141,21 @@ def numerical_mean(dali, bias=None, n_grid=301):
 def test_nonlinear_dali_map_shift():
     """Validate perturbative MAP shifts and convergence with amplitude."""
     dali, bias = nonlinear_case()
+    derivatives = {}
 
     baseline = numerical_map(dali)
-
     errors = []
 
     for amplitude in (1.0, 0.5, 0.25):
         current_bias = scaled_bias(bias, amplitude)
 
-        analytic = build_dali_map_shift_from_bias(
-            dali,
-            current_bias,
+        analytic = build_dali_map_shift(
+            nonlinear_model,
+            THETA0,
+            COV,
+            amplitude * DELTA_NU,
             expansion_order=3,
+            derivatives=derivatives,
         )
 
         numerical = numerical_map(dali, current_bias) - baseline
@@ -169,17 +170,24 @@ def test_nonlinear_dali_map_shift():
 def test_nonlinear_dali_mean_shift():
     """Validate the local analytic posterior mean shift."""
     dali, bias = nonlinear_case()
+    derivatives = {}
 
-    map_shift = build_dali_map_shift_from_bias(
-        dali,
-        bias,
+    map_shift = build_dali_map_shift(
+        nonlinear_model,
+        THETA0,
+        COV,
+        DELTA_NU,
         expansion_order=3,
+        derivatives=derivatives,
     )
 
-    analytic = build_dali_mean_shift_from_bias(
-        dali,
-        bias,
-        map_shift,
+    analytic = build_dali_mean_shift(
+        nonlinear_model,
+        THETA0,
+        COV,
+        DELTA_NU,
+        mean_method="analytic",
+        derivatives=derivatives,
     )
 
     numerical = numerical_mean(dali, bias) - numerical_mean(dali)
@@ -263,22 +271,22 @@ def test_nonlinear_dali_mean_response():
     dali, bias = nonlinear_case()
 
     points, weights = posterior_grid(dali)
-
-    coefficients = build_dali_mean_response_coefficients(
-        points,
-        weights,
-        THETA0,
-        bias,
-        order=4,
-    )
+    derivatives = {}
 
     baseline_mean = np.sum(points * weights[:, None], axis=0)
 
     for amplitude in (0.25, 0.5, 1.0):
-        predicted = build_dali_mean_response_shift(
-            coefficients,
-            amplitude,
-            order=4,
+        predicted = build_dali_mean_shift(
+            nonlinear_model,
+            THETA0,
+            COV,
+            amplitude * DELTA_NU,
+            mean_method="semi-analytic",
+            forecast_order=3,
+            theta=points,
+            weights=weights,
+            response_order=4,
+            derivatives=derivatives,
         )
 
         numerical = (
