@@ -411,7 +411,8 @@ def _mean_response_coefficients(
     Args:
         theta: Samples or integration nodes representing the unbiased
             DALI posterior.
-        weights: Corresponding posterior weights, normalized internally.
+        weights: Nonnegative weights representing the unbiased DALI posterior
+            at the supplied samples or nodes. Normalized internally.
         theta0: Fiducial parameter values.
         bias: Tensors for the full supplied mismatch. For a hypothetical
             scaled mismatch t * delta_nu, these are the coefficients of t.
@@ -571,10 +572,13 @@ def build_dali_mean_shift(
             the supplied unbiased posterior samples or integration nodes.
             The systematic mismatch polynomial is truncated at the same
             order. Used only for the semi-analytic method.
-        theta: Unbiased posterior samples or integration nodes. Required
-            only for ``mean_method="semi-analytic"``.
-        weights: Nonnegative weights for those nodes, normalized internally.
-            Required only for ``mean_method="semi-analytic"``.
+        theta: Samples or integration nodes representing the unbiased DALI
+            posterior. Required only for ``mean_method="semi-analytic"``.
+        weights: Nonnegative weights representing the unbiased DALI posterior
+            at the supplied samples or nodes. If ``None``, all points receive
+            equal weight. For quadrature or importance sampling, supply the
+            appropriate weights. Normalized internally.
+            Used only for ``mean_method="semi-analytic"``.
         response_order: Number of amplitude-response terms (1 to 4) for
             ``mean_method="semi-analytic"``. Not used for the analytic method.
         return_metadata: If ``True``, also return the available diagnostics.
@@ -650,10 +654,12 @@ def build_dali_mean_shift(
             "map_shift": map_shift,
         }
 
-    if theta is None or weights is None:
-        raise ValueError(
-            "theta and weights are required for mean_method='semi-analytic'."
-        )
+    if theta is None:
+        raise ValueError("theta is required for mean_method='semi-analytic'.")
+
+    if weights is None:
+        weights = np.ones(len(theta))
+
     if isinstance(response_order, (bool, np.bool_)) or not isinstance(
         response_order, (int, np.integer)
     ) or response_order not in (1, 2, 3, 4):
