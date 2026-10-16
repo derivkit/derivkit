@@ -234,7 +234,8 @@ def build_dali_map_shift(
         expansion_order: Number of perturbative MAP response orders (1 to 3).
         return_metadata: If set to ``True``, return the shift and a dictionary of
             explanatory results; otherwise return only the shift.
-        method: Numerical differentiation method, not a mean-forecast method.
+        method: Numerical differentiation method passed to
+            :class:`derivkit.derivative_kit.DerivativeKit`.
         n_workers: Number of differentiation workers.
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused, and missing orders are computed
@@ -582,7 +583,8 @@ def build_dali_mean_shift(
         response_order: Number of amplitude-response terms (1 to 4) for
             ``mean_method="semi-analytic"``. Not used for the analytic method.
         return_metadata: If ``True``, also return the available diagnostics.
-        method: Numerical differentiation method used by DerivKit.
+        method: Numerical differentiation method passed to
+            :class:`derivkit.derivative_kit.DerivativeKit`.
         n_workers: Number of differentiation workers.
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused, and missing orders are computed
