@@ -232,7 +232,7 @@ def build_dali_map_shift(
             vector and the fiducial model prediction. Its size is already
             included; no separate amplitude parameter is needed.
         expansion_order: Number of perturbative MAP response orders (1 to 3).
-        return_metadata: If True, return the shift and a dictionary of
+        return_metadata: If set to ``True``, return the shift and a dictionary of
             explanatory results; otherwise return only the shift.
         method: Numerical differentiation method, not a mean-forecast method.
         n_workers: Number of differentiation workers.
