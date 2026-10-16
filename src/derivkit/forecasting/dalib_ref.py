@@ -576,9 +576,10 @@ def build_dali_mean_shift(
         theta: Samples or integration nodes representing the unbiased DALI
             posterior. Required only for ``mean_method="semi-analytic"``.
         weights: Nonnegative weights representing the unbiased DALI posterior
-            at the supplied samples or nodes. If ``None``, all points receive
-            equal weight. For quadrature or importance sampling, supply the
-            appropriate weights. Normalized internally.
+            at the supplied samples or nodes. If ``None``, equal weights are
+            assumed, appropriate for samples drawn from that posterior.
+            For quadrature or importance sampling, supply the corresponding
+            weights. Normalized internally.
             Used only for ``mean_method="semi-analytic"``.
         response_order: Number of amplitude-response terms (1 to 4) for
             ``mean_method="semi-analytic"``. Not used for the analytic method.
