@@ -171,7 +171,7 @@ def _map_terms(
         ValueError: If order is not 1, 2, or 3.
     """
     if isinstance(order, (bool, np.bool_)) or not isinstance(order, (int, np.integer)):
-        raise TypeError("expansion_order must be an integer.")
+        raise TypeError(f"expansion_order must be an integer; got {type(order)}.")
     if order not in (1, 2, 3):
         raise ValueError("expansion_order must be 1, 2, or 3.")
 
