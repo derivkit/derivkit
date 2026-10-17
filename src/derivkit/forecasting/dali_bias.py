@@ -424,6 +424,9 @@ def _mean_map_offset(
     Returns:
         Analytic posterior mean offset relative to the supplied MAP.
     """
+    if bias.keys() != dali.keys():
+        raise ValueError("bias and dali must contain the same tensor orders.")
+
     fisher = dali[1][0]
     D1, D2 = dali[2]
     T1, T2, T3 = dali[3]

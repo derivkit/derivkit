@@ -9,6 +9,7 @@ from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
 
 from derivkit.forecasting.dali_bias import (
+    _mean_map_offset,
     build_dali_bias_tensor,
     build_dali_map_shift,
     build_dali_mean_shift,
@@ -1546,3 +1547,12 @@ def test_build_dali_bias_tensor_fourth_order_reference():
             expected[tuple(index)] = -12.0
 
     assert_allclose(bias[4], expected, atol=1e-5)
+
+
+def test_dali_analytic_mean_mismatched_tensor_orders():
+    """Tests rejection of inconsistent DALI and bias tensor orders."""
+    dali = {1: (), 2: (), 3: ()}
+    bias = {1: np.zeros(1), 2: np.zeros((1, 1))}
+
+    with pytest.raises(ValueError, match="same tensor orders"):
+        _mean_map_offset(dali, bias, np.zeros(1))
