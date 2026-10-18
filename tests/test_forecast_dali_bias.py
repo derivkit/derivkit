@@ -509,16 +509,11 @@ def test_build_dali_map_shift_linear_gaussian():
 
 
 def test_build_dali_mean_shift_linear_gaussian():
-    """Tests that the analytic mean shift equals the exact Gaussian MAP shift."""
+    """Tests that the analytic mean shift equals the Fisher bias for a linear model."""
     theta0 = np.zeros(2)
     delta_nu = np.array([0.2, -0.1])
 
-    jacobian = np.array([
-        [2.0, 3.0],
-        [-1.0, 4.0],
-    ])
-    expected = np.linalg.solve(jacobian, delta_nu)
-
+    expected = 1/10 * np.array([1, 0])
     shift = build_dali_mean_shift(
         linear_model, theta0, np.eye(2), delta_nu,
         mean_method="analytic",
