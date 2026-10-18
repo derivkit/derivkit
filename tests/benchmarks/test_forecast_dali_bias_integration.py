@@ -66,7 +66,7 @@ def nonlinear_case():
 
 
 def scaled_bias(bias, amplitude):
-    """Scale the systematic mismatch tensors."""
+    """Scale precomputed bias tensors for an amplitude-scaled mismatch."""
     return {
         order: amplitude * tensor
         for order, tensor in bias.items()
