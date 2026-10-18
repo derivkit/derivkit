@@ -10,7 +10,7 @@ Two backends are provided:
 
 The target log-posterior is evaluated with
 :func:`derivkit.forecasting.expansions.build_logposterior_dali`, optionally
-including user-defined priors and parameter support bounds.
+including systematic bias, user-defined priors, and parameter support bounds.
 
 Note: GetDist's ``loglikes`` field stores ``-log(posterior)``, not ``-log(likelihoods)``.
 """
@@ -109,6 +109,7 @@ def dali_to_getdist_importance(
     dali: dict[int, tuple[NDArray[np.floating], ...]],
     *,
     forecast_order: int | None = 2,
+    bias: dict[int, NDArray[np.floating]] | None = None,
     names: Sequence[str],
     labels: Sequence[str],
     n_samples: int = 50_000,
@@ -128,11 +129,18 @@ def dali_to_getdist_importance(
     reweighted by the difference between the target log-posterior and the
     kernel log-density.
 
+    An optional systematic bias modifies the target DALI log-posterior
+    through its tensor expansion.
+
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` for ``p`` parameters.
-        dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
+        dali: Dictionary of DALI forecast tensors indexed by expansion order,
+            as returned by :func:`derivkit.forecasting.build_dali`.
         forecast_order: Maximum order of the DALI expansion to include
             (e.g., 2 for doublet, 3 for triplet, 4 for fourth order).
+        bias: Optional dictionary of systematic bias tensors indexed by expansion
+            order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+            These contribute to the target log posterior.
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_samples: Number of importance samples to draw.
@@ -220,6 +228,7 @@ def dali_to_getdist_importance(
                 theta,
                 fiducial,
                 dali,
+                bias=bias,
                 forecast_order=forecast_order,
                 logprior=logprior_fn,
             )
@@ -271,6 +280,7 @@ def dali_to_getdist_emcee(
     dali: dict[int, tuple[NDArray[np.floating], ...]],
     *,
     forecast_order: int | None = 2,
+    bias: dict[int, NDArray[np.floating]] | None = None,
     names: Sequence[str],
     labels: Sequence[str],
     n_steps: int = 10_000,
@@ -293,11 +303,18 @@ def dali_to_getdist_emcee(
     evolved with :class:`emcee.EnsembleSampler`. Optional priors and support
     bounds are applied through the target log-posterior.
 
+    An optional systematic bias modifies the target DALI log-posterior
+    through its tensor expansion.
+
     Args:
         theta0: Fiducial parameter vector with shape ``(p,)`` with ``p`` parameters.
-        dali: Dictionary returned by :func:`derivkit.forecasting.build_dali`.
+        dali: Dictionary of DALI forecast tensors indexed by expansion order,
+            as returned by :func:`derivkit.forecasting.build_dali`.
         forecast_order: Maximum order of the DALI expansion to include
             (e.g., 2 for doublet, 3 for triplet, 4 for fourth order).
+        bias: Optional dictionary of systematic bias tensors indexed by expansion
+            order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+            These contribute to the target log posterior.
         names: Parameter names used to label the returned samples (length ``p``).
         labels: LaTeX-formatted parameter labels used to label the returned samples (length ``p``).
         n_steps: Total number of MCMC steps.
@@ -307,7 +324,7 @@ def dali_to_getdist_emcee(
             to reduce autocorrelation in the chain.
         n_walkers: Number of walkers. Defaults to ``max(32, 8 * p)``.
         init_scale: Initial scatter scale for walker initialization.
-        seed: Random seed for walker initialization.
+        seed: Random seed for walker initialization and MCMC sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
             Can be combined with ``prior_bounds`` to truncate prior support.
@@ -395,6 +412,7 @@ def dali_to_getdist_emcee(
         build_logposterior_dali,
         theta0=fiducial,
         dali=dali,
+        bias=bias,
         forecast_order=forecast_order,
         logprior=logprior_fn,
     )
@@ -408,6 +426,10 @@ def dali_to_getdist_emcee(
         return float(_base_log_prob(theta))
 
     sampler = emcee.EnsembleSampler(int(n_walkers), n_params, log_prob)
+
+    if seed is not None:
+        sampler.random_state = np.random.RandomState(seed).get_state()
+
     sampler.run_mcmc(walker_init, int(n_steps), progress=True)
 
     chains = sampler.get_chain(discard=int(burn), thin=int(thin))

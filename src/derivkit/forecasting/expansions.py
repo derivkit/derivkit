@@ -13,6 +13,8 @@ This module uses a single convention throughout:
 
     log p(theta) = logprior(theta) - 0.5 * delta_chi2(theta)
 
+When ``bias`` is provided, an additional systematic source term is included.
+
 With the forecast tensors returned by :func:`derivkit.forecasting.get_forecast_tensors`
 (using the introduced-at-order convention):
 
@@ -38,9 +40,10 @@ Since this module defines::
 
 a compatible choice for GetDist is::
 
-    loglikes = -logprior + 0.5 * delta_chi2
+    loglikes = -logprior + 0.5 * delta_chi2 - systematic_source
 
 (optionally shifted by an additive constant for numerical stability).
+The systematic source is zero when ``bias=None``.
 """
 
 from __future__ import annotations
@@ -52,6 +55,10 @@ from numpy.typing import NDArray
 
 from derivkit.forecasting.forecast_core import SUPPORTED_FORECAST_ORDERS
 from derivkit.forecasting.priors_core import build_prior
+from derivkit.utils.tensors import (
+    contract_tensor_with_vector,
+    evaluate_tensor_expansion,
+)
 from derivkit.utils.validate import (
     validate_dali_shape,
     validate_fisher_shape,
@@ -245,6 +252,7 @@ def build_logposterior_fisher(
     theta0: NDArray[np.floating],
     fisher: NDArray[np.floating],
     *,
+    bias: NDArray[np.floating] | None = None,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
@@ -283,6 +291,9 @@ def build_logposterior_fisher(
             DALI tensors are assumed to have been computed at this point, and the
             expansion is taken in the displacement ``theta - theta0``.
         fisher: Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
+        bias: Optional linear systematic-bias vector of shape ``(p,)``.
+            If provided, adds ``bias @ (theta - theta0)`` to the
+            Fisher log posterior.
         prior_terms: prior term specification passed to
             :func:`derivkit.forecasting.priors.core.build_prior`.
         prior_bounds: Global hard bounds passed to
@@ -308,7 +319,17 @@ def build_logposterior_fisher(
 
     displacement = theta - theta0
     chi2 = float(displacement @ fisher @ displacement)
-    return logprior_val - 0.5 * chi2
+
+    source = 0.0
+    if bias is not None:
+        bias = np.asarray(bias, dtype=float)
+        if bias.shape != theta0.shape:
+            raise ValueError(
+                f"bias must have shape {theta0.shape}; got {bias.shape}."
+            )
+        source = float(bias @ displacement)
+
+    return logprior_val - 0.5 * chi2 + source
 
 
 def build_delta_chi2_dali(
@@ -401,67 +422,28 @@ def build_delta_chi2_dali(
         raise ValueError(
             "forecast_order=4 requires dali to contain key 4 (quadruplet tensors).")
 
-    fisher = np.asarray(dali[1][0], dtype=np.float64)
     d = theta - theta0
+    fisher = dali[1][0]
     chi2 = float(d @ fisher @ d)
 
-    # doublet
-    d1 = np.asarray(dali[2][0], dtype=np.float64)
-    d2 = np.asarray(dali[2][1], dtype=np.float64)
-    chi2 += float(np.einsum("ijk,i,j,k->",
-                            d1, d, d, d))
-    chi2 += 1.0/4.0 * float(np.einsum("ijkl,i,j,k,l->",
-                                      d2, d, d, d, d))
+    d1, d2 = dali[2]
+    chi2 += contract_tensor_with_vector(d1, d, 3)
+    chi2 += 1 / 4 * contract_tensor_with_vector(d2, d, 4)
 
-    if chosen == 2:
-        return chi2
+    if chosen >= 3:
+        t1, t2, t3 = dali[3]
+        chi2 += 1 / 3 * contract_tensor_with_vector(t1, d, 4)
+        chi2 += 1 / 6 * contract_tensor_with_vector(t2, d, 5)
+        chi2 += 1 / 36 * contract_tensor_with_vector(t3, d, 6)
 
-    t1 = np.asarray(dali[3][0], dtype=np.float64)
-    t2 = np.asarray(dali[3][1], dtype=np.float64)
-    t3 = np.asarray(dali[3][2], dtype=np.float64)
+    if chosen >= 4:
+        qa1, qa2, qa3, qa4 = dali[4]
+        chi2 += 1 / 12 * contract_tensor_with_vector(qa1, d, 5)
+        chi2 += 1 / 24 * contract_tensor_with_vector(qa2, d, 6)
+        chi2 += 1 / 72 * contract_tensor_with_vector(qa3, d, 7)
+        chi2 += 1 / 576 * contract_tensor_with_vector(qa4, d, 8)
 
-    t1_4 = float(np.einsum("ijkl,i,j,k,l->",
-                           t1, d, d, d, d))
-    t2_5 = float(np.einsum("ijklm,i,j,k,l,m->",
-                           t2, d, d, d, d, d))
-    t3_6 = float(np.einsum("ijklmn,i,j,k,l,m,n->",
-                           t3, d, d, d, d, d, d))
-
-    chi2 = chi2 + (1.0 / 3.0) * t1_4 + (1.0 / 6.0) * t2_5 + (1.0 / 36.0) * t3_6
-
-    if chosen == 3:
-        return chi2
-
-    qa1 = np.asarray(dali[4][0], dtype=np.float64)
-    qa2 = np.asarray(dali[4][1], dtype=np.float64)
-    qa3 = np.asarray(dali[4][2], dtype=np.float64)
-    qa4 = np.asarray(dali[4][3], dtype=np.float64)
-
-    qa1_5 = float(np.einsum(
-        "ijklm,i,j,k,l,m->",
-        qa1, d, d, d, d, d,
-    ))
-    qa2_6 = float(np.einsum(
-        "ijklmn,i,j,k,l,m,n->",
-        qa2, d, d, d, d, d, d,
-    ))
-    qa3_7 = float(np.einsum(
-        "ijklmno,i,j,k,l,m,n,o->",
-        qa3, d, d, d, d, d, d, d,
-    ))
-    qa4_8 = float(np.einsum(
-        "ijklmnop,i,j,k,l,m,n,o,p->",
-        qa4, d, d, d, d, d, d, d, d,
-    ))
-
-    chi2 = (
-        chi2
-        + (1.0 / 12.0) * qa1_5
-        + (1.0 / 24.0) * qa2_6
-        + (1.0 / 72.0) * qa3_7
-        + (1.0 / 576.0) * qa4_8
-    )
-    return chi2
+    return float(chi2)
 
 
 def build_logposterior_dali(
@@ -469,6 +451,7 @@ def build_logposterior_dali(
     theta0: NDArray[np.floating],
     dali: Any,
     *,
+    bias: dict[int, NDArray[np.floating]] | None = None,
     forecast_order: int | None = 2,
     prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
@@ -483,10 +466,17 @@ def build_logposterior_dali(
     where ``delta_chi2`` is computed from the dict-form forecast tensors ``dali``
     using :func:`build_delta_chi2_dali`.
 
+    When ``bias`` is provided, the factorial-weighted systematic source
+    expansion is added to the log posterior.
+
     Args:
         theta: Evaluation point in parameter space.
         theta0: Expansion point (fiducial parameters).
         dali: Forecast tensors as a dict in the introduced-at-order convention.
+        bias: Optional systematic-bias tensors mapping expansion order
+            to parameter-space tensors. Adds the factorial-weighted
+            mismatch expansion through ``forecast_order``.
+            If ``None``, evaluates the unbiased DALI posterior.
         forecast_order: Maximum order to include in ``delta_chi2``. If ``None``, uses
             the highest key in ``dali``.
         prior_terms: Prior term specification passed to :func:`build_prior`.
@@ -521,7 +511,24 @@ def build_logposterior_dali(
         if not np.isfinite(logprior_val):
             return -np.inf
 
-    chi2 = build_delta_chi2_dali(theta, theta0, dali,
-                                 forecast_order=forecast_order)
+    chi2 = build_delta_chi2_dali(
+        theta, theta0, dali,
+        forecast_order=forecast_order,
+    )
 
-    return logprior_val - 0.5 * chi2
+    source = 0.0
+    if bias is not None:
+        order = max(dali.keys()) if forecast_order is None else forecast_order
+
+        if any(n not in bias.keys() for n in range(1, order + 1)):
+            raise ValueError(
+                f"bias must contain tensors through forecast_order={order}."
+            )
+
+        source = evaluate_tensor_expansion(
+            bias,
+            theta - theta0,
+            max_order=order,
+        )
+
+    return logprior_val - 0.5 * chi2 + source

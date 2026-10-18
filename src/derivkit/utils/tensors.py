@@ -12,6 +12,7 @@ from derivkit.utils.types import FloatArray
 __all__ = [
     "contract_tensor_with_vector",
     "contract_tensor_with_vector_batch",
+    "evaluate_tensor_expansion",
     "gaussian_fourth_moment",
     "symmetrize_tensor",
 ]
@@ -111,6 +112,39 @@ def contract_tensor_with_vector_batch(
     return np.einsum(*operands, batch_labels + free_labels)
 
 
+def evaluate_tensor_expansion(
+    tensors: dict[int, FloatArray],
+    vector: FloatArray,
+    max_order: int | None = None,
+) -> float:
+    """Evaluates a factorial-weighted tensor expansion.
+
+    Computes the sum of tensor contractions with repeated copies of a vector,
+    weighted by the inverse factorial of each tensor order.
+
+    Args:
+        tensors: Dictionary mapping expansion orders to coefficient tensors.
+        vector: One-dimensional vector of shape ``(d,)``.
+        max_order: Maximum expansion order to include. If None, uses all
+            available orders.
+
+    Returns:
+        Scalar value of the tensor expansion.
+    """
+    if not tensors:
+        return 0.0
+
+    if max_order is None:
+        max_order = max(tensors)
+
+    return float(sum(
+        contract_tensor_with_vector(tensor, vector, n_axes=order)
+        / factorial(order)
+        for order, tensor in tensors.items()
+        if order <= max_order
+    ))
+
+
 def symmetrize_tensor(tensor: FloatArray) -> FloatArray:
     """Symmetrizes a tensor over all axes.
 
@@ -160,4 +194,3 @@ def gaussian_fourth_moment(cov: FloatArray) -> FloatArray:
         + np.einsum("ac,bd->abcd", cov, cov)
         + np.einsum("ad,bc->abcd", cov, cov)
     )
-
