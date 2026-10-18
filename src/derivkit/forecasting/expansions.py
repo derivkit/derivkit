@@ -520,7 +520,7 @@ def build_logposterior_dali(
     if bias is not None:
         order = max(dali.keys()) if forecast_order is None else forecast_order
 
-        if any(n not in bias for n in range(1, order + 1)):
+        if any(n not in bias.keys() for n in range(1, order + 1)):
             raise ValueError(
                 f"bias must contain tensors through forecast_order={order}."
             )
