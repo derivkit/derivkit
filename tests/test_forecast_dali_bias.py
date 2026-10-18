@@ -502,11 +502,8 @@ def test_build_dali_map_shift_linear_gaussian():
         linear_model, theta0, np.eye(2), delta_nu
     )
 
-    jacobian = np.array([
-        [2.0, 3.0],
-        [-1.0, 4.0],
-    ])
-    expected = np.linalg.solve(jacobian, delta_nu)
+    inverse_jacobian = 1/11 * np.array([[4, -3], [1, 2]])
+    expected = inverse_jacobian @ delta_nu
 
     assert_allclose(shift, expected, atol=1e-10)
 
@@ -551,12 +548,9 @@ def test_build_dali_mean_shift_semi_analytic_linear_gaussian():
 
 def test_build_dali_mean_shift_semi_analytic_two_parameter_gaussian():
     """Tests the semi-analytic response for two correlated model parameters."""
-    jacobian = np.array([
-        [2.0, 3.0],
-        [-1.0, 4.0],
-    ])
+    inverse_jacobian = 1/11 * np.array([[4, -3], [1, 2]])
     delta_nu = np.array([0.1, -0.05])
-    expected = np.linalg.solve(jacobian, delta_nu)
+    expected = inverse_jacobian @ delta_nu
 
     nodes, weights = np.polynomial.hermite.hermgauss(12)
     x, y = np.meshgrid(
@@ -628,13 +622,8 @@ def test_dali_map_shift_first_order_fisher_limit(order):
     theta0 = np.zeros(2)
     delta_nu = np.array([0.02, -0.01])
 
-    jacobian = np.array([
-        [2.0, 3.0],
-        [-1.0, 4.0],
-    ])
-
-    fisher = jacobian.T @ jacobian
-    expected = np.linalg.solve(fisher, jacobian.T @ delta_nu)
+    # expected = inverse_fisher @ jacobian.T @ delta_nu
+    expected = 1e-2 * np.array([1, 0])
 
     shift = build_dali_map_shift(
         linear_model,
@@ -721,11 +710,12 @@ def test_dali_map_expansion_convergence():
 def test_dali_map_shift_coupled_nonlinear(amplitude):
     """Tests both nonlinear MAP components against direct optimization."""
     cov = np.array([[0.16, 0.045], [0.045, 0.25]])
+    inv_cov = 1e3/(16*25*100 - 45**2) * np.array([[250, -45], [-45, 160]])
     delta_nu = np.array([0.3, -0.2])
 
     def negative_log_likelihood(theta):
         residual = coupled_quadratic_model(theta) - amplitude * delta_nu
-        return 0.5 * residual @ np.linalg.solve(cov, residual)
+        return 0.5 * residual @ inv_cov @ residual
 
     optimum = minimize(
         negative_log_likelihood,
@@ -1438,14 +1428,8 @@ def test_dali_map_shift_singular_fisher():
     cov = np.eye(2)
     delta_nu = np.array([0.1, 0.2])
 
-    jacobian = np.array([
-        [1.0, 1.0],
-        [2.0, 2.0],
-    ])
-
-    fisher = jacobian.T @ jacobian
-    bias = jacobian.T @ delta_nu
-    expected = np.linalg.pinv(fisher) @ bias
+    # expected = pseudo_inverse_fisher @ jacobian.T @ delta_nu
+    expected = 1/20 * np.array([1, 1])
 
     shift = build_dali_map_shift(
         model,
