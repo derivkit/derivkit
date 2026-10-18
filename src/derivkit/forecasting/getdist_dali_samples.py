@@ -324,7 +324,7 @@ def dali_to_getdist_emcee(
             to reduce autocorrelation in the chain.
         n_walkers: Number of walkers. Defaults to ``max(32, 8 * p)``.
         init_scale: Initial scatter scale for walker initialization.
-        seed: Random seed for walker initialization.
+        seed: Random seed for walker initialization and MCMC sampling.
         prior_terms: Optional prior term specifications used to build a prior via
             :func:`derivkit.forecasting.priors.core.build_prior`. Mutually exclusive with ``logprior``.
             Can be combined with ``prior_bounds`` to truncate prior support.
@@ -426,6 +426,10 @@ def dali_to_getdist_emcee(
         return float(_base_log_prob(theta))
 
     sampler = emcee.EnsembleSampler(int(n_walkers), n_params, log_prob)
+
+    if seed is not None:
+        sampler.random_state = np.random.RandomState(seed).get_state()
+
     sampler.run_mcmc(walker_init, int(n_steps), progress=True)
 
     chains = sampler.get_chain(discard=int(burn), thin=int(thin))
