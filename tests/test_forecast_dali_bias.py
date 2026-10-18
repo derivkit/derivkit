@@ -561,7 +561,7 @@ def test_build_dali_mean_shift_semi_analytic_two_parameter_gaussian():
 
     samples = (
         np.column_stack([x.ravel(), y.ravel()])
-        @ np.linalg.inv(jacobian).T
+        @ inverse_jacobian.T
     )
     quadrature_weights = np.outer(weights, weights).ravel()
 
