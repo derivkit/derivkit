@@ -25,6 +25,7 @@ from derivkit.utils.types import ArrayLike1D, ArrayLike2D
 from derivkit.utils.validate import validate_covariance_matrix_shape
 
 __all__ = [
+    "SUPPORTED_DERIVATIVE_ORDERS",
     "SUPPORTED_FORECAST_ORDERS",
     "get_forecast_tensors",
 ]
@@ -50,6 +51,7 @@ def get_forecast_tensors(
     method: str | None = None,
     symmetrize_dali: bool = True,
     n_workers: int = 1,
+    derivatives: dict[int, NDArray[np.float64]] | None = None,
     **dk_kwargs: Any,
 ) -> dict[int, tuple[NDArray[np.float64], ...]]:
     """Returns a set of tensors according to the requested order of the forecast.
@@ -76,6 +78,9 @@ def get_forecast_tensors(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused, and missing orders are computed
+            and stored in the dictionary. If ``None``, a temporary dictionary is used.
         **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -146,7 +151,9 @@ def get_forecast_tensors(
     invcov = invert_covariance(cov_arr, warn_prefix="get_forecast_tensors")
 
     forecast_tensors: dict[int, tuple[NDArray[np.float64], ...]] = {}
-    derivatives: dict[int, NDArray[np.float64]] = {}
+
+    if derivatives is None:
+        derivatives = {}
 
     contractions = {
         1: {1: "ia,ij,jb->ab"},
@@ -162,15 +169,16 @@ def get_forecast_tensors(
     }
 
     for order1 in range(1, 1 + forecast_order):
-        derivatives[order1] = _get_derivatives(
-            function,
-            theta0_arr,
-            cov_arr,
-            order=order1,
-            n_workers=n_workers,
-            method=method,
-            **dk_kwargs,
-        )
+        if order1 not in derivatives:
+            derivatives[order1] = _get_derivatives(
+                function,
+                theta0_arr,
+                cov_arr,
+                order=order1,
+                n_workers=n_workers,
+                method=method,
+                **dk_kwargs,
+            )
 
         tensors_at_order: list[NDArray[np.float64]] = []
         for order2 in contractions[order1]:
