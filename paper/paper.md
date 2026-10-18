@@ -128,6 +128,12 @@ All components are accompanied by extensive unit tests to ensure consistency acr
 
 ![Examples of _ForecastKit_ functionality. Panels show standard Fisher forecasts (with and without priors $\mathcal P$). Standard Fisher contours with and without a Gaussian prior (top left). $X$--$Y$ Fisher contours accounting for uncertainty in both inputs $x$ and outputs $y$ (top right), including uncertainty in both inputs and outputs. Fisher bias, showing the parameter shift induced by a biased data vector (bottom left). DALI triplet contours compared to the posterior from MCMC (`emcee`). Fisher bias estimates, and DALI-based non-Gaussian likelihood approximations.\label{fig:forecastkit_demo}](figures/fig2_panel_2x2.pdf)
 
+# Research impact statement
+
+Although `DerivKit` was originally intended to be a tool for the developers' personal research, it has been taken up by various research projects in the cosmological community.
+Most notably, `DerivKit` is a core dependency of `Cocoa`, which is a cosmological inference package for instruments such as the _Planck_ and Roman satellites and the Vera Rubin Telescope, and has been incorporated into `augur`, which is a forecasting and inference validation tool used in the Dark Energy Science Collaboration (DESC).
+Additionally, it has been downloaded hundreds of times through PyPI and conda-forge since its initial release in early 2026.
+
 # Usage Examples
 
 This section presents compact, runnable examples illustrating typical `DerivKit` workflows.
