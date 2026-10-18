@@ -71,7 +71,7 @@ The following examples illustrate typical Fisher-forecast workflows:
   :doc:`../../examples/forecasting/fisher`
 
 - Visualization of Fisher constraints using ``GetDist``:
-  :doc:`../../examples/forecasting/fisher_contours`
+  :doc:`../../examples/forecasting/fisher`
 
 
 
@@ -555,7 +555,7 @@ The following examples illustrate the DALI approximation workflow:
   :doc:`../../examples/forecasting/dali`
 
 - Visualization of DALI-expanded posteriors using ``GetDist``:
-  :doc:`../../examples/forecasting/dali_contours`
+  :doc:`../../examples/forecasting/dali`
 
 
 
@@ -580,8 +580,8 @@ requiring full likelihood evaluations with MCMC or nested sampling methods.
 Examples:
 ^^^^^^^^^
 Worked examples are provided in:
-- :doc:`../../examples/forecasting/fisher_contours` for Fisher-based GetDist samples
-- :doc:`../../examples/forecasting/dali_contours` for DALI-based posterior sampling
+- :doc:`../../examples/forecasting/fisher` for Fisher-based GetDist samples
+- :doc:`../../examples/forecasting/dali` for DALI-based posterior sampling
 - :doc:`../../examples/forecasting/laplace_contours` for Laplace approximations
 
 
