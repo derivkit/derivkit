@@ -1094,7 +1094,11 @@ def test_dali_semi_analytic_mean_metadata():
 
 
 def test_dali_semi_analytic_mean_baseline_offset():
-    """Tests that a non-Gaussian baseline mean offset is not a systematic shift."""
+    """Tests that a vanishing model-mismatch does not give a systematic shift.
+
+    The mean might still be offset as a result of non-Gaussianities
+    in the unbiased parameter posterior.
+    """
     theta, _, cov, _, weights = nonlinear_scalar_reference()
 
     shift, metadata = build_dali_mean_shift(
