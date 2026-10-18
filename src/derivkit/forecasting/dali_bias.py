@@ -4,6 +4,8 @@ The two main entry points return systematic MAP and posterior-mean shifts.
 Optional metadata explains where each estimator ends up and which terms
 contribute to its response. All shifts compare the same inference model
 with and without an injected data-model mismatch.
+
+The implementation follows https://arxiv.org/abs/2610.02104.
 """
 
 from __future__ import annotations
