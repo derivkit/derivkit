@@ -68,7 +68,7 @@ As a result, finite-difference methods remain widely used in scientific software
 `DerivKit` addresses these challenges by providing a diagnostics-driven framework for computing stable numerical derivatives from general numerical model evaluations, without requiring model rewrites or specialized `autodiff` frameworks.
 While cosmological forecasting serves as a primary motivating example, `DerivKit` is broadly applicable to inference problems requiring robust derivative-based sensitivity analyses across scientific domains.
 
-# Core Functionality
+# Software Design
 
 `DerivKit` is organized into modular components ("kits") that support derivative-based inference workflows, from numerical differentiation to forecasting and likelihood approximations.
 
