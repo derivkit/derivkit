@@ -476,7 +476,7 @@ def build_logposterior_dali(
         bias: Optional systematic-bias tensors mapping expansion order
             to parameter-space tensors. Adds the factorial-weighted
             mismatch expansion through ``forecast_order``.
-            If None, evaluates the unbiased DALI posterior.
+            If ``None``, evaluates the unbiased DALI posterior.
         forecast_order: Maximum order to include in ``delta_chi2``. If ``None``, uses
             the highest key in ``dali``.
         prior_terms: Prior term specification passed to :func:`build_prior`.
