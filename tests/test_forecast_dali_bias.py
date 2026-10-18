@@ -847,7 +847,11 @@ def test_dali_analytic_mean_metadata():
 
 
 def test_dali_analytic_mean_zero_mismatch_baseline():
-    """Tests that an unbiased mean offset is not a systematic shift."""
+    """Tests that a vanishing model-mismatch does not give a systematic shift.
+
+    The mean might still be offset as a result of non-Gaussianities
+    in the unbiased parameter posterior.
+    """
     theta0 = np.zeros(1)
 
     shift, metadata = build_dali_mean_shift(
