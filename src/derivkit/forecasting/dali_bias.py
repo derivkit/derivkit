@@ -351,21 +351,28 @@ def build_dali_map_shift(
 
         ``estimator``: Predicted MAP parameter values with the mismatch.
             This is ``theta0 + shift``.
+
         ``baseline``: MAP without the mismatch, assumed to be ``theta0``.
+
         ``displacement``: MAP with the mismatch minus ``theta0``.
             This equals ``shift`` because the baseline MAP is assumed
             to be ``theta0``.
+
         ``terms``: Dictionary keyed by response order. Entry 1 is the
             leading Fisher bias; entries 2 and 3 are the successive
             corrections. Their sum is the returned shift.
+
         ``gaussian_terms``: Terms obtained if the unbiased posterior is
             approximated by its quadratic (Gaussian) Fisher form, while
             retaining the mismatch potential up to and including the
             requested order.
+
         ``non_gaussian_terms``: Differences between the DALI and Gaussian
             terms at each order. They isolate corrections caused by the
             non-quadratic reference posterior within this expansion.
+
         ``gaussian_contribution``: Sum of ``gaussian_terms``.
+
         ``non_gaussian_contribution``: Sum of ``non_gaussian_terms``.
             Adding the two contributions reproduces the MAP shift.
 
@@ -718,9 +725,12 @@ def build_dali_mean_shift(
         Every method supplies:
 
         ``estimator``: Predicted posterior mean with the systematic.
+
         ``baseline``: Posterior mean with no systematic mismatch.
+
         ``displacement``: Predicted posterior mean minus ``theta0``.
             It equals ``shift + baseline - theta0``.
+
         ``method``: Which mean approximation produced these results.
 
         For ``mean_method="analytic"``, metadata also supplies:
@@ -735,6 +745,7 @@ def build_dali_mean_shift(
             including ``response_order``). Each vector is the contribution at
             that order when the supplied mismatch is used as-is. Equivalently,
             it multiplies t**order if the mismatch is scaled by t.
+
         ``terms``: Same order-by-order vectors, evaluated at t=1. Their
             sum gives the returned mean shift. These are identical to
             the coefficients because the supplied mismatch is complete.
