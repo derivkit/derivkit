@@ -338,6 +338,351 @@ The following examples illustrate the Laplace approximation workflow:
   :doc:`../../examples/forecasting/laplace_contours`
 
 
+DALI (Higher-Order Forecasting)
+-------------------------------
+
+The DALI expansion (Derivative Approximation for LIkelihoods; [#dali]_) extends
+Fisher and Laplace approximations by retaining higher-order derivatives of the
+likelihood around a chosen expansion point.
+
+For a Gaussian likelihood with parameter-independent covariance, DALI
+expands the model predictions around the fiducial parameters
+:math:`\theta_0`. Defining the displacement
+:math:`\delta = \theta - \theta_0`, the expected-data log-likelihood
+can be approximated using contractions of model derivatives.
+
+.. math::
+
+   \log p(\theta \mid d)
+   \simeq
+   \log p(\theta_0 \mid d)
+   - \frac{1}{2}
+     F_{ab}\delta^a\delta^b
+   - \frac{1}{2}
+     D^{(1)}_{abc}\delta^a\delta^b\delta^c
+   - \frac{1}{8}
+     D^{(2)}_{abcd}\delta^a\delta^b\delta^c\delta^d
+   + \cdots,
+
+where the expression assumes expected data at the fiducial model
+and a locally flat prior. A nonzero systematic mismatch introduces
+additional bias terms, described in the DALI Bias section below.
+
+The tensors are constructed from derivatives of the model
+predictions evaluated at :math:`\theta_0`:
+
+.. math::
+
+   F_{ab}
+   = \nu_{,a}^{\mathrm T}C^{-1}\nu_{,b},
+
+.. math::
+
+   D^{(1)}_{abc}
+   = \nu_{,ab}^{\mathrm T}C^{-1}\nu_{,c},
+
+.. math::
+
+   D^{(2)}_{abcd}
+   = \nu_{,ab}^{\mathrm T}C^{-1}\nu_{,cd}.
+
+At second order ("doublet DALI"), the posterior takes the form
+
+.. math::
+
+   p(\theta \mid d)
+   \propto
+   \exp\!\left[
+     -\frac{1}{2}F_{ab}\delta^a\delta^b
+     -\frac{1}{2}D^{(1)}_{abc}\delta^a\delta^b\delta^c
+     -\frac{1}{8}D^{(2)}_{abcd}\delta^a\delta^b\delta^c\delta^d
+   \right].
+
+Including third-order ("triplet DALI") terms introduces additional
+correction tensors :math:`T^{(i)}`, constructed from third
+derivatives of the model predictions, which capture higher-order
+non-Gaussian structure.
+
+Keep in mind that:
+
+- DALI is a *local* approximation around ``theta0`` and may degrade far from the
+  expansion point.
+- DALI may perform poorly for models with weak or sublinear parameter dependence,
+  or when increasing the expansion order does not improve convergence
+  (see discussion in e.g. [#dali]_ and section VI.B of
+  `arXiv:2211.06534 <https://arxiv.org/abs/2211.06534>`_).
+- If DALI does not stabilize as the expansion order is increased,
+  numerical posterior sampling (e.g. ``emcee``) should be used to validate
+  the approximation.
+
+
+Interpretation
+^^^^^^^^^^^^^^
+
+DALI provides a controlled hierarchy of local posterior approximations,
+reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
+
+
+.. image:: ../../assets/plots/dali_vs_fisher_exact_1d.png
+   :width: 60%
+.. image:: ../../assets/plots/dali_vs_fisher_2d_1and2sigma.png
+   :width: 60%
+
+
+Examples
+^^^^^^^^
+
+The following examples illustrate the DALI approximation workflow:
+
+- A basic DALI expansion of the posterior and visualization of DALI-expanded posteriors using ``GetDist``:
+  :doc:`../../examples/forecasting/dali`
+
+
+DALI Bias
+---------
+
+The DALI bias formalism [#dalibias]_ extends Fisher bias forecasting
+beyond the local Gaussian approximation. It uses higher-order model
+derivatives to predict how systematic data mismatches shift the
+posterior maximum and mean.
+
+For a model prediction :math:`\nu(\theta)` and a fixed data covariance
+:math:`C`, the systematic mismatch is defined as
+
+.. math::
+
+   \Delta\nu = \langle d\rangle - \nu(\theta_0),
+
+where :math:`\theta_0` is the fiducial parameter point and
+:math:`\langle d\rangle` is the expected data vector.
+
+The standard Fisher bias uses only first derivatives of the model.
+DALI bias additionally includes higher-order derivatives, allowing
+the parameter response to depend nonlinearly on the mismatch.
+
+
+Higher-Order Bias Tensors
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The systematic mismatch enters the DALI expansion through the
+bias tensors
+
+.. math::
+
+   b_{a_1\ldots a_n}
+   =
+   \Delta\nu^{\mathrm T}
+   C^{-1}
+   \nu_{,a_1\ldots a_n},
+
+where :math:`\nu_{,a_1\ldots a_n}` denotes the corresponding
+model derivative evaluated at :math:`\theta_0`.
+
+The first-order tensor recovers the usual Fisher bias vector.
+The second- and third-order tensors describe how the systematic
+mismatch couples to nonlinear model derivatives.
+
+Writing :math:`\delta=\theta-\theta_0`, the mismatch-dependent
+contribution to the DALI log-likelihood is
+
+.. math::
+
+   B(\delta)
+   =
+   b_a\delta^a
+   + \frac{1}{2}b_{ab}\delta^a\delta^b
+   + \frac{1}{3!}b_{abc}\delta^a\delta^b\delta^c.
+
+These terms modify the posterior beyond a simple translation
+of its maximum.
+
+
+Maximum a Posteriori Shift
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The maximum a posteriori (MAP) estimate is obtained by setting
+the gradient of the biased log-posterior to zero:
+
+.. math::
+
+   \left.
+   \frac{\partial\log p(\theta\mid d)}
+        {\partial\theta_a}
+   \right|_{\theta=\hat{\theta}}
+   =0.
+
+The resulting parameter displacement can be expanded in powers
+of the systematic mismatch:
+
+.. math::
+
+   \Delta\hat{\theta}^a
+   =
+   \Delta\theta_{\mathrm G}^a
+   + \sum_{n=2}^{\infty}
+     \delta_{\mathrm{NG},n}^a,
+
+where the Gaussian contribution is
+
+.. math::
+
+   \Delta\theta_{\mathrm G}
+   =
+   (F-B_2)^{-1}b,
+
+with :math:`(B_2)_{ab}=b_{ab}`.
+
+At leading order, this reduces to the standard Fisher bias:
+
+.. math::
+
+   \Delta\theta_{\mathrm F}^a
+   =
+   (F^{-1})^{ab}b_b.
+
+The non-Gaussian corrections involve contractions of the
+higher-order DALI and bias tensors. They account for the
+nonlinear response of the posterior maximum as the mismatch
+moves the inferred parameters away from the fiducial point.
+
+
+Posterior Mean Shift
+^^^^^^^^^^^^^^^^^^^^
+
+For a non-Gaussian posterior, the MAP and posterior mean do not
+generally coincide. The posterior mean is defined by
+
+.. math::
+
+   \bar{\theta}^a
+   =
+   \int \theta^a p(\theta\mid d)
+   \,\mathrm{d}^{N_{\mathrm{par}}}\theta.
+
+DALI bias therefore distinguishes between shifts of the
+posterior maximum and shifts of the posterior mean.
+
+The analytic mean approximation expresses the mean as a
+correction to the MAP:
+
+.. math::
+
+   \bar{\theta}^a
+   =
+   \hat{\theta}^a
+   - \frac{1}{2}
+     C^3_{ijk}(C^2)^{ia}(C^2)^{jk}
+   - \frac{1}{8}
+     C^5_{ijklm}(C^2)^{ia}
+     (C^2)^{jk}(C^2)^{lm}.
+
+Here :math:`C^n` are the derivatives of the negative
+log-posterior evaluated at the biased MAP, and
+:math:`(C^2)^{ij}` denotes the inverse of its quadratic
+coefficient matrix.
+
+This approximation captures the leading mean--MAP offset
+arising from the non-Gaussian posterior structure.
+
+
+Posterior Mean Response
+^^^^^^^^^^^^^^^^^^^^^^^
+
+An alternative approach expands the posterior mean directly
+in the amplitude of the systematic mismatch while retaining
+the complete unbiased DALI posterior as the reference
+distribution.
+
+For a mismatch :math:`\Delta\nu=A s`, define the
+mismatch-induced log-likelihood contribution
+
+.. math::
+
+   B(\theta;A)=A\,U(\theta),
+
+where :math:`U` is constructed from the bias tensors
+associated with the systematic template :math:`s`.
+
+The systematic posterior mean response is
+
+.. math::
+
+   \Delta\bar{\theta}^a(A)
+   =
+   \bar{\theta}^a(A)-\bar{\theta}^a(0)
+   =
+   \sum_{n=1}^{\infty}
+   \frac{A^n}{n!}
+   \kappa_0(\theta^a,U,\ldots,U),
+
+where :math:`\kappa_0` denotes a joint cumulant evaluated
+under the unbiased DALI posterior, with :math:`n` copies
+of :math:`U`.
+
+At first order,
+
+.. math::
+
+   \Delta\bar{\theta}^a(A)
+   =
+   A\,\operatorname{Cov}_0(\theta^a,U)
+   + O(A^2).
+
+Thus, the initial response of the posterior mean is
+determined by the covariance between the parameter and
+the systematic perturbation under the unbiased posterior.
+
+Unlike the local analytic mean approximation, this method
+retains the complete non-Gaussian structure of the reference
+DALI posterior.
+
+
+Interpretation
+^^^^^^^^^^^^^^
+
+DALI bias predicts how an unmodelled systematic changes
+parameter inference beyond the linear Fisher approximation.
+
+Three distinctions are important:
+
+- The MAP shift describes the movement of the posterior maximum,
+  while the mean shift describes the movement of its probability
+  weighted average.
+- The systematic mean shift must be measured relative to the
+  unbiased posterior mean, which need not coincide with the
+  fiducial parameter point.
+- The response depends on both the magnitude and direction
+  of the mismatch in data space.
+
+For multiple additive systematic mismatches, the parameter
+response need not be additive. Defining the systematic shift
+of an estimator by :math:`\Delta\theta`, the nonadditive
+contribution is
+
+.. math::
+
+   \Delta\theta_{\mathrm{nonadd}}
+   =
+   \Delta\theta_{\alpha+\beta}
+   - \Delta\theta_\alpha
+   - \Delta\theta_\beta.
+
+This quantity vanishes for the linear Fisher response but
+can be nonzero when higher-order corrections become important.
+
+DALI bias remains a local derivative-based approximation.
+Its accuracy depends on the quality of the DALI expansion,
+the convergence of the systematic response, and the
+posterior region explored by the mismatch. Numerical
+validation is recommended when the predicted shifts become
+large or higher-order corrections fail to stabilize.
+
+
+Examples
+^^^^^^^^
+
+Worked examples illustrating DALI bias calculations and
+posterior shifts are provided in the forecasting examples.
 
 
 Priors
@@ -453,112 +798,6 @@ Practical examples demonstrating how priors are incorporated are provided in:
   for DALI-based posterior sampling
 
 
-DALI (Higher-Order Forecasting)
--------------------------------
-
-The DALI expansion (Derivative Approximation for LIkelihoods; [#dali]_) extends
-Fisher and Laplace approximations by retaining higher-order derivatives of the
-likelihood around a chosen expansion point.
-
-Expanding the log-posterior locally in parameter displacements
-:math:`\Delta\theta = \theta - \hat{\theta}`, DALI approximates the posterior as
-
-.. math::
-
-   \log p(\theta \mid d)
-   \simeq
-   \log p(\hat{\theta} \mid d)
-   - \frac{1}{2}
-     F_{\alpha\beta}\,
-     \Delta\theta_\alpha \Delta\theta_\beta
-   - \frac{1}{3!}
-     D^{(1)}_{\alpha\beta\gamma}\,
-     \Delta\theta_\alpha \Delta\theta_\beta \Delta\theta_\gamma
-   - \frac{1}{4!}
-     D^{(2)}_{\alpha\beta\gamma\delta}\,
-     \Delta\theta_\alpha \Delta\theta_\beta
-     \Delta\theta_\gamma \Delta\theta_\delta
-   + \cdots,
-
-where
-
-- :math:`F_{\alpha\beta}` is the Fisher matrix,
-- :math:`D^{(1)}_{\alpha\beta\gamma}` and :math:`D^{(2)}_{\alpha\beta\gamma\delta}`
-  are the second-order (doublet) DALI correction terms,
-- :math:`T^{(1)}_{\alpha\beta\gamma\delta}`,
-  :math:`T^{(2)}_{\alpha\beta\gamma\delta\epsilon}`,
-  and :math:`T^{(3)}_{\alpha\beta\gamma\delta\epsilon\zeta}`
-  denote third-order (triplet) DALI correction terms,
-
-all evaluated at the expansion point :math:`\hat{\theta}`.
-
-
-For Gaussian data models with parameter-independent covariance, these tensors
-can be expressed directly in terms of derivatives of the model predictions,
-allowing DALI to be constructed using numerical derivatives alone.
-
-At second order (“doublet DALI”), the posterior takes the form
-
-.. math::
-
-   p(\theta \mid d)
-   \propto
-   \exp\!\Bigg[
-     -\frac{1}{2}
-     F_{\alpha\beta}\,
-     \Delta\theta_\alpha \Delta\theta_\beta
-     -\frac{1}{2}
-     D^{(1)}_{\alpha\beta\gamma}\,
-     \Delta\theta_\alpha \Delta\theta_\beta \Delta\theta_\gamma
-     +\frac{1}{8}
-     D^{(2)}_{\alpha\beta\gamma\delta}\,
-     \Delta\theta_\alpha \Delta\theta_\beta
-     \Delta\theta_\gamma \Delta\theta_\delta
-   \Bigg].
-
-Including third-order (“triplet DALI”) terms introduces additional correction
-tensors :math:`T^{(i)}`, which capture higher-order non-Gaussian structure while
-preserving positive definiteness of the approximation.
-
-Keep in mind that:
-
-- DALI is a *local* approximation around ``theta0`` and may degrade far from the
-  expansion point.
-- DALI may perform poorly for models with weak or sublinear parameter dependence,
-  or when increasing the expansion order does not improve convergence
-  (see discussion in e.g. [#dali]_ and section VI.B of
-  `arXiv:2211.06534 <https://arxiv.org/abs/2211.06534>`_).
-- If DALI does not stabilize as the expansion order is increased,
-  numerical posterior sampling (e.g. ``emcee``) should be used to validate
-  the approximation.
-
-
-Interpretation
-^^^^^^^^^^^^^^
-
-DALI provides a controlled hierarchy of local posterior approximations,
-reducing to the Fisher and Laplace limits when higher-order derivatives vanish.
-
-
-.. image:: ../../assets/plots/dali_vs_fisher_exact_1d.png
-   :width: 60%
-.. image:: ../../assets/plots/dali_vs_fisher_2d_1and2sigma.png
-   :width: 60%
-
-
-Examples
-^^^^^^^^
-
-The following examples illustrate the DALI approximation workflow:
-
-- A basic DALI expansion of the posterior:
-  :doc:`../../examples/forecasting/dali`
-
-- Visualization of DALI-expanded posteriors using ``GetDist``:
-  :doc:`../../examples/forecasting/dali`
-
-
-
 Posterior Sampling and Visualization
 ------------------------------------
 
@@ -619,3 +858,6 @@ References
    https://en.wikipedia.org/wiki/Laplace%27s_approximation
 .. [#fisherbias] A. Amara and A. Réfrégier, *Systematic Bias in Cosmic Shear: Beyond the Fisher Matrix*,
    https://arxiv.org/abs/0710.5171
+.. [#dalibias] N. Šarčević, M. van der Wild, and E. Sellentin,
+   *Non-Gaussian Parameter Bias: Formalism and Validation*,
+   https://arxiv.org/abs/2610.02104
