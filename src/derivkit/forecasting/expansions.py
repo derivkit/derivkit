@@ -274,15 +274,13 @@ def build_logposterior_fisher(
 
         log p = -0.5 * delta_chi2
 
-    This normalization is equivalent to the ``convention="delta_chi2"`` used for DALI.
-    In this interpretation, fixed ``delta_chi2`` values correspond to fixed probability content
-    (e.g. 68%, 95%) in parameter space, as for a Gaussian likelihoods.
-    See :func:`derivkit.forecasting.expansions.delta_chi2_dali` for the corresponding
-    DALI definition of ``delta_chi2`` and its supported conventions.
+    The Fisher approximation describes a Gaussian likelihood through its
+    quadratic form. The enclosed probability associated with a given
+    ``delta_chi2`` threshold depends on the number of parameters.
 
-    Unlike the DALI case, there is no alternative normalization for the Fisher
-    approximation: the likelihoods is strictly Gaussian and fully described by the
-    quadratic form.
+    The DALI approximation extends this quadratic form with higher-order
+    terms, allowing the likelihood to depart from Gaussianity.
+    See :func:`build_delta_chi2_dali` for the corresponding DALI expansion.
 
     Args:
         theta: Evaluation point in parameter space. This is the trial parameter vector
@@ -390,14 +388,15 @@ def build_delta_chi2_dali(
 
     # Choose order
     if forecast_order is None:
-        chosen = max(dali.keys())
+        chosen = max(dali)
     else:
-        try:
-            chosen = int(forecast_order)
-        except Exception as e:
+        if isinstance(forecast_order, (bool, np.bool_)) or not isinstance(
+                forecast_order, (int, np.integer)
+        ):
             raise TypeError(
-                f"forecast_order must be an int or None;"
-                f" got {type(forecast_order)}.") from e
+                f"forecast_order must be an integer or None; got {type(forecast_order)}."
+            )
+        chosen = int(forecast_order)
 
     if chosen not in SUPPORTED_FORECAST_ORDERS:
         raise ValueError(
@@ -457,26 +456,27 @@ def build_logposterior_dali(
     prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
     logprior: Callable[[NDArray[np.floating]], float] | None = None,
 ) -> float:
-    """Compute the log posterior under the DALI approximation.
+    """Computes the log posterior under the DALI approximation.
 
-    The posterior is evaluated as::
+    The log posterior combines the prior, the DALI likelihood expansion,
+    and an optional systematic mismatch contribution.
 
-        log p(theta) = logprior(theta) - 0.5 * delta_chi2(theta)
+    The DALI contribution is evaluated using :func:`build_delta_chi2_dali`.
+    When ``bias`` is provided, the mismatch tensors are contracted with
+    the parameter displacement and weighted by the factorial of their order.
 
-    where ``delta_chi2`` is computed from the dict-form forecast tensors ``dali``
-    using :func:`build_delta_chi2_dali`.
-
-    When ``bias`` is provided, the factorial-weighted systematic source
-    expansion is added to the log posterior.
+    The mismatch tensors can be obtained from
+    :func:`derivkit.forecasting.dali_bias.build_dali_bias_tensor`.
 
     Args:
         theta: Evaluation point in parameter space.
         theta0: Expansion point (fiducial parameters).
         dali: Forecast tensors as a dict in the introduced-at-order convention.
-        bias: Optional systematic-bias tensors mapping expansion order
-            to parameter-space tensors. Adds the factorial-weighted
-            mismatch expansion through ``forecast_order``.
-            If ``None``, evaluates the unbiased DALI posterior.
+        bias: Optional dictionary of systematic mismatch tensors returned by
+            :func:`derivkit.forecasting.dali_bias.build_dali_bias_tensor`.
+            The dictionary maps derivative orders to parameter-space tensors.
+            The tensors contribute to the log posterior through the requested
+            ``forecast_order``. If ``None``, no systematic mismatch is included.
         forecast_order: Maximum order to include in ``delta_chi2``. If ``None``, uses
             the highest key in ``dali``.
         prior_terms: Prior term specification passed to :func:`build_prior`.
@@ -518,12 +518,21 @@ def build_logposterior_dali(
 
     source = 0.0
     if bias is not None:
-        order = max(dali.keys()) if forecast_order is None else forecast_order
+        if not isinstance(bias, dict):
+            raise TypeError("bias must be a dictionary of mismatch tensors.")
 
-        if any(n not in bias.keys() for n in range(1, order + 1)):
-            raise ValueError(
-                f"bias must contain tensors through forecast_order={order}."
-            )
+        order = max(dali) if forecast_order is None else int(forecast_order)
+
+        for n in range(1, order + 1):
+            if n not in bias:
+                raise ValueError(f"bias must contain tensor order {n}.")
+
+            expected_shape = (theta0.size,) * n
+            if np.shape(bias[n]) != expected_shape:
+                raise ValueError(
+                    f"bias[{n}] must have shape {expected_shape}; "
+                    f"got {np.shape(bias[n])}."
+                )
 
         source = evaluate_tensor_expansion(
             bias,

@@ -8,6 +8,7 @@ from scipy.optimize import minimize
 from derivkit.forecasting.dali_bias import (
     build_dali_bias_tensor,
     build_dali_map_shift,
+    build_dali_mean_response_shift,
     build_dali_mean_shift,
 )
 from derivkit.forecasting.expansions import build_logposterior_dali
@@ -186,7 +187,6 @@ def test_nonlinear_dali_mean_shift():
         THETA0,
         COV,
         DELTA_NU,
-        mean_method="analytic",
         derivatives=derivatives,
     )
 
@@ -276,12 +276,11 @@ def test_nonlinear_dali_mean_response():
     baseline_mean = np.sum(points * weights[:, None], axis=0)
 
     for amplitude in (0.25, 0.5, 1.0):
-        predicted = build_dali_mean_shift(
+        predicted = build_dali_mean_response_shift(
             nonlinear_model,
             THETA0,
             COV,
             amplitude * DELTA_NU,
-            mean_method="semi-analytic",
             forecast_order=3,
             theta=points,
             weights=weights,

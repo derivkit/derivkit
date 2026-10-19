@@ -12,6 +12,7 @@ from derivkit.forecasting.dali_bias import (
     _mean_map_offset,
     build_dali_bias_tensor,
     build_dali_map_shift,
+    build_dali_mean_response_shift,
     build_dali_mean_shift,
 )
 
@@ -516,7 +517,6 @@ def test_build_dali_mean_shift_linear_gaussian():
     expected = 1/10 * np.array([1, 0])
     shift = build_dali_mean_shift(
         linear_model, theta0, np.eye(2), delta_nu,
-        mean_method="analytic",
     )
 
     assert_allclose(shift, expected, atol=1e-10)
@@ -527,12 +527,11 @@ def test_build_dali_mean_shift_semi_analytic_linear_gaussian():
     nodes, weights = np.polynomial.hermite.hermgauss(24)
     theta = (np.sqrt(2.0) * nodes)[:, None]
 
-    shift = build_dali_mean_shift(
+    shift = build_dali_mean_response_shift(
         scalar_linear_model,
         [0.0],
         [[1.0]],
         [0.15],
-        mean_method="semi-analytic",
         theta=theta,
         weights=weights,
         response_order=4,
@@ -560,12 +559,11 @@ def test_build_dali_mean_shift_semi_analytic_two_parameter_gaussian():
     )
     quadrature_weights = np.outer(weights, weights).ravel()
 
-    shift = build_dali_mean_shift(
+    shift = build_dali_mean_response_shift(
         linear_model,
         np.zeros(2),
         np.eye(2),
         delta_nu,
-        mean_method="semi-analytic",
         theta=samples,
         weights=quadrature_weights,
         response_order=4,
@@ -597,13 +595,10 @@ def test_dali_shifts_zero_mismatch(model):
 
     analytic_mean = build_dali_mean_shift(
         model, theta0, cov, delta_nu,
-        mean_method="analytic",
     )
 
-    semi_analytic_mean = build_dali_mean_shift(
-        model, theta0, cov, delta_nu,
-        mean_method="semi-analytic",
-        theta=samples,
+    semi_analytic_mean = build_dali_mean_response_shift(
+        model, theta0, cov, delta_nu, theta=samples
     )
 
     assert_allclose(map_shift, np.zeros(2), atol=1e-12)
@@ -826,19 +821,16 @@ def test_dali_analytic_mean_metadata():
         theta0,
         np.eye(2),
         [0.01, -0.005],
-        mean_method="analytic",
         return_metadata=True,
     )
 
     assert set(metadata) == {
-        "method",
         "estimator",
         "baseline",
         "displacement",
         "map_shift",
     }
 
-    assert metadata["method"] == "analytic"
     assert_allclose(metadata["estimator"], metadata["baseline"] + shift)
     assert_allclose(metadata["displacement"], metadata["estimator"] - theta0)
 
@@ -859,7 +851,6 @@ def test_dali_analytic_mean_zero_mismatch_baseline():
         theta0,
         np.eye(2),
         np.zeros(2),
-        mean_method="analytic",
         return_metadata=True,
     )
 
@@ -904,7 +895,6 @@ def test_dali_analytic_mean_shift_weak_nonlinearity(nonlinearity):
         np.zeros(1),
         cov,
         delta_nu,
-        mean_method="analytic",
     )
 
     assert np.isfinite(predicted[0])
@@ -930,12 +920,11 @@ def test_dali_semi_analytic_mean_against_direct_integration(amplitude):
         - unbiased_mean
     )
 
-    predicted = build_dali_mean_shift(
+    predicted = build_dali_mean_response_shift(
         nonlinear_scalar_model,
         [0.0],
         cov,
         amplitude * delta_nu,
-        mean_method="semi-analytic",
         forecast_order=3,
         theta=theta,
         weights=weights,
@@ -964,12 +953,11 @@ def test_dali_semi_analytic_mean_nongaussian_convergence():
         errors[amplitude] = {}
 
         for order in (1, 2, 3, 4):
-            predicted = build_dali_mean_shift(
+            predicted = build_dali_mean_response_shift(
                 nonlinear_scalar_model,
                 [0.0],
                 cov,
                 amplitude * delta_nu,
-                mean_method="semi-analytic",
                 forecast_order=3,
                 theta=theta,
                 weights=weights,
@@ -1003,12 +991,11 @@ def test_dali_semi_analytic_mean_coupled_nonlinear(amplitude):
         - mean0
     )
 
-    predicted = build_dali_mean_shift(
+    predicted = build_dali_mean_response_shift(
         coupled_quadratic_model,
         np.zeros(2),
         cov,
         amplitude * delta_nu,
-        mean_method="semi-analytic",
         forecast_order=3,
         theta=theta,
         weights=weights,
@@ -1031,12 +1018,11 @@ def test_dali_semi_analytic_mean_asymmetric_discrete_reference():
         - np.average(theta[:, 0], weights=weights)
     )
 
-    predicted = build_dali_mean_shift(
+    predicted = build_dali_mean_response_shift(
         scalar_linear_model,
         [0.0],
         [[1.0]],
         delta_nu,
-        mean_method="semi-analytic",
         forecast_order=1,
         theta=theta,
         weights=weights,
@@ -1047,16 +1033,15 @@ def test_dali_semi_analytic_mean_asymmetric_discrete_reference():
 
 
 def test_dali_semi_analytic_mean_metadata():
-    """Tests response coefficients, baseline, estimator, and displacement."""
+    """Tests response terms, baseline, estimator, and displacement."""
     theta, _, cov, _, weights = nonlinear_scalar_reference()
     theta0 = np.zeros(1)
 
-    shift, metadata = build_dali_mean_shift(
+    shift, metadata = build_dali_mean_response_shift(
         nonlinear_scalar_model,
         theta0,
         cov,
         [0.01, -0.005],
-        mean_method="semi-analytic",
         theta=theta,
         weights=weights,
         response_order=4,
@@ -1064,16 +1049,12 @@ def test_dali_semi_analytic_mean_metadata():
     )
 
     assert set(metadata) == {
-        "method",
         "estimator",
         "baseline",
         "displacement",
-        "coefficients",
         "terms",
     }
 
-    assert metadata["method"] == "semi-analytic"
-    assert set(metadata["coefficients"]) == {1, 2, 3, 4}
     assert set(metadata["terms"]) == {1, 2, 3, 4}
 
     expected_baseline = np.average(theta, axis=0, weights=weights)
@@ -1086,12 +1067,6 @@ def test_dali_semi_analytic_mean_metadata():
     )
     assert_allclose(sum(metadata["terms"].values()), shift)
 
-    for order in range(1, 5):
-        assert_allclose(
-            metadata["coefficients"][order],
-            metadata["terms"][order],
-        )
-
 
 def test_dali_semi_analytic_mean_baseline_offset():
     """Tests that a vanishing model-mismatch does not give a systematic shift.
@@ -1101,12 +1076,11 @@ def test_dali_semi_analytic_mean_baseline_offset():
     """
     theta, _, cov, _, weights = nonlinear_scalar_reference()
 
-    shift, metadata = build_dali_mean_shift(
+    shift, metadata = build_dali_mean_response_shift(
         nonlinear_scalar_model,
         [0.0],
         cov,
         np.zeros(2),
-        mean_method="semi-analytic",
         theta=theta,
         weights=weights,
         return_metadata=True,
@@ -1126,12 +1100,11 @@ def test_dali_semi_analytic_mean_response_orders(order):
     """Tests that metadata contains only the requested response orders."""
     samples = np.array([[-1.0], [0.0], [1.0]])
 
-    _, metadata = build_dali_mean_shift(
+    _, metadata = build_dali_mean_response_shift(
         scalar_linear_model,
         [0.0],
         [[1.0]],
         [0.1],
-        mean_method="semi-analytic",
         theta=samples,
         response_order=order,
         return_metadata=True,
@@ -1139,7 +1112,6 @@ def test_dali_semi_analytic_mean_response_orders(order):
 
     expected = set(range(1, order + 1))
 
-    assert set(metadata["coefficients"]) == expected
     assert set(metadata["terms"]) == expected
 
 
@@ -1152,21 +1124,19 @@ def test_dali_semi_analytic_mean_equal_weights_default():
         [1.5],
     ])
 
-    default = build_dali_mean_shift(
+    default = build_dali_mean_response_shift(
         scalar_linear_model,
         [0.0],
         [[1.0]],
         [0.1],
-        mean_method="semi-analytic",
         theta=theta,
     )
 
-    explicit = build_dali_mean_shift(
+    explicit = build_dali_mean_response_shift(
         scalar_linear_model,
         [0.0],
         [[1.0]],
         [0.1],
-        mean_method="semi-analytic",
         theta=theta,
         weights=np.ones(len(theta)),
     )
@@ -1178,22 +1148,20 @@ def test_dali_semi_analytic_mean_weight_scaling():
     """Tests that rescaling posterior weights leaves the response unchanged."""
     theta, _, cov, _, weights = nonlinear_scalar_reference()
 
-    first = build_dali_mean_shift(
+    first = build_dali_mean_response_shift(
         nonlinear_scalar_model,
         [0.0],
         cov,
         [0.01, -0.005],
-        mean_method="semi-analytic",
         theta=theta,
         weights=weights,
     )
 
-    second = build_dali_mean_shift(
+    second = build_dali_mean_response_shift(
         nonlinear_scalar_model,
         [0.0],
         cov,
         [0.01, -0.005],
-        mean_method="semi-analytic",
         theta=theta,
         weights=10.0 * weights,
     )
@@ -1207,12 +1175,11 @@ def test_dali_semi_analytic_mean_nonzero_fiducial():
     theta = np.array([[0.0], [0.5], [1.0]])
     weights = np.array([1.0, 2.0, 1.0])
 
-    shift, metadata = build_dali_mean_shift(
+    shift, metadata = build_dali_mean_response_shift(
         scalar_linear_model,
         theta0,
         [[1.0]],
         [0.05],
-        mean_method="semi-analytic",
         theta=theta,
         weights=weights,
         return_metadata=True,
@@ -1239,13 +1206,12 @@ def test_dali_map_shift_invalid_order(order):
 @pytest.mark.parametrize("order", [0, -1, 5, True, 1.5])
 def test_dali_semi_analytic_invalid_response_order(order):
     """Tests rejection of unsupported mean-response orders."""
-    with pytest.raises(ValueError, match="response_order"):
-        build_dali_mean_shift(
+    with pytest.raises((TypeError, ValueError), match="response_order"):
+        build_dali_mean_response_shift(
             scalar_linear_model,
             [0.0],
             [[1.0]],
             [0.1],
-            mean_method="semi-analytic",
             theta=np.array([[0.0], [1.0]]),
             response_order=order,
         )
@@ -1254,13 +1220,12 @@ def test_dali_semi_analytic_invalid_response_order(order):
 @pytest.mark.parametrize("order", [0, -1, 5, True, 1.5])
 def test_dali_semi_analytic_invalid_forecast_order(order):
     """Tests rejection of unsupported DALI forecast orders."""
-    with pytest.raises(ValueError, match="forecast_order"):
-        build_dali_mean_shift(
+    with pytest.raises((TypeError, ValueError), match="forecast_order"):
+        build_dali_mean_response_shift(
             scalar_linear_model,
             [0.0],
             [[1.0]],
             [0.1],
-            mean_method="semi-analytic",
             theta=np.array([[0.0], [1.0]]),
             forecast_order=order,
         )
@@ -1268,13 +1233,12 @@ def test_dali_semi_analytic_invalid_forecast_order(order):
 
 def test_dali_semi_analytic_requires_theta():
     """Tests that semi-analytic mean forecasts require posterior nodes."""
-    with pytest.raises(ValueError, match="theta is required"):
-        build_dali_mean_shift(
+    with pytest.raises(TypeError, match="theta"):
+        build_dali_mean_response_shift(
             scalar_linear_model,
             [0.0],
             [[1.0]],
             [0.1],
-            mean_method="semi-analytic",
         )
 
 
@@ -1290,50 +1254,14 @@ def test_dali_semi_analytic_requires_theta():
 def test_dali_semi_analytic_invalid_weights(weights):
     """Tests rejection of invalid posterior weights."""
     with pytest.raises(ValueError, match="weights|theta must"):
-        build_dali_mean_shift(
+        build_dali_mean_response_shift(
             scalar_linear_model,
             [0.0],
             [[1.0]],
             [0.1],
-            mean_method="semi-analytic",
             theta=np.array([[0.0], [1.0]]),
             weights=weights,
         )
-
-
-def test_dali_mean_shift_invalid_method():
-    """Tests rejection of unsupported mean approximation methods."""
-    with pytest.raises(ValueError, match="mean_method"):
-        build_dali_mean_shift(
-            scalar_linear_model,
-            [0.0],
-            [[1.0]],
-            [0.1],
-            mean_method="response",
-        )
-
-
-def test_dali_analytic_mean_ignores_samples():
-    """Tests that posterior samples are not required by the analytic method."""
-    expected = build_dali_mean_shift(
-        scalar_linear_model,
-        [0.0],
-        [[1.0]],
-        [0.1],
-        mean_method="analytic",
-    )
-
-    actual = build_dali_mean_shift(
-        scalar_linear_model,
-        [0.0],
-        [[1.0]],
-        [0.1],
-        mean_method="analytic",
-        theta=np.array([[0.0], [1.0]]),
-        weights=np.array([1.0, 2.0]),
-    )
-
-    assert_allclose(actual, expected)
 
 
 def test_dali_map_shift_accepts_column_mismatch():
