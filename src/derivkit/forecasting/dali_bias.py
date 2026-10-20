@@ -66,8 +66,9 @@ def build_dali_bias_tensor(
         bias_order: Highest mismatch tensor order to compute. Supported values
             are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_DERIVATIVE_ORDERS`.
-        method: Numerical differentiation method. If ``None``, the
-            :class:`derivkit.derivative_kit.DerivativeKit` default is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
         derivatives: Optional dictionary of model derivatives keyed by order.
@@ -277,8 +278,11 @@ def _forecast_tensors(
             and the fiducial model prediction.
         order: Highest derivative order used for both the DALI forecast and
             systematic mismatch tensors.
-        method: Numerical differentiation method.
-        n_workers: Number of differentiation workers.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        n_workers: Number of workers for per-parameter parallelization/threads.
+            Default ``1`` (serial).
         derivatives: Dictionary of precomputed model derivatives. Missing
             orders are computed and added to this dictionary in place.
         dk_kwargs: Additional keyword arguments passed to the numerical
@@ -332,9 +336,11 @@ def build_dali_map_shift(
         expansion_order: Number of perturbative MAP response orders (1 to 3).
         return_metadata: If set to ``True``, return the shift and a dictionary of
             explanatory results; otherwise return only the shift.
-        method: Numerical differentiation method passed to
-            :class:`derivkit.derivative_kit.DerivativeKit`.
-        n_workers: Number of differentiation workers.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        n_workers: Number of workers for per-parameter parallelization/threads.
+            Default ``1`` (serial).
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused. Missing orders are computed and
             added to the supplied dictionary in place, modifying the input.
@@ -685,8 +691,11 @@ def build_dali_mean_shift(
         delta_nu: Difference between the systematically affected data
             vector and the fiducial model prediction, including its magnitude.
         return_metadata: If ``True``, return the shift and explanatory metadata.
-        method: Numerical differentiation method.
-        n_workers: Number of differentiation workers.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        n_workers: Number of workers for per-parameter parallelization/threads.
+            Default ``1`` (serial).
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused and missing derivatives are added
             to the supplied dictionary.
@@ -781,8 +790,11 @@ def build_dali_mean_response_shift(
         response_order: Highest order retained in the systematic amplitude
             expansion of the posterior mean. Supported values are 1 through 4.
         return_metadata: If True, return the shift and explanatory metadata.
-        method: Numerical differentiation method.
-        n_workers: Number of differentiation workers.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        n_workers: Number of workers for per-parameter parallelization/threads.
+            Default ``1`` (serial).
         derivatives: Optional dictionary of cached model derivatives.
             Missing orders are computed and added to the dictionary.
         **dk_kwargs: Additional arguments passed to the derivative method.
