@@ -750,6 +750,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
         theta,
         theta0,
         fisher,
+        bias,
         prior_terms=None,
         prior_bounds=None,
         logprior=None,
@@ -758,6 +759,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
+        seen["bias"] = np.asarray(bias)
         seen["prior_terms"] = prior_terms
         seen["prior_bounds"] = prior_bounds
         seen["logprior"] = logprior
@@ -774,6 +776,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
 
     theta = np.array([0.3, 0.4])
     fisher = np.eye(2)
+    bias = np.eye(3)
     prior_terms = [("gaussian", {"mu": 0.0, "sigma": 1.0, "idx": 0})]
     prior_bounds = [(None, None), (0.0, 1.0)]
 
@@ -783,6 +786,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
     out = fk.logposterior_fisher(
         theta=theta,
         fisher=fisher,
+        bias=bias,
         prior_terms=prior_terms,
         prior_bounds=prior_bounds,
         logprior=lp,
@@ -792,6 +796,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["bias"], bias)
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] == prior_bounds
     assert seen["logprior"] is lp
