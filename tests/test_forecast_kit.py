@@ -565,7 +565,6 @@ def test_dali_mean_shift(monkeypatch):
     fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
 
     delta_nu = np.array([0.3, 0.4])
-    expansion_order = 2
     return_metadata = "yes"
     method = "test"
     n_workers = 1
