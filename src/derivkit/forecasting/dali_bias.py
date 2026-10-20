@@ -684,7 +684,7 @@ def build_dali_mean_shift(
         cov: Covariance matrix of the observables.
         delta_nu: Difference between the systematically affected data
             vector and the fiducial model prediction, including its magnitude.
-        return_metadata: If True, return the shift and explanatory metadata.
+        return_metadata: If ``True``, return the shift and explanatory metadata.
         method: Numerical differentiation method.
         n_workers: Number of differentiation workers.
         derivatives: Optional dictionary of model derivatives keyed by order.
