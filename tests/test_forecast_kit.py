@@ -1081,10 +1081,11 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.fisher_to_getdist_gaussiannd delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, names=None, labels=None, **kwargs):
+    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, bias, names=None, labels=None, **kwargs):
         """Mock fisher_to_getdist_gaussiannd that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
+        seen["bias"] = np.asarray(bias)
         seen["names"] = names
         seen["labels"] = labels
         seen["kwargs"] = kwargs
@@ -1100,11 +1101,13 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     fisher = np.eye(2)
+    bias = np.eye(3)
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
     out = fk.getdist_fisher_gaussian(
         fisher=fisher,
+        bias=bias,
         names=names,
         labels=labels,
         label="mylabel",
@@ -1114,6 +1117,7 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["bias"], bias)
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["label"] == "mylabel"
@@ -1124,10 +1128,11 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.fisher_to_getdist_samples delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_fisher_to_getdist_samples(theta0, fisher, *, names, labels, **kwargs):
+    def fake_fisher_to_getdist_samples(theta0, fisher, *, bias, names, labels, **kwargs):
         """Mock fisher_to_getdist_samples that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
+        seen["bias"] = np.asarray(bias)
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -1143,11 +1148,13 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     fisher = np.eye(2)
+    bias = np.eye(3)
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
     out = fk.getdist_fisher_samples(
         fisher=fisher,
+        bias=bias,
         names=names,
         labels=labels,
         n_samples=123,
@@ -1173,6 +1180,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
         """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -1191,6 +1199,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     labels = [r"a", r"b"]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.getdist_dali_importance(
         dali=dali,
@@ -1204,6 +1213,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["forecast_order"] == 4
