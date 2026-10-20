@@ -556,6 +556,7 @@ class ForecastKit:
         *,
         theta: np.ndarray,
         fisher: np.ndarray,
+        bias: NDArray[np.floating] | None = None,
         prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
         prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
         logprior: Callable[[np.ndarray], float] | None = None,
@@ -576,6 +577,9 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             fisher: Fisher matrix with shape ``(p, p)``.
+            bias: Optional linear systematic-bias vector of shape ``(p,)``.
+                If provided, adds ``bias @ (theta - theta0)`` to the
+                Fisher log posterior.
             prior_terms: Prior term specification passed to the underlying prior
                 builder. Use this only if ``logprior`` is not provided.
             prior_bounds: Global hard bounds passed to the underlying prior builder.
@@ -592,6 +596,7 @@ class ForecastKit:
             theta=theta,
             theta0=self.theta0,
             fisher=fisher,
+            bias=bias,
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
             logprior=logprior,
@@ -602,6 +607,7 @@ class ForecastKit:
         *,
         theta: np.ndarray,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, NDArray[np.floating]] | None = None,
         forecast_order: int | None = 2,
         prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
         prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
@@ -619,6 +625,10 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional systematic-bias tensors mapping expansion order
+                to parameter-space tensors. Adds the factorial-weighted
+                mismatch expansion through ``forecast_order``.
+                If ``None``, evaluates the unbiased DALI posterior.
             forecast_order: Maximum order of the DALI expansion to include.
                 If ``None``, the highest order available in ``dali`` is used.
             prior_terms: Prior term specification passed to the underlying prior
@@ -637,6 +647,7 @@ class ForecastKit:
             theta=theta,
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             forecast_order=forecast_order,
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
@@ -1071,6 +1082,7 @@ class ForecastKit:
         self,
         *,
         fisher: np.ndarray,
+        bias: np.ndarray,
         names: Sequence[str] | None = None,
         labels: Sequence[str] | None = None,
         **kwargs: Any,
@@ -1083,6 +1095,8 @@ class ForecastKit:
 
         Args:
             fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+                Shifts the Gaussian mean by ``covariance @ bias``.
             names: Optional parameter names (length ``p``).
             labels: Optional parameter labels (length ``p``).
             **kwargs: Forwarded to
@@ -1096,6 +1110,7 @@ class ForecastKit:
         return fisher_to_getdist_gaussiannd(
             self.theta0,
             fisher,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
@@ -1105,6 +1120,7 @@ class ForecastKit:
         self,
         *,
         fisher: np.ndarray,
+        bias: np.ndarray,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -1117,6 +1133,9 @@ class ForecastKit:
 
         Args:
             fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+                Shifts the Gaussian sampling mean by ``pinv(fisher) @ bias``
+                and contributes to the stored negative log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -1130,6 +1149,7 @@ class ForecastKit:
         return fisher_to_getdist_samples(
             self.theta0,
             fisher,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
@@ -1139,6 +1159,7 @@ class ForecastKit:
         self,
         *,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, NDArray[np.floating]] | None = None,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -1151,6 +1172,9 @@ class ForecastKit:
 
         Args:
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional dictionary of systematic bias tensors indexed by expansion
+                order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+                These contribute to the target log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -1176,6 +1200,7 @@ class ForecastKit:
         self,
         *,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, NDArray[np.floating]] | None = None,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -1188,6 +1213,9 @@ class ForecastKit:
 
         Args:
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional dictionary of systematic bias tensors indexed by expansion
+                order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+                These contribute to the target log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -1204,6 +1232,7 @@ class ForecastKit:
         return dali_to_getdist_emcee(
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
