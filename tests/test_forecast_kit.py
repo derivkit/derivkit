@@ -811,6 +811,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         theta,
         theta0,
         dali,
+        bias,
         forecast_order=2,
         prior_terms=None,
         prior_bounds=None,
@@ -820,6 +821,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["forecast_order"] = forecast_order
         seen["prior_terms"] = prior_terms
         seen["prior_bounds"] = prior_bounds
@@ -840,10 +842,12 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.logposterior_dali(
         theta=theta,
         dali=dali,
+        bias=bias,
         forecast_order=4,
         prior_terms=prior_terms,
         prior_bounds=None,
@@ -854,6 +858,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["forecast_order"] == 4
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] is None
