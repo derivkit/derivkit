@@ -39,6 +39,7 @@ __all__ = [
 #:  A value of 4 corresponds to the DALI quadruplet.
 SUPPORTED_FORECAST_ORDERS = (1, 2, 3, 4)
 
+#: Supported derivative orders used in forecasting tensors.
 SUPPORTED_DERIVATIVE_ORDERS = (1, 2, 3, 4)
 
 
