@@ -786,10 +786,12 @@ def build_dali_mean_response_shift(
             weights must include the reference posterior density and
             integration measure. Weights are normalized internally.
         forecast_order: Highest model derivative order included in the
-            systematic mismatch potential. Supported values are 1 through 4.
+            systematic mismatch potential. Supported values are given in
+            :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
         response_order: Highest order retained in the systematic amplitude
-            expansion of the posterior mean. Supported values are 1 through 4.
-        return_metadata: If True, return the shift and explanatory metadata.
+            expansion of the posterior mean. Supported values are given in
+           :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
+        return_metadata: If ``True``, return the shift and explanatory metadata.
         method: Numerical differentiation method or alias (e.g.,
             ``"adaptive"``, ``"finite"``). If ``None``, uses
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
