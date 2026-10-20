@@ -521,7 +521,7 @@ def build_logposterior_dali(
         if not isinstance(bias, dict):
             raise TypeError("bias must be a dictionary of mismatch tensors.")
 
-        order = max(dali) if forecast_order is None else int(forecast_order)
+        order = max(dali.keys()) if forecast_order is None else int(forecast_order)
 
         for n in range(1, order + 1):
             if n not in bias:
