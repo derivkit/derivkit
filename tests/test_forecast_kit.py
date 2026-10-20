@@ -388,6 +388,72 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
+def test_dali_bias_tensor(monkeypatch):
+    """Tests that ForecastKit.dali_bias_tensor delegates."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_bias_tensor(*,
+        function,
+        theta0,
+        cov,
+        delta_nu,
+        bias_order,
+        method,
+        n_workers,
+        derivatives,
+        **dk_kwargs
+    ):
+        """Mock delta_chi2_fisher that records inputs and returns fixed output."""
+        seen["function"] = function
+        seen["theta0"] = np.asarray(theta0)
+        seen["cov"] = np.asarray(cov)
+        seen["delta_nu"] = np.asarray(delta_nu)
+        seen["bias_order"] = bias_order
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["derivatives"] = derivatives
+        seen["dk_kwargs"] = dk_kwargs
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_dali_bias_tensor",
+        fake_dali_bias_tensor,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    cov = np.eye(1)
+    def model(x):
+        return True
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
+
+    delta_nu = np.array([0.3, 0.4])
+    bias_order = 2
+    method = "test"
+    n_workers = 1
+    derivatives = {1: np.array([1]), 2: np.array([2, 3])}
+    dk_kwargs = {"key": "value"}
+    out = fk.dali_bias_tensor(
+        delta_nu=delta_nu,
+        bias_order=bias_order,
+        method=method,
+        n_workers=n_workers,
+        derivatives=derivatives,
+        **dk_kwargs,
+    )
+
+    assert out == 123.0
+    assert seen["function"] is model
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["cov"], cov)
+    np.testing.assert_allclose(seen["delta_nu"], delta_nu)
+    np.testing.assert_allclose(seen["bias_order"], bias_order)
+    assert seen["method"] == method
+    assert seen["n_workers"] == n_workers
+    assert seen["derivatives"] == derivatives
+    assert seen["dk_kwargs"] == dk_kwargs
+
+
 def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.delta_chi2_fisher delegates and uses self.theta0."""
     seen: dict[str, object] = {}
