@@ -707,7 +707,7 @@ def build_dali_mean_shift(
         posterior mean without it.
 
         If ``return_metadata=True``, returns ``(shift, metadata)`` instead.
-        The metadata dictionary contains:
+        ``metadata`` is a dictionary containing:
 
         ``estimator``: Predicted posterior mean with the mismatch.
 
