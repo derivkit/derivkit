@@ -1228,6 +1228,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     def fake_dali_to_getdist_emcee(
         theta0,
         dali,
+        bias,
         *,
         names,
         labels,
@@ -1236,6 +1237,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
         """Mock dali_to_getdist_emcee that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -1254,9 +1256,11 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     labels = [r"a", r"b"]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.getdist_dali_emcee(
         dali=dali,
+        bias=bias,
         names=names,
         labels=labels,
         forecast_order=4,
@@ -1271,6 +1275,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["forecast_order"] == 4
