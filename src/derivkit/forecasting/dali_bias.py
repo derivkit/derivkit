@@ -283,10 +283,11 @@ def _forecast_tensors(
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
-        derivatives: Dictionary of precomputed model derivatives. Missing
-            orders are computed and added to this dictionary in place.
-        dk_kwargs: Additional keyword arguments passed to the numerical
-            differentiation method.
+        derivatives: Dictionary of model derivatives keyed by order.
+            Existing derivatives are reused. Missing orders are computed and
+            added to the supplied dictionary in place, modifying the input.
+        dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Tuple containing two dictionaries:
@@ -697,9 +698,11 @@ def build_dali_mean_shift(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
         derivatives: Optional dictionary of model derivatives keyed by order.
-            Existing derivatives are reused and missing derivatives are added
-            to the supplied dictionary.
-        **dk_kwargs: Additional arguments passed to the derivative method.
+            Existing derivatives are reused. Missing orders are computed and
+            added to the supplied dictionary in place, modifying the input.
+            If ``None``, an internal dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         An array containing the predicted systematic shift of the posterior
@@ -789,12 +792,11 @@ def build_dali_mean_response_shift(
             systematic mismatch potential. Supported values are given in
             :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
         response_order: Highest order retained in the systematic amplitude
-            expansion of the posterior mean. Supported values are given in
-           :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
+            expansion of the posterior mean. Must be 1, 2, 3, or 4.
         return_metadata: If ``True``, return the shift and explanatory metadata.
         method: Numerical differentiation method or alias (e.g.,
             ``"adaptive"``, ``"finite"``). If ``None``, uses
-            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
         derivatives: Optional dictionary of model derivatives keyed by order.
