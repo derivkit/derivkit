@@ -797,9 +797,12 @@ def build_dali_mean_response_shift(
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial).
-        derivatives: Optional dictionary of cached model derivatives.
-            Missing orders are computed and added to the dictionary.
-        **dk_kwargs: Additional arguments passed to the derivative method.
+        derivatives: Optional dictionary of model derivatives keyed by order.
+            Existing derivatives are reused. Missing orders are computed and
+            added to the supplied dictionary in place, modifying the input.
+            If ``None``, an internal dictionary is used.
+        **dk_kwargs: Additional keyword arguments passed to
+            :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         An array containing the predicted systematic shift of the posterior
