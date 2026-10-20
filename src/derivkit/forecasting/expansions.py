@@ -388,7 +388,7 @@ def build_delta_chi2_dali(
 
     # Choose order
     if forecast_order is None:
-        chosen = max(dali)
+        chosen = max(dali.keys())
     else:
         if isinstance(forecast_order, (bool, np.bool_)) or not isinstance(
                 forecast_order, (int, np.integer)
