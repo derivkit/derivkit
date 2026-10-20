@@ -779,7 +779,7 @@ def build_dali_mean_response_shift(
         cov: Covariance matrix of the observables.
         delta_nu: Full systematic difference in the data vector.
         theta: Samples or integration nodes representing the unbiased
-            reference posterior, with shape (n_samples, n_parameters).
+            reference posterior, with shape ``(n_samples, n_parameters)``.
         weights: Weights representing the reference posterior at the supplied
             points. If ``None``, equal weights are used, appropriate for
             equally weighted posterior samples. For integration nodes, the
