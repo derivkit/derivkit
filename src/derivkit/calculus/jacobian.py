@@ -33,9 +33,9 @@ def build_jacobian(
             It should accept a list or array of parameter values as input and
             return an array of observable values.
         theta0: The parameter vector at which the jacobian is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers used to parallelize across
             parameters. If None or 1, no parallelization is used.
             If greater than 1, this many threads will be used to compute
@@ -135,9 +135,9 @@ def _column_derivative(
         j: Index of the parameter to differentiate with respect to.
         function: The vector-valued function to be differentiated.
         theta0: The parameter vector at which the jacobian is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         inner_workers: Number of workers used by
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
         expected_m: Expected length of the derivative vector.

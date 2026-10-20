@@ -71,9 +71,9 @@ def get_forecast_tensors(
         forecast_order: The requested order of the forecast.
             Currently supported values and their meaning are given in
             :data:`SUPPORTED_FORECAST_ORDERS`.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         symmetrize_dali: If set to ``True``, fully symmetrize each DALI tensor over its
             axes. If ``False``, return the raw derivative contractions.
         n_workers: Number of workers for per-parameter parallelization/threads.
@@ -278,8 +278,9 @@ def _get_derivatives(
         order: The requested order of the derivatives. The value determines
             the order of the derivative that is returned. Currently supported
             values are given in :data:`SUPPORTED_DERIVATIVE_ORDERS`.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``). If ``None``,
-            the DerivativeKit default ("adaptive") is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for per-parameter parallelization
          (threads). Default ``1`` (serial).
         **dk_kwargs: Additional keyword arguments passed to

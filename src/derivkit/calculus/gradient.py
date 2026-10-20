@@ -28,9 +28,9 @@ def build_gradient(
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the gradient is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers used by
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
             This setting does not parallelize across parameters. Default is ``1``.
@@ -132,9 +132,9 @@ def _grad_component(
         function: A function that returns a single value.
         theta0: The parameter values where the derivative is evaluated.
         i: The index of the parameter being varied.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers used for the internal derivative step. Default is ``1``.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during

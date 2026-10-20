@@ -35,9 +35,9 @@ def build_hessian(
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Parallel tasks across output components / Hessian entries.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -82,9 +82,9 @@ def build_hessian_diag(
     Args:
         function: The function to be differentiated.
         theta0: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Parallel tasks across output components / Hessian entries.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -143,7 +143,9 @@ def _build_hessian_full(
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
         out_shape: Shape of the output of ``function``.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         outer_workers: Number of outer parallel workers for Hessian entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
         dk_init_kwargs: Optional keyword arguments passed to
@@ -214,7 +216,9 @@ def _build_hessian_diag(
     Args:
         function: The function to be differentiated.
         theta: The parameter vector at which the Hessian is evaluated.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         outer_workers: Number of outer parallel workers for diagonal entries.
         inner_workers: Optional inner parallelism for the differentiation engine.
         dk_init_kwargs: Optional keyword arguments passed to
@@ -268,9 +272,9 @@ def _hessian_component_worker(
         theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         inner_workers: Optional inner parallelism for the differentiation engine.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -320,9 +324,9 @@ def _hessian_component(
         theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Optional inner parallelism for the differentiation engine.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -403,9 +407,9 @@ def _mixed_partial_value(
         theta: The parameter values where the derivative is evaluated.
         i: Index of the first parameter.
         j: Index of the second parameter.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit` default
-            (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Optional inner parallelism for the differentiation engine.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -458,10 +462,9 @@ def _build_hessian_internal(
             Callable mapping parameters to a scalar or tensor.
         theta0:
             Parameter vector (1D array) at which the Hessian is evaluated.
-        method:
-            Derivative method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, uses the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``).
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers:
             Number of outer parallel workers (across output components / Hessian entries).
             You may pass ``inner_workers=<int>`` in ``dk_kwargs`` to override inner parallelism.

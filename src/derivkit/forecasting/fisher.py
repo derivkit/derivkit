@@ -40,10 +40,9 @@ def build_fisher_matrix(
             :class:`derivkit.forecast_kit.ForecastKit`.
         cov: Covariance matrix of the observables. Must be square with shape
             ``(n_observables, n_observables)``.
-        method: Derivative method name or alias (e.g., ``"adaptive"``,
-            ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for per-parameter parallelisation.
             Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to
@@ -131,9 +130,9 @@ def build_fisher_bias(
             flattening convention used throughout the package.
         n_workers: Number of workers used by the internal derivative routine when
             forming the Jacobian.
-        method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``).
-            If ``None``, the :class:`derivkit.derivative_kit.DerivativeKit`
-            default (``"adaptive"``) is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         rcond: Regularization cutoff for pseudoinverse. Default is ``1e-12``.
         **dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
