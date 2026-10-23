@@ -3,7 +3,7 @@ r"""Provides the ForecastKit class.
 A light wrapper around the core forecasting utilities
 (:func:`derivkit.forecasting.fisher.build_fisher_matrix`,
 :func:`derivkit.forecasting.dali.build_dali`,
-:func:`derivkit.forecasting.dali.build_dali_bias`,
+:func:`derivkit.forecasting.dali_bias.build_dali_bias_tensor`,
 :func:`derivkit.forecasting.fisher.build_delta_nu`,
 and :func:`derivkit.forecasting.fisher.build_fisher_bias`) that exposes a simple
 API for Fisher and DALI forecast tensors.
