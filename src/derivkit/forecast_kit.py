@@ -999,6 +999,7 @@ class ForecastKit:
         *,
         delta_nu: ArrayLike1D | ArrayLike2D,
         theta: FloatArray,
+        weights: FloatArray | None = None,
         forecast_order: int = 3,
         response_order: int = 4,
         return_metadata: bool = False,
@@ -1016,6 +1017,11 @@ class ForecastKit:
             delta_nu: Full systematic difference in the data vector.
             theta: Samples or integration nodes representing the unbiased
                 reference posterior, with shape ``(n_samples, n_parameters)``.
+            weights: Weights representing the reference posterior at the supplied
+                points. If ``None``, equal weights are used, appropriate for
+                equally weighted posterior samples. For integration nodes, the
+                weights must include the reference posterior density and
+                integration measure. Weights are normalized internally.
             forecast_order: Highest model derivative order included in the
                 systematic mismatch potential. Supported values are given in
                 :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
@@ -1069,6 +1075,7 @@ class ForecastKit:
             cov=self.cov0,
             delta_nu=delta_nu,
             theta=theta,
+            weights=weights,
             forecast_order=forecast_order,
             response_order=response_order,
             return_metadata=return_metadata,

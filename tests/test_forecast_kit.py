@@ -632,6 +632,7 @@ def test_dali_mean_response(monkeypatch):
         cov,
         delta_nu,
         theta,
+        weights,
         forecast_order,
         response_order,
         return_metadata,
@@ -646,6 +647,7 @@ def test_dali_mean_response(monkeypatch):
         seen["cov"] = np.asarray(cov)
         seen["delta_nu"] = np.asarray(delta_nu)
         seen["theta"] = theta
+        seen["weights"] = weights
         seen["forecast_order"] = forecast_order
         seen["response_order"] = response_order
         seen["return_metadata"] = return_metadata
@@ -669,6 +671,7 @@ def test_dali_mean_response(monkeypatch):
 
     delta_nu = np.array([0.3, 0.4])
     theta = 2
+    weights = np.ones((1,1,1))
     forecast_order = "forecast"
     response_order = "response"
     return_metadata = "yes"
@@ -678,7 +681,8 @@ def test_dali_mean_response(monkeypatch):
     dk_kwargs = {"key": "value"}
     out = fk.dali_mean_response(
         delta_nu=delta_nu,
-        theta = theta,
+        theta=theta,
+        weights=weights,
         forecast_order=forecast_order,
         response_order=response_order,
         return_metadata=return_metadata,
@@ -694,6 +698,7 @@ def test_dali_mean_response(monkeypatch):
     np.testing.assert_allclose(seen["cov"], cov)
     np.testing.assert_allclose(seen["delta_nu"], delta_nu)
     assert seen["theta"] == theta
+    assert seen["weights"] == weights
     assert seen["forecast_order"] == forecast_order
     assert seen["response_order"] == response_order
     assert seen["return_metadata"] == return_metadata
