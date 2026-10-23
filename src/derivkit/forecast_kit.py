@@ -831,7 +831,7 @@ class ForecastKit:
             ValueError: If ``bias_order`` is unsupported, ``theta0`` is empty, or
                 the data mismatch does not match the number of observables.
         """
-        function = require_callable(self.function, context="ForecastKit.dali_bias")
+        function = require_callable(self.function, context="ForecastKit.dali_bias_tensor")
 
         return build_dali_bias_tensor(
             function=function,
@@ -916,7 +916,7 @@ class ForecastKit:
             These Gaussian/non-Gaussian labels refer to the reference posterior,
             not to whether a term is linear or nonlinear in systematic amplitude.
         """
-        function = require_callable(self.function, context="ForecastKit.dali_bias")
+        function = require_callable(self.function, context="ForecastKit.dali_map_shift")
 
         return build_dali_map_shift(
             function=function,
@@ -980,7 +980,7 @@ class ForecastKit:
 
             ``map_shift``: Predicted systematic shift of the posterior MAP.
         """
-        function = require_callable(self.function, context="ForecastKit.dali_bias")
+        function = require_callable(self.function, context="ForecastKit.dali_mean_shift")
 
         return build_dali_mean_shift(
             function=function,
@@ -1061,7 +1061,7 @@ class ForecastKit:
             ValueError: If either order is unsupported, or if the supplied
                 reference samples have invalid shapes.
         """
-        function = require_callable(self.function, context="ForecastKit.dali_bias")
+        function = require_callable(self.function, context="ForecastKit.dali_mean_response")
 
         return build_dali_mean_response_shift(
             function=function,
