@@ -1191,6 +1191,7 @@ class ForecastKit:
         return dali_to_getdist_importance(
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
