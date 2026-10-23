@@ -1080,11 +1080,10 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.fisher_to_getdist_gaussiannd delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, bias, names=None, labels=None, **kwargs):
+    def fake_fisher_to_getdist_gaussiannd(theta0, fisher, *, names=None, labels=None, **kwargs):
         """Mock fisher_to_getdist_gaussiannd that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
-        seen["bias"] = np.asarray(bias)
         seen["names"] = names
         seen["labels"] = labels
         seen["kwargs"] = kwargs
@@ -1106,7 +1105,6 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
 
     out = fk.getdist_fisher_gaussian(
         fisher=fisher,
-        bias=bias,
         names=names,
         labels=labels,
         label="mylabel",
@@ -1116,7 +1114,6 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     np.testing.assert_allclose(seen["fisher"], fisher)
-    np.testing.assert_allclose(seen["bias"], bias)
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["label"] == "mylabel"
@@ -1127,11 +1124,10 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.fisher_to_getdist_samples delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_fisher_to_getdist_samples(theta0, fisher, *, bias, names, labels, **kwargs):
+    def fake_fisher_to_getdist_samples(theta0, fisher, *, names, labels, **kwargs):
         """Mock fisher_to_getdist_samples that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
-        seen["bias"] = np.asarray(bias)
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -1153,7 +1149,6 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
 
     out = fk.getdist_fisher_samples(
         fisher=fisher,
-        bias=bias,
         names=names,
         labels=labels,
         n_samples=123,
