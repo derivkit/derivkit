@@ -1170,7 +1170,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.dali_to_getdist_importance delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_dali_to_getdist_importance(theta0, dali, *, names, labels, **kwargs):
+    def fake_dali_to_getdist_importance(theta0, dali, *, bias, names, labels, **kwargs):
         """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
@@ -1197,6 +1197,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
 
     out = fk.getdist_dali_importance(
         dali=dali,
+        bias=bias,
         names=names,
         labels=labels,
         forecast_order=4,
