@@ -3,6 +3,7 @@ r"""Provides the ForecastKit class.
 A light wrapper around the core forecasting utilities
 (:func:`derivkit.forecasting.fisher.build_fisher_matrix`,
 :func:`derivkit.forecasting.dali.build_dali`,
+:func:`derivkit.forecasting.dali_bias.build_dali_bias_tensor`,
 :func:`derivkit.forecasting.fisher.build_delta_nu`,
 and :func:`derivkit.forecasting.fisher.build_fisher_bias`) that exposes a simple
 API for Fisher and DALI forecast tensors.
@@ -55,6 +56,12 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from derivkit.forecasting.dali import build_dali
+from derivkit.forecasting.dali_bias import (
+    build_dali_bias_tensor,
+    build_dali_map_shift,
+    build_dali_mean_response_shift,
+    build_dali_mean_shift,
+)
 from derivkit.forecasting.expansions import (
     build_delta_chi2_dali,
     build_delta_chi2_fisher,
@@ -89,7 +96,11 @@ from derivkit.forecasting.laplace import (
 from derivkit.utils.caching import wrap_input_cache
 from derivkit.utils.linalg import split_xy_covariance
 from derivkit.utils.thread_safety import wrap_with_lock
-from derivkit.utils.types import FloatArray
+from derivkit.utils.types import (
+    ArrayLike1D,
+    ArrayLike2D,
+    FloatArray,
+)
 from derivkit.utils.validate import (
     require_callable,
     resolve_covariance_input,
@@ -545,6 +556,7 @@ class ForecastKit:
         *,
         theta: np.ndarray,
         fisher: np.ndarray,
+        bias: np.ndarray[np.floating] | None = None,
         prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
         prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
         logprior: Callable[[np.ndarray], float] | None = None,
@@ -565,6 +577,9 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             fisher: Fisher matrix with shape ``(p, p)``.
+            bias: Optional linear systematic-bias vector of shape ``(p,)``.
+                If provided, adds ``bias @ (theta - theta0)`` to the
+                Fisher log posterior.
             prior_terms: Prior term specification passed to the underlying prior
                 builder. Use this only if ``logprior`` is not provided.
             prior_bounds: Global hard bounds passed to the underlying prior builder.
@@ -581,6 +596,7 @@ class ForecastKit:
             theta=theta,
             theta0=self.theta0,
             fisher=fisher,
+            bias=bias,
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
             logprior=logprior,
@@ -591,6 +607,7 @@ class ForecastKit:
         *,
         theta: np.ndarray,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, np.ndarray[np.floating]] | None = None,
         forecast_order: int | None = 2,
         prior_terms: Sequence[tuple[str, dict[str, Any]] | dict[str, Any]] | None = None,
         prior_bounds: Sequence[tuple[float | None, float | None]] | None = None,
@@ -608,6 +625,10 @@ class ForecastKit:
         Args:
             theta: Evaluation point in parameter space with shape ``(p,)``.
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional systematic-bias tensors mapping expansion order
+                to parameter-space tensors. Adds the factorial-weighted
+                mismatch expansion through ``forecast_order``.
+                If ``None``, evaluates the unbiased DALI posterior.
             forecast_order: Maximum order of the DALI expansion to include.
                 If ``None``, the highest order available in ``dali`` is used.
             prior_terms: Prior term specification passed to the underlying prior
@@ -626,6 +647,7 @@ class ForecastKit:
             theta=theta,
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             forecast_order=forecast_order,
             prior_terms=prior_terms,
             prior_bounds=prior_bounds,
@@ -763,10 +785,311 @@ class ForecastKit:
             dk_kwargs=dk_kwargs,
         )
 
+    def dali_bias_tensor(
+        self,
+        *,
+        delta_nu: ArrayLike1D | ArrayLike2D,
+        bias_order: int = 3,
+        method: str | None = None,
+        n_workers: int = 1,
+        derivatives: dict[int, FloatArray] | None = None,
+        **dk_kwargs: Any,
+    ) -> dict[int, FloatArray]:
+        """Builds the systematic mismatch tensors entering the DALI bias expansion.
+
+        The tensors describe how the data-model mismatch ``delta_nu``
+        couples to successive derivatives of the model.
+
+        Args:
+            delta_nu: Difference between two data vectors, which may represent
+                a systematic mismatch or a difference between model predictions.
+                Accepts a 1D array or a column vector of shape ``(n_observables, 1)``.
+                The input is flattened internally.
+            bias_order: Highest mismatch tensor order to compute. Supported values
+                are given in
+                :data:`derivkit.forecasting.forecast_core.SUPPORTED_DERIVATIVE_ORDERS`.
+            method: Numerical differentiation method or alias (e.g.,
+                ``"adaptive"``, ``"finite"``). If ``None``, uses
+                :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+            n_workers: Number of workers for per-parameter parallelization/threads.
+                Default ``1`` (serial).
+            derivatives: Optional dictionary of model derivatives keyed by order.
+                Existing derivatives are reused. Missing orders are computed and
+                added to the supplied dictionary in place, modifying the input.
+                If ``None``, an internal dictionary is used.
+            **dk_kwargs: Additional keyword arguments passed to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            A dictionary mapping derivative orders 1 up to and including
+            ``bias_order`` to their corresponding mismatch tensors.
+            Zeroth-order terms are omitted because they are independent of
+            the parameter displacement.
+
+        Raises:
+            TypeError: If ``bias_order`` is not an integer.
+            ValueError: If ``bias_order`` is unsupported, ``theta0`` is empty, or
+                the data mismatch does not match the number of observables.
+        """
+        function = require_callable(self.function, context="ForecastKit.dali_bias_tensor")
+
+        return build_dali_bias_tensor(
+            function=function,
+            theta0=self.theta0,
+            cov=self.cov0,
+            delta_nu=delta_nu,
+            bias_order=bias_order,
+            method=method,
+            n_workers=n_workers,
+            derivatives=derivatives,
+            **dk_kwargs
+        )
+
+    def dali_map_shift(
+        self,
+        *,
+        delta_nu: ArrayLike1D | ArrayLike2D,
+        expansion_order: int = 3,
+        return_metadata: bool = False,
+        method: str | None = None,
+        n_workers: int = 1,
+        derivatives: dict[int, FloatArray] | None = None,
+        **dk_kwargs: Any,
+    ):
+        """Predict how the posterior maximum moves when a systematic is introduced.
+
+        Args:
+            delta_nu: Actual difference between the systematically affected data
+                vector and the fiducial model prediction. Its size is already
+                included; no separate amplitude parameter is needed.
+            expansion_order: Number of perturbative MAP response orders (1 to 3).
+            return_metadata: If set to ``True``, return the shift and a dictionary of
+                explanatory results; otherwise return only the shift.
+            method: Numerical differentiation method or alias (e.g.,
+                ``"adaptive"``, ``"finite"``). If ``None``, uses
+                :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+            n_workers: Number of workers for per-parameter parallelization/threads.
+                Default ``1`` (serial).
+            derivatives: Optional dictionary of model derivatives keyed by order.
+                Existing derivatives are reused. Missing orders are computed and
+                added to the supplied dictionary in place, modifying the input.
+                If ``None``, an internal dictionary is used.
+            **dk_kwargs: Additional keyword arguments passed to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            If ``return_metadata=False``, an array giving the MAP systematic
+            shift: MAP with the mismatch minus MAP without the mismatch.
+            Since the baseline MAP is assumed to be ``theta0``, this is also
+            the MAP displacement from the fiducial parameters.
+
+            If ``return_metadata=True``, returns ``(shift, metadata)``.
+            The metadata dictionary contains:
+
+            ``estimator``: Predicted MAP parameter values with the mismatch.
+                This is ``theta0 + shift``.
+
+            ``baseline``: MAP without the mismatch, assumed to be ``theta0``.
+
+            ``displacement``: MAP with the mismatch minus ``theta0``.
+                This equals ``shift`` because the baseline MAP is assumed
+                to be ``theta0``.
+
+            ``terms``: Dictionary keyed by response order. Entry 1 is the
+                leading Fisher bias; entries 2 and 3 are the successive
+                corrections. Their sum is the returned shift.
+
+            ``gaussian_terms``: Terms obtained if the unbiased posterior is
+                approximated by its quadratic (Gaussian) Fisher form, while
+                retaining the mismatch potential up to and including the
+                requested order.
+
+            ``non_gaussian_terms``: Differences between the DALI and Gaussian
+                terms at each order. They isolate corrections caused by the
+                non-quadratic reference posterior within this expansion.
+
+            ``gaussian_contribution``: Sum of ``gaussian_terms``.
+
+            ``non_gaussian_contribution``: Sum of ``non_gaussian_terms``.
+                Adding the two contributions reproduces the MAP shift.
+
+            These Gaussian/non-Gaussian labels refer to the reference posterior,
+            not to whether a term is linear or nonlinear in systematic amplitude.
+        """
+        function = require_callable(self.function, context="ForecastKit.dali_map_shift")
+
+        return build_dali_map_shift(
+            function=function,
+            theta0=self.theta0,
+            cov=self.cov0,
+            delta_nu=delta_nu,
+            expansion_order=expansion_order,
+            return_metadata=return_metadata,
+            method=method,
+            n_workers=n_workers,
+            derivatives=derivatives,
+            **dk_kwargs,
+        )
+
+    def dali_mean_shift(
+        self,
+        *,
+        delta_nu: ArrayLike1D | ArrayLike2D,
+        return_metadata: bool = False,
+        method: str | None = None,
+        n_workers: int = 1,
+        derivatives: dict[int, FloatArray] | None = None,
+        **dk_kwargs: Any,
+    ):
+        """Predict the systematic shift of the posterior mean analytically.
+
+        Uses third-order DALI tensors to calculate the perturbative MAP shift
+        and the change in the posterior mean relative to the MAP.
+
+        Args:
+            delta_nu: Difference between the systematically affected data
+                vector and the fiducial model prediction, including its magnitude.
+            return_metadata: If ``True``, return the shift and explanatory metadata.
+            method: Numerical differentiation method or alias (e.g.,
+                ``"adaptive"``, ``"finite"``). If ``None``, uses
+                :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+            n_workers: Number of workers for per-parameter parallelization/threads.
+                Default ``1`` (serial).
+            derivatives: Optional dictionary of model derivatives keyed by order.
+                Existing derivatives are reused. Missing orders are computed and
+                added to the supplied dictionary in place, modifying the input.
+                If ``None``, an internal dictionary is used.
+            **dk_kwargs: Additional keyword arguments passed to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            An array containing the predicted systematic shift of the posterior
+            mean, defined as the posterior mean with the mismatch minus the
+            posterior mean without it.
+
+            If ``return_metadata=True``, returns ``(shift, metadata)`` instead.
+            ``metadata`` is a dictionary containing:
+
+            ``estimator``: Predicted posterior mean with the mismatch.
+
+            ``baseline``: Predicted posterior mean without the mismatch.
+                This need not equal ``theta0``.
+
+            ``displacement``: Predicted posterior mean with the mismatch minus
+                the fiducial parameters ``theta0``.
+
+            ``map_shift``: Predicted systematic shift of the posterior MAP.
+        """
+        function = require_callable(self.function, context="ForecastKit.dali_mean_shift")
+
+        return build_dali_mean_shift(
+            function=function,
+            theta0=self.theta0,
+            cov=self.cov0,
+            delta_nu=delta_nu,
+            return_metadata=return_metadata,
+            method=method,
+            n_workers=n_workers,
+            derivatives=derivatives,
+            **dk_kwargs,
+        )
+
+    def dali_mean_response(
+        self,
+        *,
+        delta_nu: ArrayLike1D | ArrayLike2D,
+        theta: FloatArray,
+        weights: FloatArray | None = None,
+        forecast_order: int = 3,
+        response_order: int = 4,
+        return_metadata: bool = False,
+        method: str | None = None,
+        n_workers: int = 1,
+        derivatives: dict[int, FloatArray] | None = None,
+        **dk_kwargs: Any,
+    ):
+        """Predict the posterior mean shift from its systematic response.
+
+        Expands the mean response around an unbiased reference posterior
+        represented by samples or integration nodes.
+
+        Args:
+            delta_nu: Full systematic difference in the data vector.
+            theta: Samples or integration nodes representing the unbiased
+                reference posterior, with shape ``(n_samples, n_parameters)``.
+            weights: Weights representing the reference posterior at the supplied
+                points. If ``None``, equal weights are used, appropriate for
+                equally weighted posterior samples. For integration nodes, the
+                weights must include the reference posterior density and
+                integration measure. Weights are normalized internally.
+            forecast_order: Highest model derivative order included in the
+                systematic mismatch potential. Supported values are given in
+                :data:`derivkit.forecasting.forecast_core.SUPPORTED_FORECAST_ORDERS`.
+            response_order: Highest order retained in the systematic amplitude
+                expansion of the posterior mean. Must be 1, 2, 3, or 4.
+            return_metadata: If ``True``, return the shift and explanatory metadata.
+            method: Numerical differentiation method or alias (e.g.,
+                ``"adaptive"``, ``"finite"``). If ``None``, uses
+                :attr:`derivkit.derivative_kit.DerivativeKit.default_method`
+            n_workers: Number of workers for per-parameter parallelization/threads.
+                Default ``1`` (serial).
+            derivatives: Optional dictionary of model derivatives keyed by order.
+                Existing derivatives are reused. Missing orders are computed and
+                added to the supplied dictionary in place, modifying the input.
+                If ``None``, an internal dictionary is used.
+            **dk_kwargs: Additional keyword arguments passed to
+                :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
+
+        Returns:
+            An array containing the predicted systematic shift of the posterior
+            mean, calculated by summing the response terms through
+            ``response_order``. The shift is the posterior mean with the mismatch
+            minus the posterior mean without it.
+
+            If ``return_metadata=True``, returns ``(shift, metadata)`` instead.
+            The metadata dictionary contains:
+
+            ``estimator``: Predicted posterior mean with the mismatch.
+                This is the reference posterior mean plus the predicted shift.
+
+            ``baseline``: Posterior mean without the mismatch, calculated from
+                the supplied samples.
+
+            ``displacement``: Predicted posterior mean with the mismatch minus
+                the fiducial parameters ``theta0``.
+
+            ``terms``: Dictionary mapping each response order to its contribution
+                to the predicted posterior mean shift for the supplied mismatch.
+                Their sum equals the returned shift.
+
+        Raises:
+            TypeError: If ``forecast_order`` or ``response_order`` is not an integer.
+            ValueError: If either order is unsupported, or if the supplied
+                reference samples have invalid shapes.
+        """
+        function = require_callable(self.function, context="ForecastKit.dali_mean_response")
+
+        return build_dali_mean_response_shift(
+            function=function,
+            theta0=self.theta0,
+            cov=self.cov0,
+            delta_nu=delta_nu,
+            theta=theta,
+            weights=weights,
+            forecast_order=forecast_order,
+            response_order=response_order,
+            return_metadata=return_metadata,
+            method=method,
+            n_workers=n_workers,
+            derivatives=derivatives,
+            **dk_kwargs,
+        )
+
     def getdist_fisher_gaussian(
         self,
         *,
         fisher: np.ndarray,
+        bias: np.ndarray | None = None,
         names: Sequence[str] | None = None,
         labels: Sequence[str] | None = None,
         **kwargs: Any,
@@ -779,6 +1102,8 @@ class ForecastKit:
 
         Args:
             fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+                Shifts the Gaussian mean by ``covariance @ bias``.
             names: Optional parameter names (length ``p``).
             labels: Optional parameter labels (length ``p``).
             **kwargs: Forwarded to
@@ -792,6 +1117,7 @@ class ForecastKit:
         return fisher_to_getdist_gaussiannd(
             self.theta0,
             fisher,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
@@ -801,6 +1127,7 @@ class ForecastKit:
         self,
         *,
         fisher: np.ndarray,
+        bias: np.ndarray | None = None,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -813,6 +1140,9 @@ class ForecastKit:
 
         Args:
             fisher: Fisher matrix with shape ``(p, p)`` evaluated at ``self.theta0``.
+            bias: Optional Fisher systematic bias vector of shape ``(p,)``.
+                Shifts the Gaussian sampling mean by ``pinv(fisher) @ bias``
+                and contributes to the stored negative log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -826,6 +1156,7 @@ class ForecastKit:
         return fisher_to_getdist_samples(
             self.theta0,
             fisher,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
@@ -835,6 +1166,7 @@ class ForecastKit:
         self,
         *,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, np.ndarray[np.floating]] | None = None,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -847,6 +1179,9 @@ class ForecastKit:
 
         Args:
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional dictionary of systematic bias tensors indexed by expansion
+                order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+                These contribute to the target log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -863,6 +1198,7 @@ class ForecastKit:
         return dali_to_getdist_importance(
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,
@@ -872,6 +1208,7 @@ class ForecastKit:
         self,
         *,
         dali: dict[int, tuple[np.ndarray, ...]],
+        bias: dict[int, np.ndarray[np.floating]] | None = None,
         names: Sequence[str],
         labels: Sequence[str],
         **kwargs: Any,
@@ -884,6 +1221,9 @@ class ForecastKit:
 
         Args:
             dali: DALI tensors as returned by :meth:`ForecastKit.dali`.
+            bias: Optional dictionary of systematic bias tensors indexed by expansion
+                order, as returned by :func:`derivkit.forecasting.build_dali_bias_tensor`.
+                These contribute to the target log posterior.
             names: Parameter names for GetDist (length ``p``).
             labels: Parameter labels for GetDist (length ``p``).
             **kwargs: Forwarded to
@@ -900,6 +1240,7 @@ class ForecastKit:
         return dali_to_getdist_emcee(
             theta0=self.theta0,
             dali=dali,
+            bias=bias,
             names=names,
             labels=labels,
             **kwargs,

@@ -388,6 +388,209 @@ def test_generalized_fisher_delegates_with_cov_fn(monkeypatch):
     assert seen["dk_kwargs"]["stepsize"] == 1e-4
 
 
+def test_dali_bias_tensor(monkeypatch):
+    """Tests that ForecastKit.dali_bias_tensor delegates."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_bias_tensor(*,
+        function,
+        theta0,
+        cov,
+        delta_nu,
+        bias_order,
+        method,
+        n_workers,
+        derivatives,
+        **dk_kwargs
+    ):
+        """Mock delta_chi2_fisher that records inputs and returns fixed output."""
+        seen["function"] = function
+        seen["theta0"] = np.asarray(theta0)
+        seen["cov"] = np.asarray(cov)
+        seen["delta_nu"] = np.asarray(delta_nu)
+        seen["bias_order"] = bias_order
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["derivatives"] = derivatives
+        seen["dk_kwargs"] = dk_kwargs
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_dali_bias_tensor",
+        fake_dali_bias_tensor,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    cov = np.eye(1)
+    def model(x):
+        return True
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
+
+    delta_nu = np.array([0.3, 0.4])
+    bias_order = 2
+    method = "test"
+    n_workers = 1
+    derivatives = {1: np.array([1]), 2: np.array([2, 3])}
+    dk_kwargs = {"key": "value"}
+    out = fk.dali_bias_tensor(
+        delta_nu=delta_nu,
+        bias_order=bias_order,
+        method=method,
+        n_workers=n_workers,
+        derivatives=derivatives,
+        **dk_kwargs,
+    )
+
+    assert out == 123.0
+    assert seen["function"] is model
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["cov"], cov)
+    np.testing.assert_allclose(seen["delta_nu"], delta_nu)
+    np.testing.assert_allclose(seen["bias_order"], bias_order)
+    assert seen["method"] == method
+    assert seen["n_workers"] == n_workers
+    assert seen["derivatives"] == derivatives
+    assert seen["dk_kwargs"] == dk_kwargs
+
+
+def test_dali_map_shift(monkeypatch):
+    """Tests that ForecastKit.dali_map_shift delegates."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_map_shift(*,
+        function,
+        theta0,
+        cov,
+        delta_nu,
+        expansion_order,
+        return_metadata,
+        method,
+        n_workers,
+        derivatives,
+        **dk_kwargs
+    ):
+        """Mock build_dali_map_shift that records inputs and returns fixed output."""
+        seen["function"] = function
+        seen["theta0"] = np.asarray(theta0)
+        seen["cov"] = np.asarray(cov)
+        seen["delta_nu"] = np.asarray(delta_nu)
+        seen["expansion_order"] = expansion_order
+        seen["return_metadata"] = return_metadata
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["derivatives"] = derivatives
+        seen["dk_kwargs"] = dk_kwargs
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_dali_map_shift",
+        fake_dali_map_shift,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    cov = np.eye(1)
+    def model(x):
+        return True
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
+
+    delta_nu = np.array([0.3, 0.4])
+    expansion_order = 2
+    return_metadata = "yes"
+    method = "test"
+    n_workers = 1
+    derivatives = {1: np.array([1]), 2: np.array([2, 3])}
+    dk_kwargs = {"key": "value"}
+    out = fk.dali_map_shift(
+        delta_nu=delta_nu,
+        expansion_order=expansion_order,
+        return_metadata=return_metadata,
+        method=method,
+        n_workers=n_workers,
+        derivatives=derivatives,
+        **dk_kwargs,
+    )
+
+    assert out == 123.0
+    assert seen["function"] is model
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["cov"], cov)
+    np.testing.assert_allclose(seen["delta_nu"], delta_nu)
+    np.testing.assert_allclose(seen["expansion_order"], expansion_order)
+    assert seen["return_metadata"] == return_metadata
+    assert seen["method"] == method
+    assert seen["n_workers"] == n_workers
+    assert seen["derivatives"] == derivatives
+    assert seen["dk_kwargs"] == dk_kwargs
+
+
+def test_dali_mean_shift(monkeypatch):
+    """Tests that ForecastKit.dali_mean_shift delegates."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_mean_shift(*,
+        function,
+        theta0,
+        cov,
+        delta_nu,
+        return_metadata,
+        method,
+        n_workers,
+        derivatives,
+        **dk_kwargs
+    ):
+        """Mock build_dali_mean_shift that records inputs and returns fixed output."""
+        seen["function"] = function
+        seen["theta0"] = np.asarray(theta0)
+        seen["cov"] = np.asarray(cov)
+        seen["delta_nu"] = np.asarray(delta_nu)
+        seen["return_metadata"] = return_metadata
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["derivatives"] = derivatives
+        seen["dk_kwargs"] = dk_kwargs
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_dali_mean_shift",
+        fake_dali_mean_shift,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    cov = np.eye(1)
+    def model(x):
+        return True
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
+
+    delta_nu = np.array([0.3, 0.4])
+    return_metadata = "yes"
+    method = "test"
+    n_workers = 1
+    derivatives = {1: np.array([1]), 2: np.array([2, 3])}
+    dk_kwargs = {"key": "value"}
+    out = fk.dali_mean_shift(
+        delta_nu=delta_nu,
+        return_metadata=return_metadata,
+        method=method,
+        n_workers=n_workers,
+        derivatives=derivatives,
+        **dk_kwargs,
+    )
+
+    assert out == 123.0
+    assert seen["function"] is model
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["cov"], cov)
+    np.testing.assert_allclose(seen["delta_nu"], delta_nu)
+    assert seen["return_metadata"] == return_metadata
+    assert seen["method"] == method
+    assert seen["n_workers"] == n_workers
+    assert seen["derivatives"] == derivatives
+    assert seen["dk_kwargs"] == dk_kwargs
+
+
 def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.delta_chi2_fisher delegates and uses self.theta0."""
     seen: dict[str, object] = {}
@@ -417,6 +620,92 @@ def test_delta_chi2_fisher_delegates_uses_self_theta0(monkeypatch):
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     np.testing.assert_allclose(seen["fisher"], fisher)
+
+
+def test_dali_mean_response(monkeypatch):
+    """Tests that ForecastKit.dali_mean_response delegates."""
+    seen: dict[str, object] = {}
+
+    def fake_dali_mean_response(*,
+        function,
+        theta0,
+        cov,
+        delta_nu,
+        theta,
+        weights,
+        forecast_order,
+        response_order,
+        return_metadata,
+        method,
+        n_workers,
+        derivatives,
+        **dk_kwargs
+    ):
+        """Mock build_dali_mean_response that records inputs and returns fixed output."""
+        seen["function"] = function
+        seen["theta0"] = np.asarray(theta0)
+        seen["cov"] = np.asarray(cov)
+        seen["delta_nu"] = np.asarray(delta_nu)
+        seen["theta"] = theta
+        seen["weights"] = weights
+        seen["forecast_order"] = forecast_order
+        seen["response_order"] = response_order
+        seen["return_metadata"] = return_metadata
+        seen["method"] = method
+        seen["n_workers"] = n_workers
+        seen["derivatives"] = derivatives
+        seen["dk_kwargs"] = dk_kwargs
+        return 123.0
+
+    monkeypatch.setattr(
+        "derivkit.forecast_kit.build_dali_mean_response_shift",
+        fake_dali_mean_response,
+        raising=True,
+    )
+
+    theta0 = np.array([0.1, -0.2])
+    cov = np.eye(1)
+    def model(x):
+        return True
+    fk = ForecastKit(function=model, theta0=theta0, cov=cov, use_input_cache=False)
+
+    delta_nu = np.array([0.3, 0.4])
+    theta = 2
+    weights = np.ones((1,1,1))
+    forecast_order = "forecast"
+    response_order = "response"
+    return_metadata = "yes"
+    method = "test"
+    n_workers = 1
+    derivatives = {1: np.array([1]), 2: np.array([2, 3])}
+    dk_kwargs = {"key": "value"}
+    out = fk.dali_mean_response(
+        delta_nu=delta_nu,
+        theta=theta,
+        weights=weights,
+        forecast_order=forecast_order,
+        response_order=response_order,
+        return_metadata=return_metadata,
+        method=method,
+        n_workers=n_workers,
+        derivatives=derivatives,
+        **dk_kwargs,
+    )
+
+    assert out == 123.0
+    assert seen["function"] is model
+    np.testing.assert_allclose(seen["theta0"], theta0)
+    np.testing.assert_allclose(seen["cov"], cov)
+    np.testing.assert_allclose(seen["delta_nu"], delta_nu)
+    assert seen["theta"] == theta
+    assert seen["weights"] == weights
+    assert seen["forecast_order"] == forecast_order
+    assert seen["response_order"] == response_order
+    assert seen["return_metadata"] == return_metadata
+    assert seen["method"] == method
+    assert seen["n_workers"] == n_workers
+    assert seen["derivatives"] == derivatives
+    assert seen["dk_kwargs"] == dk_kwargs
 
 
 def test_delta_chi2_dali_delegates_uses_self_theta0_and_forwards_convention(monkeypatch):
@@ -465,6 +754,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
         theta,
         theta0,
         fisher,
+        bias,
         prior_terms=None,
         prior_bounds=None,
         logprior=None,
@@ -473,6 +763,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
         seen["fisher"] = np.asarray(fisher)
+        seen["bias"] = np.asarray(bias)
         seen["prior_terms"] = prior_terms
         seen["prior_bounds"] = prior_bounds
         seen["logprior"] = logprior
@@ -489,6 +780,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
 
     theta = np.array([0.3, 0.4])
     fisher = np.eye(2)
+    bias = np.eye(3)
     prior_terms = [("gaussian", {"mu": 0.0, "sigma": 1.0, "idx": 0})]
     prior_bounds = [(None, None), (0.0, 1.0)]
 
@@ -498,6 +790,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
     out = fk.logposterior_fisher(
         theta=theta,
         fisher=fisher,
+        bias=bias,
         prior_terms=prior_terms,
         prior_bounds=prior_bounds,
         logprior=lp,
@@ -507,6 +800,7 @@ def test_logposterior_fisher_delegates_uses_self_theta0_and_forwards_priors(monk
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     np.testing.assert_allclose(seen["fisher"], fisher)
+    np.testing.assert_allclose(seen["bias"], bias)
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] == prior_bounds
     assert seen["logprior"] is lp
@@ -521,6 +815,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         theta,
         theta0,
         dali,
+        bias,
         forecast_order=2,
         prior_terms=None,
         prior_bounds=None,
@@ -530,6 +825,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
         seen["theta"] = np.asarray(theta)
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["forecast_order"] = forecast_order
         seen["prior_terms"] = prior_terms
         seen["prior_bounds"] = prior_bounds
@@ -550,10 +846,12 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     prior_terms = [{"kind": "hard_bounds", "bounds": [(None, None), (-1.0, 1.0)]}]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.logposterior_dali(
         theta=theta,
         dali=dali,
+        bias=bias,
         forecast_order=4,
         prior_terms=prior_terms,
         prior_bounds=None,
@@ -564,6 +862,7 @@ def test_logposterior_dali_delegates_uses_self_theta0_and_forwards_priors_and_co
     np.testing.assert_allclose(seen["theta"], theta)
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["forecast_order"] == 4
     assert seen["prior_terms"] == prior_terms
     assert seen["prior_bounds"] is None
@@ -874,10 +1173,11 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     """Tests that ForecastKit.dali_to_getdist_importance delegates and uses self.theta0."""
     seen: dict[str, object] = {}
 
-    def fake_dali_to_getdist_importance(theta0, dali, *, names, labels, **kwargs):
+    def fake_dali_to_getdist_importance(theta0, dali, *, bias, names, labels, **kwargs):
         """Mock dali_to_getdist_importance that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -896,9 +1196,11 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     labels = [r"a", r"b"]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.getdist_dali_importance(
         dali=dali,
+        bias=bias,
         names=names,
         labels=labels,
         forecast_order=4,
@@ -909,6 +1211,7 @@ def test_dali_to_getdist_importance_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["forecast_order"] == 4
@@ -923,6 +1226,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     def fake_dali_to_getdist_emcee(
         theta0,
         dali,
+        bias,
         *,
         names,
         labels,
@@ -931,6 +1235,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
         """Mock dali_to_getdist_emcee that records inputs and returns sentinel."""
         seen["theta0"] = np.asarray(theta0)
         seen["dali"] = dali
+        seen["bias"] = bias
         seen["names"] = list(names)
         seen["labels"] = list(labels)
         seen["kwargs"] = kwargs
@@ -949,9 +1254,11 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     labels = [r"a", r"b"]
 
     dali = _make_fake_dali(2, forecast_order=4)
+    bias = np.eye(2)
 
     out = fk.getdist_dali_emcee(
         dali=dali,
+        bias=bias,
         names=names,
         labels=labels,
         forecast_order=4,
@@ -966,6 +1273,7 @@ def test_dali_to_getdist_emcee_delegates_uses_self_theta0(monkeypatch):
     assert out is not None
     np.testing.assert_allclose(seen["theta0"], theta0)
     assert seen["dali"] is dali
+    assert seen["bias"] is bias
     assert seen["names"] == names
     assert seen["labels"] == labels
     assert seen["kwargs"]["forecast_order"] == 4
