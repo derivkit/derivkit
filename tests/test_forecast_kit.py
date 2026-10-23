@@ -1104,7 +1104,6 @@ def test_fisher_to_getdist_gaussiannd_delegates_uses_self_theta0(monkeypatch):
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     fisher = np.eye(2)
-    bias = np.eye(3)
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
@@ -1148,7 +1147,6 @@ def test_fisher_to_getdist_samples_delegates_uses_self_theta0(monkeypatch):
     fk = ForecastKit(function=None, theta0=theta0, cov=np.eye(1))
 
     fisher = np.eye(2)
-    bias = np.eye(3)
     names = ["a", "b"]
     labels = [r"a", r"b"]
 
