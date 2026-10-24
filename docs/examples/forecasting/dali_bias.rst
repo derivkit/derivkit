@@ -328,7 +328,7 @@ calculation.
    ...     return_metadata=True,
    ... )
 
-The response expansion can be evaluated through fourth order in the
+The response expansion can be evaluated up to fourth order in the
 systematic amplitude. The contributions are available in
 ``response_metadata["terms"]``.
 
