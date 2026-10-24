@@ -681,8 +681,9 @@ large or higher-order corrections fail to stabilize.
 Examples
 ^^^^^^^^
 
-Worked examples illustrating DALI bias calculations and
-posterior shifts are provided in the forecasting examples.
+A worked example demonstrating DALI systematic bias tensors,
+MAP shifts, posterior mean shifts, and numerical validation
+is provided in :doc:`../../examples/forecasting/dali_bias`.
 
 
 Priors
