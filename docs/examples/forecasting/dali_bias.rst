@@ -334,7 +334,7 @@ systematic amplitude. The contributions are available in
 
 The two posterior mean methods differ in their construction:
 ``dali_mean_shift`` uses a local expansion around the MAP, whereas
-``dali_mean_response`` evaluates the response using a reference
+:meth:`derivkit.forecast_kit.ForecastKit.dali_mean_response` evaluates the response using a reference
 posterior distribution.
 
 
