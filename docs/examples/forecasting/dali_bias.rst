@@ -15,7 +15,8 @@ however, the parameter response can depart substantially from this prediction.
 DALI bias extends Fisher bias by retaining higher-order derivatives of the
 model. It provides predictions for shifts in both the
 `maximum a posteriori <https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation>`_ (MAP) estimator and
-the posterior mean.
+the posterior mean. The underlying formalism and its numerical validation
+are presented in `Šarčević, Van der Wild et al. (2026) <https://arxiv.org/abs/2610.02104>`_.
 
 This example illustrates Fisher and DALI bias calculations using a
 two-parameter nonlinear model with a non-Gaussian posterior.
