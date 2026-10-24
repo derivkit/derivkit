@@ -46,8 +46,9 @@ def build_hyper_hessian(
         theta0: 1D Parameter vector where the derivatives are evaluated.
         order: Derivative order. An order of zero returns the function value
             evaluated at ``theta0``.
-        method: Derivative method name or alias. If ``None``,
-            the :class:`derivkit.DerivativeKit` default is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Outer parallelism across output components (tensor outputs only).
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during
@@ -149,8 +150,9 @@ def _build_hyper_hessian(
         theta: 1D parameter vector where the derivatives are evaluated.
         out_shape: Shape of the output array.
         order: Derivative order.
-        method: Derivative method name or alias. If ``None``,
-            the :class:`derivkit.DerivativeKit` default is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         inner_workers: Number of inner workers for :class:`derivkit.DerivativeKit` calls.
         outer_workers: Number of outer workers for parallelism over entries.
         dk_init_kwargs: Optional keyword arguments passed to
@@ -226,8 +228,9 @@ def _higher_derivative_entry(
         function: Scalar- or vector-valued function to differentiate.
         theta0: 1D parameter vector at which the derivative is evaluated.
         indices: Parameter indices defining the partial derivative.
-        method: Derivative method name or alias. If ``None``,
-            the :class:`derivkit.DerivativeKit` default is used.
+        method: Numerical differentiation method or alias (e.g.,
+            ``"adaptive"``, ``"finite"``). If ``None``, uses
+            :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         n_workers: Number of workers for :class:`derivkit.DerivativeKit` calls.
         dk_init_kwargs: Optional keyword arguments passed to
             :class:`derivkit.derivative_kit.DerivativeKit` during

@@ -100,7 +100,7 @@ I want Fisher constraints on my parameters
 
 **Minimal example**
 
-See :doc:`examples/forecasting/fisher` and :doc:`examples/forecasting/fisher_contours`
+See :doc:`examples/forecasting/fisher` for Fisher matrices and posterior contours.
 
 **Notes**
 
@@ -135,7 +135,7 @@ I expect non-Gaussian posteriors (banana-shaped, skewed, etc.)
 
 **Minimal example**
 
-See :doc:`examples/forecasting/dali` and :doc:`examples/forecasting/dali_contours`
+See :doc:`examples/forecasting/dali` for DALI tensors and non-Gaussian posterior contours.
 
 **Notes**
 
@@ -167,7 +167,7 @@ I already have Fisher matrix / DALI tensors. What do I do next?
 
 **Minimal example**
 
-See :doc:`examples/forecasting/dali_contours`
+See :doc:`examples/forecasting/dali`
 
 **Notes**
 
@@ -221,7 +221,7 @@ I want to include priors
 
 **Minimal example**
 
-See the DALI sampling examples with priors in :doc:`examples/forecasting/dali_contours`
+See the DALI sampling examples with priors in :doc:`examples/forecasting/dali`
 
 **Notes**
 
