@@ -8,7 +8,7 @@
 ==================
 
 Systematic differences between observed data and a model can shift inferred
-parameters. Fisher bias predicts these shifts using a linear approximation
+parameters. `Fisher bias <docs.derivkit.org/main/examples/forecasting/fisher_bias.html`_ predicts these shifts using a linear approximation
 around the fiducial parameters. For nonlinear models, however, the parameter
 response can depart substantially from this prediction.
 
