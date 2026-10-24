@@ -279,8 +279,9 @@ An alternative approach expands the posterior mean directly around
 the unbiased reference posterior.
 
 The method uses samples or integration nodes representing that
-posterior. Here we sample the unbiased DALI posterior using ``emcee``
-through the :class:`derivkit.forecast_kit.ForecastKit` interface.
+posterior. Here we sample the unbiased DALI posterior using
+:meth:`derivkit.forecast_kit.ForecastKit.getdist_dali_emcee`,
+which provides an interface to ``emcee``.
 
 .. doctest:: dali_bias
 
@@ -330,8 +331,9 @@ shifts in response to the systematic displacement, while its
 covariance remains unchanged.
 
 The DALI approximation retains the nonlinear posterior geometry.
-Both DALI posteriors are sampled using ``emcee``, with the systematic
-bias tensors included only in the biased posterior.
+Both DALI posteriors are sampled using
+:meth:`derivkit.forecast_kit.ForecastKit.getdist_dali_emcee`,
+with the systematic bias tensors included only in the biased posterior.
 
 .. plot::
    :include-source: True
