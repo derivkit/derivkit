@@ -125,7 +125,7 @@ Systematic bias tensors
 Fisher bias
 ~~~~~~~~~~~
 
-Fisher bias maps a systematic displacement in data space into a
+Fisher bias maps a systematic displacement in data space onto a
 parameter shift,
 
 .. math::
