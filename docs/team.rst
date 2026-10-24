@@ -29,7 +29,7 @@ Core Team
 
       **Affiliation:** Duke University (USA)
 
-      **Focus:** Cosmological inference, systematics modeling, combined probes
+      **Focus:** Cosmological inference, systematics modeling, combined probes, statistics
 
       **Links:** `Website <https://nikosarcevic.com>`__ ·
       `GitHub <https://github.com/nikosarcevic>`__ ·
@@ -39,9 +39,9 @@ Core Team
 
       :role-blue:`Co-maintainer (Lead developer)`
 
-      **Affiliation:** Durham University (UK)
+      **Affiliation:** Duke University (USA)
 
-      **Focus:** LOFAR pipelines, theoretical physics, scientific software architecture
+      **Focus:** LOFAR pipelines, Roman-Rubin pipelines, theoretical physics, scientific software architecture
 
       **Links:** `Website <https://matthijs.vanderwild.com>`__ ·
       `GitHub <https://github.com/lonbar>`__ ·
@@ -51,7 +51,7 @@ Core Team
 
       :role-blue:`Co-maintainer`
 
-      **Affiliation:** NCSA, University of Illinois Urbana-Champaign (USA)
+      **Affiliation:** Case Western Reserve University (USA)
 
       **Focus:** CMB science, BSM physics, data-driven cosmology
 

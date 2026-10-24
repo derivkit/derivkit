@@ -6,7 +6,7 @@
 ====================
 
 Task-oriented examples for forecasting workflows, including Fisher matrices,
-DALI expansions, and Laplace approximations.
+DALI expansions, systematic parameter biases, and Laplace approximations.
 
 For end-to-end workflows and larger examples, see the
 `derivkit-demos repository <https://github.com/derivkit/derivkit-demos>`_.
@@ -20,43 +20,31 @@ For end-to-end workflows and larger examples, see the
       :link: fisher
       :link-type: doc
 
-      Standard Fisher matrix forecasts from model derivatives.
+      Fisher matrix forecasts, parameter uncertainties, and posterior contours.
 
    .. grid-item-card:: Fisher bias
       :link: fisher_bias
       :link-type: doc
 
-      Parameter biases from systematic model mismatch.
+      Parameter shifts from systematic model mismatch.
 
    .. grid-item-card:: DALI
       :link: dali
       :link-type: doc
 
-      Higher-order likelihood expansions beyond Fisher.
+      Higher-order likelihood expansions and non-Gaussian posterior contours.
 
-   .. grid-item-card:: Fisher contours
-      :link: fisher_contours
+   .. grid-item-card:: DALI bias
+      :link: dali_bias
       :link-type: doc
 
-      Visualize Fisher-Gaussian posteriors with GetDist.
-
-   .. grid-item-card:: DALI contours
-      :link: dali_contours
-      :link-type: doc
-
-      Visualize DALI-expanded posteriors with GetDist.
+      Non-Gaussian MAP and posterior mean shifts from systematic mismatch.
 
    .. grid-item-card:: Laplace approximation
       :link: laplace_approx
       :link-type: doc
 
-      Gaussian approximation around a posterior peak.
-
-   .. grid-item-card:: Laplace contours
-      :link: laplace_contours
-      :link-type: doc
-
-      Visualize Laplace-approximated posteriors with GetDist.
+      Gaussian approximation around a posterior peak and its contours.
 
    .. grid-item-card:: Gaussian Fisher
       :link: fisher_gauss
@@ -77,8 +65,7 @@ For end-to-end workflows and larger examples, see the
    fisher
    fisher_bias
    dali
-   fisher_contours
-   dali_contours
+   dali_bias
    laplace_approx
    laplace_contours
    fisher_gauss

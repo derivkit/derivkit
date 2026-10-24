@@ -196,7 +196,7 @@ class DerivativeKit:
 
     The class provides a simple way to evaluate derivatives using any of
     DerivKit’s available backends (e.g., adaptive fit or finite difference).
-    By default, the adaptive-fit method is used.
+    By default, the local polynomial fitting method is used.
 
     You can supply either a function and x0, or tabulated tab_x/tab_y and x0
     in case you want to differentiate a tabulated function.
@@ -210,12 +210,13 @@ class DerivativeKit:
         >>> import numpy as np
         >>> from derivkit import DerivativeKit
         >>> dk = DerivativeKit(np.cos, x0=1.0)
-        >>> deriv = dk.differentiate(order=1)  # uses the default "adaptive" method
+        >>> deriv = dk.differentiate(order=1)  # uses the default method
 
     Attributes:
         function: The callable used for derivative evaluation.
         x0: The point or points at which the derivative is evaluated.
-        default_method: The backend used when no method is specified.
+        default_method: The numerical differentiation method used when
+            no method is specified. Initially ``"local_polynomial"``.
     """
 
     def __init__(
@@ -292,8 +293,9 @@ class DerivativeKit:
         Forwards all keyword arguments to the engine’s ``.differentiate()``.
 
         Args:
-            method: Method name or alias (e.g., ``"adaptive"``, ``"finite"``,
-                ``"fd"``). Default is ``"adaptive"``.
+            method: Numerical differentiation method or alias (e.g.,
+                ``"adaptive"``, ``"finite"``). If ``None``, uses
+                ``self.default_method``.
             **kwargs: Passed through to the chosen engine.
 
         Returns:
