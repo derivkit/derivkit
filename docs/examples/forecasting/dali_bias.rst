@@ -279,47 +279,50 @@ An alternative approach expands the posterior mean directly around
 the unbiased reference posterior.
 
 The method uses samples or integration nodes representing that
-posterior. Here we sample the unbiased DALI posterior using
-:meth:`derivkit.forecast_kit.ForecastKit.getdist_dali_emcee`,
-which provides an interface to ``emcee``.
+posterior. Here, we use deterministic integration nodes weighted by
+the unbiased posterior density to accurately evaluate the response
+coefficients.
 
 .. doctest:: dali_bias
 
-   >>> posterior_unbiased = fk.getdist_dali_emcee(
-   ...     dali=dali,
-   ...     names=["u", "v"],
-   ...     labels=["u", "v"],
-   ...     forecast_order=3,
-   ...     n_walkers=32,
-   ...     n_steps=3000,
-   ...     burn=500,
-   ...     thin=5,
-   ...     seed=11,
-   ...     label="Unbiased DALI",
-   ... )
+   >>> axis_u = np.linspace(-0.5, 0.8, 151)
+   >>> axis_v = np.linspace(-0.5, 0.8, 151)
+   >>> uu, vv = np.meshgrid(axis_u, axis_v, indexing="ij")
+   >>> nodes = np.column_stack([uu.ravel(), vv.ravel()])
+   >>> predictions = np.array([model(theta) for theta in nodes])
+   >>> inv_cov = np.linalg.inv(cov)
+   >>> residual = data_unbiased - predictions
+   >>> chi2 = np.einsum("ni,ij,nj->n", residual, inv_cov, residual)
+   >>> weights = np.exp(-0.5 * (chi2 - chi2.min()))
 
-The MCMC samples represent the reference posterior with equal
-sample weights, so no explicit weights are needed for the response
-calculation.
+The integration weights represent the unbiased posterior density.
+For a uniform grid, the common integration cell area cancels when
+the weights are normalized.
 
 .. doctest:: dali_bias
 
    >>> response_shift, response_metadata = fk.dali_mean_response(
    ...     delta_nu=dn,
-   ...     theta=posterior_unbiased.samples,
+   ...     theta=nodes,
+   ...     weights=weights,
    ...     forecast_order=3,
    ...     response_order=4,
    ...     return_metadata=True,
    ... )
 
-The response expansion can be evaluated up to fourth order in the
-systematic amplitude. The contributions are available in
-``response_metadata["terms"]``.
+The response expansion can be evaluated up to fourth order in
+systematic amplitude. The individual contributions are available
+in ``response_metadata["terms"]``.
 
-The two posterior mean methods differ in their construction:
-:meth:`derivkit.forecast_kit.ForecastKit.dali_mean_shift` uses a local expansion around the MAP, whereas
-:meth:`derivkit.forecast_kit.ForecastKit.dali_mean_response` evaluates the response using a reference
-posterior distribution.
+Unlike the local analytic approximation,
+:meth:`derivkit.forecast_kit.ForecastKit.dali_mean_response`
+retains the full unbiased DALI posterior as its reference
+distribution and expands only its response to the systematic.
+
+For this benchmark, the cubic model is reproduced exactly by
+the third-order DALI expansion. The remaining error in the
+response prediction therefore arises from truncating the
+systematic amplitude expansion and from numerical integration.
 
 
 Posterior visualization
@@ -583,17 +586,20 @@ the DALI prediction includes higher-order corrections. The numerical
 MAP provides a reference for the full nonlinear model.
 
 
+
 Numerical comparison
 --------------------
 
-The accuracy of the DALI predictions can be assessed by comparing them
-with direct inference using the original nonlinear model.
+The accuracy of the DALI predictions can be assessed by comparing
+them with direct inference using the original nonlinear model.
 
-For the MAP, we minimize the negative log likelihood. For the posterior
-mean, we integrate the corresponding posterior over parameter space.
+For the MAP, we minimize the negative log likelihood. For the
+posterior mean, we integrate the corresponding posterior over
+parameter space.
 
-The following example compares the Fisher shift, DALI MAP shift, and
-both DALI posterior mean approximations with their numerical references.
+The following example compares Fisher bias, the DALI MAP shift,
+and both DALI posterior mean approximations with their numerical
+references.
 
 .. code-block:: python
 
@@ -626,6 +632,7 @@ both DALI posterior mean approximations with their numerical references.
    amplitude = 10.0
    systematic = np.array([0.020, -0.003])
    dn = amplitude * systematic
+
    data_unbiased = model(theta0)
    data_biased = data_unbiased + dn
 
@@ -643,28 +650,7 @@ both DALI posterior mean approximations with their numerical references.
 
    local_mean_shift = fk.dali_mean_shift(delta_nu=dn)
 
-   dali = fk.dali(forecast_order=3)
-
-   reference = fk.getdist_dali_emcee(
-       dali=dali,
-       names=["u", "v"],
-       labels=["u", "v"],
-       forecast_order=3,
-       n_walkers=32,
-       n_steps=3000,
-       burn=500,
-       thin=5,
-       seed=11,
-       label="Unbiased DALI",
-   )
-
-   response_mean_shift = fk.dali_mean_response(
-       delta_nu=dn,
-       theta=reference.samples,
-       forecast_order=3,
-       response_order=4,
-   )
-
+   # Deterministic integration grid.
    axis_u = np.linspace(-0.5, 0.8, 151)
    axis_v = np.linspace(-0.5, 0.8, 151)
    uu, vv = np.meshgrid(axis_u, axis_v, indexing="ij")
@@ -684,10 +670,21 @@ both DALI posterior mean approximations with their numerical references.
    weights0 = posterior_weights(data_unbiased)
    weights1 = posterior_weights(data_biased)
 
+   # DALI posterior mean response.
+   response_mean_shift = fk.dali_mean_response(
+       delta_nu=dn,
+       theta=nodes,
+       weights=weights0,
+       forecast_order=3,
+       response_order=4,
+   )
+
+   # Numerical posterior mean shift.
    mean0 = np.average(nodes, axis=0, weights=weights0)
    mean1 = np.average(nodes, axis=0, weights=weights1)
    exact_mean_shift = mean1 - mean0
 
+   # Numerical MAP shift.
    def objective(theta):
        residual = data_biased - model(theta)
        return residual @ inv_cov @ residual
@@ -704,11 +701,29 @@ both DALI posterior mean approximations with their numerical references.
    print("DALI mean response:", response_mean_shift)
    print("Numerical mean shift:", exact_mean_shift)
 
-The MAP and posterior mean are distinct estimators and should be
-compared separately.
+The numerical results for this example are:
 
-DALI improves on the local Fisher approximation by retaining nonlinear
-information, but its predictions remain approximate. Their accuracy
-depends on the posterior geometry and the magnitude of the systematic
-displacement. Direct optimization and posterior integration provide
-independent references for assessing that accuracy.
+.. code-block:: text
+
+   Fisher shift: [ 0.14317857 -0.003     ]
+   DALI MAP shift: [ 0.14424626 -0.03841198]
+   Numerical MAP shift: [ 0.14424137 -0.03844078]
+
+   Local DALI mean shift: [ 0.14306221 -0.04524528]
+   DALI mean response: [ 0.14429223 -0.03719802]
+   Numerical mean shift: [ 0.14429211 -0.03719397]
+
+The DALI MAP prediction closely follows the numerical MAP,
+including the nonlinear shift in the second parameter that is
+missed by Fisher bias.
+
+For the posterior mean, the fourth-order response approximation
+agrees with numerical integration to an absolute Euclidean error
+of approximately :math:`4.1\times10^{-6}` at :math:`A=10`.
+This comparison isolates the response expansion error at the
+chosen integration resolution.
+
+The MAP and posterior mean are distinct estimators and should
+be compared separately. The accuracy of either DALI approximation
+depends on the posterior geometry and the magnitude of the
+systematic displacement.
