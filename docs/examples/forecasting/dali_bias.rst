@@ -178,7 +178,7 @@ The first-order tensor corresponds to the Fisher bias vector.
 Higher-order tensors describe how the systematic couples to the
 nonlinear model response.
 
-We calculate the bias tensors through third order.
+We calculate the bias tensors up to (and including) third order.
 
 .. doctest:: dali_bias
 
