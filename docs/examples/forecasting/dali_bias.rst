@@ -18,7 +18,7 @@ model. It provides predictions for shifts in both the
 the posterior mean.
 
 This example illustrates Fisher and DALI bias calculations using a
-two-parameter nonlinear model with a curved posterior.
+two-parameter nonlinear model with a non-Gaussian posterior.
 
 
 Nonlinear model and systematic mismatch
