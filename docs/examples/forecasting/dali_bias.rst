@@ -364,7 +364,9 @@ with the systematic bias tensors included only in the biased posterior.
 
    fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 
-   dn = 10.0 * np.array([0.020, -0.003])
+   amplitude = 10.0
+   systematic = np.array([0.020, -0.003])
+   dn = amplitude * systematic
 
    # Fisher forecast and systematic bias.
    fisher = fk.fisher()
@@ -621,7 +623,9 @@ both DALI posterior mean approximations with their numerical references.
 
    fk = ForecastKit(function=model, theta0=theta0, cov=cov)
 
-   dn = 10.0 * np.array([0.020, -0.003])
+   amplitude = 10.0
+   systematic = np.array([0.020, -0.003])
+   dn = amplitude * systematic
    data_unbiased = model(theta0)
    data_biased = data_unbiased + dn
 
