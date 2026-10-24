@@ -153,7 +153,11 @@ The first-order tensor corresponds to the Fisher bias vector.
 Higher-order tensors describe how the systematic couples to the
 nonlinear model response.
 
-We calculate the bias tensors up to (and including) third order.
+We calculate the bias tensors up to and including third derivative order.
+The ``bias_order`` argument specifies the highest model derivative order,
+equivalently the number of parameter indices of the bias tensors, rather
+than the order of the expansion in systematic amplitude.
+Here, ``bias_order=3`` matches the third-order DALI forecast.
 
 .. doctest:: dali_bias
 
