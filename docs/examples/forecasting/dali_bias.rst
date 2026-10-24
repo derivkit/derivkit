@@ -8,9 +8,9 @@
 ==================
 
 Systematic differences between observed data and a model can shift inferred
-parameters. `Fisher bias <docs.derivkit.org/main/examples/forecasting/fisher_bias.html`_ predicts these shifts using a linear approximation
-around the fiducial parameters. For nonlinear models, however, the parameter
-response can depart substantially from this prediction.
+parameters. :doc:`Fisher bias <fisher_bias>` predicts these shifts using a
+linear approximation around the fiducial parameters. For nonlinear models,
+however, the parameter response can depart substantially from this prediction.
 
 DALI bias extends Fisher bias by retaining higher-order derivatives of the
 model. It provides predictions for shifts in both the
@@ -122,43 +122,17 @@ For the following calculations, we choose :math:`A=10`.
 Systematic bias tensors
 -----------------------
 
+
 Fisher bias
 ~~~~~~~~~~~
 
-Fisher bias maps a systematic displacement in data space onto a
-parameter shift,
+Fisher bias provides the first-order prediction for the parameter
+shift induced by a systematic displacement. Its formalism and
+implementation are described in the :doc:`Fisher bias <fisher_bias>`
+example.
 
-.. math::
-
-   \Delta\theta_{\mathrm{F}}^a
-   =
-   (F^{-1})^{ab}b_b,
-
-where
-
-.. math::
-
-   F_{ab}
-   =
-   \nu_{,a}^{\mathrm T}C^{-1}\nu_{,b},
-   \qquad
-   b_a
-   =
-   \nu_{,a}^{\mathrm T}C^{-1}\Delta\nu.
-
-The Fisher matrix describes the local parameter sensitivity, while
-the bias vector describes the coupling between the systematic and
-the first derivatives of the model.
-
-.. doctest:: dali_bias
-
-   >>> fisher = fk.fisher()
-   >>> bias_vector, fisher_shift = fk.fisher_bias(
-   ...     fisher_matrix=fisher,
-   ...     delta_nu=dn,
-   ... )
-
-The resulting parameter shift is linear in the systematic amplitude.
+Here, we use Fisher bias as a reference for assessing the nonlinear
+corrections introduced by DALI.
 
 
 DALI bias
@@ -231,6 +205,11 @@ higher-order contributions account for nonlinear corrections.
 
 .. doctest:: dali_bias
 
+   >>> fisher = fk.fisher()
+   >>> _, fisher_shift = fk.fisher_bias(
+   ...     fisher_matrix=fisher,
+   ...     delta_nu=dn,
+   ... )
    >>> map_shift, map_metadata = fk.dali_map_shift(
    ...     delta_nu=dn,
    ...     expansion_order=3,
