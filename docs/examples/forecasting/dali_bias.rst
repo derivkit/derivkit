@@ -297,7 +297,7 @@ the unbiased reference posterior.
 
 The method uses samples or integration nodes representing that
 posterior. Here we sample the unbiased DALI posterior using ``emcee``
-through the ForecastKit interface.
+through the :class:`derivkit.forecast_kit.ForecastKit` interface.
 
 .. doctest:: dali_bias
 
