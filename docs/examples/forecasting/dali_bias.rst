@@ -55,8 +55,8 @@ where :math:`\Delta u=u-u_0`, :math:`\Delta v=v-v_0`, and
 
 The first observable provides a broad constraint on the parameters, while
 the second constrains a curved parameter combination. We assume a fixed
-covariance with fractional errors of 10% and a correlation coefficient
-of 0.3.
+covariance with `fractional errors <https://en.wikipedia.org/wiki/Propagation_of_uncertainty>`_ of 10% and a 
+`correlation coefficient <https://en.wikipedia.org/wiki/Correlation_coefficient>`_ of 0.3.
 
 .. doctest:: dali_bias
 
