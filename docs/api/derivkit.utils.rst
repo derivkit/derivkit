@@ -9,6 +9,7 @@ Submodules
 
    derivkit.utils.caching
    derivkit.utils.concurrency
+   derivkit.utils.diagnostics
    derivkit.utils.extrapolation
    derivkit.utils.linalg
    derivkit.utils.logger
