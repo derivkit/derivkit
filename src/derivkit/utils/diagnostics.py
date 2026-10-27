@@ -265,7 +265,7 @@ def dali_diagnostics(
     r"""Measure directional nonlinear model response from DALI derivatives.
 
     Args:
-        derivatives: Model derivative tensors keyed by orders 1 through 4.
+        derivatives: Model derivative tensors keyed by orders 1 up to 4.
             Order 1 is required. An order ``k`` tensor has shape
             ``(n_observables, p, ..., p)`` with ``k`` parameter axes.
         cov: Symmetric positive semidefinite observational covariance
