@@ -375,7 +375,7 @@ def test_fisher_diagnostics_asymmetric_covariance_raises():
 @pytest.mark.parametrize("rcond", [-1.0, np.nan, np.inf, True])
 def test_fisher_diagnostics_invalid_covariance_cutoff_raises(rcond):
     """Tests that invalid covariance cutoffs raise ValueError."""
-    with pytest.raises(ValueError, match="rtol"):
+    with pytest.raises(ValueError, match="rcond"):
         fisher_diagnostics(
             np.eye(2),
             jacobian=np.eye(2),
@@ -676,7 +676,7 @@ def test_dali_diagnostics_invalid_covariance_cutoff_raises():
     """Tests that invalid covariance cutoffs raise ValueError."""
     derivatives = {1: np.array([[1.0]])}
 
-    with pytest.raises(ValueError, match="rtol"):
+    with pytest.raises(ValueError, match="rcond"):
         dali_diagnostics(
             derivatives,
             np.eye(1),

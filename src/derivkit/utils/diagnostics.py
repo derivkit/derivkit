@@ -17,33 +17,6 @@ from derivkit.utils.validate import validate_square_matrix_finite
 __all__ = ["matrix_diagnostics", "fisher_diagnostics", "dali_diagnostics"]
 
 
-def _relative_tolerance(rtol: float | None, dimension: int) -> float:
-    """Return a validated relative spectral tolerance.
-
-    Args:
-        rtol: Requested relative tolerance. When ``None`` is supplied,
-            uses ``dimension * eps`` for float64 precision.
-        dimension: Matrix dimension used to determine the default tolerance.
-
-    Returns:
-        Finite, nonnegative relative tolerance.
-
-    Raises:
-        ValueError: If ``rtol`` is not a finite, nonnegative real number.
-    """
-    if rtol is None:
-        return dimension * np.finfo(np.float64).eps
-    if isinstance(rtol, (bool, np.bool_)) or not np.isscalar(rtol):
-        raise ValueError("rtol must be a finite, nonnegative real number.")
-    try:
-        value = float(rtol)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError("rtol must be a finite, nonnegative real number.") from exc
-    if not np.isfinite(value) or value < 0.0:
-        raise ValueError("rtol must be a finite, nonnegative real number.")
-    return value
-
-
 def _symmetric_matrix(matrix: ArrayLike, *, name: str) -> NDArray[np.float64]:
     """Validate a finite, nonempty symmetric matrix.
 
@@ -74,8 +47,9 @@ def _covariance_whitener(
         cov: Symmetric positive semidefinite covariance matrix of shape
             ``(n, n)``.
         rcond: Finite, nonnegative relative tolerance. Covariance eigenvalues
-            greater than ``rcond * max(abs(eigenvalues))`` are inverted,
-            while those at or below this threshold receive zero weight.
+            greater than ``rcond * max(abs(eigenvalues))`` receive inverse
+            square-root weights, while those at or below this threshold receive
+            zero weight.
 
     Returns:
         Symmetric matrix representing the pseudoinverse square root of
@@ -108,6 +82,14 @@ def _covariance_whitener(
         The cutoff is defined as ``rcond * max(abs(eigenvalues))``.
         Small negative eigenvalues within the tolerance are discarded.
     """
+    if (
+            not np.isscalar(rcond)
+            or isinstance(rcond, (str, bool, np.bool_))
+            or not np.isfinite(rcond)
+            or rcond < 0
+    ):
+        raise ValueError("rcond must be finite and nonnegative.")
+
     matrix = _symmetric_matrix(cov, name="cov")
     values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.T))
     scale = float(np.max(np.abs(values)))
@@ -150,11 +132,21 @@ def matrix_diagnostics(
         zero and infinite condition number.
     """
     arr = _symmetric_matrix(matrix, name="matrix")
-    tolerance_factor = _relative_tolerance(rtol, arr.shape[0])
+
+    if rtol is None:
+        rtol = arr.shape[0] * np.finfo(np.float64).eps
+    if (
+            not np.isscalar(rtol)
+            or isinstance(rtol, (str, bool, np.bool_))
+            or not np.isfinite(rtol)
+            or rtol < 0
+    ):
+        raise ValueError("rtol must be finite and nonnegative.")
+
     eigenvalues, eigenvectors = np.linalg.eigh(0.5 * (arr + arr.T))
     absolute = np.abs(eigenvalues)
     maximum = float(np.max(absolute))
-    threshold = tolerance_factor * maximum
+    threshold = rtol * maximum
     rank = int(np.count_nonzero(absolute > threshold))
     condition_number = (
         float(maximum / np.min(absolute))
@@ -237,10 +229,13 @@ def fisher_diagnostics(
     cov_array = _symmetric_matrix(cov, name="cov")
     if cov_array.shape != (n_observables, n_observables):
         raise ValueError("cov shape must match the Jacobian observable dimension.")
-    cutoff = _relative_tolerance(covariance_rcond, n_observables)
-    whitener = _covariance_whitener(cov_array, rcond=cutoff)
+    whitener = _covariance_whitener(cov_array, rcond=covariance_rcond)
     singular_values = np.linalg.svd(whitener @ jacobian_array, compute_uv=False)
-    threshold_factor = _relative_tolerance(rtol, max(n_observables, n_parameters))
+
+    if rtol is None:
+        rtol = max(n_observables, n_parameters) * np.finfo(np.float64).eps
+    threshold_factor = rtol
+
     maximum = float(np.max(singular_values))
     rank = int(np.count_nonzero(singular_values > threshold_factor * maximum))
     condition_number = (
@@ -337,8 +332,7 @@ def dali_diagnostics(
     cov_array = _symmetric_matrix(cov, name="cov")
     if cov_array.shape != (n_observables, n_observables):
         raise ValueError("cov shape must match the number of observables.")
-    cutoff = _relative_tolerance(covariance_rcond, n_observables)
-    whitener = _covariance_whitener(cov_array, rcond=cutoff)
+    whitener = _covariance_whitener(cov_array, rcond=covariance_rcond)
 
     responses: dict[int, NDArray[np.float64]] = {}
     response_norms: dict[int, float] = {}
