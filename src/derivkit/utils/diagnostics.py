@@ -183,9 +183,10 @@ def fisher_diagnostics(
     Args:
         fisher: Symmetric Fisher information matrix of shape ``(p, p)``.
         jacobian: Optional model Jacobian of shape ``(n_observables, p)``.
-        cov: Observational covariance of shape
-            ``(n_observables, n_observables)``. Supply together with
-            ``jacobian``. May be positive semidefinite.
+            Must be provided together with ``cov``, or both omitted.
+        cov: Optional positive semidefinite observational covariance of
+            shape ``(n_observables, n_observables)``. Must be provided
+            together with ``jacobian``, or both omitted.
         rtol: Relative cutoff for matrix and Jacobian numerical ranks.
             The default is dimension dependent for each calculation.
         covariance_rcond: Relative eigenvalue cutoff used when forming
