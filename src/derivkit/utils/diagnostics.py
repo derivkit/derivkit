@@ -99,8 +99,10 @@ def _covariance_whitener(
 
             C^{+/2} = Q \Lambda^{+/2} Q^{\mathsf T},
 
-        where retained eigenvalues receive inverse square-root weights
-        and discarded eigenvalues receive zero weights.
+        where the eigendecomposition is performed on the full covariance
+        matrix. Eigenvalues above the relative cutoff receive inverse
+        square-root weights, while eigenvalues at or below the cutoff
+        receive zero weights in the pseudoinverse square root.
 
         The cutoff is defined as ``rcond * max(abs(eigenvalues))``.
         Small negative eigenvalues within the tolerance are discarded.
