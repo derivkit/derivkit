@@ -120,18 +120,18 @@ def test_matrix_diagnostics_single_parameter():
 
 
 @pytest.mark.parametrize(
-    "matrix",
+    ("matrix", "message"),
     [
-        np.array([]),
-        np.array([1.0, 2.0]),
-        np.zeros((0, 0)),
-        np.ones((2, 3)),
-        np.ones((2, 2, 2)),
+        (np.array([]), "must be 2D"),
+        (np.array([1.0, 2.0]), "must be 2D"),
+        (np.zeros((0, 0)), "must be nonempty"),
+        (np.ones((2, 3)), "must be square"),
+        (np.ones((2, 2, 2)), "must be 2D"),
     ],
 )
-def test_matrix_diagnostics_invalid_shape_raises(matrix):
+def test_matrix_diagnostics_invalid_shape_raises(matrix, message):
     """Tests that empty, nonsquare, or non-2D matrices raise ValueError."""
-    with pytest.raises(ValueError, match="nonempty square"):
+    with pytest.raises(ValueError, match=message):
         matrix_diagnostics(matrix)
 
 

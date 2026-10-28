@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from derivkit.utils.validate import validate_square_matrix_finite
+
 __all__ = ["matrix_diagnostics", "fisher_diagnostics", "dali_diagnostics"]
 
 
@@ -50,19 +52,14 @@ def _symmetric_matrix(matrix: ArrayLike, *, name: str) -> NDArray[np.float64]:
         name: Name of the input used in validation error messages.
 
     Returns:
-        Validated two-dimensional float64 NumPy array. The matrix values
-        are not modified.
+        Validated two-dimensional float64 NumPy array.
 
     Raises:
-        ValueError: If the matrix is empty, nonsquare, contains non-finite
-            values, or is not symmetric within the specified internal
-            numerical tolerance.
+        ValueError: If the matrix is empty, nonsquare, nonfinite, or nonsymmetric.
     """
-    arr = np.asarray(matrix, dtype=np.float64)
-    if arr.ndim != 2 or arr.shape[0] != arr.shape[1] or arr.shape[0] == 0:
-        raise ValueError(f"{name} must be a nonempty square 2D array.")
-    if not np.all(np.isfinite(arr)):
-        raise ValueError(f"{name} must contain only finite values.")
+    arr = validate_square_matrix_finite(matrix, name=name)
+    if arr.shape[0] == 0:
+        raise ValueError(f"{name} must be nonempty.")
     if not np.allclose(arr, arr.T, rtol=1e-12, atol=1e-12):
         raise ValueError(f"{name} must be symmetric.")
     return arr
