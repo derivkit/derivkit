@@ -19,8 +19,8 @@ def _relative_tolerance(rtol: float | None, dimension: int) -> float:
     """Return a validated relative spectral tolerance.
 
     Args:
-        rtol: Requested relative tolerance. If ``None``, uses
-            ``dimension * eps`` for float64 precision.
+        rtol: Requested relative tolerance. When ``None`` is supplied,
+            uses ``dimension * eps`` for float64 precision.
         dimension: Matrix dimension used to determine the default tolerance.
 
     Returns:
