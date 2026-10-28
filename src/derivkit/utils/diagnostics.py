@@ -73,8 +73,9 @@ def _covariance_whitener(
     Args:
         cov: Symmetric positive semidefinite covariance matrix of shape
             ``(n, n)``.
-        rcond: Relative eigenvalue cutoff used to determine which
-            covariance modes are retained. Must be finite and nonnegative.
+        rcond: Finite, nonnegative relative tolerance. Covariance eigenvalues
+            greater than ``rcond * max(abs(eigenvalues))`` are inverted,
+            while those at or below this threshold receive zero weight.
 
     Returns:
         Symmetric matrix representing the pseudoinverse square root of
