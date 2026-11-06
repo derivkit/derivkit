@@ -25,8 +25,9 @@ def build_fisher_matrix(
     *,
     method: str | None = None,
     n_workers: int = 1,
+    return_metadata: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.floating]:
+) -> NDArray[np.floating] | tuple[NDArray[np.floating], dict[str, Any]]:
     """Computes the Fisher information matrix for a given model and covariance.
 
     Args:
@@ -43,13 +44,21 @@ def build_fisher_matrix(
         method: Numerical differentiation method or alias (e.g.,
             ``"adaptive"``, ``"finite"``). If ``None``, uses
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        return_metadata: When set to ``True``, return a metadata object with
+            summary statistics of the Fisher matrix and the Jacobian used to
+            construct the Fisher matrix.
         n_workers: Number of workers for per-parameter parallelisation.
             Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Fisher matrix with shape ``(n_parameters, n_parameters)``.
+        When ``return_metadata`` is ``False``, the function returns a Fisher
+        matrix with shape ``(n_parameters, n_parameters)``.
+
+        When ``return_metadata`` is ``True``, the function returns a tuple
+        containing the Fisher matrix as the first element and the metadata
+        object as the second element.
     """
     out = get_forecast_tensors(
         function=function,
@@ -58,8 +67,13 @@ def build_fisher_matrix(
         forecast_order=1,
         method=method,
         n_workers=n_workers,
+        return_metadata=return_metadata,
         **dk_kwargs,
     )
+    if return_metadata:
+        metadata = out[1]
+        out = out[0]
+
     # Accept both the dict form: out[1] == (F,) and the
     # direct array form: out == F
     if isinstance(out, dict):
@@ -78,7 +92,7 @@ def build_fisher_matrix(
         raise ValueError(
             f"Fisher matrix must be square; got shape {fisher.shape}.")
 
-    return fisher
+    return fisher if not return_metadata else (fisher, metadata)
 
 
 def build_fisher_bias(

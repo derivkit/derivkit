@@ -192,8 +192,9 @@ class ForecastKit:
         *,
         method: str | None = None,
         n_workers: int = 1,
+        return_metadata: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray | tuple[np.ndarray, dict[str, Any]]:
         """Computes the Fisher information matrix for a given model and covariance.
 
         Args:
@@ -202,11 +203,17 @@ class ForecastKit:
                 :class:`derivkit.derivative_kit.DerivativeKit` default is used.
             n_workers: Number of workers for per-parameter parallelisation.
                 Default is ``1`` (serial).
+            return_metadata: When set to ``True``, collects summary statistics
+                metadata about the Fisher matrix and the Jacobian used to build
+                the Fisher matrix.
             **dk_kwargs: Additional keyword arguments forwarded to
                 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
         Returns:
-            Fisher matrix with shape ``(n_parameters, n_parameters)``.
+            If ``return_metadata`` is set to ``False``, returns the Fisher matrix
+            with shape ``(n_parameters, n_parameters)``. If ``return_metadata`` is
+            set to ``True``, returns a tuple with the Fisher matrix as its first
+            element, while the second element is a metadata object.
         """
         function = require_callable(self.function, context="ForecastKit.fisher")
 
@@ -216,6 +223,7 @@ class ForecastKit:
             cov=self.cov0,
             method=method,
             n_workers=n_workers,
+            return_metadata=return_metadata,
             **dk_kwargs,
         )
         return fisher_matrix
