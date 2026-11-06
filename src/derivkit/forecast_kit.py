@@ -336,8 +336,9 @@ class ForecastKit:
         forecast_order: int = 2,
         symmetrize: bool = True,
         n_workers: int = 1,
+        return_metadata: bool = False,
         **dk_kwargs: Any,
-    ) -> dict[int, tuple[FloatArray, ...]]:
+    ) -> dict[int, tuple[FloatArray, ...]] | tuple[dict[int, tuple[FloatArray, ...]], dict[str, Any]]:
         """Builds the DALI expansion for the given model up to the given order.
 
         Args:
@@ -351,11 +352,15 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
+            return_metadata: When set to ``True``, collects summary statistics
+                metadata about the DALI tensors and the derivatives used to build
+                the DALI tensors.
             **dk_kwargs: Additional keyword arguments passed to
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
-            A dict mapping ``order -> multiplet`` for all ``order = 1..forecast_order``.
+            If ``return_metadata`` is set to ``False``: a dict mapping
+            ``order -> multiplet`` for all ``order = 1..forecast_order``.
 
             For each forecast order k, the returned multiplet contains the tensors
             introduced at that order. Concretely:
@@ -372,6 +377,10 @@ class ForecastKit:
             Each tensor axis has length ``p = len(self.theta0)``. The
             additional tensors at
             order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
+
+            If ``return_metadata`` is set to ``False``: a tuple with the
+            above dict as the first element, and the metadata object as the
+            second element.
         """
         function = require_callable(self.function, context="ForecastKit.dali")
 
@@ -383,6 +392,7 @@ class ForecastKit:
             forecast_order=forecast_order,
             symmetrize_dali=symmetrize,
             n_workers=n_workers,
+            return_metadata=return_metadata,
             **dk_kwargs,
         )
         return dali_tensors
