@@ -45,8 +45,7 @@ def build_fisher_matrix(
             ``"adaptive"``, ``"finite"``). If ``None``, uses
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
         return_metadata: When set to ``True``, return a metadata object with
-            summary statistics of the Fisher matrix and the Jacobian used to
-            construct the Fisher matrix.
+            summary statistics of the Fisher matrix and the underlying Jacobian.
         n_workers: Number of workers for per-parameter parallelisation.
             Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to

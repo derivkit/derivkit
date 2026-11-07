@@ -204,8 +204,7 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter parallelisation.
                 Default is ``1`` (serial).
             return_metadata: When set to ``True``, collects summary statistics
-                metadata about the Fisher matrix and the Jacobian used to build
-                the Fisher matrix.
+                metadata about the Fisher matrix and the underlying Jacobian.
             **dk_kwargs: Additional keyword arguments forwarded to
                 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
@@ -353,8 +352,7 @@ class ForecastKit:
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
             return_metadata: When set to ``True``, collects summary statistics
-                metadata about the DALI tensors and the derivatives used to build
-                the DALI tensors.
+                metadata about the DALI tensors and the undertlying derivatives.
             **dk_kwargs: Additional keyword arguments passed to
                 :class:`derivkit.calculus_kit.CalculusKit`.
 

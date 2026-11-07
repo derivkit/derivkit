@@ -51,8 +51,7 @@ def build_dali(
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid oversubscription.
         return_metadata: When set to ``True``, collects summary statistics
-            metadata about the DALI tensors and the derivatives used to build
-            the DALI tensors.
+            metadata about the DALI tensors and underlying derivatives.
         **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.calculus_kit.CalculusKit`.
 
