@@ -78,7 +78,7 @@ def build_gaussian_fisher_matrix(
         Fisher matrix with shape ``(p, p)`` where ``p`` is the number of parameters.
 
         If ``return_derivatives`` is ``True``, return a tuple containing the Fisher
-        matrix in the first element and a dict of the underlying derivatives
+        matrix in the first element and a dictionary of the underlying derivatives
         on the second element.
 
     Raises:
