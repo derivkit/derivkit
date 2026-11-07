@@ -401,7 +401,11 @@ class ForecastKit:
         symmetrize_dcov: bool = True,
         return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    ) -> np.ndarray
+        | tuple[
+            np.ndarray,
+            dict[str, np.ndarray | None]
+        ]:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
@@ -452,7 +456,11 @@ class ForecastKit:
         rtol: float = 1e-12,
         return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    ) -> np.ndarray
+        | tuple[
+            np.ndarray,
+            dict[str, np.ndarray]
+        ]:
         r"""Computes the X–Y Gaussian Fisher matrix (noisy inputs and outputs).
 
         This implements the X–Y Gaussian Fisher formalism where the measured inputs

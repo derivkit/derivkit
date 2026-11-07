@@ -304,7 +304,11 @@ def build_xy_gaussian_fisher_matrix(
     symmetrize_dcov: bool = True,
     return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.float64] | tuple[NDArray[np.float64], NDArray[np.float64]]:
+) -> NDArray[np.float64]
+    | tuple[
+        NDArray[np.float64],
+        dict[str, NDArray[np.float64] | None]
+    ]:
     """Computes a Gaussian Fisher matrix when both inputs and outputs are noisy.
 
     This function supports the X–Y Gaussian case, where measurement uncertainty is
