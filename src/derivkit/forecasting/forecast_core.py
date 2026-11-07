@@ -19,7 +19,6 @@ from numpy.typing import NDArray
 
 from derivkit.calculus_kit import CalculusKit
 from derivkit.utils.concurrency import normalize_workers
-from derivkit.utils.diagnostics import dali_diagnostics, fisher_diagnostics
 from derivkit.utils.linalg import invert_covariance
 from derivkit.utils.tensors import symmetrize_tensor
 from derivkit.utils.types import ArrayLike1D, ArrayLike2D
