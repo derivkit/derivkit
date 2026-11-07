@@ -91,11 +91,9 @@ def test_metadata_collection():
     cov = np.array([[1.0, 1.0],
                     [1.0, 1.0]], dtype=float)
 
-    _, metadata_fisher = get_forecast_tensors(func, theta0, cov, forecast_order=1, symmetrize_dali=False, return_metadata=True)
-    _, metadata_dali = get_forecast_tensors(func, theta0, cov, forecast_order=2, symmetrize_dali=False, return_metadata=True)
+    forecast, metadata = get_forecast_tensors(func, theta0, cov, forecast_order=3, symmetrize_dali=False, return_derivatives=True)
 
-    assert list(metadata_fisher.keys()) == ["fisher"]
-    assert list(metadata_dali.keys()) == ["fisher", "dali"]
+    assert forecast.keys() == metadata.keys()
 
 @pytest.mark.parametrize(
     (

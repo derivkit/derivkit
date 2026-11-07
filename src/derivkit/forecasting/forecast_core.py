@@ -53,7 +53,7 @@ def get_forecast_tensors(
     method: str | None = None,
     symmetrize_dali: bool = True,
     n_workers: int = 1,
-    return_metadata: bool = False,
+    return_derivatives: bool = False,
     derivatives: dict[int, NDArray[np.float64]] | None = None,
     **dk_kwargs: Any,
 ) -> dict[int, tuple[NDArray[np.float64], ...]] | tuple[dict[int, tuple[NDArray[np.float64], ...]], dict[str, Any]]:
@@ -81,8 +81,8 @@ def get_forecast_tensors(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
-        return_metadata: When set to ``True``, returns summary statistics of
-            the forecast tensors and the derivatives used to make them.
+        return_derivatives: When set to ``True``, returns the derivatives used to make
+            the forecast tensors.
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused, and missing orders are computed
             and stored in the dictionary. If ``None``, a temporary dictionary is used.
@@ -116,8 +116,8 @@ def get_forecast_tensors(
         - ``Q_{(4,3)}``: ``(p, p, p, p, p, p, p)``
         - ``Q_{(4,4)}``: ``(p, p, p, p, p, p, p, p)``
 
-        When ``return_metadata`` is ``True`` : a tuple with the above in the first
-        component. The second component contains a dict with summary diagnostics.
+        When ``return_derivatives`` is ``True`` : a tuple with the above in the first
+        component. The second component contains a dict with derivatives.
 
     Raises:
         ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDERS`.
@@ -209,14 +209,7 @@ def get_forecast_tensors(
             f"!= expected {sorted(expected_keys)}."
         )
 
-    metadata = {}
-    if return_metadata:
-        n_parameters = np.atleast_1d(theta0).size
-        metadata["fisher"] = fisher_diagnostics(forecast_tensors[1][0], jacobian=derivatives[1], cov=cov_arr)
-        if forecast_order > 1:
-            metadata["dali"] = dali_diagnostics(derivatives, cov_arr, np.ones(n_parameters)/np.sqrt(n_parameters))
-
-    return forecast_tensors if not return_metadata else (forecast_tensors, metadata)
+    return forecast_tensors if not return_derivatives else (forecast_tensors, derivatives)
 
 
 def _filter_derivative_kwargs(
