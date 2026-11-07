@@ -71,7 +71,7 @@ def build_dali(
         Each tensor axis has length ``p = len(theta0)``. The additional tensors at
         order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
 
-        If ``return_derivatives`` is set to ``False``: a tuple with the
+        If ``return_derivatives`` is set to ``True``: a tuple with the
         above dict as the first element, and a dict of derivatives as the
         second element.
     """
