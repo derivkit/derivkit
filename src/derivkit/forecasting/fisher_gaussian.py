@@ -30,8 +30,9 @@ def build_gaussian_fisher_matrix(
     n_workers: int = 1,
     rcond: float = 1e-12,
     symmetrize_dcov: bool = True,
+    return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Computes the Gaussian Fisher matrix.
 
     This implements the standard Fisher matrix for a Gaussian likelihoods with
@@ -64,11 +65,17 @@ def build_gaussian_fisher_matrix(
         rcond: Regularization cutoff for pseudoinverse fallback.
         symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
             ``0.5 * (C_i + C_i.T)``. Default is ``True``.
+        return_derivatives: If ``True``, return the derivatives used to build the Fisher
+            matrix.
         **dk_kwargs: Additional keyword arguments passed to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
         Fisher matrix with shape ``(p, p)`` where ``p`` is the number of parameters.
+
+        If ``return_derivatives`` is ``True``, return a tuple containing the Fisher
+        matrix in the first element and the underlying derivative matrix on the
+        second element.
 
     Raises:
         ValueError: If ``function(theta0)`` does not match the implied observable dimension.
@@ -152,8 +159,13 @@ def build_gaussian_fisher_matrix(
         forecast_order=1,
         method=method,
         n_workers=n_workers,
+        return_derivatives=return_derivatives,
         **dk_kwargs,
     )
+
+    if return_derivatives:
+        derivatives = out[1][1] # The jacobian is keyed to index 1 of the derivatives dict
+        out = out[0]
 
     if isinstance(out, dict):
         # introduced-at-order dict: {1: (F,), ...}
@@ -168,4 +180,5 @@ def build_gaussian_fisher_matrix(
     fisher_mean = np.asarray(fisher_mean, dtype=np.float64)
 
     fisher = fisher_mean + fisher_cov
-    return 0.5 * (fisher + fisher.T)
+    fisher_sym = 0.5 * (fisher + fisher.T)
+    return fisher_sym if not return_derivatives else (fisher_sym, derivatives)

@@ -399,8 +399,9 @@ class ForecastKit:
         n_workers: int = 1,
         rcond: float = 1e-12,
         symmetrize_dcov: bool = True,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
@@ -413,10 +414,14 @@ class ForecastKit:
             rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
             symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
                 :math:`\tfrac{1}{2}(C_{,i} + C_{,i}^{\mathsf{T}})`.
+            return_derivatives: If ``True``, return the underlying Jacobian.
             **dk_kwargs: Forwarded to the internal derivative calls.
 
         Returns:
             Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
+
+            If ``return_metadata`` is ``True``, return a tuple containing the Fisher
+            matrix as the first element and the Jacobian as the second element.
         """
         cov_spec = self.cov_fn if self.cov_fn is not None else self.cov0
 
@@ -428,6 +433,7 @@ class ForecastKit:
             n_workers=n_workers,
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
 
