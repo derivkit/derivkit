@@ -57,7 +57,7 @@ def build_dali(
             :class:`derivkit.calculus_kit.CalculusKit`.
 
     Returns:
-        if ``return_dictionary`` is set to ``False``: a dictionary with the keys
+        if ``return_metadata`` is set to ``False``: a dictionary with the keys
         equal to the order of the DALI expansion and values equal to the DALI
         multiplet at that order.
 

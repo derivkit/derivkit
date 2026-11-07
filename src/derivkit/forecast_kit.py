@@ -378,7 +378,7 @@ class ForecastKit:
             additional tensors at
             order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
 
-            If ``return_metadata`` is set to ``False``: a tuple with the
+            If ``return_metadata`` is set to ``True``: a tuple with the
             above dict as the first element, and the metadata object as the
             second element.
         """
