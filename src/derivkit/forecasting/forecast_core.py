@@ -90,8 +90,7 @@ def get_forecast_tensors(
             :class:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        when ``return_metadata`` is ``False``: a dict mapping ``order -> tensors``
-        for all ``order = 1..forecast_order``.
+        A dict mapping ``order -> tensors`` for all ``order = 1..forecast_order``.
 
         The tensors are grouped by the *forecast order at which they first appear*:
 

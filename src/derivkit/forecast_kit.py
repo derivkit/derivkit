@@ -209,10 +209,10 @@ class ForecastKit:
                 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
         Returns:
-            If ``return_metadata`` is set to ``False``, returns the Fisher matrix
-            with shape ``(n_parameters, n_parameters)``. If ``return_metadata`` is
-            set to ``True``, returns a tuple with the Fisher matrix as its first
-            element, while the second element is a metadata object.
+            Returns the Fisher matrix with shape ``(n_parameters, n_parameters)``.
+            If ``return_metadata`` is set to ``True``, returns a tuple with the
+            Fisher matrix as its first element, while the second element is a
+            metadata object.
         """
         function = require_callable(self.function, context="ForecastKit.fisher")
 
@@ -357,8 +357,7 @@ class ForecastKit:
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
         Returns:
-            If ``return_metadata`` is set to ``False``: a dict mapping
-            ``order -> multiplet`` for all ``order = 1..forecast_order``.
+            A dict mapping ``order -> multiplet`` for all ``order = 1..forecast_order``.
 
             For each forecast order k, the returned multiplet contains the tensors
             introduced at that order. Concretely:

@@ -52,8 +52,7 @@ def build_fisher_matrix(
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        When ``return_metadata`` is ``False``, the function returns a Fisher
-        matrix with shape ``(n_parameters, n_parameters)``.
+        A Fisher matrix with shape ``(n_parameters, n_parameters)``.
 
         When ``return_metadata`` is ``True``, the function returns a tuple
         containing the Fisher matrix as the first element and the metadata
