@@ -68,7 +68,7 @@ def build_fisher_matrix(
         **dk_kwargs,
     )
     if return_derivatives:
-        metadata = out[1][1] # The Jacobian is keyed to 1 (first-derivative)
+        jacobian = out[1][1] # The Jacobian is keyed to 1 (first-derivative)
         out = out[0]
 
     # Accept both the dict form: out[1] == (F,) and the
@@ -89,7 +89,7 @@ def build_fisher_matrix(
         raise ValueError(
             f"Fisher matrix must be square; got shape {fisher.shape}.")
 
-    return fisher if not return_derivatives else (fisher, metadata)
+    return fisher if not return_derivatives else (fisher, jacobian)
 
 
 def build_fisher_bias(
