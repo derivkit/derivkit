@@ -401,7 +401,7 @@ class ForecastKit:
         symmetrize_dcov: bool = True,
         return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray
+    ) -> np.ndarray \
         | tuple[
             np.ndarray,
             dict[str, np.ndarray | None]
@@ -456,7 +456,7 @@ class ForecastKit:
         rtol: float = 1e-12,
         return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray
+    ) -> np.ndarray \
         | tuple[
             np.ndarray,
             dict[str, np.ndarray]
