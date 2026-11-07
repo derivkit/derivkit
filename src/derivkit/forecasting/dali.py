@@ -23,8 +23,9 @@ def build_dali(
     forecast_order: int = 2,
     symmetrize_dali: bool = True,
     n_workers: int = 1,
+    return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> dict[int, tuple[FloatArray, ...]]:
+) -> dict[int, tuple[FloatArray, ...]] | tuple[dict[int, tuple[FloatArray, ...]], dict[str, Any]]:
     """Builds the DALI expansion for the given model of the supplied order.
 
     Args:
@@ -49,6 +50,7 @@ def build_dali(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid oversubscription.
+        return_derivatives: When set to ``True``, collects the underlying derivatives.
         **dk_kwargs: Additional keyword arguments passed to
             :class:`derivkit.calculus_kit.CalculusKit`.
 
@@ -68,6 +70,10 @@ def build_dali(
 
         Each tensor axis has length ``p = len(theta0)``. The additional tensors at
         order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
+
+        If ``return_derivatives`` is set to ``True``: a tuple with the
+        above dict as the first element, and a dict of derivatives as the
+        second element.
     """
     return get_forecast_tensors(
         function,
@@ -76,6 +82,7 @@ def build_dali(
         method=method,
         forecast_order=forecast_order,
         n_workers=n_workers,
+        return_derivatives=return_derivatives,
         symmetrize_dali=symmetrize_dali,
         **dk_kwargs,
     )

@@ -52,9 +52,10 @@ def get_forecast_tensors(
     method: str | None = None,
     symmetrize_dali: bool = True,
     n_workers: int = 1,
+    return_derivatives: bool = False,
     derivatives: dict[int, NDArray[np.float64]] | None = None,
     **dk_kwargs: Any,
-) -> dict[int, tuple[NDArray[np.float64], ...]]:
+) -> dict[int, tuple[NDArray[np.float64], ...]] | tuple[dict[int, tuple[NDArray[np.float64], ...]], dict[str, Any]]:
     """Returns a set of tensors according to the requested order of the forecast.
 
     Args:
@@ -79,6 +80,8 @@ def get_forecast_tensors(
         n_workers: Number of workers for per-parameter parallelization/threads.
             Default ``1`` (serial). Inner batch evaluation is kept serial to
             avoid nested pools.
+        return_derivatives: When set to ``True``, returns the derivatives used to make
+            the forecast tensors.
         derivatives: Optional dictionary of model derivatives keyed by order.
             Existing derivatives are reused, and missing orders are computed
             and stored in the dictionary. If ``None``, a temporary dictionary is used.
@@ -111,6 +114,9 @@ def get_forecast_tensors(
         - ``Q_{(4,2)}``: ``(p, p, p, p, p, p)``
         - ``Q_{(4,3)}``: ``(p, p, p, p, p, p, p)``
         - ``Q_{(4,4)}``: ``(p, p, p, p, p, p, p, p)``
+
+        When ``return_derivatives`` is ``True`` : a tuple with the above in the first
+        component. The second component contains a dict with derivatives.
 
     Raises:
         ValueError: If ``forecast_order`` is not in :data:`SUPPORTED_FORECAST_ORDERS`.
@@ -202,7 +208,7 @@ def get_forecast_tensors(
             f"!= expected {sorted(expected_keys)}."
         )
 
-    return forecast_tensors
+    return forecast_tensors if not return_derivatives else (forecast_tensors, derivatives)
 
 
 def _filter_derivative_kwargs(

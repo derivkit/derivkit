@@ -25,8 +25,9 @@ def build_fisher_matrix(
     *,
     method: str | None = None,
     n_workers: int = 1,
+    return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.floating]:
+) -> NDArray[np.floating] | tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Computes the Fisher information matrix for a given model and covariance.
 
     Args:
@@ -43,13 +44,18 @@ def build_fisher_matrix(
         method: Numerical differentiation method or alias (e.g.,
             ``"adaptive"``, ``"finite"``). If ``None``, uses
             :attr:`derivkit.derivative_kit.DerivativeKit.default_method`.
+        return_derivatives: When set to ``True``, return the underlying derivatives.
         n_workers: Number of workers for per-parameter parallelisation.
             Default is ``1`` (serial).
         **dk_kwargs: Additional keyword arguments forwarded to
             :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
     Returns:
-        Fisher matrix with shape ``(n_parameters, n_parameters)``.
+        A Fisher matrix with shape ``(n_parameters, n_parameters)``.
+
+        When ``return_derivatives`` is ``True``, the function returns a tuple
+        containing the Fisher matrix as the first element and the jacobian
+        as the second element.
     """
     out = get_forecast_tensors(
         function=function,
@@ -58,8 +64,13 @@ def build_fisher_matrix(
         forecast_order=1,
         method=method,
         n_workers=n_workers,
+        return_derivatives=return_derivatives,
         **dk_kwargs,
     )
+    if return_derivatives:
+        jacobian = out[1][1] # The Jacobian is keyed to 1 (first-derivative)
+        out = out[0]
+
     # Accept both the dict form: out[1] == (F,) and the
     # direct array form: out == F
     if isinstance(out, dict):
@@ -78,7 +89,7 @@ def build_fisher_matrix(
         raise ValueError(
             f"Fisher matrix must be square; got shape {fisher.shape}.")
 
-    return fisher
+    return fisher if not return_derivatives else (fisher, jacobian)
 
 
 def build_fisher_bias(

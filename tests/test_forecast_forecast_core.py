@@ -84,6 +84,17 @@ def test_pseudoinverse_path_no_nan(caplog):
     assert np.isfinite(dali_h).all()
 
 
+def test_metadata_collection():
+    """Tests that get_forecast_tensors() can collect metadata."""
+    func = _two_obs
+    theta0 = np.array([1.0])
+    cov = np.array([[1.0, 1.0],
+                    [1.0, 1.0]], dtype=float)
+
+    forecast, metadata = get_forecast_tensors(func, theta0, cov, forecast_order=3, symmetrize_dali=False, return_derivatives=True)
+
+    assert forecast.keys() == metadata.keys()
+
 @pytest.mark.parametrize(
     (
         "model, "

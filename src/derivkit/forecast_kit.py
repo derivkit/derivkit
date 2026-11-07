@@ -192,8 +192,9 @@ class ForecastKit:
         *,
         method: str | None = None,
         n_workers: int = 1,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """Computes the Fisher information matrix for a given model and covariance.
 
         Args:
@@ -202,11 +203,15 @@ class ForecastKit:
                 :class:`derivkit.derivative_kit.DerivativeKit` default is used.
             n_workers: Number of workers for per-parameter parallelisation.
                 Default is ``1`` (serial).
+            return_derivatives: When set to ``True``, returns the underlying derivatives.
             **dk_kwargs: Additional keyword arguments forwarded to
                 :meth:`derivkit.derivative_kit.DerivativeKit.differentiate`.
 
         Returns:
-            Fisher matrix with shape ``(n_parameters, n_parameters)``.
+            Returns the Fisher matrix with shape ``(n_parameters, n_parameters)``.
+            If ``return_derivatives`` is set to ``True``, returns a tuple with the
+            Fisher matrix as its first element, while the second element is the
+            the underlying Jacobian.
         """
         function = require_callable(self.function, context="ForecastKit.fisher")
 
@@ -216,6 +221,7 @@ class ForecastKit:
             cov=self.cov0,
             method=method,
             n_workers=n_workers,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
         return fisher_matrix
@@ -328,8 +334,9 @@ class ForecastKit:
         forecast_order: int = 2,
         symmetrize: bool = True,
         n_workers: int = 1,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> dict[int, tuple[FloatArray, ...]]:
+    ) -> dict[int, tuple[FloatArray, ...]] | tuple[dict[int, tuple[FloatArray, ...]], dict[str, Any]]:
         """Builds the DALI expansion for the given model up to the given order.
 
         Args:
@@ -343,6 +350,7 @@ class ForecastKit:
             n_workers: Number of workers for per-parameter
                 parallelization/threads. Default ``1`` (serial). Inner batch
                 evaluation is kept serial to avoid oversubscription.
+            return_derivatives: When set to ``True``, returns the underlying derivatives.
             **dk_kwargs: Additional keyword arguments passed to
                 :class:`derivkit.calculus_kit.CalculusKit`.
 
@@ -364,6 +372,10 @@ class ForecastKit:
             Each tensor axis has length ``p = len(self.theta0)``. The
             additional tensors at
             order ``k`` have parameter-axis ranks from ``k+1`` through ``2*k``.
+
+            If ``return_derivatives`` is set to ``True``: a tuple with the
+            above dict as the first element, and the dict of derivatives as the
+            second element.
         """
         function = require_callable(self.function, context="ForecastKit.dali")
 
@@ -375,6 +387,7 @@ class ForecastKit:
             forecast_order=forecast_order,
             symmetrize_dali=symmetrize,
             n_workers=n_workers,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
         return dali_tensors
@@ -386,8 +399,13 @@ class ForecastKit:
         n_workers: int = 1,
         rcond: float = 1e-12,
         symmetrize_dcov: bool = True,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray \
+        | tuple[
+            np.ndarray,
+            dict[str, np.ndarray | None]
+        ]:
         r"""Computes the generalized Fisher matrix for parameter-dependent mean and/or covariance.
 
         This function computes the generalized Fisher matrix for a Gaussian
@@ -400,10 +418,14 @@ class ForecastKit:
             rcond: Regularization cutoff for pseudoinverse fallback in linear solves.
             symmetrize_dcov: If ``True``, symmetrize each covariance derivative via
                 :math:`\tfrac{1}{2}(C_{,i} + C_{,i}^{\mathsf{T}})`.
+            return_derivatives: If ``True``, return the underlying Jacobian.
             **dk_kwargs: Forwarded to the internal derivative calls.
 
         Returns:
             Fisher matrix with shape ``(p, p)`` with ``p`` the number of parameters.
+
+            If ``return_metadata`` is ``True``, return a tuple containing the Fisher
+            matrix as the first element and the Jacobian as the second element.
         """
         cov_spec = self.cov_fn if self.cov_fn is not None else self.cov0
 
@@ -415,6 +437,7 @@ class ForecastKit:
             n_workers=n_workers,
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
 
@@ -431,8 +454,13 @@ class ForecastKit:
         check_cyy_consistency: bool = True,
         atol: float = 0.0,
         rtol: float = 1e-12,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray \
+        | tuple[
+            np.ndarray,
+            dict[str, np.ndarray]
+        ]:
         r"""Computes the X–Y Gaussian Fisher matrix (noisy inputs and outputs).
 
         This implements the X–Y Gaussian Fisher formalism where the measured inputs
@@ -457,10 +485,16 @@ class ForecastKit:
                 by ``cov_xy``.
             atol: Absolute tolerance for the :math:`C_{yy}` consistency check.
             rtol: Relative tolerance for the :math:`C_{yy}` consistency check.
+            return_derivatives: When set to ``True``, returns the derivatives used to
+                build the Fisher matrix.
             **dk_kwargs: Forwarded to the derivative backend.
 
         Returns:
             Fisher matrix with shape ``(p, p)``, where ``p`` is the number of parameters.
+
+            When ``return_derivatives`` is set to ``True``, returns a tuple containing
+            the Fisher matrix as the first element, while the derivatives are the second
+            element.
 
         Raises:
             ValueError: If ``check_cyy_consistency=True`` and ``self.cov0`` is compatible
@@ -494,6 +528,7 @@ class ForecastKit:
             n_workers=n_workers,
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
 
