@@ -450,8 +450,9 @@ class ForecastKit:
         check_cyy_consistency: bool = True,
         atol: float = 0.0,
         rtol: float = 1e-12,
+        return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         r"""Computes the X–Y Gaussian Fisher matrix (noisy inputs and outputs).
 
         This implements the X–Y Gaussian Fisher formalism where the measured inputs
@@ -476,10 +477,16 @@ class ForecastKit:
                 by ``cov_xy``.
             atol: Absolute tolerance for the :math:`C_{yy}` consistency check.
             rtol: Relative tolerance for the :math:`C_{yy}` consistency check.
+            return_derivatives: When set to ``True``, returns the derivatives used to
+                build the Fisher matrix.
             **dk_kwargs: Forwarded to the derivative backend.
 
         Returns:
             Fisher matrix with shape ``(p, p)``, where ``p`` is the number of parameters.
+
+            When ``return_derivatives`` is set to ``True``, returns a tuple containing
+            the Fisher matrix as the first element, while the derivatives are the second
+            element.
 
         Raises:
             ValueError: If ``check_cyy_consistency=True`` and ``self.cov0`` is compatible
@@ -513,6 +520,7 @@ class ForecastKit:
             n_workers=n_workers,
             rcond=rcond,
             symmetrize_dcov=symmetrize_dcov,
+            return_derivatives=return_derivatives,
             **dk_kwargs,
         )
 

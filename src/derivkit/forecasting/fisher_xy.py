@@ -302,8 +302,9 @@ def build_xy_gaussian_fisher_matrix(
     n_workers: int = 1,
     rcond: float = 1e-12,
     symmetrize_dcov: bool = True,
+    return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float64] | tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Computes a Gaussian Fisher matrix when both inputs and outputs are noisy.
 
     This function supports the X–Y Gaussian case, where measurement uncertainty is
@@ -324,10 +325,16 @@ def build_xy_gaussian_fisher_matrix(
         n_workers: Number of workers used for derivative evaluations.
         rcond: Cutoff used when solving linear systems involving the covariance.
         symmetrize_dcov: Whether to symmetrize numerical covariance derivatives.
+        return_derivatives: When set to ``True``, return the derivatives used to
+            build the Fisher matrix.
         **dk_kwargs: Additional keyword arguments forwarded to the derivative engine.
 
     Returns:
         The Fisher information matrix evaluated at ``theta0``.
+
+        If ``return_derivatives`` is set to ``True``, returns a tuple containing
+        the Fisher matrix as the first element and the derivatives as the second
+        element.
     """
     theta0 = np.atleast_1d(np.asarray(theta0, dtype=np.float64))
     x0 = np.atleast_1d(np.asarray(x0, dtype=np.float64))
@@ -353,5 +360,6 @@ def build_xy_gaussian_fisher_matrix(
         n_workers=n_workers,
         rcond=rcond,
         symmetrize_dcov=symmetrize_dcov,
+        return_derivatives=return_derivatives,
         **dk_kwargs,
     )
