@@ -194,7 +194,7 @@ class ForecastKit:
         n_workers: int = 1,
         return_derivatives: bool = False,
         **dk_kwargs: Any,
-    ) -> np.ndarray | tuple[np.ndarray, dict[str, Any]]:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """Computes the Fisher information matrix for a given model and covariance.
 
         Args:
@@ -210,8 +210,8 @@ class ForecastKit:
         Returns:
             Returns the Fisher matrix with shape ``(n_parameters, n_parameters)``.
             If ``return_derivatives`` is set to ``True``, returns a tuple with the
-            Fisher matrix as its first element, while the second element is a
-            dict containing derivatives.
+            Fisher matrix as its first element, while the second element is the
+            the underlying Jacobian.
         """
         function = require_callable(self.function, context="ForecastKit.fisher")
 

@@ -27,7 +27,7 @@ def build_fisher_matrix(
     n_workers: int = 1,
     return_derivatives: bool = False,
     **dk_kwargs: Any,
-) -> NDArray[np.floating] | tuple[NDArray[np.floating], dict[str, Any]]:
+) -> NDArray[np.floating] | tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Computes the Fisher information matrix for a given model and covariance.
 
     Args:
