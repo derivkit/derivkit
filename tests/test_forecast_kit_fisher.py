@@ -41,6 +41,7 @@ def forecasting_mocks(monkeypatch):
         forecast_order,
         method,
         n_workers,
+        return_metadata,
         **dk_kwargs,
     ):
         """Takes the place of get_forecast_tensors, returns d1 @ invcov @ d1.T and records call."""
@@ -51,6 +52,7 @@ def forecasting_mocks(monkeypatch):
             "forecast_order": forecast_order,
             "method": method,
             "n_workers": n_workers,
+            "return_metadata": return_metadata,
             "dk_kwargs": dk_kwargs,
         }
         d1 = mocks.d1
@@ -194,6 +196,7 @@ def test_get_forecast_tensors_order1_default_n_workers(forecasting_mocks):
 
     assert info["forecast_order"] == 1
     assert info["n_workers"] == 1
+    assert not info["return_metadata"]
     assert dk_kwargs == {}
 
 
