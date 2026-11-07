@@ -212,9 +212,9 @@ def get_forecast_tensors(
     metadata = {}
     if return_metadata:
         n_parameters = np.atleast_1d(theta0).size
-        metadata["fisher"] = fisher_diagnostics(forecast_tensors[1][0], jacobian=derivatives[1], cov=cov)
+        metadata["fisher"] = fisher_diagnostics(forecast_tensors[1][0], jacobian=derivatives[1], cov=cov_arr)
         if forecast_order > 1:
-            metadata["dali"] = dali_diagnostics(derivatives, cov, np.ones(n_parameters)/np.sqrt(n_parameters))
+            metadata["dali"] = dali_diagnostics(derivatives, cov_arr, np.ones(n_parameters)/np.sqrt(n_parameters))
 
     return forecast_tensors if not return_metadata else (forecast_tensors, metadata)
 
