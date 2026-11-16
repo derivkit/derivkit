@@ -31,7 +31,6 @@ classifiers = [
 ]
 
 dependencies = [
-  "numdifftools",
   "numpy",
   "multiprocess",
   "scipy",
