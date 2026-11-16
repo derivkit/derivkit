@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.1
+
+Released on 2026-11-16.
+
+### Fixed
+
+* Removed `numdifftools` from the list of dependencies, as it has not been used since 7cafc542.
+
+
 ## v1.5.0
 
 Released on 2026-11-07.
